@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>LumaSharp_Compiler</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.0" />
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PrepareForBuild">
+    <Exec Command="msbuild &quot;../LumaSharp Grammar/LumaSharp Grammar.csproj&quot;" />
+  </Target>
+
+</Project>

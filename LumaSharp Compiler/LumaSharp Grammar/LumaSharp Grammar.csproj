@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>LumaSharp_Grammar</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="java -jar ../antlr-4.13.0-complete.jar -visitor -Dlanguage=CSharp -o &quot;../LumaSharp Compiler/Generated&quot; &quot;Grammar/LumaSharp.g4&quot;" />
+  </Target>
+
+</Project>
