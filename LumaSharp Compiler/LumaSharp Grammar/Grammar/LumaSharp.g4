@@ -22,6 +22,16 @@ ELSE: 'else';
 ELSEIF: 'elseif';
 TRUE: 'true';
 FALSE: 'false';
+FOREACH: 'foreach';
+IN: 'in';
+FOR: 'for';
+WHILE: 'while';
+SELECT: 'select';
+MATCH: 'match';
+DEFAULT: 'default';
+TRY: 'try';
+CATCH: 'catch';
+FINALLY: 'finally';
 
 // Primitive type keywords
 I8: 'i8';
@@ -40,6 +50,7 @@ STRING: 'string';
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 INT: [0-9]+;
 DECIMAL: [0-9]+ '.' [0-9]+;
+HEX: [0-9a-fA-F];
 LITERAL: '"' .*? '"';
 WS: [ \t\r\n]+ -> skip;
 
@@ -102,9 +113,18 @@ primitiveType: I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | ST
 // ### STATEMENTS
 statement: 
 	  returnStatement
+	| postfixStatement
 	| blockStatement
 	| localVariableStatement
-	| ifStatement;
+	| assignStatement
+	| ifStatement
+	| foreachStatement
+	| forStatement
+	| whileStatement
+	| selectStatement
+	| tryStatement
+	| BREAK ';'
+	| CONTINUE ';';
 
 // Block statement
 blockStatement: '{' statement* '}';
@@ -112,19 +132,45 @@ blockStatement: '{' statement* '}';
 // Return statement
 returnStatement: RETURN expression? ';';
 
+// Postfix statement
+postfixStatement: expression ('++' | '--') ';';
+
 // Local variable statement
 localVariableStatement: typeReference IDENTIFIER ('=' expression)? ';';
 
+// Assignment statement
+assignStatement: expression ('=' | '+=' | '-=' | '/=' | '*=') expression ';';
+
 // If statement
-ifStatement: IF '(' expression ')' (statement? ';' | '{' statement* '}') elseifStatement* elseStatement?;
+ifStatement: IF '(' expression ')' (statement | ';' | '{' statement* '}') elseifStatement* elseStatement?;
 
 // Elseif statement
-elseifStatement: ELSEIF '(' expression ')' (statement? ';' | '{' statement* '}');
+elseifStatement: ELSEIF '(' expression ')' (statement | ';' | '{' statement* '}');
 
 // Else statement
-elseStatement: ELSE (statement? ';' | '{' statement* '}');
+elseStatement: ELSE (statement | ';' | '{' statement* '}');
+
+// Foreach statement
+foreachStatement: FOREACH '(' typeReference IDENTIFIER IN expression ')' (statement? ';' | '{' statement* '}');
+
+// For statement
+forStatement: FOR '(' forVariableStatement? ';' expression? ';' expression? ')' (statement? ';' | '{' statement* '}');
+forVariableStatement: typeReference IDENTIFIER ('=' expression)?;
+
+// While statement
+whileStatement: WHILE '(' expression ')' (statement | ';' | '{' statement* '}');
+
+// Select statement
+selectStatement: SELECT '(' expression ')' '{' (defaultStatement | matchStatement)* '}';
+defaultStatement: DEFAULT ':' (statement | ';' | '{' statement* '}');
+matchStatement: MATCH expression ':' (statement | ';' | '{' statement* '}');
+
+// Try statement
+tryStatement: TRY (statement | '{' statement* '}') catchStatement? finallyStatement?;
+catchStatement: CATCH ('(' typeReference ')')? (statement | '{' statement* '}');
+finallyStatement: FINALLY (statement | '{' statement* '}');
 
 // ### EXPRESSIONS
 expression: (endExpression);
 
-endExpression: INT | DECIMAL | LITERAL | IDENTIFIER | TRUE | FALSE;
+endExpression: '0x' HEX+ | INT ('U' | 'L' | 'UL')? | DECIMAL ('F' | 'D')? | LITERAL | IDENTIFIER | TRUE | FALSE;
