@@ -4,52 +4,127 @@ grammar LumaSharp;
 IMPORT: 'import';
 NAMESPACE: 'namespace';
 TYPE: 'type';
+CONTRACT: 'contract';
 ENUM: 'enum';
 
+// Access modifier keywords
 GLOBAL: 'global';
 EXPORT: 'export';
 INTERNAL: 'internal';
 
+// Other keywords
+AS: 'as';
+CONTINUE: 'continue';
+BREAK: 'break';
+RETURN: 'return';
+IF: 'if';
+ELSE: 'else';
+ELSEIF: 'elseif';
+TRUE: 'true';
+FALSE: 'false';
+
+// Primitive type keywords
+I8: 'i8';
+U8: 'u8';
+I16: 'i16';
+U16: 'u16';
+I32: 'i32';
+U32: 'u32';
+I64: 'i64';
+U64: 'u64';
+FLOAT: 'float';
+DOUBLE: 'double';
+STRING: 'string';
+
 // Lexer rules
-ID: [a-zA-Z_][a-zA-Z0-9_]*;
+IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 INT: [0-9]+;
-STRING: '"' .*? '"';
+DECIMAL: [0-9]+ '.' [0-9]+;
+LITERAL: '"' .*? '"';
 WS: [ \t\r\n]+ -> skip;
 
-// Lexer block
-lb: '{';
-rb: '}';
-lp: '(';
-rp: ')';
-la: '[';
-ra: ']';
-lg: '<';
-rg: '>';
-
-
+// This rule is optional and will be used to ignore comments
+COMMENT: '/*' .*? '*/' -> skip;
 
 
 
 // Parser rules
-compilationUnit: (namespaceDeclaration | typeDeclaration | enumDeclaration)*;
+// Compilation unit - root of a source file
+compilationUnit: (importStatement | importAlias)* (namespaceDeclaration | typeDeclaration | contractDeclaration | enumDeclaration)*;
 
-namespaceDeclaration: NAMESPACE ID lb rb | NAMESPACE ID lb typeDeclaration* rb;
+// Import statement
+importStatement: IMPORT IDENTIFIER ('.' IDENTIFIER)* ';';
 
-typeDeclaration: TYPE ID lb memberDeclaration* rb;
+// Import alias
+importAlias: IMPORT IDENTIFIER AS IDENTIFIER ('.' IDENTIFIER)+ ';';
 
-enumDeclaration: ENUM ID lb enumField* rb;
 
-enumField: ID ('=' INT)? ',';
+// ### Declarations
+// Namespace declaration
+namespaceDeclaration: NAMESPACE IDENTIFIER '{' (typeDeclaration | contractDeclaration | enumDeclaration)* '}';
 
-memberDeclaration: typeDeclaration | fieldDeclaration;
+// Type declaration
+typeDeclaration: attributeDeclaration* accessModifier? TYPE IDENTIFIER genericParameters? inheritParameters? '{' (typeDeclaration | contractDeclaration | enumDeclaration)* '}';
 
-fieldDeclaration: accessModifier? GLOBAL? primitiveType ID fieldAssignment? ';';
+// Contract declaration
+contractDeclaration: attributeDeclaration* accessModifier? CONTRACT IDENTIFIER genericParameters? inheritParameters? '{' (enumDeclaration | methodDeclaration)* '}';
 
-fieldAssignment: '=' (INT | STRING | ID);
+// Enum declaration
+enumDeclaration: attributeDeclaration* accessModifier? ENUM IDENTIFIER (':' primitiveType)? '{' enumFields? '}';
+enumFields: enumField (',' enumField)*;
+enumField: IDENTIFIER ('=' INT)?;
 
+// Attribute declaration
+attributeDeclaration: '#' IDENTIFIER ('(' ((INT | DECIMAL | LITERAL) (',' (INT | DECIMAL | LITERAL))*)? ')')?;
+
+fieldDeclaration: accessModifier? GLOBAL? primitiveType IDENTIFIER fieldAssignment? ';';
+
+fieldAssignment: '=' (INT | STRING | IDENTIFIER);
+
+methodDeclaration: accessModifier? GLOBAL? primitiveType IDENTIFIER '(' ')';
+
+// Access modifiers
 accessModifier: EXPORT | INTERNAL;
 
-primitiveType: 'i8' | 'u8' | 'i16' | 'u16' | 'i32' | 'u32' | 'i64' | 'u64' | 'float' | 'double' | 'string';
+// Generic parameters
+genericParameters: '<' IDENTIFIER (',' IDENTIFIER)* '>';
 
-// This rule is optional and will be used to ignore comments
-COMMENT: '/*' .*? '*/' -> skip;
+// Inheritance
+inheritParameters: ':' IDENTIFIER (',' IDENTIFIER)*;
+
+
+// Type reference
+typeReference: primitiveType | (IDENTIFIER ('.' IDENTIFIER)* genericParameters?);
+primitiveType: I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
+
+
+
+// ### STATEMENTS
+statement: 
+	  returnStatement
+	| blockStatement
+	| localVariableStatement
+	| ifStatement;
+
+// Block statement
+blockStatement: '{' statement* '}';
+
+// Return statement
+returnStatement: RETURN expression? ';';
+
+// Local variable statement
+localVariableStatement: typeReference IDENTIFIER ('=' expression)? ';';
+
+// If statement
+ifStatement: IF '(' expression ')' (statement? ';' | '{' statement* '}') elseifStatement* elseStatement?;
+
+// Elseif statement
+elseifStatement: ELSEIF '(' expression ')' (statement? ';' | '{' statement* '}');
+
+// Else statement
+elseStatement: ELSE (statement? ';' | '{' statement* '}');
+
+// ### EXPRESSIONS
+expression: (endExpression);
+
+endExpression: INT | DECIMAL | LITERAL | IDENTIFIER | TRUE | FALSE;

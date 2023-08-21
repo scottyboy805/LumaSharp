@@ -41,5 +41,27 @@ namespace LumaSharp_CompilerTests
 
             return context;
         }
+
+        public static LumaSharpParser.StatementContext ParseInputStringStatement(string input)
+        {
+            // Create the parser
+            AntlrInputStream inputStream = new AntlrInputStream(input);
+            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
+            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
+
+            // Add error handler
+            parser.AddErrorListener(new SyntaxErrorHandler());
+
+            // Run program
+            LumaSharpParser.StatementContext context = parser.statement();
+
+            // Log errors
+            if (parser.NumberOfSyntaxErrors > 0)
+            {
+                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
+            }
+
+            return context;
+        }
     }
 }

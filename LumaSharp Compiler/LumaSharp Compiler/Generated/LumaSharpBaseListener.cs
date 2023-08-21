@@ -36,102 +36,6 @@ using ParserRuleContext = Antlr4.Runtime.ParserRuleContext;
 [System.CLSCompliant(false)]
 public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.lb"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterLb([NotNull] LumaSharpParser.LbContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.lb"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitLb([NotNull] LumaSharpParser.LbContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.rb"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterRb([NotNull] LumaSharpParser.RbContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.rb"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitRb([NotNull] LumaSharpParser.RbContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.lp"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterLp([NotNull] LumaSharpParser.LpContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.lp"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitLp([NotNull] LumaSharpParser.LpContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.rp"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterRp([NotNull] LumaSharpParser.RpContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.rp"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitRp([NotNull] LumaSharpParser.RpContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.la"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterLa([NotNull] LumaSharpParser.LaContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.la"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitLa([NotNull] LumaSharpParser.LaContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.ra"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterRa([NotNull] LumaSharpParser.RaContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.ra"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitRa([NotNull] LumaSharpParser.RaContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.lg"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterLg([NotNull] LumaSharpParser.LgContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.lg"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitLg([NotNull] LumaSharpParser.LgContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.rg"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterRg([NotNull] LumaSharpParser.RgContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.rg"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitRg([NotNull] LumaSharpParser.RgContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.compilationUnit"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -143,6 +47,30 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitCompilationUnit([NotNull] LumaSharpParser.CompilationUnitContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.importStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterImportStatement([NotNull] LumaSharpParser.ImportStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.importStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitImportStatement([NotNull] LumaSharpParser.ImportStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.importAlias"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterImportAlias([NotNull] LumaSharpParser.ImportAliasContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.importAlias"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitImportAlias([NotNull] LumaSharpParser.ImportAliasContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.namespaceDeclaration"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -168,6 +96,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitTypeDeclaration([NotNull] LumaSharpParser.TypeDeclarationContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.contractDeclaration"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterContractDeclaration([NotNull] LumaSharpParser.ContractDeclarationContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.contractDeclaration"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitContractDeclaration([NotNull] LumaSharpParser.ContractDeclarationContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumDeclaration"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -179,6 +119,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitEnumDeclaration([NotNull] LumaSharpParser.EnumDeclarationContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumFields"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEnumFields([NotNull] LumaSharpParser.EnumFieldsContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.enumFields"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEnumFields([NotNull] LumaSharpParser.EnumFieldsContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumField"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -192,17 +144,17 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitEnumField([NotNull] LumaSharpParser.EnumFieldContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.memberDeclaration"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.attributeDeclaration"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterMemberDeclaration([NotNull] LumaSharpParser.MemberDeclarationContext context) { }
+	public virtual void EnterAttributeDeclaration([NotNull] LumaSharpParser.AttributeDeclarationContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.memberDeclaration"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.attributeDeclaration"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitMemberDeclaration([NotNull] LumaSharpParser.MemberDeclarationContext context) { }
+	public virtual void ExitAttributeDeclaration([NotNull] LumaSharpParser.AttributeDeclarationContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.fieldDeclaration"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -228,6 +180,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitFieldAssignment([NotNull] LumaSharpParser.FieldAssignmentContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodDeclaration"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMethodDeclaration([NotNull] LumaSharpParser.MethodDeclarationContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodDeclaration"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMethodDeclaration([NotNull] LumaSharpParser.MethodDeclarationContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.accessModifier"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -240,6 +204,42 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitAccessModifier([NotNull] LumaSharpParser.AccessModifierContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.inheritParameters"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterInheritParameters([NotNull] LumaSharpParser.InheritParametersContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.inheritParameters"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitInheritParameters([NotNull] LumaSharpParser.InheritParametersContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeReference"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterTypeReference([NotNull] LumaSharpParser.TypeReferenceContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.typeReference"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitTypeReference([NotNull] LumaSharpParser.TypeReferenceContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.primitiveType"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -251,6 +251,114 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPrimitiveType([NotNull] LumaSharpParser.PrimitiveTypeContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.statement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterStatement([NotNull] LumaSharpParser.StatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.statement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitStatement([NotNull] LumaSharpParser.StatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.blockStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterBlockStatement([NotNull] LumaSharpParser.BlockStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.blockStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitBlockStatement([NotNull] LumaSharpParser.BlockStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.returnStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterReturnStatement([NotNull] LumaSharpParser.ReturnStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.returnStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitReturnStatement([NotNull] LumaSharpParser.ReturnStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.localVariableStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterLocalVariableStatement([NotNull] LumaSharpParser.LocalVariableStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.localVariableStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitLocalVariableStatement([NotNull] LumaSharpParser.LocalVariableStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.ifStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterIfStatement([NotNull] LumaSharpParser.IfStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.ifStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitIfStatement([NotNull] LumaSharpParser.IfStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.elseifStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterElseifStatement([NotNull] LumaSharpParser.ElseifStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.elseifStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitElseifStatement([NotNull] LumaSharpParser.ElseifStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.elseStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterElseStatement([NotNull] LumaSharpParser.ElseStatementContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.elseStatement"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitElseStatement([NotNull] LumaSharpParser.ElseStatementContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.expression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterExpression([NotNull] LumaSharpParser.ExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.expression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitExpression([NotNull] LumaSharpParser.ExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEndExpression([NotNull] LumaSharpParser.EndExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEndExpression([NotNull] LumaSharpParser.EndExpressionContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>
