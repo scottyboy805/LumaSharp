@@ -14,13 +14,13 @@ TODO - Implement bytecode runtime to execute code as an application or library.
 Here is the proposed syntax for the language which may eb subject to change:
 
 Primitive types:
-```
+```cs
 // Primitive integer types include the size/unsigned information in the name to easily understand how it is represented in memory
 i8, u8, i16, u16, i32, u32, i64, u64, single, double, bool, string, char
 ```
 
 Imports:
-```
+```cs
 import Collections;
 import Collections.Generic;
 import MyList as Collections.Generic.List<i8>;
