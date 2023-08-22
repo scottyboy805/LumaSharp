@@ -17,6 +17,9 @@ Here is the proposed syntax for the language which may eb subject to change:
 ```cs
 // Primitive integer types include the size/unsigned information in the name to easily understand how it is represented in memory
 i8, u8, i16, u16, i32, u32, i64, u64, single, double, bool, string, char
+
+// Any is a special type that can represent any built in or user type as a common base - Similar to C# object keyword - Leads to allocation on the heap same as c#
+any = 123;
 ```
 
 ### Imports:
