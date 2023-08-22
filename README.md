@@ -132,3 +132,11 @@ type MyType{
   }
 }
 ```
+
+### Attributes
+```cs
+// Custom attributes are very useful in C#, although I think they can be improved slightly using a hash tag type syntax
+#Serializable
+#UIDisplayable("My Type", 100)
+type MyType{}
+```
