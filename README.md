@@ -32,7 +32,7 @@ import MyList as Collections.Generic.List<i8>;  // Aliasing is supported
 
 ### Namespaces:
 ```cs
-// Much the same, no changes needed here
+// Much the same, no real changes needed here - just use block syntax only where C# supports `namespace Example;` type syntax which is not needed in my opinion
 namespace My.Root.Namespace{}
 ```
 ### Types:
