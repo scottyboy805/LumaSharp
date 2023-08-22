@@ -143,3 +143,44 @@ type MyType{
 #UIDisplayable("My Type", 100)
 type MyType{}
 ```
+
+## A Complete Example - Bubble Sort
+```cs
+import Collections.Generic;
+
+// Enclosing namespace
+namespace BubbleSort.Example
+{
+  // Main type
+  type Program
+  {
+    // List of values to sort
+    List<i32> unsortedValues = { 800, 11, 50, 771, 649 };
+  
+    // Main entry point to the program
+    export global void Main()
+    {
+      BubbleSort(unsortedValues);
+    }
+  
+    // Algorithm method
+    export void BubbleSort(List<32>& values)
+    {
+      i32 temp = 0;
+  
+      for(i32 i = 0; i < values.Count; i++)
+      {
+        for(int j = 0; j < values.Count - 1; j++)
+        {
+          if(values[j] > values[j + 1])
+          {
+            temp = values[j + 1];
+            values[j + 1] = values[j];
+            values[j] = temp;
+          }
+        }
+      }
+    }
+  }
+}
+```
