@@ -50,3 +50,47 @@ MyType<i8, MyEnum>& myHeapVar = new MyType<i8, MyEnum>();
 // Contracts are essentially interfaces but I think contract has a better meaning in such a case
 internal contract CResourceCollection<T> : CIterator<T>, CDispose{}
 ```
+
+### Enums:
+```cs
+// C# enums are pretty close to prefect in my opinion so no real changes here
+export enum MyEnum: u16
+{
+  Item1 = 10,
+  Item2 = Item1,
+}
+```
+
+### Access Modifiers
+```cs
+default visibility (No keyword required) // The member is visible by the current and all derived members - Same as C# protected
+export // The member is accessible from the current and other libraries: IE. the type visiblity is exported. Same as C# public
+internal // The member is  accessibly from the current library in any context, but not from external libraries - Same as C# internal
+hidden // The member is only visible to the parent member (Only suitable for nested members) - Same as C# private
+global // (Only suitable for field, accessor and method) The member is globally accessible via the type qualifier - Same as C# static
+```
+
+### Fields
+```cs
+// Fields are quite similar to C# - Only real difference is that they are automatically accessible to all derived types unless the 'hidden' access modifier is used
+type MyType{
+  hidden i32 myField = 6 + 12;
+}
+```
+
+### Accessors
+```cs
+// Similar to C# properties although the aim is to make usage as easy as possible with only 2 possible usages - C# has too many variations for my liking
+type MyType{
+  export i64 MySimpleAccessor => myLongVariable;
+
+  internal float MyAccessor
+    => read: return myFloatVariable;
+    => write: {
+      CheckInputValue(input);
+      myFloatVariable = input;
+  }
+
+  internal float MyReadOnlyAccessor => read: return myFloatVriable;
+}
+```
