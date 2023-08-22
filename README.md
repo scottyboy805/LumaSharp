@@ -89,8 +89,46 @@ type MyType{
     => write: {
       CheckInputValue(input);
       myFloatVariable = input;
-  }
+    }
 
   internal float MyReadOnlyAccessor => read: return myFloatVriable;
+}
+```
+
+### Methods
+```cs
+// Much the same as C# methods - Only real thing to talk about is variable size parameters lists
+type MyType{
+  // Simple inlined method
+  i8 MySimpleMethod(i16 val) => return (i8)val;
+
+  // Simple pass by reference method - Same as using C# 'ref' keyword - but should also be used instead of 'in' and 'out'
+  void MyRefMethod(i32& val) => val++;
+
+  // Simple method with variable length parameter
+  export i32 MyVariableParamMethod(i32 values ...)
+  {
+    // Values is converted to i32 array containing proveded number of parameters
+    return values.Count;
+  }
+}
+```
+
+### Tasks
+```cs
+// A task is essentially just a C# delegate - a way to store a method as a variable to be invoked at a later time
+type MyType{
+  task i32 MyTask(i32 a, i32 b);
+
+  void MyMethod()
+  {
+    // Create and call standard
+    MyTask callA = (i32 a, i32 b) => return a + b;
+    i32 result = callA(3, 5);
+
+    // Unlike C# we can cast to common base and dynamic invoke
+    task callB = callA;
+    i32 result = (i32)callB(4, 6);
+  }
 }
 ```
