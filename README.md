@@ -13,15 +13,40 @@ TODO - Implement bytecode runtime to execute code as an application or library.
 # Proposed syntax
 Here is the proposed syntax for the language which may eb subject to change:
 
-Primitive types:
+### Primitive types:
 ```cs
 // Primitive integer types include the size/unsigned information in the name to easily understand how it is represented in memory
 i8, u8, i16, u16, i32, u32, i64, u64, single, double, bool, string, char
 ```
 
-Imports:
+### Imports:
 ```cs
+// Import seems like a better fit rather than using
 import Collections;
 import Collections.Generic;
-import MyList as Collections.Generic.List<i8>;
+import MyList as Collections.Generic.List<i8>;  // Aliasing is supported
+```
+
+### Namespaces:
+```cs
+// Much the same, no changes needed here
+namespace My.Root.Namespace{}
+```
+### Types:
+```cs
+// No class or struct, just the 'type' keyword to declare a new user type with support for generics, inheritance, and multiple contract implementation.
+// Types can be value or reference based depending upon how they are allocated
+export type MyType<T0, T1: enum> : MyBaseType<T0>, CIterator<T0>, CResource{}
+
+// Stack allocated
+MyType<i8, MyEnum> myVar = MyType<i8, MyEnum>();
+
+// Heap allocated - reference type returned by 'new' and referenced by '&'
+MyType<i8, MyEnum>& myHeapVar = new MyType<i8, MyEnum>();
+```
+
+### Contracts:
+```cs
+// Contracts are essentially interfaces but I think contract has a better meaning in such a case
+internal contract CResourceCollection<T> : CIterator<T>, CDispose{}
 ```
