@@ -155,7 +155,7 @@ namespace BubbleSort.Example
   global type Program
   {
     // List of values to sort
-    List<i32> unsortedValues = { 800, 11, 50, 771, 649 };
+    hidden List<i32>& unsortedValues = { 800, 11, 50, 771, 649 };
   
     // Main entry point to the program
     export global void Main()
