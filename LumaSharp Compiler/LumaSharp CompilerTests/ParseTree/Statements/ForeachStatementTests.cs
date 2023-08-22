@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Statements
+namespace LumaSharp_CompilerTests.ParseTree.Statements
 {
     [TestClass]
     public class ForeachStatementTests

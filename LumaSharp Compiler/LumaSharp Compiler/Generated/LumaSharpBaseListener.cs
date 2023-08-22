@@ -216,6 +216,30 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterGenericArguments([NotNull] LumaSharpParser.GenericArgumentsContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitGenericArguments([NotNull] LumaSharpParser.GenericArgumentsContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.arrayParameters"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterArrayParameters([NotNull] LumaSharpParser.ArrayParametersContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.arrayParameters"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitArrayParameters([NotNull] LumaSharpParser.ArrayParametersContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.inheritParameters"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -503,6 +527,78 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitEndExpression([NotNull] LumaSharpParser.EndExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterTypeExpression([NotNull] LumaSharpParser.TypeExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.typeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitTypeExpression([NotNull] LumaSharpParser.TypeExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.sizeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterSizeExpression([NotNull] LumaSharpParser.SizeExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.sizeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitSizeExpression([NotNull] LumaSharpParser.SizeExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.indexExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterIndexExpression([NotNull] LumaSharpParser.IndexExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.indexExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitIndexExpression([NotNull] LumaSharpParser.IndexExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.fieldAccessExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterFieldAccessExpression([NotNull] LumaSharpParser.FieldAccessExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.fieldAccessExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitFieldAccessExpression([NotNull] LumaSharpParser.FieldAccessExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodInvokeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMethodInvokeExpression([NotNull] LumaSharpParser.MethodInvokeExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodInvokeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMethodInvokeExpression([NotNull] LumaSharpParser.MethodInvokeExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArgument"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMethodArgument([NotNull] LumaSharpParser.MethodArgumentContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodArgument"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMethodArgument([NotNull] LumaSharpParser.MethodArgumentContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>

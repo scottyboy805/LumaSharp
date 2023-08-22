@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Expressions
+namespace LumaSharp_CompilerTests.ParseTree.Expressions
 {
     [TestClass]
     public class LiteralExpressionTests

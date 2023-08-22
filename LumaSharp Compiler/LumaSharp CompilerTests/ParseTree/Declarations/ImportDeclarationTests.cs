@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Declarations
+namespace LumaSharp_CompilerTests.ParseTree.Declarations
 {
     [TestClass]
     public class ImportDeclarationTests
@@ -80,7 +80,7 @@ namespace LumaSharp_CompilerTests.Declarations
             Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportStatementContext));
 
             // Get imports
-            LumaSharpParser.ImportStatementContext[] imports = context.importStatement(); 
+            LumaSharpParser.ImportStatementContext[] imports = context.importStatement();
 
             // Check for namespace name
             Assert.AreEqual("Collections", imports[0].GetChild(1).GetText());

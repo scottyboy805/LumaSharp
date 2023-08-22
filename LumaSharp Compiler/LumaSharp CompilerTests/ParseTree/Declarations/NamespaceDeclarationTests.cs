@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Declarations
+namespace LumaSharp_CompilerTests.ParseTree.Declarations
 {
     [TestClass]
     public class NamespaceDeclarationTests
@@ -69,7 +69,7 @@ namespace LumaSharp_CompilerTests.Declarations
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root namespace
-            LumaSharpParser.NamespaceDeclarationContext rootNamespace;            
+            LumaSharpParser.NamespaceDeclarationContext rootNamespace;
             Assert.IsNotNull(rootNamespace = context
                 .GetChild<LumaSharpParser.NamespaceDeclarationContext>(0));
 

@@ -1,113 +1,84 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Declarations
+namespace LumaSharp_CompilerTests.ParseTree.Declarations
 {
     [TestClass]
-    public class TypeDeclarationTests
+    public class ContractDeclarationTests
     {
         [TestMethod]
-        public void Type()
+        public void Contract()
         {
-            string input = "type Test{}";
+            string input = "contract Test{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext rootType;
-            Assert.IsNotNull(rootType = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+            LumaSharpParser.ContractDeclarationContext contract;
+            Assert.IsNotNull(contract = context
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(rootType, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootType.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
         }
 
         [TestMethod]
-        public void ExportType()
+        public void ExportContract()
         {
-            string input = "export type Test{}";
+            string input = "export contract Test{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext rootType;
-            Assert.IsNotNull(rootType = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+            LumaSharpParser.ContractDeclarationContext contract;
+            Assert.IsNotNull(contract = context
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(rootType, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootType.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
         }
 
         [TestMethod]
-        public void InternalType()
+        public void InternalContract()
         {
-            string input = "internal type Test{}";
+            string input = "internal contract Test{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext rootType;
-            Assert.IsNotNull(rootType = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+            LumaSharpParser.ContractDeclarationContext contract;
+            Assert.IsNotNull(contract = context
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(rootType, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootType.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
         }
 
         [TestMethod]
-        public void ExportInternalType_Invalid()
+        public void ExportInternalContract_Invalid()
         {
-            string input = "export internal type Test{}";
+            string input = "export internal contract Test{}";
             Assert.ThrowsException<Exception>(() => TestUtils.ParseInputString(input));
         }
 
         [TestMethod]
-        public void TypeMultiple()
+        public void GenericContract_1()
         {
-            string input = "type Test1{}type Test2{}";
-            LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
-
-            // Check for root namespace
-            LumaSharpParser.TypeDeclarationContext type1;
-            Assert.IsNotNull(type1 = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
-
-            // Check for namespace declaration
-            Assert.IsInstanceOfType(type1, typeof(LumaSharpParser.TypeDeclarationContext));
-
-            // Check for namespace name
-            Assert.AreEqual("Test1", type1.IDENTIFIER().GetText());
-
-            // Check for root namespace
-            LumaSharpParser.TypeDeclarationContext type2;
-            Assert.IsNotNull(type2 = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(1));
-
-            // Check for namespace declaration
-            Assert.IsInstanceOfType(type2, typeof(LumaSharpParser.TypeDeclarationContext));
-
-            // Check for namespace name
-            Assert.AreEqual("Test2", type2.IDENTIFIER().GetText());
-        }
-
-        [TestMethod]
-        public void GenericType_1()
-        {
-            string input = "type Test<T>{}";
+            string input = "contract Test<T>{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext contract;
+            LumaSharpParser.ContractDeclarationContext contract;
             Assert.IsNotNull(contract = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
@@ -122,18 +93,18 @@ namespace LumaSharp_CompilerTests.Declarations
         }
 
         [TestMethod]
-        public void GenericType_2()
+        public void GenericContract_2()
         {
-            string input = "type Test<T0, T1>{}";
+            string input = "contract Test<T0, T1>{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext contract;
+            LumaSharpParser.ContractDeclarationContext contract;
             Assert.IsNotNull(contract = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
@@ -150,18 +121,18 @@ namespace LumaSharp_CompilerTests.Declarations
         }
 
         [TestMethod]
-        public void InheritType_1()
+        public void InheritContract_1()
         {
-            string input = "type Test : CBase{}";
+            string input = "contract Test : CBase{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext contract;
+            LumaSharpParser.ContractDeclarationContext contract;
             Assert.IsNotNull(contract = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
@@ -175,18 +146,18 @@ namespace LumaSharp_CompilerTests.Declarations
         }
 
         [TestMethod]
-        public void InheritType_2()
+        public void InheritContract_2()
         {
-            string input = "type Test : CBase1, CBase2{}";
+            string input = "contract Test : CBase1, CBase2{}";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext contract;
+            LumaSharpParser.ContractDeclarationContext contract;
             Assert.IsNotNull(contract = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+                .GetChild<LumaSharpParser.ContractDeclarationContext>(0));
 
             // Check for type declaration
-            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(contract, typeof(LumaSharpParser.ContractDeclarationContext));
 
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());

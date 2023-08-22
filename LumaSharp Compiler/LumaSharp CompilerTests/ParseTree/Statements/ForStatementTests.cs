@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Statements
+namespace LumaSharp_CompilerTests.ParseTree.Statements
 {
     [TestClass]
     public class ForStatementTests
@@ -14,7 +14,7 @@ namespace LumaSharp_CompilerTests.Statements
 
             // Check for valid
             Assert.IsNotNull(context);
-            Assert.AreEqual("foreach", assign.GetChild(0).GetText());
+            Assert.AreEqual("for", assign.GetChild(0).GetText());
             Assert.AreEqual("int", assign.GetChild(2).GetText());
             Assert.AreEqual("a", assign.GetChild(3).GetText());
             Assert.AreEqual("in", assign.GetChild(4).GetText());

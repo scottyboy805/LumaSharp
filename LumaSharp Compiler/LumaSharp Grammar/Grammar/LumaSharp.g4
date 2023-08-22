@@ -32,8 +32,11 @@ DEFAULT: 'default';
 TRY: 'try';
 CATCH: 'catch';
 FINALLY: 'finally';
+SIZE: 'size';
 
 // Primitive type keywords
+BOOL: 'bool';
+CHAR: 'char';
 I8: 'i8';
 U8: 'u8';
 I16: 'i16';
@@ -45,12 +48,13 @@ U64: 'u64';
 FLOAT: 'float';
 DOUBLE: 'double';
 STRING: 'string';
+NULL: 'null';
 
 // Lexer rules
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
 INT: [0-9]+;
 DECIMAL: [0-9]+ '.' [0-9]+;
-HEX: [0-9a-fA-F];
+HEX: '0x' [0-9a-fA-F]+;
 LITERAL: '"' .*? '"';
 WS: [ \t\r\n]+ -> skip;
 
@@ -100,13 +104,19 @@ accessModifier: EXPORT | INTERNAL;
 // Generic parameters
 genericParameters: '<' IDENTIFIER (',' IDENTIFIER)* '>';
 
+// Generic arguments
+genericArguments: '<' typeReference (',' typeReference)* '>';
+
+// Array parameters
+arrayParameters: '[' ','? ','? ']';
+
 // Inheritance
 inheritParameters: ':' IDENTIFIER (',' IDENTIFIER)*;
 
 
 // Type reference
-typeReference: primitiveType | (IDENTIFIER ('.' IDENTIFIER)* genericParameters?);
-primitiveType: I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
+typeReference: (primitiveType | (IDENTIFIER ('.' IDENTIFIER)* genericArguments?)) arrayParameters?;
+primitiveType: BOOL | CHAR | I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
 
 
 
@@ -170,7 +180,52 @@ tryStatement: TRY (statement | '{' statement* '}') catchStatement? finallyStatem
 catchStatement: CATCH ('(' typeReference ')')? (statement | '{' statement* '}');
 finallyStatement: FINALLY (statement | '{' statement* '}');
 
-// ### EXPRESSIONS
-expression: (endExpression);
 
-endExpression: '0x' HEX+ | INT ('U' | 'L' | 'UL')? | DECIMAL ('F' | 'D')? | LITERAL | IDENTIFIER | TRUE | FALSE;
+// ### EXPRESSIONS
+expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
+
+	  '-' expression										// Unary minus
+	| '!' expression										// not expression
+	| '++' expression										// Unary prefix increment
+	| '--' expression										// Unary prefix decrement
+	| expression '++'										// Unary postfix increment
+	| expression '--'										// Unary postfix decrement
+	| expression op=('*' | '/' | '%') expression			// Multiply expression
+	| expression op=('+' | '-') expression					// Add expression
+	| expression op=('>=' | '<=' | '>' | '<') expression	// Compare expression
+	| expression op=('==' | '!=') expression				// Equals expression
+	| expression '&&' expression							// And expression
+	| expression '||' expression							// Or expression
+	| expression '?' expression ':' expression				// Ternary expression
+	| endExpression indexExpression?						// Primitives and literals
+	| expression methodInvokeExpression indexExpression?		// Method expression
+	| expression fieldAccessExpression indexExpression?		// Field expression
+	| '(' expression ')' indexExpression?					// Paren expression
+	| typeExpression										// Type expression
+	| sizeExpression										// Size expression
+	;
+
+endExpression: 
+	  HEX 
+	| INT ('U' | 'L' | 'UL')? 
+	| DECIMAL ('F' | 'D')? 
+	| LITERAL indexExpression? 
+	| IDENTIFIER 
+	| TRUE 
+	| FALSE
+	| NULL
+	;
+
+typeExpression: TYPE '(' typeReference ')';
+
+sizeExpression: SIZE '(' typeReference ')';
+
+// Array index
+indexExpression: '[' expression ']';
+
+// Field access
+fieldAccessExpression: '.' IDENTIFIER;
+
+// Method invoke
+methodInvokeExpression: '.' IDENTIFIER genericArguments? '(' methodArgument? (',' methodArgument)* ')';
+methodArgument: '&'? expression;

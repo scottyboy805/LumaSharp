@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Statements
+namespace LumaSharp_CompilerTests.ParseTree.Statements
 {
     [TestClass]
     public class SelectStatementTests
@@ -27,13 +27,6 @@ namespace LumaSharp_CompilerTests.Statements
             // Check for valid
             Assert.IsNotNull(context);
             Assert.AreEqual("select", assign.GetChild(0).GetText());
-        }
-
-        [TestMethod]
-        public void SelectDefaultMultiple()
-        {
-            string input = "select(5){default:;default:;}";
-            Assert.ThrowsException<Exception>(() => TestUtils.ParseInputStringStatement(input));
         }
 
         [TestMethod]

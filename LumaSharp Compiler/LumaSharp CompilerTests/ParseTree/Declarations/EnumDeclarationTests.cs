@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Declarations
-{ 
+namespace LumaSharp_CompilerTests.ParseTree.Declarations
+{
     [TestClass]
     public class EnumDeclarationTests
     {
