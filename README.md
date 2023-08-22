@@ -152,7 +152,7 @@ import Collections.Generic;
 namespace BubbleSort.Example
 {
   // Main type
-  type Program
+  global type Program
   {
     // List of values to sort
     List<i32> unsortedValues = { 800, 11, 50, 771, 649 };
@@ -164,7 +164,7 @@ namespace BubbleSort.Example
     }
   
     // Algorithm method
-    export void BubbleSort(List<32>& values)
+    export void BubbleSort(List<i32>& values)
     {
       i32 temp = 0;
   
