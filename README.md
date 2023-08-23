@@ -11,5 +11,5 @@ TODO - Implement bytecode compiler to produce an executable format (Work require
 TODO - Implement bytecode runtime to execute code as an application or library (Create a bytecode runtime in software only (No JIT) just as a proof of concept to execute instructions).  
 
 # Proposed syntax
-Here is the proposed syntax for the language which may be subject to change:
+Here is the proposed syntax for the language which may be subject to change: [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/f43f670e914320d4399f02a3af5fbfb467bf7472/LumaSharp%20Specification/Overview.md)
 
