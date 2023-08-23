@@ -48,6 +48,12 @@ MyType<i8, MyEnum> myVar = MyType<i8, MyEnum>();
 MyType<i8, MyEnum>& myHeapVar = new MyType<i8, MyEnum>();
 ```
 
+```cs
+// Possible alternative to eliminate the need to use reference syntax when declaring variables is to support `valuetype` keyword
+// MyValueType will be allocated on the stack, but there is still support for generics and inheritance
+export valuetype MyValueType<T> : MyBaseValueType{}
+```
+
 ### Contracts:
 ```cs
 // Contracts are essentially interfaces but I think contract has a better meaning in such a case
