@@ -123,6 +123,24 @@ type MyType{
 }
 ```
 
+### Constructors
+```cs
+// Constructors are similar to C# with no return value, but use either the `this` of `global` keyword as I think it makes more sense and means you don't have to write out the type name every time
+type MyType{
+  // Empty constructor
+  hidden this(){}
+
+  // Parameter constructor
+  export this(i32 size) base: (size){}
+
+  // Call through constructor
+  internal this(i64& bigSize) this: ((i32)bigSize){}
+
+  // Global costructor - same as static constructor in C#
+  internal global(string name){}
+}
+```
+
 ### Tasks
 ```cs
 // A task is essentially just a C# delegate - a way to store a method as a variable to be invoked at a later time
