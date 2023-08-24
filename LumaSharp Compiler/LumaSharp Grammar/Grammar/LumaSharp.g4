@@ -11,6 +11,7 @@ ENUM: 'enum';
 GLOBAL: 'global';
 EXPORT: 'export';
 INTERNAL: 'internal';
+SPECIALHIDDEN: 'hidden';
 
 // Other keywords
 AS: 'as';
@@ -33,8 +34,13 @@ TRY: 'try';
 CATCH: 'catch';
 FINALLY: 'finally';
 SIZE: 'size';
+READ: 'read';
+WRITE: 'write';
+THIS: 'this';
+BASE: 'base';
 
 // Primitive type keywords
+ANY: 'any';
 BOOL: 'bool';
 CHAR: 'char';
 I8: 'i8';
@@ -79,27 +85,69 @@ importAlias: IMPORT IDENTIFIER AS IDENTIFIER ('.' IDENTIFIER)+ ';';
 namespaceDeclaration: NAMESPACE IDENTIFIER '{' (typeDeclaration | contractDeclaration | enumDeclaration)* '}';
 
 // Type declaration
-typeDeclaration: attributeDeclaration* accessModifier? TYPE IDENTIFIER genericParameters? inheritParameters? '{' (typeDeclaration | contractDeclaration | enumDeclaration)* '}';
+typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameters? inheritParameters? memberBlock;
 
 // Contract declaration
-contractDeclaration: attributeDeclaration* accessModifier? CONTRACT IDENTIFIER genericParameters? inheritParameters? '{' (enumDeclaration | methodDeclaration)* '}';
+contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameters? inheritParameters? '{' (enumDeclaration | methodDeclaration)* '}';
 
 // Enum declaration
-enumDeclaration: attributeDeclaration* accessModifier? ENUM IDENTIFIER (':' primitiveType)? '{' enumFields? '}';
+enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? '{' enumFields? '}';
 enumFields: enumField (',' enumField)*;
 enumField: IDENTIFIER ('=' INT)?;
+
+// Member block
+memberBlock: '{' memberDeclaration* '}';
+
+// Member
+memberDeclaration: 
+	  typeDeclaration 
+	| contractDeclaration 
+	| enumDeclaration 
+	| fieldDeclaration 
+	| methodDeclaration
+	;
 
 // Attribute declaration
 attributeDeclaration: '#' IDENTIFIER ('(' ((INT | DECIMAL | LITERAL) (',' (INT | DECIMAL | LITERAL))*)? ')')?;
 
-fieldDeclaration: accessModifier? GLOBAL? primitiveType IDENTIFIER fieldAssignment? ';';
+// Field declaration
+fieldDeclaration: attributeDeclaration* accessModifier* primitiveType IDENTIFIER fieldAssignment? ';';
 
 fieldAssignment: '=' (INT | STRING | IDENTIFIER);
 
-methodDeclaration: accessModifier? GLOBAL? primitiveType IDENTIFIER '(' ')';
+// Accessor declaration
+accessorDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER accessorBody;
+
+// Accessor body
+accessorBody: 
+	  '=>' endExpression ';'
+	| '=>' IDENTIFIER ';'
+	| accessorRead
+	| accessorWrite
+	| accessorRead accessorWrite
+	| accessorWrite accessorRead
+	;
+
+// Accessor read
+accessorRead: '=>' READ ':' (statement | statementBlock);
+
+// Accessor write
+accessorWrite: '=>' WRITE ':' (statement | statementBlock);
+
+// Initializer declaration
+initializerDeclaration: attributeDeclaration* accessModifier* THIS '(' methodParameterList? ')';
+
+// Method declaration
+methodDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER '(' methodParameterList? ')';
+
+// Method parameter list
+methodParameterList: methodParameter (',' methodParameter)*;
+
+// Method parameter
+methodParameter: typeReference IDENTIFIER '...'?;
 
 // Access modifiers
-accessModifier: EXPORT | INTERNAL;
+accessModifier: EXPORT | INTERNAL | SPECIALHIDDEN | GLOBAL;
 
 // Generic parameters
 genericParameters: '<' IDENTIFIER (',' IDENTIFIER)* '>';
@@ -111,20 +159,22 @@ genericArguments: '<' typeReference (',' typeReference)* '>';
 arrayParameters: '[' ','? ','? ']';
 
 // Inheritance
-inheritParameters: ':' IDENTIFIER (',' IDENTIFIER)*;
+inheritParameters: ':' typeReference (',' typeReference)*;
 
 
 // Type reference
-typeReference: (primitiveType | (IDENTIFIER ('.' IDENTIFIER)* genericArguments?)) arrayParameters?;
-primitiveType: BOOL | CHAR | I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
+typeReference: (primitiveType | (IDENTIFIER ('.' IDENTIFIER)* genericArguments?)) arrayParameters? '&'?;
+primitiveType: ANY | BOOL | CHAR | I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
 
 
 
 // ### STATEMENTS
+statementBlock: '{' statement* '}';
+
 statement: 
 	  returnStatement
 	| postfixStatement
-	| blockStatement
+	| statementBlock
 	| localVariableStatement
 	| assignStatement
 	| ifStatement
@@ -135,9 +185,6 @@ statement:
 	| tryStatement
 	| BREAK ';'
 	| CONTINUE ';';
-
-// Block statement
-blockStatement: '{' statement* '}';
 
 // Return statement
 returnStatement: RETURN expression? ';';
@@ -186,10 +233,10 @@ expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
 
 	  '-' expression										// Unary minus
 	| '!' expression										// not expression
-	| '++' expression										// Unary prefix increment
-	| '--' expression										// Unary prefix decrement
-	| expression '++'										// Unary postfix increment
-	| expression '--'										// Unary postfix decrement
+	//| '++' expression										// Unary prefix increment
+	//| '--' expression										// Unary prefix decrement
+	//| expression '++'										// Unary postfix increment
+	//| expression '--'										// Unary postfix decrement
 	| expression op=('*' | '/' | '%') expression			// Multiply expression
 	| expression op=('+' | '-') expression					// Add expression
 	| expression op=('>=' | '<=' | '>' | '<') expression	// Compare expression

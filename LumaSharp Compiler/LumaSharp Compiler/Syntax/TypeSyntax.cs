@@ -9,10 +9,9 @@ namespace LumaSharp_Compiler.Syntax
         private SyntaxToken start = null;
         private SyntaxToken end = null;
         private GenericParametersSyntax genericParameters = null;
-        private TypeReferenceSyntax baseTypeReference = null;
-        private TypeReferenceSyntax[] contractTypeReferences = null;
+        private TypeReferenceSyntax[] baseTypeReferences = null;
 
-        private MemberSyntax[] members = null;
+        private BlockSyntax<MemberSyntax> memberBlock = null;
 
         // Properties
         public SyntaxToken[] AccessModifiers
@@ -40,44 +39,49 @@ namespace LumaSharp_Compiler.Syntax
             get { return genericParameters; }
         }
 
-        public TypeReferenceSyntax BaseTypeReference
+        public TypeReferenceSyntax[] BaseTypeReferences
         {
-            get { return baseTypeReference; }
+            get { return baseTypeReferences; }
         }
 
-        public TypeReferenceSyntax[] ContractTypeReferences
+        public BlockSyntax<MemberSyntax> MemberBlock
         {
-            get { return contractTypeReferences; }
+            get { return memberBlock; }
         }
 
         public MemberSyntax[] Members
         {
-            get { return members; }
+            get { return memberBlock.Elements; }
         }
 
-        public bool HasAccessModifiers
+        public int GenericParameterCount
         {
-            get { return accessModifiers != null; }
+            get { return HasGenericParameters ? genericParameters.GenericTypeCount : 0; }
         }
+
+        public int BaseTypeCount
+        {
+            get { return HasBaseTypes ? baseTypeReferences.Length : 0; }
+        }
+
+        public int MemberCount
+        {
+            get { return HasMembers ? memberBlock.ElementCount: 0; }
+        }        
 
         public bool HasGenericParameters
         {
             get { return genericParameters != null; }
         }
 
-        public bool HasBaseType
+        public bool HasBaseTypes
         {
-            get { return baseTypeReference != null; }
-        }
-
-        public bool HasContractTypes
-        {
-            get { return contractTypeReferences != null; }
+            get { return baseTypeReferences != null; }
         }
 
         public bool HasMembers
         {
-            get { return members != null; }
+            get { return memberBlock.HasElements; }
         }
 
         // Constructor
@@ -90,6 +94,44 @@ namespace LumaSharp_Compiler.Syntax
             this.end = this.identifier;
         }
 
+        internal TypeSyntax(LumaSharpParser.TypeDeclarationContext typeDef)
+            : base(typeDef.IDENTIFIER(), typeDef.accessModifier())
+        {
+            // Type keyword
+            this.keyword = new SyntaxToken(typeDef.TYPE());            
+
+            // Get generics
+            LumaSharpParser.GenericParametersContext generics = typeDef.genericParameters();
+
+            if(generics != null)
+            {
+                this.genericParameters = new GenericParametersSyntax(generics);
+            }
+
+            // Get base
+            LumaSharpParser.InheritParametersContext inherit = typeDef.inheritParameters();
+
+            if(inherit != null)
+            {
+                // Get base type references
+                LumaSharpParser.TypeReferenceContext[] baseTypes = inherit.typeReference();
+
+                if(baseTypes.Length > 0)
+                {
+                    this.baseTypeReferences = new TypeReferenceSyntax[baseTypes.Length];
+
+                    for(int i = 0; i <  baseTypes.Length; i++)
+                    {
+                        this.baseTypeReferences[i] = new TypeReferenceSyntax(baseTypes[i]);
+                    }
+                }
+            }
+
+            // Get members
+            LumaSharpParser.MemberBlockContext block = typeDef.memberBlock();
+
+            this.memberBlock = new BlockSyntax<MemberSyntax>(block);
+        }
 
         // Methods
         public override void GetSourceText(TextWriter writer)

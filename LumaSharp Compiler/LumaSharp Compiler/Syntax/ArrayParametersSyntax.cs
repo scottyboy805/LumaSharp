@@ -42,7 +42,7 @@ namespace LumaSharp_Compiler.Syntax
             this.indexEnd = new SyntaxToken(array.Stop);
 
             // Get rank
-            this.rank = array.ChildCount - 2;
+            this.rank = array.ChildCount - 1;
         }
 
         // Methods
@@ -52,7 +52,7 @@ namespace LumaSharp_Compiler.Syntax
             writer.Write(indexStart.ToString());
 
             // Write separator
-            for (int i = 0; i < rank; i++)
+            for (int i = 0; i < rank - 1; i++)
                 writer.Write(',');
 
             // Array end

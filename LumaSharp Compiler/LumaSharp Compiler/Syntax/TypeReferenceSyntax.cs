@@ -1,8 +1,12 @@
 ﻿
+using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
+
 namespace LumaSharp_Compiler.Syntax
 {
     public enum PrimitiveType
     {
+        Any,
         Bool,
         Char, 
         I8,
@@ -13,7 +17,7 @@ namespace LumaSharp_Compiler.Syntax
         U32,
         I64,
         U64,
-        Single,
+        Float,
         Double,
         String
     }
@@ -28,6 +32,7 @@ namespace LumaSharp_Compiler.Syntax
         private TypeReferenceSyntax[] parentTypes = null;
         private GenericArgumentsSyntax genericArguments = null;
         private ArrayParametersSyntax arrayParameters = null;
+        private SyntaxToken reference = null;
 
         // Properties
         public SyntaxToken Identifier
@@ -45,6 +50,16 @@ namespace LumaSharp_Compiler.Syntax
             get { return end; }
         }
 
+        public SyntaxToken[] NamespaceIdentifiers
+        {
+            get { return namespaceIdentifiers; }
+        }
+
+        public TypeReferenceSyntax[] ParentTypeIdentifiers
+        {
+            get { return parentTypes; }
+        }
+
         public GenericArgumentsSyntax GenericArguments
         {
             get { return genericArguments; }
@@ -53,6 +68,21 @@ namespace LumaSharp_Compiler.Syntax
         public ArrayParametersSyntax ArrayParameters
         {
             get { return arrayParameters; }
+        }
+
+        public SyntaxToken Reference
+        {
+            get { return reference; }
+        }
+
+        public int NamespaceDepth
+        {
+            get { return HasNamespace ? namespaceIdentifiers.Length : 0; }
+        }
+
+        public int NestedDepth
+        {
+            get { return IsNested ? parentTypes.Length : 0; }
         }
 
         public int GenericArgumentCount
@@ -65,6 +95,16 @@ namespace LumaSharp_Compiler.Syntax
             get { return IsArrayType ? arrayParameters.Rank : 0; }
         }
 
+        public bool HasNamespace
+        {
+            get { return namespaceIdentifiers != null; }
+        }
+
+        public bool IsNested
+        {
+            get { return parentTypes != null; }
+        }
+
         public bool IsGenericType
         {
             get { return genericArguments != null; }
@@ -73,6 +113,11 @@ namespace LumaSharp_Compiler.Syntax
         public bool IsArrayType
         {
             get { return arrayParameters != null; }
+        }
+
+        public bool IsByReference
+        {
+            get { return reference != null; }
         }
 
         public bool IsPrimitiveType
@@ -116,11 +161,78 @@ namespace LumaSharp_Compiler.Syntax
 
         internal TypeReferenceSyntax(LumaSharpParser.TypeReferenceContext typeRef)
         {
+            // Check for primitive
+            LumaSharpParser.PrimitiveTypeContext primitive = typeRef.primitiveType();            
+            LumaSharpParser.ArrayParametersContext array = typeRef.arrayParameters();
+
+            if (primitive != null)
+            {
+                // Create primitive identifier
+                this.identifier = new SyntaxToken(primitive.Start);
+            }
+            else
+            {
+                // Get identifiers
+                ITerminalNode[] identifiers = typeRef.IDENTIFIER();
+
+                // Build namespace
+                if(identifiers.Length > 1)
+                {
+                    // Create array
+                    this.namespaceIdentifiers = new SyntaxToken[identifiers.Length - 1];
+
+                    for (int i = 0; i < identifiers.Length - 1; i++)
+                    {
+                        this.namespaceIdentifiers[i] = new SyntaxToken(identifiers[i]);
+                    }
+                }
+
+                // Get generics
+                LumaSharpParser.GenericArgumentsContext generics = typeRef.genericArguments();
+
+                if(generics != null)
+                    this.genericArguments = new GenericArgumentsSyntax(generics);
+
+                // Create identifier
+                this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
+            }
+            
+            // Check for array
+            if(array != null)
+            {
+                this.arrayParameters = new ArrayParametersSyntax(array);
+            }
+
+            // Check for reference
+            if (typeRef.Stop.Text == "&")
+                this.reference = new SyntaxToken(typeRef.Stop);
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
+            // Write namespace
+            if(HasNamespace == true)
+            {
+                for(int i = 0; i < namespaceIdentifiers.Length; i++)
+                {
+                    writer.Write(namespaceIdentifiers[i].ToString());
+                    writer.Write('.');
+                }
+            }
+
+            // Write parent types
+            if(IsNested == true)
+            {
+                for(int i = 0; i < parentTypes.Length; i++)
+                {
+                    parentTypes[i].GetSourceText(writer);
+
+                    if(i < parentTypes.Length - 1)
+                        writer.Write('.');
+                }
+            }
+
             // Write identifier
             writer.Write(identifier.ToString());
 
@@ -131,6 +243,10 @@ namespace LumaSharp_Compiler.Syntax
             // Write array
             if(IsArrayType == true)
                 arrayParameters.GetSourceText(writer);
+
+            // Write reference
+            if(IsByReference == true)
+                writer.Write(reference.ToString());
         }
     }
 }

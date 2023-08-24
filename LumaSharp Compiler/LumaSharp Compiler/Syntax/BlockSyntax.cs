@@ -1,0 +1,118 @@
+﻿
+namespace LumaSharp_Compiler.Syntax
+{
+    public class BlockSyntax<T> : SyntaxNode where T : SyntaxNode
+    {
+        // Private
+        private SyntaxToken start = null;
+        private SyntaxToken end = null;
+        private T[] elements = null;
+
+        // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return start; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return end; }
+        }
+
+        public T[] Elements
+        {
+            get { return elements; }
+        }
+
+        public int ElementCount
+        {
+            get { return HasElements ? elements.Length : 0; }
+        }
+
+        public bool HasElements
+        {
+            get { return elements != null; }
+        }
+
+        // Constructor
+        internal BlockSyntax(LumaSharpParser.MemberBlockContext memberBlock)
+        {
+            this.start = new SyntaxToken(memberBlock.Start);
+            this.end = new SyntaxToken(memberBlock.Stop);
+
+            // Get all members
+            LumaSharpParser.MemberDeclarationContext[] members = memberBlock.memberDeclaration();
+
+            if (members.Length > 0)
+            {
+                this.elements = new T[members.Length];
+
+                for (int i = 0; i < members.Length; i++)
+                {
+                    var typeMember = members[i].typeDeclaration();
+                    var contractMember = members[i].contractDeclaration();
+                    var enumMember = members[i].enumDeclaration();
+                    var fieldMember = members[i].fieldDeclaration();
+                    var methodMember = members[i].methodDeclaration();
+
+                    // Create type member
+                    if (typeMember != null)
+                        this.elements[i] = new TypeSyntax(typeMember) as T;
+
+                    // Create contract member
+                    if (contractMember != null)
+                        ;// this.elements[i] = new ContractSyntax(contractMember) as T;
+                }
+
+            }
+        }
+
+        internal BlockSyntax(LumaSharpParser.StatementBlockContext statementBlock)
+        {
+            this.start = new SyntaxToken(statementBlock.Start);
+            this.end = new SyntaxToken(statementBlock.Stop);
+
+            // Get all members
+            LumaSharpParser.StatementContext[] members = statementBlock.statement();
+
+            if (members.Length > 0)
+            {
+                this.elements = new T[members.Length];
+
+                for (int i = 0; i < members.Length; i++)
+                {
+                    //var typeMember = members[i].typeDeclaration();
+                    //var contractMember = members[i].contractDeclaration();
+                    //var enumMember = members[i].enumDeclaration();
+                    //var fieldMember = members[i].fieldDeclaration();
+                    //var methodMember = members[i].methodDeclaration();
+
+                    //// Create type member
+                    //if (typeMember != null)
+                    //    this.elements[i] = new TypeSyntax(typeMember) as T;
+
+                    //// Create contract member
+                    //if (contractMember != null)
+                    //    ;// this.elements[i] = new ContractSyntax(contractMember) as T;
+                }
+
+            }
+        }
+
+        // Methods
+        public override void GetSourceText(TextWriter writer)
+        {
+            // Write start
+            writer.Write(start.ToString());
+
+            // Write all elements
+            for(int i = 0; i < elements.Length; i++)
+            {
+                elements[i].GetSourceText(writer);
+            }
+
+            // Write end
+            writer.Write(end.ToString());
+        }
+    }
+}
