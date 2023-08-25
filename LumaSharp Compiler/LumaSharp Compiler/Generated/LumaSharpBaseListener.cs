@@ -120,30 +120,6 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitEnumDeclaration([NotNull] LumaSharpParser.EnumDeclarationContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumFields"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterEnumFields([NotNull] LumaSharpParser.EnumFieldsContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.enumFields"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitEnumFields([NotNull] LumaSharpParser.EnumFieldsContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumField"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterEnumField([NotNull] LumaSharpParser.EnumFieldContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.enumField"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitEnumField([NotNull] LumaSharpParser.EnumFieldContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -179,6 +155,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitMemberBlock([NotNull] LumaSharpParser.MemberBlockContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.fieldBlock"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterFieldBlock([NotNull] LumaSharpParser.FieldBlockContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.fieldBlock"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitFieldBlock([NotNull] LumaSharpParser.FieldBlockContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.memberDeclaration"/>.
 	/// <para>The default implementation does nothing.</para>

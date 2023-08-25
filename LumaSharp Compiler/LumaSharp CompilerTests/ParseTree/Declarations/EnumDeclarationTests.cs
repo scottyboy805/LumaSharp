@@ -78,7 +78,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
 
-            LumaSharpParser.EnumFieldsContext fields = contract.enumFields();
+            LumaSharpParser.FieldBlockContext fields = contract.fieldBlock();
 
             Assert.AreEqual(1, fields.ChildCount);
             Assert.AreEqual("Item1", fields.GetChild(0).GetText());
@@ -101,7 +101,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
 
-            LumaSharpParser.EnumFieldsContext fields = contract.enumFields();
+            LumaSharpParser.FieldBlockContext fields = contract.fieldBlock();
 
             Assert.AreEqual(3, fields.ChildCount);
             Assert.AreEqual("Item1", fields.GetChild(0).GetText());
@@ -126,7 +126,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
 
-            LumaSharpParser.EnumFieldsContext fields = contract.enumFields();
+            LumaSharpParser.FieldBlockContext fields = contract.fieldBlock();
 
             Assert.AreEqual(1, fields.ChildCount);
             Assert.AreEqual("Item1", fields.GetChild(0).GetChild(0).GetText());
@@ -151,7 +151,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", contract.IDENTIFIER().GetText());
 
-            LumaSharpParser.EnumFieldsContext fields = contract.enumFields();
+            LumaSharpParser.FieldBlockContext fields = contract.fieldBlock();
 
             Assert.AreEqual(3, fields.ChildCount);
             Assert.AreEqual("Item1", fields.GetChild(0).GetChild(0).GetText());

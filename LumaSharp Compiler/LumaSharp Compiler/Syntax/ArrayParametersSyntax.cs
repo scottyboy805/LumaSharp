@@ -24,6 +24,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return rank; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode parent, int rank)
             : base(tree, parent)

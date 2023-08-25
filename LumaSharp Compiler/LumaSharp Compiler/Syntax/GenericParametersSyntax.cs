@@ -30,6 +30,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return genericIdentifiers.Length; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal GenericParametersSyntax(SyntaxTree tree, SyntaxNode parent, string[] genericNames)
             : base(tree, parent)

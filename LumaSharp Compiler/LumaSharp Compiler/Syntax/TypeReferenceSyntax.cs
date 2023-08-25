@@ -125,6 +125,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return Enum.TryParse(typeof(PrimitiveType), identifier.Text, true, out _); }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, PrimitiveType type, int arrayRank = 0)
             : base(tree, parent)

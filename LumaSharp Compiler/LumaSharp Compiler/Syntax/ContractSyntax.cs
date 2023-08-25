@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp_Compiler.Syntax
 {
-    public sealed class TypeSyntax : MemberSyntax, IMemberSyntaxContainer
+    public sealed class ContractSyntax : MemberSyntax
     {
         // Private
         private SyntaxToken keyword = null;
@@ -60,8 +60,8 @@ namespace LumaSharp_Compiler.Syntax
 
         public int MemberCount
         {
-            get { return HasMembers ? memberBlock.ElementCount: 0; }
-        }        
+            get { return HasMembers ? memberBlock.ElementCount : 0; }
+        }
 
         public bool HasGenericParameters
         {
@@ -84,23 +84,23 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
+        internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
             : base(identifier, tree, parent)
         {
-            this.keyword = new SyntaxToken("type");
+            this.keyword = new SyntaxToken("contract");
 
-            this.start = this.keyword;
+            this.start = keyword;
             this.end = this.identifier;
         }
 
-        internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
-            : base(typeDef.IDENTIFIER(), tree, parent, typeDef.accessModifier())
+        internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
+            : base(contractDef.IDENTIFIER(), tree, parent, contractDef.accessModifier())
         {
-            // Type keyword
-            this.keyword = new SyntaxToken(typeDef.TYPE());            
+            // Contract keyword
+            this.keyword = new SyntaxToken(contractDef.CONTRACT());
 
             // Get generics
-            LumaSharpParser.GenericParametersContext generics = typeDef.genericParameters();
+            LumaSharpParser.GenericParametersContext generics = contractDef.genericParameters();
 
             if(generics != null)
             {
@@ -108,15 +108,15 @@ namespace LumaSharp_Compiler.Syntax
             }
 
             // Get base
-            LumaSharpParser.InheritParametersContext inherit = typeDef.inheritParameters();
+            LumaSharpParser.InheritParametersContext inherit = contractDef.inheritParameters();
 
-            if (inherit != null)
+            if(inherit != null)
             {
                 this.baseTypeReferences = inherit.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
             }
 
             // Get members
-            LumaSharpParser.MemberBlockContext block = typeDef.memberBlock();
+            LumaSharpParser.MemberBlockContext block = contractDef.memberBlock();
 
             this.memberBlock = new BlockSyntax<MemberSyntax>(tree, this, block);
         }
@@ -124,7 +124,7 @@ namespace LumaSharp_Compiler.Syntax
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-
+            throw new NotImplementedException();
         }
     }
 }

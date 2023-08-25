@@ -34,6 +34,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return elements != null; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { return elements; }
+        }
+
         // Constructor
         internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
             : base(tree, parent)

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace LumaSharp_Compiler.Syntax
 {
     public class AccessorBodySyntax : SyntaxNode
@@ -52,6 +47,18 @@ namespace LumaSharp_Compiler.Syntax
         public override SyntaxToken StartToken => throw new NotImplementedException();
 
         public override SyntaxToken EndToken => throw new NotImplementedException();
+
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get
+            {
+                if (inlineBody != null)
+                    yield return inlineBody;
+
+                if(blockBody != null)
+                    yield return blockBody;
+            }
+        }
 
         // Constructor
         internal AccessorBodySyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorReadContext read)

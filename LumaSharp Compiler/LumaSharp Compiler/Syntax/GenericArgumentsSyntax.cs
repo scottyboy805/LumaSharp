@@ -29,6 +29,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return genericTypes.Length; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax[] genericTypes)
             : base(tree, parent)

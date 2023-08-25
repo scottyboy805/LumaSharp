@@ -88,12 +88,10 @@ namespaceDeclaration: NAMESPACE IDENTIFIER ('.' IDENTIFIER)* rootMemberBlock;
 typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameters? inheritParameters? memberBlock;
 
 // Contract declaration
-contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameters? inheritParameters? '{' (enumDeclaration | methodDeclaration)* '}';
+contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameters? inheritParameters? memberBlock;
 
 // Enum declaration
-enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? '{' enumFields? '}';
-enumFields: enumField (',' enumField)*;
-enumField: IDENTIFIER ('=' INT)?;
+enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? fieldBlock;
 
 // Declaration block
 rootMember: (typeDeclaration | contractDeclaration | enumDeclaration);
@@ -102,6 +100,8 @@ rootMemberBlock: '{' rootMember* '}';
 
 // Member block
 memberBlock: '{' memberDeclaration* '}';
+
+fieldBlock: '{' fieldDeclaration '}';
 
 // Member
 memberDeclaration: 

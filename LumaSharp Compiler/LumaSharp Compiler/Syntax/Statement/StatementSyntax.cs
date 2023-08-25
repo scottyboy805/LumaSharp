@@ -12,6 +12,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return statementEnd; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal StatementSyntax(SyntaxTree tree, SyntaxNode parent, SyntaxToken statementEnd)
             : base(tree, parent)

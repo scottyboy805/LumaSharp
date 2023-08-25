@@ -61,6 +61,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return writeBody != null; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal AccessorSyntax(LumaSharpParser.AccessorDeclarationContext accessorDef, SyntaxTree tree, SyntaxNode parent)
             : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef.accessModifier())

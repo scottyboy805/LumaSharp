@@ -22,6 +22,8 @@ namespace LumaSharp_Compiler.Syntax
 
         public abstract SyntaxToken EndToken { get; }
 
+        internal abstract IEnumerable<SyntaxNode> Descendants { get; }
+
         // Constructor
         protected SyntaxNode(SyntaxTree tree, SyntaxNode parent)
         {
@@ -42,6 +44,15 @@ namespace LumaSharp_Compiler.Syntax
 
                 // Get full string
                 return writer.ToString();
+            }
+        }
+
+        public IEnumerable<T> DescendantsOfType<T>() where T : SyntaxNode
+        {
+            foreach(SyntaxNode node in Descendants)
+            {
+                if (node is T)
+                    yield return node as T;
             }
         }
     }

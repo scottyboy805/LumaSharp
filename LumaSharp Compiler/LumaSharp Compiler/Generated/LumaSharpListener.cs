@@ -101,26 +101,6 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitEnumDeclaration([NotNull] LumaSharpParser.EnumDeclarationContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumFields"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterEnumFields([NotNull] LumaSharpParser.EnumFieldsContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.enumFields"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitEnumFields([NotNull] LumaSharpParser.EnumFieldsContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.enumField"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterEnumField([NotNull] LumaSharpParser.EnumFieldContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.enumField"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitEnumField([NotNull] LumaSharpParser.EnumFieldContext context);
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -150,6 +130,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitMemberBlock([NotNull] LumaSharpParser.MemberBlockContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.fieldBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterFieldBlock([NotNull] LumaSharpParser.FieldBlockContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.fieldBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitFieldBlock([NotNull] LumaSharpParser.FieldBlockContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.memberDeclaration"/>.
 	/// </summary>

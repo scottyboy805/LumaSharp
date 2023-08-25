@@ -11,6 +11,11 @@ namespace LumaSharp_Compiler.Syntax
 
         public override SyntaxToken EndToken => throw new NotImplementedException();
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal FieldSyntax(LumaSharpParser.FieldDeclarationContext fieldDef, SyntaxTree tree, SyntaxNode node)
             : base(fieldDef.IDENTIFIER(), tree, node, fieldDef.accessModifier())
