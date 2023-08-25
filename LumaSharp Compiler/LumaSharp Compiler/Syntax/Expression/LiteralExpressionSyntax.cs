@@ -22,6 +22,12 @@ namespace LumaSharp_Compiler.Syntax
             get { return value; }
         }
 
+        // Constructor
+        internal LiteralExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent)
+        {
+        }
+
         // Methods
         public override void GetSourceText(TextWriter writer)
         {

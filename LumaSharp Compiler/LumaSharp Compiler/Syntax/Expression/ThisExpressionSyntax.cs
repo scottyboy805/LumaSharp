@@ -23,7 +23,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ThisExpressionSyntax()
+        internal ThisExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent)
         {
             keyword = new SyntaxToken("this");
         }

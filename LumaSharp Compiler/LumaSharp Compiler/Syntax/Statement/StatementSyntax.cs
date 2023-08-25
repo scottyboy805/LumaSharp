@@ -13,7 +13,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal StatementSyntax(SyntaxToken statementEnd)
+        internal StatementSyntax(SyntaxTree tree, SyntaxNode parent, SyntaxToken statementEnd)
+            : base(tree, parent)
         {
             this.statementEnd = statementEnd;
         }

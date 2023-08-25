@@ -23,7 +23,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal VariableReferenceExpression(string identifier)
+        internal VariableReferenceExpression(SyntaxTree tree, SyntaxNode parent, string identifier)
+            : base(tree, parent)
         {
             this.identifier = new SyntaxToken(identifier);
         }

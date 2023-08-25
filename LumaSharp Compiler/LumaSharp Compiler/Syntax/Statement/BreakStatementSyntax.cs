@@ -18,8 +18,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal BreakStatementSyntax()
-            : base(new SyntaxToken(";"))
+        internal BreakStatementSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent, new SyntaxToken(";"))
         {
             keyword = new SyntaxToken("break");
         }

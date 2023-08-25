@@ -31,7 +31,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal GenericParametersSyntax(string[] genericNames)
+        internal GenericParametersSyntax(SyntaxTree tree, SyntaxNode parent, string[] genericNames)
+            : base(tree, parent)
         {
             this.genericStart = new SyntaxToken("<");
             this.genericEnd = new SyntaxToken(">");
@@ -41,7 +42,8 @@ namespace LumaSharp_Compiler.Syntax
                 genericIdentifiers[i] = new SyntaxToken(genericNames[i]);
         }
 
-        internal GenericParametersSyntax(LumaSharpParser.GenericParametersContext generics)
+        internal GenericParametersSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericParametersContext generics)
+            : base(tree, parent)
         {
             genericStart = new SyntaxToken(generics.Start);
             genericEnd = new SyntaxToken(generics.Stop);

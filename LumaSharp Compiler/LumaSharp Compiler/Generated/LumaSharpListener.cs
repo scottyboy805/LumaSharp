@@ -121,6 +121,26 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitEnumField([NotNull] LumaSharpParser.EnumFieldContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterRootMember([NotNull] LumaSharpParser.RootMemberContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitRootMember([NotNull] LumaSharpParser.RootMemberContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.rootMemberBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterRootMemberBlock([NotNull] LumaSharpParser.RootMemberBlockContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.rootMemberBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitRootMemberBlock([NotNull] LumaSharpParser.RootMemberBlockContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.memberBlock"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

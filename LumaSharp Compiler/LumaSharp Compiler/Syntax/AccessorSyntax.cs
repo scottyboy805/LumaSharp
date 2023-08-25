@@ -62,8 +62,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal AccessorSyntax(LumaSharpParser.AccessorDeclarationContext accessorDef)
-            : base(accessorDef.IDENTIFIER(), accessorDef.accessModifier())
+        internal AccessorSyntax(LumaSharpParser.AccessorDeclarationContext accessorDef, SyntaxTree tree, SyntaxNode parent)
+            : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef.accessModifier())
         {
             // Get the body
             LumaSharpParser.AccessorBodyContext body = accessorDef.accessorBody();
@@ -85,7 +85,7 @@ namespace LumaSharp_Compiler.Syntax
 
             if(read != null)
             {
-                this.readBody = new AccessorBodySyntax(read);
+                this.readBody = new AccessorBodySyntax(tree, this, read);
             }
 
             // Check for write body
@@ -93,7 +93,7 @@ namespace LumaSharp_Compiler.Syntax
 
             if(write != null)
             {
-                this.writeBody = new AccessorBodySyntax(write);
+                this.writeBody = new AccessorBodySyntax(tree, this, write);
             }
 
         }

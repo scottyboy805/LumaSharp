@@ -36,7 +36,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ArrayIndexExpression(ExpressionSyntax accessExpression, ExpressionSyntax[] indexExpressions)
+        internal ArrayIndexExpression(SyntaxTree tree, SyntaxNode parent, ExpressionSyntax accessExpression, ExpressionSyntax[] indexExpressions)
+            : base(tree, parent)
         {
             this.lArray = new SyntaxToken("[");
             this.rArray = new SyntaxToken("]");

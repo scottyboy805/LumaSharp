@@ -86,6 +86,18 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitEnumField([NotNull] LumaSharpParser.EnumFieldContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitRootMember([NotNull] LumaSharpParser.RootMemberContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.rootMemberBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitRootMemberBlock([NotNull] LumaSharpParser.RootMemberBlockContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.memberBlock"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

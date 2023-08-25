@@ -144,6 +144,30 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitEnumField([NotNull] LumaSharpParser.EnumFieldContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterRootMember([NotNull] LumaSharpParser.RootMemberContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitRootMember([NotNull] LumaSharpParser.RootMemberContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.rootMemberBlock"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterRootMemberBlock([NotNull] LumaSharpParser.RootMemberBlockContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.rootMemberBlock"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitRootMemberBlock([NotNull] LumaSharpParser.RootMemberBlockContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.memberBlock"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

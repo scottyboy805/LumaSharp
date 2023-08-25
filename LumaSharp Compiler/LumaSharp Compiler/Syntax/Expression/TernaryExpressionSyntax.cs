@@ -34,6 +34,12 @@ namespace LumaSharp_Compiler.Syntax
             get { return falseExpression.EndToken; }
         }
 
+        // Constructor
+        internal TernaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent)
+        {
+        }
+
         // Methods
         public override void GetSourceText(TextWriter writer)
         {

@@ -71,7 +71,7 @@ COMMENT: '/*' .*? '*/' -> skip;
 
 // Parser rules
 // Compilation unit - root of a source file
-compilationUnit: (importStatement | importAlias)* (namespaceDeclaration | typeDeclaration | contractDeclaration | enumDeclaration)*;
+compilationUnit: (importStatement | importAlias)* (namespaceDeclaration | rootMember)*;
 
 // Import statement
 importStatement: IMPORT IDENTIFIER ('.' IDENTIFIER)* ';';
@@ -82,7 +82,7 @@ importAlias: IMPORT IDENTIFIER AS IDENTIFIER ('.' IDENTIFIER)+ ';';
 
 // ### Declarations
 // Namespace declaration
-namespaceDeclaration: NAMESPACE IDENTIFIER '{' (typeDeclaration | contractDeclaration | enumDeclaration)* '}';
+namespaceDeclaration: NAMESPACE IDENTIFIER ('.' IDENTIFIER)* rootMemberBlock;
 
 // Type declaration
 typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameters? inheritParameters? memberBlock;
@@ -94,6 +94,11 @@ contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER g
 enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? '{' enumFields? '}';
 enumFields: enumField (',' enumField)*;
 enumField: IDENTIFIER ('=' INT)?;
+
+// Declaration block
+rootMember: (typeDeclaration | contractDeclaration | enumDeclaration);
+
+rootMemberBlock: '{' rootMember* '}';
 
 // Member block
 memberBlock: '{' memberDeclaration* '}';

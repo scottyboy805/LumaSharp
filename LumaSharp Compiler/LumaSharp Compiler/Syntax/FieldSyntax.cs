@@ -12,8 +12,8 @@ namespace LumaSharp_Compiler.Syntax
         public override SyntaxToken EndToken => throw new NotImplementedException();
 
         // Constructor
-        internal FieldSyntax(LumaSharpParser.FieldDeclarationContext fieldDef)
-            : base(fieldDef.IDENTIFIER(), fieldDef.accessModifier())
+        internal FieldSyntax(LumaSharpParser.FieldDeclarationContext fieldDef, SyntaxTree tree, SyntaxNode node)
+            : base(fieldDef.IDENTIFIER(), tree, node, fieldDef.accessModifier())
         {
 
         }

@@ -35,7 +35,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal BlockSyntax(LumaSharpParser.MemberBlockContext memberBlock)
+        internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
+            : base(tree, parent)
         {
             this.start = new SyntaxToken(memberBlock.Start);
             this.end = new SyntaxToken(memberBlock.Stop);
@@ -57,7 +58,7 @@ namespace LumaSharp_Compiler.Syntax
 
                     // Create type member
                     if (typeMember != null)
-                        this.elements[i] = new TypeSyntax(typeMember) as T;
+                        this.elements[i] = new TypeSyntax(tree, this, typeMember) as T;
 
                     // Create contract member
                     if (contractMember != null)
@@ -67,7 +68,39 @@ namespace LumaSharp_Compiler.Syntax
             }
         }
 
-        internal BlockSyntax(LumaSharpParser.StatementBlockContext statementBlock)
+        internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.RootMemberBlockContext rootMemberBlock)
+            : base(tree, node)
+        {
+            this.start = new SyntaxToken(rootMemberBlock.Start);
+            this.end = new SyntaxToken(rootMemberBlock.Stop);
+
+            // Get all members
+            LumaSharpParser.RootMemberContext[] members = rootMemberBlock.rootMember();
+
+            if (members.Length > 0)
+            {
+                this.elements = new T[members.Length];
+
+                for (int i = 0; i < members.Length; i++)
+                {
+                    var typeMember = members[i].typeDeclaration();
+                    var contractMember = members[i].contractDeclaration();
+                    var enumMember = members[i].enumDeclaration();
+
+                    // Create type member
+                    if (typeMember != null)
+                        this.elements[i] = new TypeSyntax(tree, this, typeMember) as T;
+
+                    // Create contract member
+                    if (contractMember != null)
+                        ;// this.elements[i] = new ContractSyntax(contractMember) as T;
+                }
+
+            }
+        }
+
+        internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.StatementBlockContext statementBlock)
+            : base(tree, node)
         {
             this.start = new SyntaxToken(statementBlock.Start);
             this.end = new SyntaxToken(statementBlock.Stop);

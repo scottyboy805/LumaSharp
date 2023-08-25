@@ -27,7 +27,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -60,7 +60,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -93,7 +93,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -127,7 +127,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -161,7 +161,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -195,7 +195,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -229,7 +229,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -263,7 +263,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -289,7 +289,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -311,7 +311,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -334,7 +334,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -361,7 +361,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -383,7 +383,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -405,7 +405,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -427,7 +427,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -451,7 +451,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -473,7 +473,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -497,7 +497,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -521,7 +521,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -545,7 +545,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -569,7 +569,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -592,7 +592,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
 
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(context);
+            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
             string tmp = syntax.GetSourceText();
             // Check for valid
             Assert.IsNotNull(syntax);

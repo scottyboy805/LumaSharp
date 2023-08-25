@@ -18,8 +18,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ContinueStatementSyntax()
-            : base(new SyntaxToken(";"))
+        internal ContinueStatementSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent, new SyntaxToken(";"))
         {
             keyword = new SyntaxToken("continue");
         }

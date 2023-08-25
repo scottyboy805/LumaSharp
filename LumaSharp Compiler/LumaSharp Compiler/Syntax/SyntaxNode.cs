@@ -3,10 +3,31 @@ namespace LumaSharp_Compiler.Syntax
 {
     public abstract class SyntaxNode
     {
+        // Private
+        private SyntaxTree tree = null;
+        private SyntaxNode parent = null;
+
         // Properties
+        public SyntaxTree Tree
+        {
+            get { return tree; }
+        }
+
+        public SyntaxNode Parent
+        {
+            get { return parent; }
+        }
+
         public abstract SyntaxToken StartToken { get; }
 
         public abstract SyntaxToken EndToken { get; }
+
+        // Constructor
+        protected SyntaxNode(SyntaxTree tree, SyntaxNode parent)
+        {
+            this.tree = tree;
+            this.parent = parent;
+        }
 
         // Methods
         public abstract void GetSourceText(TextWriter writer);

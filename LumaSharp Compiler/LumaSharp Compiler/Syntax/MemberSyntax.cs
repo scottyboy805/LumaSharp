@@ -31,12 +31,14 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        protected MemberSyntax(string identifier)
+        protected MemberSyntax(string identifier, SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent)
         {
             this.identifier = new SyntaxToken(identifier);
         }
 
-        internal MemberSyntax(ITerminalNode identifier, LumaSharpParser.AccessModifierContext[] modifiers)
+        internal MemberSyntax(ITerminalNode identifier, SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessModifierContext[] modifiers)
+            : base(tree, parent)
         {
             this.identifier = new SyntaxToken(identifier);
 

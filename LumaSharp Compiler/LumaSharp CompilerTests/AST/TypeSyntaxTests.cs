@@ -16,7 +16,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(context);
+            TypeSyntax syntax = new TypeSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -39,7 +39,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(context);
+            TypeSyntax syntax = new TypeSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -61,7 +61,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(context);
+            TypeSyntax syntax = new TypeSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -85,7 +85,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(context);
+            TypeSyntax syntax = new TypeSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -108,7 +108,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(context);
+            TypeSyntax syntax = new TypeSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);

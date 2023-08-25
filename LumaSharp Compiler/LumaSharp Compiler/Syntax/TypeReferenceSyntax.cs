@@ -126,7 +126,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal TypeReferenceSyntax(PrimitiveType type, int arrayRank = 0)
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, PrimitiveType type, int arrayRank = 0)
+            : base(tree, parent)
         {
             this.identifier = new SyntaxToken(type.ToString().ToLower());
             this.start = identifier;
@@ -134,12 +135,13 @@ namespace LumaSharp_Compiler.Syntax
             // Create array type
             if (arrayRank > 0)
             {
-                this.arrayParameters = new ArrayParametersSyntax(arrayRank);
+                this.arrayParameters = new ArrayParametersSyntax(tree, this, arrayRank);
                 this.end = this.arrayParameters.EndToken;
             }
         }
 
-        internal TypeReferenceSyntax(string typeName, TypeReferenceSyntax[] genericArguments, int arrayRank = 0)
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, string typeName, TypeReferenceSyntax[] genericArguments, int arrayRank = 0)
+            : base(tree, parent)
         {
             this.identifier = new SyntaxToken(typeName);
             this.start = identifier;
@@ -147,19 +149,20 @@ namespace LumaSharp_Compiler.Syntax
             // Create generics
             if (genericArguments != null && genericArguments.Length > 0)
             {
-                this.genericArguments = new GenericArgumentsSyntax(genericArguments);
+                this.genericArguments = new GenericArgumentsSyntax(tree, this, genericArguments);
                 this.end = this.genericArguments.EndToken;
             }
 
             // Create array type
             if (arrayRank > 0)
             {
-                this.arrayParameters = new ArrayParametersSyntax(arrayRank);
+                this.arrayParameters = new ArrayParametersSyntax(tree, this, arrayRank);
                 this.end = this.arrayParameters.EndToken;
             }
         }
 
-        internal TypeReferenceSyntax(LumaSharpParser.TypeReferenceContext typeRef)
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeReferenceContext typeRef)
+            : base(tree, parent)
         {
             // Check for primitive
             LumaSharpParser.PrimitiveTypeContext primitive = typeRef.primitiveType();            
@@ -191,7 +194,7 @@ namespace LumaSharp_Compiler.Syntax
                 LumaSharpParser.GenericArgumentsContext generics = typeRef.genericArguments();
 
                 if(generics != null)
-                    this.genericArguments = new GenericArgumentsSyntax(generics);
+                    this.genericArguments = new GenericArgumentsSyntax(tree, this, generics);
 
                 // Create identifier
                 this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
@@ -200,7 +203,7 @@ namespace LumaSharp_Compiler.Syntax
             // Check for array
             if(array != null)
             {
-                this.arrayParameters = new ArrayParametersSyntax(array);
+                this.arrayParameters = new ArrayParametersSyntax(tree, this, array);
             }
 
             // Check for reference

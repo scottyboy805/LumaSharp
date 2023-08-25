@@ -31,7 +31,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal TypeExpressionSyntax(TypeReferenceSyntax typeReference)
+        internal TypeExpressionSyntax(TypeReferenceSyntax typeReference, SyntaxTree tree, SyntaxNode node)
+            : base(tree, node)
         {
             this.keyword = new SyntaxToken("type");
             this.start = new SyntaxToken("(");

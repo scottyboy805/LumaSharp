@@ -68,6 +68,12 @@ namespace LumaSharp_Compiler.Syntax.Expression
             }
         }
 
+        // Constructor
+        internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent)
+        {
+        }
+
         // Methods
         public override void GetSourceText(TextWriter writer)
         {

@@ -85,8 +85,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal TypeSyntax(string identifier)
-            : base(identifier)
+        internal TypeSyntax(string identifier, SyntaxTree tree, SyntaxNode parent)
+            : base(identifier, tree, parent)
         {
             this.keyword = new SyntaxToken("type");
 
@@ -94,8 +94,8 @@ namespace LumaSharp_Compiler.Syntax
             this.end = this.identifier;
         }
 
-        internal TypeSyntax(LumaSharpParser.TypeDeclarationContext typeDef)
-            : base(typeDef.IDENTIFIER(), typeDef.accessModifier())
+        internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
+            : base(typeDef.IDENTIFIER(), tree, parent, typeDef.accessModifier())
         {
             // Type keyword
             this.keyword = new SyntaxToken(typeDef.TYPE());            
@@ -105,7 +105,7 @@ namespace LumaSharp_Compiler.Syntax
 
             if(generics != null)
             {
-                this.genericParameters = new GenericParametersSyntax(generics);
+                this.genericParameters = new GenericParametersSyntax(tree, this, generics);
             }
 
             // Get base
@@ -122,7 +122,7 @@ namespace LumaSharp_Compiler.Syntax
 
                     for(int i = 0; i <  baseTypes.Length; i++)
                     {
-                        this.baseTypeReferences[i] = new TypeReferenceSyntax(baseTypes[i]);
+                        this.baseTypeReferences[i] = new TypeReferenceSyntax(tree, this, baseTypes[i]);
                     }
                 }
             }
@@ -130,7 +130,7 @@ namespace LumaSharp_Compiler.Syntax
             // Get members
             LumaSharpParser.MemberBlockContext block = typeDef.memberBlock();
 
-            this.memberBlock = new BlockSyntax<MemberSyntax>(block);
+            this.memberBlock = new BlockSyntax<MemberSyntax>(tree, this, block);
         }
 
         // Methods

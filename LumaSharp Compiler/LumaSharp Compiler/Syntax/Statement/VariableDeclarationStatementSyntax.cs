@@ -51,11 +51,11 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, string[] variableNames, ExpressionSyntax[] assignExpressions = null)
-            : base(new SyntaxToken(";"))
+        internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax variableType, string[] variableNames, ExpressionSyntax[] assignExpressions = null)
+            : base(tree, parent, new SyntaxToken(";"))
         {
             // Check for incompatible
-            if (variableNames != null && variableNames.Length > 0 && assignExpressions != null && variableNames.Length != assignExpressions.Length
+            if (variableNames != null && variableNames.Length > 0 && assignExpressions != null && variableNames.Length != assignExpressions.Length)
                 throw new ArgumentException("Assign expression length must match variable names length");
 
             this.variableType = variableType;

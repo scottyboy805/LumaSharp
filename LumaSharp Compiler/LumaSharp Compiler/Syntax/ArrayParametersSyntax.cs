@@ -25,7 +25,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ArrayParametersSyntax(int rank)
+        internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode parent, int rank)
+            : base(tree, parent)
         {
             // Check for invalid rank
             if (rank > 3)
@@ -36,7 +37,8 @@ namespace LumaSharp_Compiler.Syntax
             this.rank = rank;
         }
 
-        internal ArrayParametersSyntax(LumaSharpParser.ArrayParametersContext array)
+        internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.ArrayParametersContext array)
+            : base(tree, node)
         {
             this.indexStart = new SyntaxToken(array.Start);
             this.indexEnd = new SyntaxToken(array.Stop);

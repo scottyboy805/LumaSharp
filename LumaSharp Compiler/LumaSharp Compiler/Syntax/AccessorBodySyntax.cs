@@ -54,7 +54,8 @@ namespace LumaSharp_Compiler.Syntax
         public override SyntaxToken EndToken => throw new NotImplementedException();
 
         // Constructor
-        internal AccessorBodySyntax(LumaSharpParser.AccessorReadContext read)
+        internal AccessorBodySyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorReadContext read)
+            : base(tree, parent)
         {
             // Get the keyword
             this.keyword = new SyntaxToken(read.READ());
@@ -72,11 +73,12 @@ namespace LumaSharp_Compiler.Syntax
 
             if(statementBlock != null)
             {
-                this.blockBody = new BlockSyntax<StatementSyntax>(statementBlock);
+                this.blockBody = new BlockSyntax<StatementSyntax>(tree, this, statementBlock);
             }
         }
 
-        internal AccessorBodySyntax(LumaSharpParser.AccessorWriteContext write)
+        internal AccessorBodySyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorWriteContext write)
+            : base(tree, parent)
         {
             // Get the keyword
             this.keyword = new SyntaxToken(write.WRITE());
@@ -94,7 +96,7 @@ namespace LumaSharp_Compiler.Syntax
 
             if (statementBlock != null)
             {
-                this.blockBody = new BlockSyntax<StatementSyntax>(statementBlock);
+                this.blockBody = new BlockSyntax<StatementSyntax>(tree, this, statementBlock);
             }
         }
 

@@ -30,14 +30,16 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal GenericArgumentsSyntax(TypeReferenceSyntax[] genericTypes)
+        internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax[] genericTypes)
+            : base(tree, parent)
         {
             this.genericStart = new SyntaxToken("<");
             this.genericEnd = new SyntaxToken(">");
             this.genericTypes = genericTypes;
         }
 
-        internal GenericArgumentsSyntax(LumaSharpParser.GenericArgumentsContext generics)
+        internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericArgumentsContext generics)
+            : base(tree, parent)
         {
             genericStart = new SyntaxToken(generics.Start);
             genericEnd = new SyntaxToken(generics.Stop);
@@ -49,7 +51,7 @@ namespace LumaSharp_Compiler.Syntax
             this.genericTypes = new TypeReferenceSyntax[typeReferences.Length];
 
             for(int i = 0; i < typeReferences.Length; i++)
-                this.genericTypes[i] = new TypeReferenceSyntax(typeReferences[i]);
+                this.genericTypes[i] = new TypeReferenceSyntax(tree, this, typeReferences[i]);
         }
 
         // Methods

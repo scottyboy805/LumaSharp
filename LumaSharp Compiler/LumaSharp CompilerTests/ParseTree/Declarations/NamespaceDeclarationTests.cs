@@ -30,7 +30,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.IsInstanceOfType(rootNamespace, typeof(LumaSharpParser.NamespaceDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootNamespace.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", rootNamespace.IDENTIFIER().Last().GetText());
         }
 
         [TestMethod]
@@ -48,7 +48,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.IsInstanceOfType(namespace1, typeof(LumaSharpParser.NamespaceDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test1", namespace1.IDENTIFIER().GetText());
+            Assert.AreEqual("Test1", namespace1.IDENTIFIER().Last().GetText());
 
             // Check for root namespace
             LumaSharpParser.NamespaceDeclarationContext namespace2;
@@ -59,7 +59,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.IsInstanceOfType(namespace2, typeof(LumaSharpParser.NamespaceDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test2", namespace2.IDENTIFIER().GetText());
+            Assert.AreEqual("Test2", namespace2.IDENTIFIER().Last().GetText());
         }
 
         [TestMethod]
@@ -74,7 +74,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
                 .GetChild<LumaSharpParser.NamespaceDeclarationContext>(0));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootNamespace.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", rootNamespace.IDENTIFIER().Last().GetText());
 
             // Check for type declaration
             LumaSharpParser.TypeDeclarationContext mainType;
@@ -100,7 +100,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
                 .GetChild<LumaSharpParser.NamespaceDeclarationContext>(0));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootNamespace.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", rootNamespace.IDENTIFIER().Last().GetText());
 
 
             // Check for type 1 declaration

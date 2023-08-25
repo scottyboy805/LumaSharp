@@ -52,7 +52,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal BinaryExpressionSyntax(ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
+        internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
+            : base(tree, parent)
         {
             this.left = left;
             this.right = right;

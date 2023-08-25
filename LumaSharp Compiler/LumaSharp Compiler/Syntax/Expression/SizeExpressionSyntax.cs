@@ -31,7 +31,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal SizeExpressionSyntax(TypeReferenceSyntax typeReference)
+        internal SizeExpressionSyntax(TypeReferenceSyntax typeReference, SyntaxTree tree, SyntaxNode node)
+            : base(tree, node)
         {
             this.keyword = new SyntaxToken("size");
             this.start = new SyntaxToken("(");

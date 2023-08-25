@@ -23,7 +23,8 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal BaseExpressionSyntax()
+        internal BaseExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
+            : base(tree, parent)
         {
             keyword = new SyntaxToken("base");
         }
