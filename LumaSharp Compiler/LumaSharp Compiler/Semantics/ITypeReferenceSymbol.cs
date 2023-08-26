@@ -1,13 +1,24 @@
-﻿
+﻿using LumaSharp_Compiler.Syntax;
+
 namespace LumaSharp_Compiler.Semantics
 {
-    public interface ITypeReferenceSymbol
+    public interface ITypeReferenceSymbol : IReferenceSymbol
     {
         // Properties
-        ILibraryReferenceSymbol LibrarySymbol { get; }
-
-        int TypeToken { get; }
-
         string TypeName { get; }
+
+        PrimitiveType PrimitiveType { get; }
+
+        bool IsPrimitive { get; }
+        
+        bool IsType { get; }
+        
+        bool IsContract { get; }
+
+        bool IsEnum { get; }
+
+        ITypeReferenceSymbol[] GenericTypeSymbols { get; }
+
+        ITypeReferenceSymbol[] BaseTypeSymbols { get; }
     }
 }

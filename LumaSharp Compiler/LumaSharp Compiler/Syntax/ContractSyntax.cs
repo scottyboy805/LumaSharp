@@ -94,7 +94,7 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
-            : base(contractDef.IDENTIFIER(), tree, parent, contractDef.accessModifier())
+            : base(contractDef.IDENTIFIER(), tree, parent, contractDef.attributeDeclaration(), contractDef.accessModifier())
         {
             // Contract keyword
             this.keyword = new SyntaxToken(contractDef.CONTRACT());

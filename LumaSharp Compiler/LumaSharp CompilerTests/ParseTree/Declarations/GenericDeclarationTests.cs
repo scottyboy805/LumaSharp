@@ -9,20 +9,18 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         public void GenericType_1()
         {
             string input = "type Test<T>{}";
-            LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
+            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext rootType;
-            Assert.IsNotNull(rootType = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+            Assert.IsNotNull(context);
 
             // Check for type declaration
-            Assert.IsInstanceOfType(rootType, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(context, typeof(LumaSharpParser.TypeDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootType.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
-            LumaSharpParser.GenericParametersContext generics = rootType.genericParameters();
+            LumaSharpParser.GenericParametersContext generics = context.genericParameters();
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(3, generics.ChildCount);
@@ -35,20 +33,18 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         public void GenericType_2()
         {
             string input = "type Test<T0, T1>{}";
-            LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
+            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext rootType;
-            Assert.IsNotNull(rootType = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+            Assert.IsNotNull(context);
 
             // Check for type declaration
-            Assert.IsInstanceOfType(rootType, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(context, typeof(LumaSharpParser.TypeDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootType.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
-            LumaSharpParser.GenericParametersContext generics = rootType.genericParameters();
+            LumaSharpParser.GenericParametersContext generics = context.genericParameters();
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(5, generics.ChildCount);
@@ -63,20 +59,18 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         public void GenericType_3()
         {
             string input = "type Test<T0, T1, T2>{}";
-            LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
+            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
 
             // Check for root type
-            LumaSharpParser.TypeDeclarationContext rootType;
-            Assert.IsNotNull(rootType = context
-                .GetChild<LumaSharpParser.TypeDeclarationContext>(0));
+            Assert.IsNotNull(context);
 
             // Check for type declaration
-            Assert.IsInstanceOfType(rootType, typeof(LumaSharpParser.TypeDeclarationContext));
+            Assert.IsInstanceOfType(context, typeof(LumaSharpParser.TypeDeclarationContext));
 
             // Check for namespace name
-            Assert.AreEqual("Test", rootType.IDENTIFIER().GetText());
+            Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
-            LumaSharpParser.GenericParametersContext generics = rootType.genericParameters();
+            LumaSharpParser.GenericParametersContext generics = context.genericParameters();
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(7, generics.ChildCount);

@@ -1,6 +1,6 @@
 ﻿using LumaSharp_Compiler.Syntax;
 
-namespace LumaSharp_Compiler.Semantics
+namespace LumaSharp_Compiler.Semantics.Model
 {
     public enum AccessModifier
     {
@@ -10,12 +10,15 @@ namespace LumaSharp_Compiler.Semantics
         Global,
     }
 
-    public abstract class MemberModel : ModelNode
+    public abstract class MemberModel : SymbolModel, IReferenceSymbol
     {
         // Private
         private MemberSyntax syntax = null;
         private MemberModel parent = null;
         private AccessModifier[] accessModifiers = null;
+
+        // Internal
+        internal int memberToken = -1;
 
         // Properties
         public string MemberName
@@ -48,6 +51,16 @@ namespace LumaSharp_Compiler.Semantics
             get { return accessModifiers != null; }
         }
 
+        public ILibraryReferenceSymbol LibrarySymbol
+        {
+            get { return Model; }
+        }
+
+        public int SymbolToken
+        {
+            get { return memberToken; }
+        }
+
         // Constructor
         protected MemberModel(MemberSyntax syntax, SemanticModel model, MemberModel parent)
             : base(model)
@@ -55,8 +68,8 @@ namespace LumaSharp_Compiler.Semantics
             this.syntax = syntax;
             this.parent = parent;
 
-            if(syntax.HasAccessModifiers == true)
-                this.accessModifiers = GetAccessModifiers(syntax.AccessModifiers);
+            if (syntax.HasAccessModifiers == true)
+                accessModifiers = GetAccessModifiers(syntax.AccessModifiers);
         }
 
         // Methods
@@ -69,9 +82,9 @@ namespace LumaSharp_Compiler.Semantics
         {
             List<AccessModifier> result = new List<AccessModifier>(4);
 
-            for(int i = 0; i < modifiers.Length; i++)
+            for (int i = 0; i < modifiers.Length; i++)
             {
-                switch(modifiers[i].Text)
+                switch (modifiers[i].Text)
                 {
                     case "export": result.Add(AccessModifier.Export); break;
                     case "internal": result.Add(AccessModifier.Internal); break;

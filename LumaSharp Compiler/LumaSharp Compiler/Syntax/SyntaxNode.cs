@@ -32,6 +32,11 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Methods
+        public override string ToString()
+        {
+            return GetSourceText();
+        }
+
         public abstract void GetSourceText(TextWriter writer);
 
         public string GetSourceText()
@@ -53,6 +58,15 @@ namespace LumaSharp_Compiler.Syntax
             {
                 if (node is T)
                     yield return node as T;
+            }
+        }
+
+        public IEnumerable<SyntaxNode> DescendantsOfType(Type type)
+        {
+            foreach (SyntaxNode node in Descendants)
+            {
+                if (type.IsAssignableFrom(node.GetType()) == true)
+                    yield return node;
             }
         }
     }

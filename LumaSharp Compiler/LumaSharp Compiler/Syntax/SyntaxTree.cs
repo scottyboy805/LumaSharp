@@ -6,8 +6,7 @@ namespace LumaSharp_Compiler.Syntax
     public sealed class SyntaxTree : SyntaxNode//, IRootMemberSyntaxContainer
     {
         // Private
-        private MemberSyntax[] rootMembers = null;
-        private NamespaceSyntax[] namespaceMembers = null;
+        private List<SyntaxNode> rootElements = null;
 
         // Properties
         public override SyntaxToken StartToken => throw new NotImplementedException();
@@ -16,77 +15,98 @@ namespace LumaSharp_Compiler.Syntax
 
         public int RootElementCount
         {
-            get { return RootMemberCount + NamespaceMemberCount; }
+            get { return HasRootElements ? rootElements.Count : 0; }
         }
 
         public int RootMemberCount
         {
-            get { return HasRootMembers ? rootMembers.Length : 0; }
+            get { return HasRootMembers ? DescendantsOfType<MemberSyntax>().Count() : 0; }
         }
 
         public int NamespaceMemberCount
         {
-            get { return HasNamespaceMembers ? namespaceMembers.Length : 0; }
+            get { return HasNamespaceMembers ? DescendantsOfType<NamespaceSyntax>().Count() : 0; }
+        }
+
+        public bool HasRootElements
+        {
+            get { return rootElements != null; }
         }
 
         public bool HasRootMembers
         {
-            get { return rootMembers != null; }
+            get { return DescendantsOfType<MemberSyntax>().Any(); }
         }
 
         public bool HasNamespaceMembers
         {
-            get { return namespaceMembers != null; }
+            get { return DescendantsOfType<NamespaceSyntax>().Any(); }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
-            get
-            {
-                foreach (MemberSyntax member in rootMembers)
-                    yield return member;
-            }
+            get { return rootElements; }
         }
-
-        //public IEnumerable<MemberSyntax> RootMembers
-        //{
-        //    get
-        //    {
-        //        foreach (MemberSyntax member in rootMembers)
-        //            yield return member;
-
-        //        foreach(NamespaceSyntax)
-        //    }
-        //}
 
         // Constructor
         internal SyntaxTree(LumaSharpParser.CompilationUnitContext unit)
             : base(null, null)
         {
             // Get root members
-            LumaSharpParser.RootMemberContext[] rootMembers = unit.rootMember();
+            LumaSharpParser.ImportElementContext[] importElements = unit.importElement();
+            LumaSharpParser.RootElementContext[] rootElements = unit.rootElement();
 
-            this.rootMembers = new MemberSyntax[rootMembers.Length];
-
-            // Process all members
-            for (int i = 0; i < rootMembers.Length; i++)
+            if ((importElements != null && importElements.Length > 0) || (rootElements != null && rootElements.Length > 0))
             {
-                // Get all valid members
-                LumaSharpParser.TypeDeclarationContext typeDef = rootMembers[i].typeDeclaration();
-                LumaSharpParser.ContractDeclarationContext contractDef = rootMembers[i].contractDeclaration();
-                LumaSharpParser.EnumDeclarationContext enumDef = rootMembers[i].enumDeclaration();
+                // Create collection
+                this.rootElements = new List<SyntaxNode>();
+            }
 
-                // Check for type
-                if (typeDef != null)
-                    this.rootMembers[i] = new TypeSyntax(this, this, typeDef);
+            // Process all import elements
+            if(importElements != null)
+            {
+                for(int i = 0; i < importElements.Length; i++)
+                {
+                    // Create import
+                    this.rootElements.Add(new ImportSyntax(this, this, importElements[i]));
+                }
+            }
 
-                // Check for contract
-                if(contractDef != null)
-                    this.rootMembers[i] = new ContractSyntax(this, this, contractDef);
+            // Process all root elements
+            if (rootElements != null)
+            {
+                for (int i = 0; i < rootElements.Length; i++)
+                {
+                    // Get namespace or root member
+                    LumaSharpParser.NamespaceDeclarationContext namespaceElement = rootElements[i].namespaceDeclaration();
+                    LumaSharpParser.RootMemberContext rootMemberElement = rootElements[i].rootMember();
 
-                // Check for enum
-                if(enumDef != null)
-                    this.rootMembers[i] = new EnumSyntax(this, this, enumDef);
+                    // Check for namespace
+                    if (namespaceElement != null)
+                    {
+                        // Create namespace
+                        this.rootElements.Add(new NamespaceSyntax(this, this, namespaceElement));
+                    }
+                    else if (rootMemberElement != null)
+                    {
+                        // Get all valid members
+                        LumaSharpParser.TypeDeclarationContext typeDef = rootMemberElement.typeDeclaration();
+                        LumaSharpParser.ContractDeclarationContext contractDef = rootMemberElement.contractDeclaration();
+                        LumaSharpParser.EnumDeclarationContext enumDef = rootMemberElement.enumDeclaration();
+
+                        // Check for type
+                        if (typeDef != null)
+                            this.rootElements.Add(new TypeSyntax(this, this, typeDef));
+
+                        // Check for contract
+                        if (contractDef != null)
+                            this.rootElements.Add(new ContractSyntax(this, this, contractDef));
+
+                        // Check for enum
+                        if (enumDef != null)
+                            this.rootElements.Add(new EnumSyntax(this, this, enumDef));
+                    }
+                }
             }
         }
 

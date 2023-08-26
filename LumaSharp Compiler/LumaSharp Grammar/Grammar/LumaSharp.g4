@@ -62,7 +62,7 @@ INT: [0-9]+;
 DECIMAL: [0-9]+ '.' [0-9]+;
 HEX: '0x' [0-9a-fA-F]+;
 LITERAL: '"' .*? '"';
-WS: [ \t\r\n]+ -> skip;
+WS: [ \t\r\n]+ -> channel(HIDDEN);
 
 // This rule is optional and will be used to ignore comments
 COMMENT: '/*' .*? '*/' -> skip;
@@ -71,18 +71,26 @@ COMMENT: '/*' .*? '*/' -> skip;
 
 // Parser rules
 // Compilation unit - root of a source file
-compilationUnit: (importStatement | importAlias)* (namespaceDeclaration | rootMember)*;
+compilationUnit: importElement* rootElement*;
+
+// Import element
+importElement: importStatement | importAlias;
+
+// Root element
+rootElement: namespaceDeclaration | rootMember;
 
 // Import statement
-importStatement: IMPORT IDENTIFIER ('.' IDENTIFIER)* ';';
+importStatement: IMPORT namespaceName ';';
 
 // Import alias
-importAlias: IMPORT IDENTIFIER AS IDENTIFIER ('.' IDENTIFIER)+ ';';
+importAlias: IMPORT IDENTIFIER AS namespaceName '.' typeReference ';';
 
 
 // ### Declarations
 // Namespace declaration
-namespaceDeclaration: NAMESPACE IDENTIFIER ('.' IDENTIFIER)* rootMemberBlock;
+namespaceDeclaration: NAMESPACE namespaceName rootMemberBlock;
+
+namespaceName: IDENTIFIER (':' IDENTIFIER)*;
 
 // Type declaration
 typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameters? inheritParameters? memberBlock;
@@ -91,7 +99,13 @@ typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericPa
 contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameters? inheritParameters? memberBlock;
 
 // Enum declaration
-enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? fieldBlock;
+enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? enumBlock;
+
+// Enum block
+enumBlock: '{' (enumField (',' enumField)*)? '}';
+
+// Enum field
+enumField: attributeDeclaration* IDENTIFIER fieldAssignment?;
 
 // Declaration block
 rootMember: (typeDeclaration | contractDeclaration | enumDeclaration);
@@ -100,8 +114,6 @@ rootMemberBlock: '{' rootMember* '}';
 
 // Member block
 memberBlock: '{' memberDeclaration* '}';
-
-fieldBlock: '{' fieldDeclaration '}';
 
 // Member
 memberDeclaration: 
@@ -113,10 +125,10 @@ memberDeclaration:
 	;
 
 // Attribute declaration
-attributeDeclaration: '#' IDENTIFIER ('(' ((INT | DECIMAL | LITERAL) (',' (INT | DECIMAL | LITERAL))*)? ')')?;
+attributeDeclaration: '#' typeReference ('(' (expression (',' expression)*)? ')')?;
 
 // Field declaration
-fieldDeclaration: attributeDeclaration* accessModifier* primitiveType IDENTIFIER fieldAssignment? ';';
+fieldDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER fieldAssignment? ';';
 
 fieldAssignment: '=' (INT | STRING | IDENTIFIER);
 
@@ -261,7 +273,7 @@ endExpression:
 	  HEX 
 	| INT ('U' | 'L' | 'UL')? 
 	| DECIMAL ('F' | 'D')? 
-	| LITERAL indexExpression? 
+	| LITERAL
 	| IDENTIFIER 
 	| TRUE 
 	| FALSE

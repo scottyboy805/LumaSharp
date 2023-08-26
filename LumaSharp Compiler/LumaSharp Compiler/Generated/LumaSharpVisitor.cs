@@ -38,6 +38,18 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitCompilationUnit([NotNull] LumaSharpParser.CompilationUnitContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.importElement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitImportElement([NotNull] LumaSharpParser.ImportElementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.rootElement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitRootElement([NotNull] LumaSharpParser.RootElementContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.importStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -55,6 +67,12 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitNamespaceDeclaration([NotNull] LumaSharpParser.NamespaceDeclarationContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.namespaceName"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNamespaceName([NotNull] LumaSharpParser.NamespaceNameContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.typeDeclaration"/>.
 	/// </summary>
@@ -74,6 +92,18 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitEnumDeclaration([NotNull] LumaSharpParser.EnumDeclarationContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.enumBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitEnumBlock([NotNull] LumaSharpParser.EnumBlockContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.enumField"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitEnumField([NotNull] LumaSharpParser.EnumFieldContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.rootMember"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -91,12 +121,6 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitMemberBlock([NotNull] LumaSharpParser.MemberBlockContext context);
-	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.fieldBlock"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitFieldBlock([NotNull] LumaSharpParser.FieldBlockContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.memberDeclaration"/>.
 	/// </summary>

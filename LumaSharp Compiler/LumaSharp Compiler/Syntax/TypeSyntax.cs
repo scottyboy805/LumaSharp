@@ -94,7 +94,7 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
-            : base(typeDef.IDENTIFIER(), tree, parent, typeDef.accessModifier())
+            : base(typeDef.IDENTIFIER(), tree, parent, typeDef.attributeDeclaration(), typeDef.accessModifier())
         {
             // Type keyword
             this.keyword = new SyntaxToken(typeDef.TYPE());            

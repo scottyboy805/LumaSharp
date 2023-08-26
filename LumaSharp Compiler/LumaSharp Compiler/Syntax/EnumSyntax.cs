@@ -68,13 +68,13 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
-            : base(enumDef.IDENTIFIER(), tree, parent, enumDef.accessModifier())
+            : base(enumDef.IDENTIFIER(), tree, parent, enumDef.attributeDeclaration(), enumDef.accessModifier())
         {
             // Enum keyword
             this.keyword = new SyntaxToken(enumDef.ENUM());
 
             // Get fields
-            LumaSharpParser.FieldBlockContext block = enumDef.fieldBlock();
+            LumaSharpParser.EnumBlockContext block = enumDef.enumBlock();
 
             //this.fieldBlock = new BlockSyntax<FieldSyntax>(tree, this, block);
         }

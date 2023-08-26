@@ -12,82 +12,59 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.ImportStatementContext import;
-            Assert.IsNotNull(import = context
-                .GetChild<LumaSharpParser.ImportStatementContext>(0));
-
-            // Check for type declaration
-            Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportStatementContext));
+            LumaSharpParser.ImportElementContext[] imports;
+            Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", import.GetChild(1).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().GetText());
         }
 
         [TestMethod]
         public void ImportNested()
         {
-            string input = "import Collections.Generic;";
+            string input = "import Collections:Generic;";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.ImportStatementContext import;
-            Assert.IsNotNull(import = context
-                .GetChild<LumaSharpParser.ImportStatementContext>(0));
-
-            // Check for type declaration
-            Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportStatementContext));
+            LumaSharpParser.ImportElementContext[] imports;
+            Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", import.GetChild(1).GetText());
-            Assert.AreEqual(".", import.GetChild(2).GetText());
-            Assert.AreEqual("Generic", import.GetChild(3).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("Generic", imports[0].importStatement().namespaceName().IDENTIFIER(1).GetText());
         }
 
         [TestMethod]
         public void ImportNestedMultiple()
         {
-            string input = "import Collections.Generic.Async;";
+            string input = "import Collections:Generic:Async;";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.ImportStatementContext import;
-            Assert.IsNotNull(import = context
-                .GetChild<LumaSharpParser.ImportStatementContext>(0));
-
-            // Check for type declaration
-            Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportStatementContext));
+            LumaSharpParser.ImportElementContext[] imports;
+            Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", import.GetChild(1).GetText());
-            Assert.AreEqual(".", import.GetChild(2).GetText());
-            Assert.AreEqual("Generic", import.GetChild(3).GetText());
-            Assert.AreEqual(".", import.GetChild(4).GetText());
-            Assert.AreEqual("Async", import.GetChild(5).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("Generic", imports[0].importStatement().namespaceName().IDENTIFIER(1).GetText());
+            Assert.AreEqual("Async", imports[0].importStatement().namespaceName().IDENTIFIER(2).GetText());
         }
 
         [TestMethod]
         public void ImportMultiple()
         {
-            string input = "import Collections; import Collections.Generic;";
+            string input = "import Collections; import Collections:Generic;";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.ImportStatementContext import;
-            Assert.IsNotNull(import = context
-                .GetChild<LumaSharpParser.ImportStatementContext>(0));
-
-            // Check for type declaration
-            Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportStatementContext));
-
-            // Get imports
-            LumaSharpParser.ImportStatementContext[] imports = context.importStatement();
+            LumaSharpParser.ImportElementContext[] imports;
+            Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", imports[0].GetChild(1).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER(0).GetText());
 
-            Assert.AreEqual("Collections", imports[1].GetChild(1).GetText());
-            Assert.AreEqual(".", imports[1].GetChild(2).GetText());
-            Assert.AreEqual("Generic", imports[1].GetChild(3).GetText());
+            Assert.AreEqual("Collections", imports[1].importStatement().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("Generic", imports[1].importStatement().namespaceName().IDENTIFIER(1).GetText());
         }
 
         [TestMethod]
@@ -97,41 +74,30 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.ImportAliasContext import;
-            Assert.IsNotNull(import = context
-                .GetChild<LumaSharpParser.ImportAliasContext>(0));
-
-            // Check for type declaration
-            Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportAliasContext));
+            LumaSharpParser.ImportElementContext[] imports;
+            Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("C", import.GetChild(1).GetText());
-            Assert.AreEqual("Collections", import.GetChild(3).GetText());
-            Assert.AreEqual(".", import.GetChild(4).GetText());
-            Assert.AreEqual("List", import.GetChild(5).GetText());
+            Assert.AreEqual("C", imports[0].importAlias().IDENTIFIER().GetText());
+            Assert.AreEqual("Collections", imports[0].importAlias().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("List", imports[0].importAlias().typeReference().GetText());
         }
 
         [TestMethod]
         public void ImportAliasNested()
         {
-            string input = "import C as Collections.Generic.List;";
+            string input = "import C as Collections:Generic.List;";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
-            LumaSharpParser.ImportAliasContext import;
-            Assert.IsNotNull(import = context
-                .GetChild<LumaSharpParser.ImportAliasContext>(0));
-
-            // Check for type declaration
-            Assert.IsInstanceOfType(import, typeof(LumaSharpParser.ImportAliasContext));
+            LumaSharpParser.ImportElementContext[] imports;
+            Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("C", import.GetChild(1).GetText());
-            Assert.AreEqual("Collections", import.GetChild(3).GetText());
-            Assert.AreEqual(".", import.GetChild(4).GetText());
-            Assert.AreEqual("Generic", import.GetChild(5).GetText());
-            Assert.AreEqual(".", import.GetChild(6).GetText());
-            Assert.AreEqual("List", import.GetChild(7).GetText());
+            Assert.AreEqual("C", imports[0].importAlias().IDENTIFIER().GetText());
+            Assert.AreEqual("Collections", imports[0].importAlias().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("Generic", imports[0].importAlias().namespaceName().IDENTIFIER(1).GetText());
+            Assert.AreEqual("List", imports[0].importAlias().typeReference().GetText());
         }
     }
 }

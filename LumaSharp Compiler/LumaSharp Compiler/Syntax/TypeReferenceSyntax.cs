@@ -6,7 +6,7 @@ namespace LumaSharp_Compiler.Syntax
 {
     public enum PrimitiveType
     {
-        Any,
+        Any = 1,
         Bool,
         Char, 
         I8,

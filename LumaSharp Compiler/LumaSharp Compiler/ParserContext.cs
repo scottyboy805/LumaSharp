@@ -15,6 +15,12 @@ namespace LumaSharp_Compiler
         }
 
         // Methods
+        public override void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
+        {
+            base.SyntaxError(output, recognizer, offendingSymbol, line, charPositionInLine, msg, e);
+            throw new Exception($"Syntax error at line {line}, position {charPositionInLine}: {msg}");
+        }
+
         public SyntaxTree ParseCompilationUnit()
         {
             // Create the parser
