@@ -20,7 +20,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
-            LumaSharpParser.GenericParametersContext generics = context.genericParameters();
+            LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(3, generics.ChildCount);
@@ -44,7 +44,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
-            LumaSharpParser.GenericParametersContext generics = context.genericParameters();
+            LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(5, generics.ChildCount);
@@ -70,7 +70,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
-            LumaSharpParser.GenericParametersContext generics = context.genericParameters();
+            LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(7, generics.ChildCount);

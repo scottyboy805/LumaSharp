@@ -45,29 +45,37 @@ namespace LumaSharp_Compiler.Syntax
             get { return assignExpressions != null; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return variableType.StartToken; }
-        }
-
         // Constructor
-        internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax variableType, string[] variableNames, ExpressionSyntax[] assignExpressions = null)
-            : base(tree, parent, new SyntaxToken(";"))
+        //internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax variableType, string[] variableNames, ExpressionSyntax[] assignExpressions = null)
+        //    : base(tree, parent, new SyntaxToken(";"))
+        //{
+        //    // Check for incompatible
+        //    if (variableNames != null && variableNames.Length > 0 && assignExpressions != null && variableNames.Length != assignExpressions.Length)
+        //        throw new ArgumentException("Assign expression length must match variable names length");
+
+        //    this.variableType = variableType;
+        //    this.assignExpressions = assignExpressions;
+
+        //    // Setup identifiers
+        //    this.identifiers = new SyntaxToken[variableNames.Length];
+
+        //    for(int i = 0; i < variableNames.Length; i++)
+        //    {
+        //        this.identifiers[i] = new SyntaxToken(variableNames[i]);
+        //    }
+        //}
+
+        internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.LocalVariableStatementContext local)
+            : base(tree, parent, local)
         {
-            // Check for incompatible
-            if (variableNames != null && variableNames.Length > 0 && assignExpressions != null && variableNames.Length != assignExpressions.Length)
-                throw new ArgumentException("Assign expression length must match variable names length");
+            // Variable type
+            this.variableType = new TypeReferenceSyntax(tree, this, local.typeReference());
 
-            this.variableType = variableType;
-            this.assignExpressions = assignExpressions;
+            // Identifiers
+            this.identifiers = local.IDENTIFIER().Select(i =>  new SyntaxToken(i)).ToArray();
 
-            // Setup identifiers
-            this.identifiers = new SyntaxToken[variableNames.Length];
-
-            for(int i = 0; i < variableNames.Length; i++)
-            {
-                this.identifiers[i] = new SyntaxToken(variableNames[i]);
-            }
+            // Assign expressions
+            this.assignExpressions = local.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
         }
 
         // Methods

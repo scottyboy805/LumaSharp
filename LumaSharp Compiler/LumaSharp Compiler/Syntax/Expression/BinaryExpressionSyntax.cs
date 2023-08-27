@@ -1,4 +1,6 @@
 ﻿
+using Antlr4.Runtime;
+
 namespace LumaSharp_Compiler.Syntax
 {
     public enum BinaryOperation
@@ -41,19 +43,18 @@ namespace LumaSharp_Compiler.Syntax
             get { return right; }
         }
 
-        public override SyntaxToken StartToken
+        internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return left.StartToken; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return right.EndToken; }
+            get
+            {
+                yield return left;
+                yield return right;
+            }
         }
 
         // Constructor
-        internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
-            : base(tree, parent)
+        internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context, ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
+            : base(tree, parent, context)
         {
             this.left = left;
             this.right = right;
@@ -74,6 +75,19 @@ namespace LumaSharp_Compiler.Syntax
                 BinaryOperation.And => "&&",
                 BinaryOperation.Or => "||",
             });
+        }
+
+        internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(tree, parent, expression)
+        {
+            // Op
+            this.operation = new SyntaxToken(expression.binary);
+
+            // Get left
+            this.left = Any(tree, this, expression.expression(0));
+
+            // Get right
+            this.right = Any(tree, this, expression.expression(1));
         }
 
         // Methods

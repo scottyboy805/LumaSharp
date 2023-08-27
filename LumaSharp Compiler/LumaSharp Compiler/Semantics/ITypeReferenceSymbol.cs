@@ -20,5 +20,11 @@ namespace LumaSharp_Compiler.Semantics
         ITypeReferenceSymbol[] GenericTypeSymbols { get; }
 
         ITypeReferenceSymbol[] BaseTypeSymbols { get; }
+
+        IFieldReferenceSymbol[] FieldMemberSymbols { get; }
+
+        IFieldReferenceSymbol[] AccessorMemberSymbols { get; }
+
+        IMethodReferenceSymbol[] MethodMemberSymbols { get; }
     }
 }

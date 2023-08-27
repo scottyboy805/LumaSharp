@@ -12,18 +12,12 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
         // Constructor
-        internal ContinueStatementSyntax(SyntaxTree tree, SyntaxNode parent)
-            : base(tree, parent, new SyntaxToken(";"))
+        internal ContinueStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
+            : base(tree, parent, statement)
         {
-            keyword = new SyntaxToken("continue");
+            keyword = new SyntaxToken(statement.CONTINUE());
         }
-
 
         // Methods
         public override void GetSourceText(TextWriter writer)

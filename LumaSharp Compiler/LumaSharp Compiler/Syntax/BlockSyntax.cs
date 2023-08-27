@@ -9,16 +9,6 @@ namespace LumaSharp_Compiler.Syntax
         private T[] elements = null;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return start; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return end; }
-        }
-
         public T[] Elements
         {
             get { return elements; }
@@ -41,7 +31,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
-            : base(tree, parent)
+            : base(tree, parent, memberBlock)
         {
             this.start = new SyntaxToken(memberBlock.Start);
             this.end = new SyntaxToken(memberBlock.Stop);
@@ -74,7 +64,7 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.RootMemberBlockContext rootMemberBlock)
-            : base(tree, node)
+            : base(tree, node, rootMemberBlock)
         {
             this.start = new SyntaxToken(rootMemberBlock.Start);
             this.end = new SyntaxToken(rootMemberBlock.Stop);
@@ -105,7 +95,7 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.StatementBlockContext statementBlock)
-            : base(tree, node)
+            : base(tree, node, statementBlock)
         {
             this.start = new SyntaxToken(statementBlock.Start);
             this.end = new SyntaxToken(statementBlock.Stop);

@@ -372,17 +372,29 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitAccessModifier([NotNull] LumaSharpParser.AccessModifierContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameterList"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context) { }
+	public virtual void EnterGenericParameterList([NotNull] LumaSharpParser.GenericParameterListContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameterList"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context) { }
+	public virtual void ExitGenericParameterList([NotNull] LumaSharpParser.GenericParameterListContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameter"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterGenericParameter([NotNull] LumaSharpParser.GenericParameterContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameter"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitGenericParameter([NotNull] LumaSharpParser.GenericParameterContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
 	/// <para>The default implementation does nothing.</para>

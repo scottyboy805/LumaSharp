@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.Syntax;
+using LumaSharp_Compiler.Syntax.Expression;
 
 namespace LumaSharp_Compiler.Semantics
 {
@@ -7,6 +8,12 @@ namespace LumaSharp_Compiler.Semantics
         // Methods
         ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType);
 
-        ITypeReferenceSymbol ResolveTypeSymbol(TypeReferenceSyntax reference);
+        ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference);
+
+        IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference);
+
+        IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference);
+
+        IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference);
     }
 }

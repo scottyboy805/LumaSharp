@@ -9,16 +9,6 @@ namespace LumaSharp_Compiler.Syntax
         private int rank = 0;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return indexStart; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return indexEnd; }
-        }
-
         public int Rank
         {
             get { return rank; }
@@ -30,20 +20,20 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode parent, int rank)
-            : base(tree, parent)
-        {
-            // Check for invalid rank
-            if (rank > 3)
-                throw new ArgumentException("Rank cannot be greater than 3");
+        //internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode parent, int rank)
+        //    : base(tree, parent)
+        //{
+        //    // Check for invalid rank
+        //    if (rank > 3)
+        //        throw new ArgumentException("Rank cannot be greater than 3");
 
-            this.indexStart = new SyntaxToken("[");
-            this.indexEnd = new SyntaxToken("]");
-            this.rank = rank;
-        }
+        //    this.indexStart = new SyntaxToken("[");
+        //    this.indexEnd = new SyntaxToken("]");
+        //    this.rank = rank;
+        //}
 
         internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.ArrayParametersContext array)
-            : base(tree, node)
+            : base(tree, node, array)
         {
             this.indexStart = new SyntaxToken(array.Start);
             this.indexEnd = new SyntaxToken(array.Stop);

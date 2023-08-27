@@ -12,18 +12,12 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
         // Constructor
-        internal BreakStatementSyntax(SyntaxTree tree, SyntaxNode parent)
-            : base(tree, parent, new SyntaxToken(";"))
+        internal BreakStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
+            : base(tree, parent, statement)
         {
-            keyword = new SyntaxToken("break");
+            keyword = new SyntaxToken(statement.BREAK());
         }
-
 
         // Methods
         public override void GetSourceText(TextWriter writer)

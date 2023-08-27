@@ -5,9 +5,7 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken keyword = null;
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
-        private GenericParametersSyntax genericParameters = null;
+        private GenericParameterListSyntax genericParameters = null;
         private TypeReferenceSyntax[] baseTypeReferences = null;
 
         private BlockSyntax<MemberSyntax> memberBlock = null;
@@ -18,17 +16,7 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return start; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return end; }
-        }
-
-        public GenericParametersSyntax GenericParameters
+        public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
         }
@@ -50,7 +38,7 @@ namespace LumaSharp_Compiler.Syntax
 
         public int GenericParameterCount
         {
-            get { return HasGenericParameters ? genericParameters.GenericTypeCount : 0; }
+            get { return HasGenericParameters ? genericParameters.GenericParameterCount : 0; }
         }
 
         public int BaseTypeCount
@@ -84,28 +72,23 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
-            : base(identifier, tree, parent)
-        {
-            this.keyword = new SyntaxToken("type");
+        //internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
+        //    : base(identifier, tree, parent)
+        //{
+        //    this.keyword = new SyntaxToken("type");
 
-            this.start = this.keyword;
-            this.end = this.identifier;
-        }
+        //    this.start = this.keyword;
+        //    this.end = this.identifier;
+        //}
 
         internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
-            : base(typeDef.IDENTIFIER(), tree, parent, typeDef.attributeDeclaration(), typeDef.accessModifier())
+            : base(typeDef.IDENTIFIER(), tree, parent, typeDef, typeDef.attributeDeclaration(), typeDef.accessModifier())
         {
             // Type keyword
-            this.keyword = new SyntaxToken(typeDef.TYPE());            
+            this.keyword = new SyntaxToken(typeDef.TYPE());
 
             // Get generics
-            LumaSharpParser.GenericParametersContext generics = typeDef.genericParameters();
-
-            if(generics != null)
-            {
-                this.genericParameters = new GenericParametersSyntax(tree, this, generics);
-            }
+            this.genericParameters = new GenericParameterListSyntax(tree, this, typeDef.genericParameterList());
 
             // Get base
             LumaSharpParser.InheritParametersContext inherit = typeDef.inheritParameters();

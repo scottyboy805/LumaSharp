@@ -5,9 +5,7 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken keyword = null;
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
-        private GenericParametersSyntax genericParameters = null;
+        private GenericParameterListSyntax genericParameters = null;
         private TypeReferenceSyntax[] baseTypeReferences = null;
 
         private BlockSyntax<MemberSyntax> memberBlock = null;
@@ -18,17 +16,7 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return start; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return end; }
-        }
-
-        public GenericParametersSyntax GenericParameters
+        public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
         }
@@ -50,7 +38,7 @@ namespace LumaSharp_Compiler.Syntax
 
         public int GenericParameterCount
         {
-            get { return HasGenericParameters ? genericParameters.GenericTypeCount : 0; }
+            get { return HasGenericParameters ? genericParameters.GenericParameterCount : 0; }
         }
 
         public int BaseTypeCount
@@ -84,29 +72,24 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
-            : base(identifier, tree, parent)
-        {
-            this.keyword = new SyntaxToken("contract");
+        //internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
+        //    : base(identifier, tree, parent)
+        //{
+        //    this.keyword = new SyntaxToken("contract");
 
-            this.start = keyword;
-            this.end = this.identifier;
-        }
+        //    this.start = keyword;
+        //    this.end = this.identifier;
+        //}
 
         internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
-            : base(contractDef.IDENTIFIER(), tree, parent, contractDef.attributeDeclaration(), contractDef.accessModifier())
+            : base(contractDef.IDENTIFIER(), tree, parent, contractDef, contractDef.attributeDeclaration(), contractDef.accessModifier())
         {
             // Contract keyword
             this.keyword = new SyntaxToken(contractDef.CONTRACT());
 
             // Get generics
-            LumaSharpParser.GenericParametersContext generics = contractDef.genericParameters();
-
-            if(generics != null)
-            {
-                this.genericParameters = new GenericParametersSyntax(tree, this, generics);
-            }
-
+            this.genericParameters = new GenericParameterListSyntax(tree, this, contractDef.genericParameterList());
+            
             // Get base
             LumaSharpParser.InheritParametersContext inherit = contractDef.inheritParameters();
 

@@ -93,10 +93,10 @@ namespaceDeclaration: NAMESPACE namespaceName rootMemberBlock;
 namespaceName: IDENTIFIER (':' IDENTIFIER)*;
 
 // Type declaration
-typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameters? inheritParameters? memberBlock;
+typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameterList? inheritParameters? memberBlock;
 
 // Contract declaration
-contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameters? inheritParameters? memberBlock;
+contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameterList? inheritParameters? memberBlock;
 
 // Enum declaration
 enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? enumBlock;
@@ -155,7 +155,7 @@ accessorWrite: '=>' WRITE ':' (statement | statementBlock);
 initializerDeclaration: attributeDeclaration* accessModifier* THIS '(' methodParameterList? ')';
 
 // Method declaration
-methodDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER '(' methodParameterList? ')';
+methodDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER genericParameterList? '(' methodParameterList? ')' (';' | statementBlock);
 
 // Method parameter list
 methodParameterList: methodParameter (',' methodParameter)*;
@@ -167,7 +167,9 @@ methodParameter: typeReference IDENTIFIER '...'?;
 accessModifier: EXPORT | INTERNAL | SPECIALHIDDEN | GLOBAL;
 
 // Generic parameters
-genericParameters: '<' IDENTIFIER (',' IDENTIFIER)* '>';
+genericParameterList: '<' genericParameter (',' genericParameter)* '>';
+
+genericParameter: IDENTIFIER (':' typeReference (',' typeReference)*);
 
 // Generic arguments
 genericArguments: '<' typeReference (',' typeReference)* '>';
@@ -210,19 +212,19 @@ returnStatement: RETURN expression? ';';
 postfixStatement: expression ('++' | '--') ';';
 
 // Local variable statement
-localVariableStatement: typeReference IDENTIFIER ('=' expression)? ';';
+localVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* ('=' (expression | '{' expression (',' expression)* '}'))? ';';
 
 // Assignment statement
-assignStatement: expression ('=' | '+=' | '-=' | '/=' | '*=') expression ';';
+assignStatement: expression assign=('=' | '+=' | '-=' | '/=' | '*=') expression semi=';';
 
 // If statement
-ifStatement: IF '(' expression ')' (statement | ';' | '{' statement* '}') elseifStatement* elseStatement?;
+ifStatement: IF lparen='(' expression rparen=')' (statement | semi=';' | statementBlock) elseifStatement* elseStatement?;
 
 // Elseif statement
-elseifStatement: ELSEIF '(' expression ')' (statement | ';' | '{' statement* '}');
+elseifStatement: ELSEIF '(' expression ')' (statement | semi=';' | statementBlock);
 
 // Else statement
-elseStatement: ELSE (statement | ';' | '{' statement* '}');
+elseStatement: ELSE (statement | semi=';' | statementBlock);
 
 // Foreach statement
 foreachStatement: FOREACH '(' typeReference IDENTIFIER IN expression ')' (statement? ';' | '{' statement* '}');
@@ -248,33 +250,39 @@ finallyStatement: FINALLY (statement | '{' statement* '}');
 // ### EXPRESSIONS
 expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
 
-	  '-' expression										// Unary minus
-	| '!' expression										// not expression
-	//| '++' expression										// Unary prefix increment
-	//| '--' expression										// Unary prefix decrement
-	//| expression '++'										// Unary postfix increment
-	//| expression '--'										// Unary postfix decrement
-	| expression op=('*' | '/' | '%') expression			// Multiply expression
-	| expression op=('+' | '-') expression					// Add expression
-	| expression op=('>=' | '<=' | '>' | '<') expression	// Compare expression
-	| expression op=('==' | '!=') expression				// Equals expression
-	| expression '&&' expression							// And expression
-	| expression '||' expression							// Or expression
-	| expression '?' expression ':' expression				// Ternary expression
+	  unary='-' expression										// Unary minus
+	| unary='!' expression										// not expression
+	//| unary='++' expression										// Unary prefix increment
+	//| unary='--' expression										// Unary prefix decrement
+	//| expression unary='++'										// Unary postfix increment
+	//| expression unary='--'										// Unary postfix decrement
+	| expression binary=('*' | '/' | '%') expression			// Multiply expression
+	| expression binary=('+' | '-') expression					// Add expression
+	| expression binary=('>=' | '<=' | '>' | '<') expression	// Compare expression
+	| expression binary=('==' | '!=') expression				// Equals expression
+	| expression binary='&&' expression							// And expression
+	| expression binary='||' expression							// Or expression
+	| expression ternary='?' expression ':' expression				// Ternary expression
+	| IDENTIFIER indexExpression?
 	| endExpression indexExpression?						// Primitives and literals
-	| expression methodInvokeExpression indexExpression?		// Method expression
+	| expression methodInvokeExpression indexExpression?	// Method expression
+	| typeReference methodInvokeExpression indexExpression?	// Global method
 	| expression fieldAccessExpression indexExpression?		// Field expression
-	| '(' expression ')' indexExpression?					// Paren expression
+	| typeReference fieldAccessExpression indexExpression?	// Gloabl field
+	| lparen='(' expression lparen=')' indexExpression?					// Paren expression
 	| typeExpression										// Type expression
 	| sizeExpression										// Size expression
+	| THIS
+	| BASE
+	| typeReference
 	;
 
 endExpression: 
 	  HEX 
-	| INT ('U' | 'L' | 'UL')? 
-	| DECIMAL ('F' | 'D')? 
+	| INT decorator=('U' | 'L' | 'UL')? 
+	| DECIMAL decorator=('F' | 'D')? 
 	| LITERAL
-	| IDENTIFIER 
+	//| IDENTIFIER 
 	| TRUE 
 	| FALSE
 	| NULL
@@ -285,7 +293,7 @@ typeExpression: TYPE '(' typeReference ')';
 sizeExpression: SIZE '(' typeReference ')';
 
 // Array index
-indexExpression: '[' expression ']';
+indexExpression: larray='[' expression (',' expression)* rarray=']';
 
 // Field access
 fieldAccessExpression: '.' IDENTIFIER;

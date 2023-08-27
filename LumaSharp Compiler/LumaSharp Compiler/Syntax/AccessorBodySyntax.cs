@@ -44,10 +44,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword.Text == "write"; }
         }
 
-        public override SyntaxToken StartToken => throw new NotImplementedException();
-
-        public override SyntaxToken EndToken => throw new NotImplementedException();
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
@@ -62,7 +58,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal AccessorBodySyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorReadContext read)
-            : base(tree, parent)
+            : base(tree, parent, read)
         {
             // Get the keyword
             this.keyword = new SyntaxToken(read.READ());
@@ -85,7 +81,7 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         internal AccessorBodySyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorWriteContext write)
-            : base(tree, parent)
+            : base(tree, parent, write)
         {
             // Get the keyword
             this.keyword = new SyntaxToken(write.WRITE());

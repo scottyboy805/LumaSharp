@@ -24,20 +24,28 @@ namespace LumaSharp_Compiler.Syntax
             get { return falseExpression; }
         }
 
-        public override SyntaxToken StartToken
+        internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return condition.StartToken; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return falseExpression.EndToken; }
+            get
+            {
+                yield return condition;
+                yield return trueExpression;
+                yield return falseExpression;
+            }
         }
 
         // Constructor
-        internal TernaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
-            : base(tree, parent)
+        internal TernaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(tree, parent, expression)
         {
+            // Condition
+            this.condition = Any(tree, this, expression.expression(0));
+
+            // True expression
+            this.trueExpression = Any(tree, this, expression.expression(1));
+
+            // False expression
+            this.falseExpression = Any(tree, this, expression.expression(2));
         }
 
         // Methods

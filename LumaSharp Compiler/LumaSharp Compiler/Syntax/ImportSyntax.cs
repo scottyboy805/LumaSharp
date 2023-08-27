@@ -8,7 +8,6 @@ namespace LumaSharp_Compiler.Syntax
         private NamespaceName name = null;
         private SyntaxToken aliasIdentifier = null;
         private TypeReferenceSyntax aliasTypeReference = null;
-        private SyntaxToken end = null;
 
         // Properties
         public SyntaxToken Keyword
@@ -36,16 +35,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return aliasIdentifier != null; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return end; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
@@ -61,7 +50,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal ImportSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ImportElementContext import)
-            : base(tree, parent)
+            : base(tree, parent, import)
         {
             // Get import options
             LumaSharpParser.ImportStatementContext statement = import.importStatement();

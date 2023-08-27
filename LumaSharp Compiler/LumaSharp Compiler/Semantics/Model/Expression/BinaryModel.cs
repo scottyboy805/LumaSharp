@@ -33,12 +33,12 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Constructor
-        internal BinaryModel(SemanticModel model, BinaryExpressionSyntax syntax)
-            : base(model, syntax)
+        internal BinaryModel(SemanticModel model, SymbolModel parent, BinaryExpressionSyntax syntax)
+            : base(model, parent, syntax)
         {
             this.syntax = syntax;
-            this.left = Any(model, syntax.Left);
-            this.right = Any(model, syntax.Right);
+            this.left = Any(model, this, syntax.Left);
+            this.right = Any(model, this, syntax.Right);
         }
 
         // Methods
@@ -53,21 +53,21 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             return success;
         }
 
-        private bool ResolveOperationOrOperatorMethod()
-        {
-            // Get type codes
-            PrimitiveType leftType = left.EvaluatedTypeSymbol.PrimitiveType;
-            PrimitiveType rightType = right.EvaluatedTypeSymbol.PrimitiveType;
+        //private bool ResolveOperationOrOperatorMethod()
+        //{
+        //    // Get type codes
+        //    PrimitiveType leftType = left.EvaluatedTypeSymbol.PrimitiveType;
+        //    PrimitiveType rightType = right.EvaluatedTypeSymbol.PrimitiveType;
 
-            switch (syntax.Operation.Text)
-            {
-                // Add operation
-                case "+":
-                    {
-                        break;
-                    }
-            }
+        //    switch (syntax.Operation.Text)
+        //    {
+        //        // Add operation
+        //        case "+":
+        //            {
+        //                break;
+        //            }
+        //    }
 
-        }
+        //}
     }
 }

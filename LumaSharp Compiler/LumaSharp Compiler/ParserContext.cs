@@ -32,6 +32,11 @@ namespace LumaSharp_Compiler
         //    return 
         //}
 
+        public ExpressionSyntax ParseExpression()
+        {
+            return ExpressionSyntax.Any(null, null, CreateParser().expression());
+        }
+
         private LumaSharpParser CreateParser()
         {
             // Create lexer

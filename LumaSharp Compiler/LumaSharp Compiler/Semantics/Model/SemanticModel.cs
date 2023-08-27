@@ -33,7 +33,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Create root types
             typeModels = rootTypes != null
-                ? rootTypes.Select(t => new TypeModel(t, this)).ToArray()
+                ? rootTypes.Select(t => new TypeModel(this, null, t)).ToArray()
                 : null;
 
             // Create root contracts

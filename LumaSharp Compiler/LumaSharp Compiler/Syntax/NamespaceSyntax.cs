@@ -39,16 +39,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return members.HasElements; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return members.EndToken; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get { return members.Descendants; }
@@ -56,7 +46,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal NamespaceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NamespaceDeclarationContext namespaceDef) 
-            : base(tree, parent)
+            : base(tree, parent, namespaceDef)
         {
             // Get keyword
             this.keyword = new SyntaxToken(namespaceDef.NAMESPACE());

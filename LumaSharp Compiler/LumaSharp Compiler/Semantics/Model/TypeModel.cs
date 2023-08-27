@@ -7,7 +7,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Private
         private TypeSyntax syntax = null;
         //private GenericParameterModel[] genericParameters = null;
-        
+
         private ITypeReferenceSymbol[] baseTypesSymbols = null;
 
         private TypeModel[] memberTypes = null;
@@ -22,6 +22,21 @@ namespace LumaSharp_Compiler.Semantics.Model
         public ITypeReferenceSymbol[] BaseTypesSymbols
         {
             get { return baseTypesSymbols; }
+        }
+
+        public IFieldReferenceSymbol[] FieldMemberSymbols
+        {
+            get { return memberFields; }
+        }
+
+        public IFieldReferenceSymbol[] AccessorMemberSymbols
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public IMethodReferenceSymbol[] MethodMemberSymbols
+        {
+            get { throw new NotImplementedException(); }
         }
 
         public bool HasGenericParameters
@@ -69,8 +84,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         public ITypeReferenceSymbol[] BaseTypeSymbols => throw new NotImplementedException();
 
         // Constructor
-        internal TypeModel(TypeSyntax syntax, SemanticModel model, MemberModel parent = null)
-            : base(syntax, model, parent)
+        internal TypeModel(SemanticModel model, MemberModel parent, TypeSyntax syntax)
+            : base(model, parent, syntax)
         {
             this.syntax = syntax;
             // Create generics
@@ -86,12 +101,12 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Create member types
             memberTypes = syntax.HasMembers
-                ? syntax.Members.Where(t => t is TypeSyntax).Select(t => new TypeModel(t as TypeSyntax, model, this)).ToArray()
+                ? syntax.Members.Where(t => t is TypeSyntax).Select(t => new TypeModel(model, this, t as TypeSyntax)).ToArray()
                 : null;
 
             // Create member fields
             memberFields = syntax.HasMembers
-                ? syntax.Members.Where(f => f is FieldSyntax).Select(f => new FieldModel(f as FieldSyntax, model, this)).ToArray()
+                ? syntax.Members.Where(f => f is FieldSyntax).Select(f => new FieldModel(model, this, f as FieldSyntax)).ToArray()
                 : null;
         }
 

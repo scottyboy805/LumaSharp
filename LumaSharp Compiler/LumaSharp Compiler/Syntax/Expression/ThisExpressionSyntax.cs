@@ -12,21 +12,16 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
+        internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return keyword; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return keyword; }
+            get { yield break; }
         }
 
         // Constructor
-        internal ThisExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
-            : base(tree, parent)
+        internal ThisExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(tree, parent, expression)
         {
-            keyword = new SyntaxToken("this");
+            keyword = new SyntaxToken(expression.THIS());
         }
                 
 

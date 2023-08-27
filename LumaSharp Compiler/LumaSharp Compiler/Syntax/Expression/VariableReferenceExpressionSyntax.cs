@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp_Compiler.Syntax
 {
-    public sealed class VariableReferenceExpression : ExpressionSyntax
+    public sealed class VariableReferenceExpressionSyntax : ExpressionSyntax
     {
         // Private
         private SyntaxToken identifier = null;
@@ -12,21 +12,16 @@ namespace LumaSharp_Compiler.Syntax
             get { return identifier; }
         }
 
-        public override SyntaxToken StartToken
+        internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return identifier; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return identifier; }
+            get { yield break; }
         }
 
         // Constructor
-        internal VariableReferenceExpression(SyntaxTree tree, SyntaxNode parent, string identifier)
-            : base(tree, parent)
+        internal VariableReferenceExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(tree, parent, expression)
         {
-            this.identifier = new SyntaxToken(identifier);
+            this.identifier = new SyntaxToken(expression.IDENTIFIER());
         }
 
         // Methods

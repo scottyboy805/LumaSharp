@@ -8,6 +8,6 @@ namespace LumaSharp_Compiler.Semantics
 
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
-        ITypeReferenceSymbol FieldTypeSymbol { get; }
+        ITypeReferenceSymbol TypeSymbol { get; }
     }
 }

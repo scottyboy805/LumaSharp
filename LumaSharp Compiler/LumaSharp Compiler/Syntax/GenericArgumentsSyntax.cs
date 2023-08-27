@@ -9,16 +9,6 @@ namespace LumaSharp_Compiler.Syntax
         private TypeReferenceSyntax[] genericTypes = null;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return genericStart; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return genericEnd; }
-        }
-
         public TypeReferenceSyntax[] GenericTypes
         {
             get { return genericTypes; }
@@ -35,16 +25,16 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax[] genericTypes)
-            : base(tree, parent)
-        {
-            this.genericStart = new SyntaxToken("<");
-            this.genericEnd = new SyntaxToken(">");
-            this.genericTypes = genericTypes;
-        }
+        //internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax[] genericTypes)
+        //    : base(tree, parent)
+        //{
+        //    this.genericStart = new SyntaxToken("<");
+        //    this.genericEnd = new SyntaxToken(">");
+        //    this.genericTypes = genericTypes;
+        //}
 
         internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericArgumentsContext generics)
-            : base(tree, parent)
+            : base(tree, parent, generics)
         {
             genericStart = new SyntaxToken(generics.Start);
             genericEnd = new SyntaxToken(generics.Stop);

@@ -23,10 +23,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return fieldAssignment != null; }
         }
 
-        public override SyntaxToken StartToken => throw new NotImplementedException();
-
-        public override SyntaxToken EndToken => throw new NotImplementedException();
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
@@ -42,7 +38,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal FieldSyntax(LumaSharpParser.FieldDeclarationContext fieldDef, SyntaxTree tree, SyntaxNode node)
-            : base(fieldDef.IDENTIFIER(), tree, node, fieldDef.attributeDeclaration(), fieldDef.accessModifier())
+            : base(fieldDef.IDENTIFIER(), tree, node, fieldDef, fieldDef.attributeDeclaration(), fieldDef.accessModifier())
         {
             // Create type reference
             this.fieldType = new TypeReferenceSyntax(tree, this, fieldDef.typeReference());

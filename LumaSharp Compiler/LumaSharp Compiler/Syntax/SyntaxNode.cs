@@ -1,4 +1,5 @@
-﻿
+﻿using Antlr4.Runtime;
+
 namespace LumaSharp_Compiler.Syntax
 {
     public abstract class SyntaxNode
@@ -6,6 +7,9 @@ namespace LumaSharp_Compiler.Syntax
         // Private
         private SyntaxTree tree = null;
         private SyntaxNode parent = null;
+
+        private SyntaxToken start = null;
+        private SyntaxToken end = null;
 
         // Properties
         public SyntaxTree Tree
@@ -18,23 +22,41 @@ namespace LumaSharp_Compiler.Syntax
             get { return parent; }
         }
 
-        public abstract SyntaxToken StartToken { get; }
+        public SyntaxToken StartToken
+        {
+            get { return start; }
+        }
 
-        public abstract SyntaxToken EndToken { get; }
+        public SyntaxToken EndToken
+        {
+            get { return end; }
+        }
 
         internal abstract IEnumerable<SyntaxNode> Descendants { get; }
 
         // Constructor
-        protected SyntaxNode(SyntaxTree tree, SyntaxNode parent)
+        protected SyntaxNode(SyntaxTree tree, SyntaxNode parent, SyntaxToken token)
         {
             this.tree = tree;
             this.parent = parent;
+
+            this.start = token;
+            this.end = token;
+        }
+
+        protected SyntaxNode(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context)
+        {
+            this.tree = tree;
+            this.parent = parent;
+
+            this.start = new SyntaxToken(context.Start);
+            this.end = new SyntaxToken(context.Stop);
         }
 
         // Methods
         public override string ToString()
         {
-            return GetSourceText();
+            return string.Format("{0}({1})", GetType().Name, GetSourceText());
         }
 
         public abstract void GetSourceText(TextWriter writer);

@@ -200,11 +200,17 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitAccessModifier([NotNull] LumaSharpParser.AccessModifierContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.genericParameterList"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context);
+	Result VisitGenericParameterList([NotNull] LumaSharpParser.GenericParameterListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.genericParameter"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGenericParameter([NotNull] LumaSharpParser.GenericParameterContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
 	/// </summary>

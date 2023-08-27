@@ -13,11 +13,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
         public ExpressionSyntax ReturnExpression
         {
             get { return returnExpression; }
@@ -29,11 +24,10 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal ReturnStatementSyntax(SyntaxTree tree, SyntaxNode parent, ExpressionSyntax returnExpression = null)
-            : base(tree, parent, new SyntaxToken(";"))
+        internal ReturnStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ReturnStatementContext statement)
+            : base(tree, parent, statement)
         {
-            this.keyword = new SyntaxToken("return");
-            this.returnExpression = returnExpression;
+            this.keyword = new SyntaxToken(statement.RETURN());
         }
 
         // Methods

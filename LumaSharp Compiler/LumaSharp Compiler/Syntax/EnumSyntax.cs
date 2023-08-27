@@ -5,8 +5,6 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken keyword = null;
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
         private TypeReferenceSyntax underlyingTypeReference = null;
 
         private BlockSyntax<FieldSyntax> fieldBlock = null;
@@ -15,16 +13,6 @@ namespace LumaSharp_Compiler.Syntax
         public SyntaxToken Keyword
         {
             get { return keyword; }
-        }
-
-        public override SyntaxToken StartToken
-        {
-            get { return start; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return end; }
         }
 
         public TypeReferenceSyntax UnderlyingTypeReference
@@ -58,17 +46,17 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
-            : base(identifier, tree, parent)
-        {
-            this.keyword = new SyntaxToken("enum");
+        //internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
+        //    : base(identifier, tree, parent)
+        //{
+        //    this.keyword = new SyntaxToken("enum");
 
-            this.start = this.keyword;
-            this.end = this.identifier;
-        }
+        //    this.start = this.keyword;
+        //    this.end = this.identifier;
+        //}
 
         internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
-            : base(enumDef.IDENTIFIER(), tree, parent, enumDef.attributeDeclaration(), enumDef.accessModifier())
+            : base(enumDef.IDENTIFIER(), tree, parent, enumDef, enumDef.attributeDeclaration(), enumDef.accessModifier())
         {
             // Enum keyword
             this.keyword = new SyntaxToken(enumDef.ENUM());

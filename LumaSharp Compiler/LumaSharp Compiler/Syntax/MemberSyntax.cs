@@ -1,4 +1,5 @@
 ﻿
+using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using System.Diagnostics;
 
@@ -48,14 +49,14 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        protected MemberSyntax(string identifier, SyntaxTree tree, SyntaxNode parent)
-            : base(tree, parent)
-        {
-            this.identifier = new SyntaxToken(identifier);
-        }
+        //protected MemberSyntax(string identifier, SyntaxTree tree, SyntaxNode parent)
+        //    : base(tree, parent)
+        //{
+        //    this.identifier = new SyntaxToken(identifier);
+        //}
 
-        internal MemberSyntax(ITerminalNode identifier, SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AttributeDeclarationContext[] attributes, LumaSharpParser.AccessModifierContext[] modifiers)
-            : base(tree, parent)
+        internal MemberSyntax(ITerminalNode identifier, SyntaxTree tree, SyntaxNode parent, ParserRuleContext context, LumaSharpParser.AttributeDeclarationContext[] attributes, LumaSharpParser.AccessModifierContext[] modifiers)
+            : base(tree, parent, context)
         {
             this.identifier = new SyntaxToken(identifier);
 

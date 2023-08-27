@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.Syntax;
+using LumaSharp_Compiler.Syntax.Expression;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
@@ -28,7 +29,26 @@ namespace LumaSharp_Compiler.Semantics.Reference
             };
         }
 
-        public ITypeReferenceSymbol ResolveTypeSymbol(TypeReferenceSyntax reference)
+        public ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference)
+        {
+            // Check for primitive
+            if (reference.IsPrimitiveType == true)
+                return ResolveTypeSymbol(Enum.Parse<PrimitiveType>(reference.Identifier.Text));
+
+            throw new NotImplementedException();
+        }
+
+        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference)
         {
             throw new NotImplementedException();
         }

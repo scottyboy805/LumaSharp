@@ -37,8 +37,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
-        public ConstantModel(SemanticModel model, LiteralExpressionSyntax literal) 
-            : base(model, literal)
+        public ConstantModel(SemanticModel model, SymbolModel parent, LiteralExpressionSyntax literal) 
+            : base(model, parent, literal)
         {
             this.syntax = literal;
         }

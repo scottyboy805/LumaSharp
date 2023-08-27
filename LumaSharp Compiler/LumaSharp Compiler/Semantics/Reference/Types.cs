@@ -25,7 +25,13 @@ namespace LumaSharp_Compiler.Semantics.Reference
             public ILibraryReferenceSymbol LibrarySymbol => null;
 
             public string LibraryName => "runtime";
-            
+
+            public IFieldReferenceSymbol[] FieldMemberSymbols => throw new NotImplementedException();
+
+            public IFieldReferenceSymbol[] AccessorMemberSymbols => throw new NotImplementedException();
+
+            public IMethodReferenceSymbol[] MethodMemberSymbols => throw new NotImplementedException();
+
 
             // Constructor
             internal BuiltIn_Primitive(PrimitiveType primitiveType)

@@ -5,6 +5,7 @@ namespace LumaSharp_Compiler.Semantics.Model
     {
         // Private
         private SemanticModel model = null;
+        private SymbolModel parent = null;
 
         // Properties
         public SemanticModel Model
@@ -12,12 +13,18 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return model; }
         }
 
+        public SymbolModel Parent
+        {
+            get { return parent; }
+        }
+
         //public abstract IReferenceSymbol ResolvedSymbol { get; }
 
         // Constructor
-        protected SymbolModel(SemanticModel model)
+        protected SymbolModel(SemanticModel model, SymbolModel parent)
         {
             this.model = model;
+            this.parent = parent;
         }
 
         // Methods

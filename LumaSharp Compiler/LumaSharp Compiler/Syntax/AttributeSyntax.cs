@@ -28,10 +28,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return attributeExpressions != null; }
         }
 
-        public override SyntaxToken StartToken => throw new NotImplementedException();
-
-        public override SyntaxToken EndToken => throw new NotImplementedException();
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
@@ -50,7 +46,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal AttributeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AttributeDeclarationContext attribDef)
-            : base(tree, parent)
+            : base(tree, parent, attribDef)
         {            
             // Create attribute type
             this.attributeType = new TypeReferenceSyntax(tree, this, attribDef.typeReference());

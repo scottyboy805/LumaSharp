@@ -1,18 +1,70 @@
-﻿
+﻿using Antlr4.Runtime;
+using LumaSharp_Compiler.Syntax.Expression;
+
 namespace LumaSharp_Compiler.Syntax
 {
     public abstract class ExpressionSyntax : SyntaxNode
     {
-        // Properties
-        internal override IEnumerable<SyntaxNode> Descendants
+        // Constructor
+        protected ExpressionSyntax(SyntaxTree tree, SyntaxNode node, ParserRuleContext context)
+            : base(tree, node, context) 
         {
-            get { yield break; }
         }
 
-        // Constructor
-        protected ExpressionSyntax(SyntaxTree tree, SyntaxNode node)
-            : base(tree, node) 
+        // Methods
+        public static ExpressionSyntax Any(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
         {
+            // Check for base
+            if (expression.BASE() != null)
+                return new BaseExpressionSyntax(tree, parent, expression);
+
+            // Check for this
+            if (expression.THIS() != null)
+                return new ThisExpressionSyntax(tree, parent, expression);
+
+            // Check for size
+            if (expression.sizeExpression() != null)
+                return new SizeExpressionSyntax(tree, parent, expression.sizeExpression());
+
+            // Check for type
+            if (expression.typeExpression() != null)
+                return new TypeExpressionSyntax(tree, parent, expression.typeExpression());
+
+            // Check for index
+            if (expression.indexExpression() != null)
+                return new ArrayIndexExpressionSyntax(tree, parent, expression);
+
+            // Check for method
+            if (expression.methodInvokeExpression() != null)
+                return new MethodInvokeExpressionSyntax(tree, parent, expression);
+
+            // Check for field
+            if(expression.fieldAccessExpression() != null)
+                return new FieldAccessorReferenceExpressionSyntax(tree, parent, expression);
+
+            // Check for end
+            if (expression.endExpression() != null)
+                return new LiteralExpressionSyntax(tree, parent, expression.endExpression());
+
+            // Check for bracketed
+            if (expression.GetChild(0).GetText() == "(")
+                return null;
+
+            // Check for identifier
+            if(expression.IDENTIFIER() != null)
+                return new VariableReferenceExpressionSyntax(tree, parent, expression);
+
+            // Check for ternary
+            if (expression.ternary != null)
+                return new TernaryExpressionSyntax(tree, parent, expression);
+
+            // Check for binary
+            if (expression.binary != null)
+                return new BinaryExpressionSyntax(tree, parent, expression);
+
+            
+            // No expression matched
+            return null;
         }
     }
 }

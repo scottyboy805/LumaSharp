@@ -5,8 +5,6 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken keyword = null;
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
         private TypeReferenceSyntax typeReference = null;
 
         // Properties
@@ -15,29 +13,25 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return end; }
-        }
-
         public TypeReferenceSyntax TypeReference
         {
             get { return typeReference; }
         }
 
-        // Constructor
-        internal SizeExpressionSyntax(TypeReferenceSyntax typeReference, SyntaxTree tree, SyntaxNode node)
-            : base(tree, node)
+        internal override IEnumerable<SyntaxNode> Descendants
         {
-            this.keyword = new SyntaxToken("size");
-            this.start = new SyntaxToken("(");
-            this.end = new SyntaxToken(")");
-            this.typeReference = typeReference;
+            get { yield return typeReference; }
+        }
+
+        // Constructor
+        internal SizeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.SizeExpressionContext size)
+            : base(tree, parent, size)
+        {
+            // Keyword
+            this.keyword = new SyntaxToken(size.SIZE());
+
+            // Type reference
+            this.typeReference = new TypeReferenceSyntax(tree, this, size.typeReference());
         }
 
         // Methods
@@ -47,13 +41,13 @@ namespace LumaSharp_Compiler.Syntax
             writer.Write(keyword.ToString());
 
             // Write opening
-            writer.Write(start.ToString());
+            //writer.Write(start.ToString());
 
             // Write type
             typeReference.GetSourceText(writer);
 
             // Write closing
-            writer.Write(end.ToString());
+            //writer.Write(end.ToString());
         }
     }
 }

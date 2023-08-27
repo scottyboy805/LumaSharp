@@ -1,6 +1,4 @@
 ﻿
-using System.Security.Principal;
-
 namespace LumaSharp_Compiler.Syntax.Expression
 {
     public sealed class MethodInvokeExpressionSyntax : ExpressionSyntax
@@ -52,26 +50,55 @@ namespace LumaSharp_Compiler.Syntax.Expression
             get { return arguments != null; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return accessExpression.StartToken; }
-        }
-
-        public override SyntaxToken EndToken
+        internal override IEnumerable<SyntaxNode> Descendants
         {
             get
             {
-                if(HasArguments == true)
-                    return arguments[arguments.Length - 1].EndToken;
+                yield return accessExpression;
 
-                return identifier;
+                // Get generics
+                if(HasGenericArguments == true)
+                {
+                    foreach (SyntaxNode node in GenericArguments)
+                        yield return node;
+                }
+
+                // Get arguments
+                if(HasArguments == true)
+                {
+                    foreach(SyntaxNode node in Arguments)
+                        yield return node;
+                }
             }
         }
 
         // Constructor
-        internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
-            : base(tree, parent)
+        internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(tree, parent, expression)
         {
+            // Get the method
+            LumaSharpParser.MethodInvokeExpressionContext method = expression.methodInvokeExpression();
+
+            // Identifier
+            this.identifier = new SyntaxToken(method.IDENTIFIER());
+
+            // Generic arguments
+            LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
+
+            if (generics != null)
+            {
+                this.genericArguments = generics.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
+            }
+
+            // Create access expression
+            if (expression.typeReference() != null)
+            {
+                this.accessExpression = new TypeReferenceSyntax(tree, this, expression.typeReference());
+            }
+            else
+            {
+                this.accessExpression = Any(tree, this, expression.expression(0));
+            }
         }
 
         // Methods

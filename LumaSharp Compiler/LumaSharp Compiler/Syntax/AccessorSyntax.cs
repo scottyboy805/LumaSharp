@@ -12,10 +12,7 @@ namespace LumaSharp_Compiler.Syntax
         private AccessorBodySyntax readBody = null;
         private AccessorBodySyntax writeBody = null;
 
-        public override SyntaxToken StartToken => throw new NotImplementedException();
-
-        public override SyntaxToken EndToken => throw new NotImplementedException();
-
+        // Properties
         public TypeReferenceSyntax AccessorType
         {
             get { return accessorType; }
@@ -68,7 +65,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal AccessorSyntax(LumaSharpParser.AccessorDeclarationContext accessorDef, SyntaxTree tree, SyntaxNode parent)
-            : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef.attributeDeclaration(), accessorDef.accessModifier())
+            : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef, accessorDef.attributeDeclaration(), accessorDef.accessModifier())
         {
             // Get the body
             LumaSharpParser.AccessorBodyContext body = accessorDef.accessorBody();

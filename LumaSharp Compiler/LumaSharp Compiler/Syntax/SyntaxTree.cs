@@ -1,6 +1,4 @@
 ﻿
-using LumaSharp_Compiler.Syntax.Factory;
-
 namespace LumaSharp_Compiler.Syntax
 {
     public sealed class SyntaxTree : SyntaxNode//, IRootMemberSyntaxContainer
@@ -9,10 +7,6 @@ namespace LumaSharp_Compiler.Syntax
         private List<SyntaxNode> rootElements = null;
 
         // Properties
-        public override SyntaxToken StartToken => throw new NotImplementedException();
-
-        public override SyntaxToken EndToken => throw new NotImplementedException();
-
         public int RootElementCount
         {
             get { return HasRootElements ? rootElements.Count : 0; }
@@ -50,7 +44,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal SyntaxTree(LumaSharpParser.CompilationUnitContext unit)
-            : base(null, null)
+            : base(null, null, unit)
         {
             // Get root members
             LumaSharpParser.ImportElementContext[] importElements = unit.importElement();
@@ -130,9 +124,13 @@ namespace LumaSharp_Compiler.Syntax
             throw new NotImplementedException();
         }
 
-        public static SyntaxTree ParseExpression()
+        public static ExpressionSyntax ParseExpression(InputSource source)
         {
-            throw new NotImplementedException();
+            // Create parser
+            ParserContext context = new ParserContext(source);
+
+            // Parse expression only
+            return context.ParseExpression();
         }
     }
 }

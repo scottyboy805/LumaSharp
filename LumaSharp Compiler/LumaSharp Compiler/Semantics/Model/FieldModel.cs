@@ -3,7 +3,7 @@ using LumaSharp_Compiler.Syntax;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
-    public sealed class FieldModel : MemberModel, IFieldReferenceSymbol
+    public sealed class FieldModel : MemberModel, IFieldReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
         private FieldSyntax syntax = null;
@@ -16,9 +16,24 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax.Identifier.Text; }
         }
 
+        public string IdentifierName
+        {
+            get { return syntax.Identifier.Text; }
+        }
+
         public ITypeReferenceSymbol DeclaringTypeSymbol
         {
             get { return declaringType; }
+        }
+
+        public IReferenceSymbol ParentSymbol
+        {
+            get { return declaringType; }
+        }
+
+        public ITypeReferenceSymbol TypeSymbol
+        {
+            get { return fieldTypeSymbol; }
         }
 
         public ITypeReferenceSymbol FieldTypeSymbol
@@ -27,8 +42,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
-        internal FieldModel(FieldSyntax syntax, SemanticModel model, TypeModel parent)
-            : base(syntax, model, parent)
+        internal FieldModel(SemanticModel model, TypeModel parent, FieldSyntax syntax)
+            : base(model, parent, syntax)
         {
             this.syntax = syntax;
             this.declaringType = parent;
@@ -38,7 +53,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         public override bool ResolveSymbols(ISymbolProvider provider)
         {
             // Resolve field symbol
-            fieldTypeSymbol = provider.ResolveTypeSymbol(syntax.FieldType);
+            fieldTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.FieldType);
 
             // Check for success
             return fieldTypeSymbol != null;

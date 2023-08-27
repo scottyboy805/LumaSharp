@@ -1,13 +1,15 @@
 ﻿
+using Antlr4.Runtime;
+
 namespace LumaSharp_Compiler.Syntax
 {
     public abstract class StatementSyntax : SyntaxNode
     {
         // Protected
-        protected SyntaxToken statementEnd = null;     // Semicolon
+        protected SyntaxToken statementEnd = null;     // Semicolon or block
 
         // Properties
-        public override SyntaxToken EndToken
+        public SyntaxToken StatementEnd
         {
             get { return statementEnd; }
         }
@@ -18,10 +20,10 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal StatementSyntax(SyntaxTree tree, SyntaxNode parent, SyntaxToken statementEnd)
-            : base(tree, parent)
+        internal StatementSyntax(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context)
+            : base(tree, parent, context)
         {
-            this.statementEnd = statementEnd;
+            this.statementEnd = new SyntaxToken(context.Stop);
         }
     }
 }

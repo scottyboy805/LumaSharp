@@ -12,16 +12,6 @@ namespace LumaSharp_Compiler.Syntax
             get { return identifiers; }
         }
 
-        public override SyntaxToken StartToken
-        {
-            get { return identifiers[0]; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return identifiers[identifiers.Length - 1]; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get { yield break; }
@@ -29,7 +19,7 @@ namespace LumaSharp_Compiler.Syntax
 
         // Constructor
         internal NamespaceName(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NamespaceNameContext name)
-            : base(tree, parent)
+            : base(tree, parent, name)
         {
             // Create identifiers
             this.identifiers = name.IDENTIFIER().Select(i => new SyntaxToken(i)).ToArray();

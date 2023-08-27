@@ -311,15 +311,25 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitAccessModifier([NotNull] LumaSharpParser.AccessModifierContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameterList"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context);
+	void EnterGenericParameterList([NotNull] LumaSharpParser.GenericParameterListContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameters"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameterList"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitGenericParameters([NotNull] LumaSharpParser.GenericParametersContext context);
+	void ExitGenericParameterList([NotNull] LumaSharpParser.GenericParameterListContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameter"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGenericParameter([NotNull] LumaSharpParser.GenericParameterContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameter"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGenericParameter([NotNull] LumaSharpParser.GenericParameterContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
 	/// </summary>

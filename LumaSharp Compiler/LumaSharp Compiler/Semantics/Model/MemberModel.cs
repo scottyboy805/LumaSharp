@@ -31,7 +31,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return accessModifiers; }
         }
 
-        public MemberModel Parent
+        public new MemberModel Parent
         {
             get { return parent; }
         }
@@ -62,8 +62,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
-        protected MemberModel(MemberSyntax syntax, SemanticModel model, MemberModel parent)
-            : base(model)
+        protected MemberModel(SemanticModel model, MemberModel parent, MemberSyntax syntax)
+            : base(model, parent)
         {
             this.syntax = syntax;
             this.parent = parent;
