@@ -92,24 +92,91 @@ namespace LumaSharp_Compiler.Syntax.Statement
             // Statement inline
             if(condition.statement() != null)
             {
-                //this.inlineStatement = condition.statement();
+                this.inlineStatement = Any(tree, this, condition.statement());
             }
 
             // Statement block
             if(condition.statementBlock() != null)
             {
-
+                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, condition.statementBlock());
             }
 
             // Semi
             if(condition.semi != null)
                 this.semicolon = new SyntaxToken(condition.semi);
+
+            // Get alternate
+        }
+
+        internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ElseifStatementContext alternate)
+            : base(tree, parent, alternate)
+        {
+            // Keyword
+            this.keyword = new SyntaxToken(alternate.ELSEIF());
+
+            // LR paren
+            this.lparen = new SyntaxToken(alternate.lparen);
+            this.rparen = new SyntaxToken(alternate.rparen);
+
+            // Condition
+            this.conditionExpression = ExpressionSyntax.Any(tree, this, alternate.expression());
+
+            // Statement inline
+            if (alternate.statement() != null)
+            {
+                this.inlineStatement = Any(tree, this, alternate.statement());
+            }
+
+            // Statement block
+            if (alternate.statementBlock() != null)
+            {
+                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, alternate.statementBlock());
+            }
+
+
+            // Get alternate
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Keyword
+            writer.Write(keyword.Text);
+
+            // Check for condition
+            if(HasCondition == true)
+            {
+                // Lparen
+                writer.Write(lparen.Text);
+
+                // Condition
+                conditionExpression.GetSourceText(writer);
+
+                // Rparen
+                writer.Write(rparen.Text);
+            }
+
+            // Check for inline
+            if(HasInlineStatement == true)
+            {
+                inlineStatement.GetSourceText(writer);
+            }
+            // Check for block
+            else if(HasBlockStatement == true)
+            {
+                BlockStatement.GetSourceText(writer);
+            }
+            // Fall back to empty statement
+            else if(semicolon != null)
+            {
+                writer.Write(semicolon.Text);
+            }
+
+            // Write alternate
+            if(HasAlternate == true)
+            {
+                alternate.GetSourceText(writer);
+            }
         }
     }
 }

@@ -26,8 +26,6 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken identifier = null;
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
         private SyntaxToken[] namespaceIdentifiers = null;
         private TypeReferenceSyntax[] parentTypes = null;
         private GenericArgumentsSyntax genericArguments = null;
@@ -121,40 +119,19 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        //internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, PrimitiveType type, int arrayRank = 0)
-        //    : base(tree, parent, type)
-        //{
-        //    this.identifier = new SyntaxToken(type.ToString().ToLower());
-        //    this.start = identifier;
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, PrimitiveType primitive)
+            : base(tree, parent, null)
+        {
+            // Identifier
+            this.identifier = new SyntaxToken(primitive.ToString().ToLower());
+        }
 
-        //    // Create array type
-        //    if (arrayRank > 0)
-        //    {
-        //        this.arrayParameters = new ArrayParametersSyntax(tree, this, arrayRank);
-        //        this.end = this.arrayParameters.EndToken;
-        //    }
-        //}
-
-        //internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, string typeName, TypeReferenceSyntax[] genericArguments, int arrayRank = 0)
-        //    : base(tree, parent)
-        //{
-        //    this.identifier = new SyntaxToken(typeName);
-        //    this.start = identifier;
-
-        //    // Create generics
-        //    if (genericArguments != null && genericArguments.Length > 0)
-        //    {
-        //        this.genericArguments = new GenericArgumentsSyntax(tree, this, genericArguments);
-        //        this.end = this.genericArguments.EndToken;
-        //    }
-
-        //    // Create array type
-        //    if (arrayRank > 0)
-        //    {
-        //        this.arrayParameters = new ArrayParametersSyntax(tree, this, arrayRank);
-        //        this.end = this.arrayParameters.EndToken;
-        //    }
-        //}
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.PrimitiveTypeContext typeRef)
+            : base(tree, parent, typeRef)
+        {
+            // Identifier
+            this.identifier = new SyntaxToken(typeRef.Start);
+        }
 
         internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeReferenceContext typeRef)
             : base(tree, parent, typeRef)
@@ -214,7 +191,7 @@ namespace LumaSharp_Compiler.Syntax
             {
                 for(int i = 0; i < namespaceIdentifiers.Length; i++)
                 {
-                    writer.Write(namespaceIdentifiers[i].ToString());
+                    namespaceIdentifiers[i].GetSourceText(writer);
                     writer.Write('.');
                 }
             }
@@ -232,7 +209,7 @@ namespace LumaSharp_Compiler.Syntax
             }
 
             // Write identifier
-            writer.Write(identifier.ToString());
+            identifier.GetSourceText(writer);
 
             // Write generics
             if(IsGenericType == true)
@@ -244,7 +221,7 @@ namespace LumaSharp_Compiler.Syntax
 
             // Write reference
             if(IsByReference == true)
-                writer.Write(reference.ToString());
+                reference.GetSourceText(writer);
         }
     }
 }

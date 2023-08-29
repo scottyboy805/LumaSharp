@@ -38,6 +38,8 @@ READ: 'read';
 WRITE: 'write';
 THIS: 'this';
 BASE: 'base';
+NEW: 'new';
+STACKNEW: 'stacknew';
 
 // Primitive type keywords
 ANY: 'any';
@@ -102,7 +104,7 @@ contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER g
 enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? enumBlock;
 
 // Enum block
-enumBlock: '{' (enumField (',' enumField)*)? '}';
+enumBlock: lblock='{' (enumField (',' enumField)*)? lblock='}';
 
 // Enum field
 enumField: attributeDeclaration* IDENTIFIER fieldAssignment?;
@@ -121,6 +123,7 @@ memberDeclaration:
 	| contractDeclaration 
 	| enumDeclaration 
 	| fieldDeclaration 
+	| accessorDeclaration
 	| methodDeclaration
 	;
 
@@ -130,7 +133,7 @@ attributeDeclaration: '#' typeReference ('(' (expression (',' expression)*)? ')'
 // Field declaration
 fieldDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER fieldAssignment? ';';
 
-fieldAssignment: '=' (INT | STRING | IDENTIFIER);
+fieldAssignment: assign='=' expression;
 
 // Accessor declaration
 accessorDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER accessorBody;
@@ -206,13 +209,15 @@ statement:
 	| CONTINUE ';';
 
 // Return statement
-returnStatement: RETURN expression? ';';
+returnStatement: RETURN expression? semi=';';
 
 // Postfix statement
 postfixStatement: expression ('++' | '--') ';';
 
 // Local variable statement
-localVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* ('=' (expression | '{' expression (',' expression)* '}'))? ';';
+localVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* localVariableAssignment? semi=';';
+
+localVariableAssignment: assign='=' (expression | lblock='{' expression (',' expression)* rblock='}');
 
 // Assignment statement
 assignStatement: expression assign=('=' | '+=' | '-=' | '/=' | '*=') expression semi=';';
@@ -221,17 +226,18 @@ assignStatement: expression assign=('=' | '+=' | '-=' | '/=' | '*=') expression 
 ifStatement: IF lparen='(' expression rparen=')' (statement | semi=';' | statementBlock) elseifStatement* elseStatement?;
 
 // Elseif statement
-elseifStatement: ELSEIF '(' expression ')' (statement | semi=';' | statementBlock);
+elseifStatement: ELSEIF lparen='(' expression rparen=')' (statement | semi=';' | statementBlock);
 
 // Else statement
 elseStatement: ELSE (statement | semi=';' | statementBlock);
 
 // Foreach statement
-foreachStatement: FOREACH '(' typeReference IDENTIFIER IN expression ')' (statement? ';' | '{' statement* '}');
+foreachStatement: FOREACH lparen='(' typeReference IDENTIFIER IN expression rparen=')' (statement? semi=';' | statementBlock);
 
 // For statement
-forStatement: FOR '(' forVariableStatement? ';' expression? ';' expression? ')' (statement? ';' | '{' statement* '}');
+forStatement: FOR lparen='(' (forVariableStatement (',' forVariableStatement)*)? semi=';' expression? semi=';' (forIncrementStatement (',' forIncrementStatement)*)? rparen=')' (statement? semi=';' | statementBlock);
 forVariableStatement: typeReference IDENTIFIER ('=' expression)?;
+forIncrementStatement: expression;
 
 // While statement
 whileStatement: WHILE '(' expression ')' (statement | ';' | '{' statement* '}');
@@ -262,18 +268,20 @@ expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
 	| expression binary=('==' | '!=') expression				// Equals expression
 	| expression binary='&&' expression							// And expression
 	| expression binary='||' expression							// Or expression
-	| expression ternary='?' expression ':' expression				// Ternary expression
-	| IDENTIFIER indexExpression?
-	| endExpression indexExpression?						// Primitives and literals
-	| expression methodInvokeExpression indexExpression?	// Method expression
-	| typeReference methodInvokeExpression indexExpression?	// Global method
-	| expression fieldAccessExpression indexExpression?		// Field expression
-	| typeReference fieldAccessExpression indexExpression?	// Gloabl field
-	| lparen='(' expression lparen=')' indexExpression?					// Paren expression
-	| typeExpression										// Type expression
-	| sizeExpression										// Size expression
-	| THIS
-	| BASE
+	| expression ternary='?' expression ':' expression			// Ternary expression
+	| IDENTIFIER indexExpression*
+	| endExpression indexExpression*							// Primitives and literals
+	| expression methodInvokeExpression indexExpression*		// Method expression
+	| typeReference methodInvokeExpression indexExpression*		// Global method
+	| expression fieldAccessExpression indexExpression*			// Field expression
+	| typeReference fieldAccessExpression indexExpression*		// Gloabl field
+	| lparen='(' expression lparen=')' indexExpression*			// Paren expression
+	| typeExpression											// Type expression
+	| sizeExpression											// Size expression
+	| newExpression indexExpression*
+	| initializerInvokeExpression indexExpression*
+	| THIS indexExpression*
+	| BASE indexExpression*
 	| typeReference
 	;
 
@@ -288,9 +296,11 @@ endExpression:
 	| NULL
 	;
 
-typeExpression: TYPE '(' typeReference ')';
+typeExpression: TYPE lparen='(' typeReference rparen=')';
 
 sizeExpression: SIZE '(' typeReference ')';
+
+newExpression: (NEW | STACKNEW) initializerInvokeExpression;
 
 // Array index
 indexExpression: larray='[' expression (',' expression)* rarray=']';
@@ -301,3 +311,6 @@ fieldAccessExpression: '.' IDENTIFIER;
 // Method invoke
 methodInvokeExpression: '.' IDENTIFIER genericArguments? '(' methodArgument? (',' methodArgument)* ')';
 methodArgument: '&'? expression;
+
+// Initializer 
+initializerInvokeExpression: typeReference lparen='(' (expression (',' expression)*)? rparen=')';

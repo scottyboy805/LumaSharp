@@ -25,5 +25,11 @@ namespace LumaSharp_Compiler.Syntax
         {
             this.statementEnd = new SyntaxToken(context.Stop);
         }
+
+        // Methods
+        public static StatementSyntax Any(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
+        {
+            return null;
+        }
     }
 }

@@ -88,7 +88,10 @@ namespace LumaSharp_Compiler.Syntax
             this.keyword = new SyntaxToken(contractDef.CONTRACT());
 
             // Get generics
-            this.genericParameters = new GenericParameterListSyntax(tree, this, contractDef.genericParameterList());
+            if (contractDef.genericParameterList() != null)
+            {
+                this.genericParameters = new GenericParameterListSyntax(tree, this, contractDef.genericParameterList());
+            }
             
             // Get base
             LumaSharpParser.InheritParametersContext inherit = contractDef.inheritParameters();

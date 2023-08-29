@@ -6,8 +6,11 @@ namespace LumaSharp_Compiler.Syntax
         // Private
         private TypeReferenceSyntax variableType = null;
         private SyntaxToken[] identifiers = null;
-        private SyntaxToken assign = null;
         private ExpressionSyntax[] assignExpressions = null;
+        private SyntaxToken assign = null;
+        private SyntaxToken lblock = null;
+        private SyntaxToken rblock = null;
+        private SyntaxToken semicolon = null;
 
         // Properties
         public TypeReferenceSyntax VariableType
@@ -74,14 +77,81 @@ namespace LumaSharp_Compiler.Syntax
             // Identifiers
             this.identifiers = local.IDENTIFIER().Select(i =>  new SyntaxToken(i)).ToArray();
 
-            // Assign expressions
-            this.assignExpressions = local.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
+            // Get assignment
+            LumaSharpParser.LocalVariableAssignmentContext assignment = local.localVariableAssignment();
+
+            if (assignment != null)
+            {
+                // Assign expressions
+                this.assignExpressions = assignment.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
+
+                // Assign
+                this.assign = new SyntaxToken(assignment.assign);
+
+                // Check for block
+                if (assignment.lblock != null)
+                    this.lblock = new SyntaxToken(assignment.lblock);
+
+                if (assignment.rblock != null)
+                    this.rblock = new SyntaxToken(assignment.rblock);
+            }
+            
+            // Semicolon
+            this.semicolon = new SyntaxToken(local.semi);
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Write type 
+            variableType.GetSourceText(writer);
+
+            // Write identifiers
+            for(int i = 0; i < identifiers.Length; i++)
+            {
+                // Identifier
+                writer.Write(identifiers[i].Text);
+
+                // Separator
+                if(i < identifiers.Length - 1)
+                    writer.Write(", ");
+            }
+
+            // Check for assignment
+            if (HasAssignExpressions == true)
+            {
+                // Write assign
+                writer.Write(assign.Text);
+
+                // Check for multiple assignments
+                if(AssignExpressionCount > 1)
+                {
+                    // Start block
+                    writer.Write(lblock.Text);
+
+                    // Write all assignments
+                    for(int i = 0; i < assignExpressions.Length; i++)
+                    {
+                        // Write expression
+                        assignExpressions[i].GetSourceText(writer);
+
+                        // Write comma
+                        if(i < assignExpressions.Length - 1)
+                            writer.Write(", ");
+                    }
+
+                    // End block
+                    writer.Write(rblock.Text);
+                }
+                else
+                {
+                    // Write single assignment
+                    assignExpressions[0].GetSourceText(writer);
+                }
+            }
+
+            // Write semi colon
+            writer.Write(semicolon.Text);
         }
     }
 }

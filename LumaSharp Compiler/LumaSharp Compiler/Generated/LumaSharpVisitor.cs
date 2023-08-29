@@ -272,6 +272,12 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitLocalVariableStatement([NotNull] LumaSharpParser.LocalVariableStatementContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.localVariableAssignment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitLocalVariableAssignment([NotNull] LumaSharpParser.LocalVariableAssignmentContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.assignStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -313,6 +319,12 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
 	/// </summary>
@@ -380,6 +392,12 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitSizeExpression([NotNull] LumaSharpParser.SizeExpressionContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.newExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNewExpression([NotNull] LumaSharpParser.NewExpressionContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.indexExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -403,4 +421,10 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitMethodArgument([NotNull] LumaSharpParser.MethodArgumentContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.initializerInvokeExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
 }

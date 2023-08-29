@@ -71,35 +71,37 @@ namespace LumaSharp_Compiler.Syntax
             {
                 for (int i = 0; i < rootElements.Length; i++)
                 {
-                    // Get namespace or root member
-                    LumaSharpParser.NamespaceDeclarationContext namespaceElement = rootElements[i].namespaceDeclaration();
-                    LumaSharpParser.RootMemberContext rootMemberElement = rootElements[i].rootMember();
+                    this.rootElements.Add(MemberSyntax.RootElement(this, this, rootElements[i]));
 
-                    // Check for namespace
-                    if (namespaceElement != null)
-                    {
-                        // Create namespace
-                        this.rootElements.Add(new NamespaceSyntax(this, this, namespaceElement));
-                    }
-                    else if (rootMemberElement != null)
-                    {
-                        // Get all valid members
-                        LumaSharpParser.TypeDeclarationContext typeDef = rootMemberElement.typeDeclaration();
-                        LumaSharpParser.ContractDeclarationContext contractDef = rootMemberElement.contractDeclaration();
-                        LumaSharpParser.EnumDeclarationContext enumDef = rootMemberElement.enumDeclaration();
+                    //// Get namespace or root member
+                    //LumaSharpParser.NamespaceDeclarationContext namespaceElement = rootElements[i].namespaceDeclaration();
+                    //LumaSharpParser.RootMemberContext rootMemberElement = rootElements[i].rootMember();
 
-                        // Check for type
-                        if (typeDef != null)
-                            this.rootElements.Add(new TypeSyntax(this, this, typeDef));
+                    //// Check for namespace
+                    //if (namespaceElement != null)
+                    //{
+                    //    // Create namespace
+                    //    this.rootElements.Add(new NamespaceSyntax(this, this, namespaceElement));
+                    //}
+                    //else if (rootMemberElement != null)
+                    //{
+                    //    // Get all valid members
+                    //    LumaSharpParser.TypeDeclarationContext typeDef = rootMemberElement.typeDeclaration();
+                    //    LumaSharpParser.ContractDeclarationContext contractDef = rootMemberElement.contractDeclaration();
+                    //    LumaSharpParser.EnumDeclarationContext enumDef = rootMemberElement.enumDeclaration();
 
-                        // Check for contract
-                        if (contractDef != null)
-                            this.rootElements.Add(new ContractSyntax(this, this, contractDef));
+                    //    // Check for type
+                    //    if (typeDef != null)
+                    //        this.rootElements.Add(new TypeSyntax(this, this, typeDef));
 
-                        // Check for enum
-                        if (enumDef != null)
-                            this.rootElements.Add(new EnumSyntax(this, this, enumDef));
-                    }
+                    //    // Check for contract
+                    //    if (contractDef != null)
+                    //        this.rootElements.Add(new ContractSyntax(this, this, contractDef));
+
+                    //    // Check for enum
+                    //    if (enumDef != null)
+                    //        this.rootElements.Add(new EnumSyntax(this, this, enumDef));
+                    //}
                 }
             }
         }

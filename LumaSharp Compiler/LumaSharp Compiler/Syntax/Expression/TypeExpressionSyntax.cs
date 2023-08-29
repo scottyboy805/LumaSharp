@@ -5,6 +5,8 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken keyword = null;
+        private SyntaxToken lparen = null;
+        private SyntaxToken rparen = null;
         private TypeReferenceSyntax typeReference = null;
 
         // Properties
@@ -30,6 +32,10 @@ namespace LumaSharp_Compiler.Syntax
             // Keyword
             this.keyword = new SyntaxToken(type.TYPE());
 
+            // LR paren
+            this.lparen = new SyntaxToken(type.lparen);
+            this.rparen = new SyntaxToken(type.rparen);
+
             // Type reference
             this.typeReference = new TypeReferenceSyntax(tree, this, type.typeReference());
         }
@@ -38,16 +44,16 @@ namespace LumaSharp_Compiler.Syntax
         public override void GetSourceText(TextWriter writer)
         {
             // Write keyword
-            writer.Write(keyword.ToString());
+            keyword.GetSourceText(writer);
 
-            // Write opening
-            //writer.Write(start.ToString());
+            // Lparen
+            lparen.GetSourceText(writer);
 
-            // Write type
+            // Expression
             typeReference.GetSourceText(writer);
 
-            // Write closing
-            //writer.Write(end.ToString());
+            // Rparen
+            rparen.GetSourceText(writer);
         }
     }
 }

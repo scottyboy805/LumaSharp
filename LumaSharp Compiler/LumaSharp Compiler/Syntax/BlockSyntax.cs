@@ -30,39 +30,6 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
-            : base(tree, parent, memberBlock)
-        {
-            this.start = new SyntaxToken(memberBlock.Start);
-            this.end = new SyntaxToken(memberBlock.Stop);
-
-            // Get all members
-            LumaSharpParser.MemberDeclarationContext[] members = memberBlock.memberDeclaration();
-
-            if (members.Length > 0)
-            {
-                this.elements = new T[members.Length];
-
-                for (int i = 0; i < members.Length; i++)
-                {
-                    var typeMember = members[i].typeDeclaration();
-                    var contractMember = members[i].contractDeclaration();
-                    var enumMember = members[i].enumDeclaration();
-                    var fieldMember = members[i].fieldDeclaration();
-                    var methodMember = members[i].methodDeclaration();
-
-                    // Create type member
-                    if (typeMember != null)
-                        this.elements[i] = new TypeSyntax(tree, this, typeMember) as T;
-
-                    // Create contract member
-                    if (contractMember != null)
-                        ;// this.elements[i] = new ContractSyntax(contractMember) as T;
-                }
-
-            }
-        }
-
         internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.RootMemberBlockContext rootMemberBlock)
             : base(tree, node, rootMemberBlock)
         {
@@ -78,19 +45,48 @@ namespace LumaSharp_Compiler.Syntax
 
                 for (int i = 0; i < members.Length; i++)
                 {
-                    var typeMember = members[i].typeDeclaration();
-                    var contractMember = members[i].contractDeclaration();
-                    var enumMember = members[i].enumDeclaration();
-
-                    // Create type member
-                    if (typeMember != null)
-                        this.elements[i] = new TypeSyntax(tree, this, typeMember) as T;
-
-                    // Create contract member
-                    if (contractMember != null)
-                        ;// this.elements[i] = new ContractSyntax(contractMember) as T;
+                    this.elements[i] = MemberSyntax.RootMember(tree, this, members[i]) as T;
                 }
+            }
+        }
 
+        internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
+            : base(tree, parent, memberBlock)
+        {
+            this.start = new SyntaxToken(memberBlock.Start);
+            this.end = new SyntaxToken(memberBlock.Stop);
+
+            // Get all members
+            LumaSharpParser.MemberDeclarationContext[] members = memberBlock.memberDeclaration();
+
+            if (members.Length > 0)
+            {
+                this.elements = new T[members.Length];
+
+                for (int i = 0; i < members.Length; i++)
+                {
+                    this.elements[i] = MemberSyntax.Member(tree, this, members[i]) as T;
+                }
+            }
+        }
+
+        internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax enumType, LumaSharpParser.EnumBlockContext enumBlock)
+            : base(tree, parent, enumBlock)
+        {
+            this.start = new SyntaxToken(enumBlock.Start);
+            this.end = new SyntaxToken(enumBlock.Stop);
+
+            // Get all fields
+            LumaSharpParser.EnumFieldContext[] fields = enumBlock.enumField();
+
+            if(fields.Length > 0)
+            {
+                this.elements = new T[fields.Length];
+
+                for(int i = 0; i < fields.Length; i++)
+                {
+                    this.elements[i] = new FieldSyntax(tree, this, enumType, fields[i]) as T;
+                }
             }
         }
 

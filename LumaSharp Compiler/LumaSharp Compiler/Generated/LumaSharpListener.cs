@@ -431,6 +431,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitLocalVariableStatement([NotNull] LumaSharpParser.LocalVariableStatementContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.localVariableAssignment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterLocalVariableAssignment([NotNull] LumaSharpParser.LocalVariableAssignmentContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.localVariableAssignment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitLocalVariableAssignment([NotNull] LumaSharpParser.LocalVariableAssignmentContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.assignStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -500,6 +510,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
 	/// </summary>
@@ -611,6 +631,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitSizeExpression([NotNull] LumaSharpParser.SizeExpressionContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.newExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterNewExpression([NotNull] LumaSharpParser.NewExpressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.newExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitNewExpression([NotNull] LumaSharpParser.NewExpressionContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.indexExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -650,4 +680,14 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitMethodArgument([NotNull] LumaSharpParser.MethodArgumentContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.initializerInvokeExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.initializerInvokeExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
 }

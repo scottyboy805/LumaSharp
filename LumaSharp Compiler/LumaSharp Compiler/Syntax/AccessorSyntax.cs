@@ -64,7 +64,7 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal AccessorSyntax(LumaSharpParser.AccessorDeclarationContext accessorDef, SyntaxTree tree, SyntaxNode parent)
+        internal AccessorSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorDeclarationContext accessorDef)
             : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef, accessorDef.attributeDeclaration(), accessorDef.accessModifier())
         {
             // Get the body

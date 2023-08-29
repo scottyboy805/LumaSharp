@@ -104,6 +104,23 @@ namespace LumaSharp_CompilerTests.AST.Parse
         }
 
         [DataTestMethod]
+        [DataRow("new i32()")]
+        [DataRow("new MyType()")]
+        [DataRow("new myGenericType<i32>()")]
+        [DataRow("new myGenericType<i32, string, SomeOtherType<i8>>()")]
+        [DataRow("stacknew WithArguments(123, 456.34)")]
+        [DataRow("i32()")]
+        [DataRow("StackInitialized(false)")]
+        public void Expression_New(string input)
+        {
+            // Try to parse the tree
+            ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
+
+            Assert.IsNotNull(expression);
+            Assert.IsInstanceOfType(expression, typeof(NewExpressionSyntax));
+        }
+
+        [DataTestMethod]
         [DataRow("1234")]
         [DataRow("1234L")]
         [DataRow("1234U")]

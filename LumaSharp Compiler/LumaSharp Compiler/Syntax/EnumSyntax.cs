@@ -46,27 +46,29 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        //internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
-        //    : base(identifier, tree, parent)
-        //{
-        //    this.keyword = new SyntaxToken("enum");
-
-        //    this.start = this.keyword;
-        //    this.end = this.identifier;
-        //}
-
         internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
             : base(enumDef.IDENTIFIER(), tree, parent, enumDef, enumDef.attributeDeclaration(), enumDef.accessModifier())
         {
             // Enum keyword
             this.keyword = new SyntaxToken(enumDef.ENUM());
 
+            // Enum type
+            if (enumDef.primitiveType() != null)
+            {
+                this.underlyingTypeReference = new TypeReferenceSyntax(tree, parent, enumDef.primitiveType());
+            }
+            else
+            {
+                this.underlyingTypeReference = new TypeReferenceSyntax(tree, this, PrimitiveType.I32);
+            }
+
             // Get fields
             LumaSharpParser.EnumBlockContext block = enumDef.enumBlock();
 
-            //this.fieldBlock = new BlockSyntax<FieldSyntax>(tree, this, block);
+            this.fieldBlock = new BlockSyntax<FieldSyntax>(tree, this, underlyingTypeReference, block);
         }
 
+        // Methods
         public override void GetSourceText(TextWriter writer)
         {
             throw new NotImplementedException();

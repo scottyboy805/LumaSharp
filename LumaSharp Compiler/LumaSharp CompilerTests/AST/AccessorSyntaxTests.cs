@@ -25,7 +25,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.AccessorDeclarationContext context = TestUtils.ParseAccessorDeclaration(input);
 
             // Build AST node
-            AccessorSyntax syntax = new AccessorSyntax(context, null, null);
+            AccessorSyntax syntax = new AccessorSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -45,7 +45,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.AccessorDeclarationContext context = TestUtils.ParseAccessorDeclaration(input);
 
             // Build AST node
-            AccessorSyntax syntax = new AccessorSyntax(context, null, null);
+            AccessorSyntax syntax = new AccessorSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);

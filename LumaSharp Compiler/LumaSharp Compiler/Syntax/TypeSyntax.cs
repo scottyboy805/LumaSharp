@@ -88,7 +88,10 @@ namespace LumaSharp_Compiler.Syntax
             this.keyword = new SyntaxToken(typeDef.TYPE());
 
             // Get generics
-            this.genericParameters = new GenericParameterListSyntax(tree, this, typeDef.genericParameterList());
+            if (typeDef.genericParameterList() != null)
+            {
+                this.genericParameters = new GenericParameterListSyntax(tree, this, typeDef.genericParameterList());
+            }
 
             // Get base
             LumaSharpParser.InheritParametersContext inherit = typeDef.inheritParameters();

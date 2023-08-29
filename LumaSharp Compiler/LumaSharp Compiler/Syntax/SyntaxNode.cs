@@ -49,8 +49,11 @@ namespace LumaSharp_Compiler.Syntax
             this.tree = tree;
             this.parent = parent;
 
-            this.start = new SyntaxToken(context.Start);
-            this.end = new SyntaxToken(context.Stop);
+            if (context != null)
+            {
+                this.start = new SyntaxToken(context.Start);
+                this.end = new SyntaxToken(context.Stop);
+            }
         }
 
         // Methods

@@ -16,7 +16,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.FieldDeclarationContext context = TestUtils.ParseFieldDeclaration(input);
 
             // Build AST node
-            FieldSyntax syntax = new FieldSyntax(context, null, null);
+            FieldSyntax syntax = new FieldSyntax(null, null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);

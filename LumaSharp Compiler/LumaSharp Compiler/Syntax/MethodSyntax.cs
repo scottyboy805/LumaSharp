@@ -55,10 +55,16 @@ namespace LumaSharp_Compiler.Syntax
             this.returnType = new TypeReferenceSyntax(tree, this, methodDef.typeReference());
 
             // Generics
-            this.genericParameters = new GenericParameterListSyntax(tree, this, methodDef.genericParameterList());
+            if (methodDef.genericParameterList() != null)
+            {
+                this.genericParameters = new GenericParameterListSyntax(tree, this, methodDef.genericParameterList());
+            }
 
             // Parameters
-            this.parameters = new ParameterListSyntax(tree, this, methodDef.methodParameterList());
+            if (methodDef.methodParameterList() != null)
+            {
+                this.parameters = new ParameterListSyntax(tree, this, methodDef.methodParameterList());
+            }
 
             // Create body
             LumaSharpParser.StatementBlockContext bodyBlock = methodDef.statementBlock();

@@ -6,6 +6,7 @@ namespace LumaSharp_Compiler.Syntax
         // Private
         private SyntaxToken keyword = null;
         private ExpressionSyntax returnExpression = null;
+        private SyntaxToken semicolon = null;
 
         // Properties
         public SyntaxToken Keyword
@@ -27,7 +28,15 @@ namespace LumaSharp_Compiler.Syntax
         internal ReturnStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ReturnStatementContext statement)
             : base(tree, parent, statement)
         {
+            // Keyword
             this.keyword = new SyntaxToken(statement.RETURN());
+
+            // Expression
+            if (statement.expression() != null)
+                this.returnExpression = ExpressionSyntax.Any(tree, this, statement.expression());
+
+            // Semicolon
+            this.semicolon = new SyntaxToken(statement.semi);
         }
 
         // Methods
@@ -43,7 +52,7 @@ namespace LumaSharp_Compiler.Syntax
             }
 
             // End statement
-            writer.Write(statementEnd.ToString());
+            writer.Write(semicolon.ToString());
 
         }
     }

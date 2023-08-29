@@ -14,6 +14,10 @@ namespace LumaSharp_Compiler.Syntax
         // Methods
         public static ExpressionSyntax Any(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
         {
+            // Check for index first of all
+            if (expression.indexExpression() != null)
+                return new ArrayIndexExpressionSyntax(tree, parent, expression);
+
             // Check for base
             if (expression.BASE() != null)
                 return new BaseExpressionSyntax(tree, parent, expression);
@@ -28,11 +32,7 @@ namespace LumaSharp_Compiler.Syntax
 
             // Check for type
             if (expression.typeExpression() != null)
-                return new TypeExpressionSyntax(tree, parent, expression.typeExpression());
-
-            // Check for index
-            if (expression.indexExpression() != null)
-                return new ArrayIndexExpressionSyntax(tree, parent, expression);
+                return new TypeExpressionSyntax(tree, parent, expression.typeExpression());            
 
             // Check for method
             if (expression.methodInvokeExpression() != null)
@@ -42,13 +42,21 @@ namespace LumaSharp_Compiler.Syntax
             if(expression.fieldAccessExpression() != null)
                 return new FieldAccessorReferenceExpressionSyntax(tree, parent, expression);
 
+            // Check for new
+            if(expression.newExpression() != null)
+                return new NewExpressionSyntax(tree, parent, expression.newExpression());
+
+            // Check for stack initializer
+            if (expression.initializerInvokeExpression() != null)
+                return new NewExpressionSyntax(tree, parent, expression.initializerInvokeExpression());
+
             // Check for end
             if (expression.endExpression() != null)
                 return new LiteralExpressionSyntax(tree, parent, expression.endExpression());
 
             // Check for bracketed
             if (expression.GetChild(0).GetText() == "(")
-                return null;
+                return Any(tree, parent, expression.expression(0));
 
             // Check for identifier
             if(expression.IDENTIFIER() != null)

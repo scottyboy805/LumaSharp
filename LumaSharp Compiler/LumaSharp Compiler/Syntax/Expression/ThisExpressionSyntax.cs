@@ -28,7 +28,8 @@ namespace LumaSharp_Compiler.Syntax
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            writer.Write(keyword.ToString());
+            // Write keyword
+            keyword.GetSourceText(writer);
         }
     }
 }

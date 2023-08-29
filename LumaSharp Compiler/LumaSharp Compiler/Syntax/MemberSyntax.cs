@@ -72,5 +72,64 @@ namespace LumaSharp_Compiler.Syntax
                 this.accessModifiers = modifiers.Select(m => new SyntaxToken(m.Start)).ToArray();
             }
         }
+
+        // Methods
+        internal static SyntaxNode RootElement(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.RootElementContext element)
+        {
+            // Check for namespace
+            if (element.namespaceDeclaration() != null)
+                return new NamespaceSyntax(tree, parent, element.namespaceDeclaration());
+
+            // Get member
+            return RootMember(tree, parent, element.rootMember());
+        }
+
+        internal static MemberSyntax RootMember(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.RootMemberContext member)
+        {
+            // Check for type declaration
+            if (member.typeDeclaration() != null)
+                return new TypeSyntax(tree, parent, member.typeDeclaration());
+
+            // Check for contract declaration
+            if (member.contractDeclaration() != null)
+                return new ContractSyntax(tree, parent, member.contractDeclaration());
+
+            // Check for enum declaration
+            if (member.enumDeclaration() != null)
+                return new EnumSyntax(tree, parent, member.enumDeclaration());
+
+            // Not valid
+            throw new NotSupportedException("Unsupported root member type: " + member);
+        }
+
+        internal static MemberSyntax Member(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberDeclarationContext member)
+        {
+            // Check for type
+            if (member.typeDeclaration() != null)
+                return new TypeSyntax(tree, parent, member.typeDeclaration());
+
+            // Check for contract
+            if(member.contractDeclaration() != null)
+                return new ContractSyntax(tree, parent, member.contractDeclaration());
+
+            // Check for enum
+            if (member.enumDeclaration() != null)
+                return new EnumSyntax(tree, parent, member.enumDeclaration());
+
+            // Check for field
+            if (member.fieldDeclaration() != null)
+                return new FieldSyntax(tree, parent, member.fieldDeclaration());
+
+            // Check for accessor
+            if (member.accessorDeclaration() != null)
+                return new AccessorSyntax(tree, parent, member.accessorDeclaration());
+
+            // Check for method
+            if(member.methodDeclaration() != null)
+                return new MethodSyntax(tree, parent, member.methodDeclaration());
+
+            // Not valid
+            throw new NotSupportedException("Unsupported member type: " + member);
+        }
     }
 }
