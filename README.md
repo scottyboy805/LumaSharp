@@ -7,7 +7,7 @@ C# is a powerful and mature language with frequent new features added all the ti
 # Progress
 WIP - Define language specification and usage (Common language features outlined below but subject to change).  
 WIP - Implement language parsing using Antlr4 (Partially implemented - work is on going to support all proposed features).  
-WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, give errors/warnings, etc.).
+WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, give errors/warnings, etc.).  
 TODO - Implement bytecode compiler to produce an executable format (Work required to transform the AST produced from parsing the source into semantic model for validation, and then into a stack based common bytecode instruction set).  
 TODO - Implement bytecode runtime to execute code as an application or library (Create a bytecode runtime in software only (No JIT) just as a proof of concept to execute instructions).  
 
