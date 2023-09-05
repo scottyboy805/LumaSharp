@@ -7,14 +7,10 @@ namespace LumaSharp_Compiler.Semantics.Model
     {
         // Private
         private string libraryName = "";
-        private TypeModel[] typeModels = null;
+        private ReferenceLibrary thisLibrary = null;
+        private List<TypeModel> typeModels = new List<TypeModel>();
 
         // Properties
-        public int SymbolToken
-        {
-            get { return -1; }  // -1 = current library
-        }
-
         public string LibraryName
         {
             get { return libraryName; }
@@ -22,7 +18,12 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public ILibraryReferenceSymbol LibrarySymbol
         {
-            get { return this; }
+            get { return thisLibrary; }
+        } 
+
+        public int SymbolToken
+        {
+            get { return thisLibrary.SymbolToken; }
         }
 
         // Constructor
@@ -32,9 +33,8 @@ namespace LumaSharp_Compiler.Semantics.Model
             this.libraryName = libraryName;
 
             // Create root types
-            typeModels = rootTypes != null
-                ? rootTypes.Select(t => new TypeModel(this, null, t)).ToArray()
-                : null;
+            if (rootTypes != null)
+                typeModels.AddRange(rootTypes.Select(t => new TypeModel(this, null, t)));
 
             // Create root contracts
 
@@ -43,8 +43,18 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Methods
         private void Build(string[] references)
         {
+            // Create library
+            this.thisLibrary = new ReferenceLibrary(libraryName);
+
+            // Register all types
+            foreach(TypeModel type in typeModels)
+            {
+                // Declare this type
+                thisLibrary.DeclareType(type.Namespace, type);
+            }
+
             // Create provider
-            GlobalSymbolProvider symbolProvider = new GlobalSymbolProvider();
+            GlobalSymbolProvider symbolProvider = new GlobalSymbolProvider(thisLibrary);
 
             // Build all members
         }

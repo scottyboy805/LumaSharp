@@ -41,6 +41,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
         }
 
         // Public
+        public static readonly BuiltIn_Primitive _void = new BuiltIn_Primitive((PrimitiveType)0);
+
         public static readonly BuiltIn_Primitive any = new BuiltIn_Primitive(PrimitiveType.Any);
         public static readonly BuiltIn_Primitive _bool = new BuiltIn_Primitive(PrimitiveType.Bool);
         public static readonly BuiltIn_Primitive _char = new BuiltIn_Primitive(PrimitiveType.Char);

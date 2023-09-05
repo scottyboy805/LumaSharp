@@ -44,7 +44,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override bool ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider)
         {
             // Get the constant type
             ConstantType constantType = ResolveConstantType(syntax.Value, syntax.Descriptor);
@@ -68,9 +68,6 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Resolve symbol
             this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType);
-
-            // Check for success
-            return constantTypeSymbol != null;
         }
 
         private ConstantType ResolveConstantType(SyntaxToken token, SyntaxToken descriptor)

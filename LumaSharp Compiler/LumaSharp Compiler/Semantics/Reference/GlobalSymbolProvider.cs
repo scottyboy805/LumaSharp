@@ -5,9 +5,22 @@ namespace LumaSharp_Compiler.Semantics.Reference
 {
     internal sealed class GlobalSymbolProvider : ISymbolProvider
     {
+        // Private
+        private ReferenceLibrary thisLibrary = null;
+
+        // Constructor
+        public GlobalSymbolProvider(ReferenceLibrary thisLibrary)
+        {
+            this.thisLibrary = thisLibrary;
+        }
+
         // Methods
         public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType)
         {
+            // Check for void
+            if (primitiveType == 0)
+                return Types._void;
+
             return primitiveType switch
             {
                 PrimitiveType.Any => Types.any,
@@ -35,12 +48,51 @@ namespace LumaSharp_Compiler.Semantics.Reference
             if (reference.IsPrimitiveType == true)
                 return ResolveTypeSymbol(Enum.Parse<PrimitiveType>(reference.Identifier.Text));
 
+            // Check for  simple types reference
+
             throw new NotImplementedException();
         }
 
-        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
+        public IReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
         {
-            throw new NotImplementedException();
+            // Check for type
+            if(context is ITypeReferenceSymbol typeReference)
+            {
+                // Get all matches
+                int matchCount = 0;
+                IReferenceSymbol matchSymbol = null;
+
+                // Get all fields
+                foreach(IFieldReferenceSymbol field in typeReference.FieldMemberSymbols)
+                {
+                    // Check for matched field name
+                    if(field.FieldName == reference.Identifier.Text)
+                    {
+                        matchCount++;
+                        matchSymbol = field;
+                    }
+                }
+
+                // Get all accessors
+                foreach(IAccessorReferenceSymbol accessor in typeReference.AccessorMemberSymbols)
+                {
+                    // Check for matched accessor name
+                    if(accessor.AccessorName == reference.Identifier.Text)
+                    {
+                        matchCount++;
+                        matchSymbol = accessor;
+                    }
+                }
+
+                // Check for ambiguous match
+                if (matchCount > 1)
+                    throw new Exception("Ambiguous match: " + typeReference);
+
+                return matchSymbol;
+            }
+
+            // 
+            throw new InvalidOperationException("Invalid context");
         }
 
         public IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference)

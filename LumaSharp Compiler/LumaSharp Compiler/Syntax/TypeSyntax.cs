@@ -16,6 +16,11 @@ namespace LumaSharp_Compiler.Syntax
             get { return keyword; }
         }
 
+        public NamespaceName Namespace
+        {
+            get { return Parent as NamespaceName; }
+        }
+
         public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }

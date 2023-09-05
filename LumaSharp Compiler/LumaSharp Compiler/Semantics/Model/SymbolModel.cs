@@ -28,6 +28,6 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public abstract bool ResolveSymbols(ISymbolProvider provider);
+        public abstract void ResolveSymbols(ISymbolProvider provider);
     }
 }

@@ -8,8 +8,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         private MethodSyntax syntax = null;
         private TypeModel declaringType = null;
         private ITypeReferenceSymbol returnTypeSymbol = null;
-        private ITypeReferenceSymbol[] genericParameterSymbols = null;
-        private ITypeReferenceSymbol[] parameterSymbols = null;
+        private IGenericParameterIdentifierReferenceSymbol[] genericParameterIdentifierSymbols = null;
+        private ILocalIdentifierReferenceSymbol[] parameterIdentifierSymbols = null;
 
         // Properties
         public string MethodName
@@ -42,14 +42,29 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return returnTypeSymbol; }
         }
 
-        public ITypeReferenceSymbol[] GenericParameterSymbols
+        public IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols
         {
-            get { return genericParameterSymbols; }
+            get { return genericParameterIdentifierSymbols; }
         }
 
-        public ITypeReferenceSymbol[] ParameterSymbols
+        public ILocalIdentifierReferenceSymbol[] ParameterSymbols
         {
-            get { return parameterSymbols; }
+            get { return parameterIdentifierSymbols; }
+        }
+
+        public bool HasReturnType
+        {
+            get { return syntax.ReturnType.Identifier.Text != "void"; }
+        }
+
+        public bool HasGenericParameters
+        {
+            get { return syntax.HasGenericParameters; }
+        }
+
+        public bool HasBody
+        {
+            get { return syntax.HasBody; }
         }
 
         // Constructor
@@ -61,9 +76,36 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override bool ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider)
         {
-            throw new NotImplementedException();
+            // Get return type
+            returnTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.ReturnType);
+
+            // Resolve generics
+            if(syntax.HasGenericParameters == true)
+            {
+                // Create symbol array
+                genericParameterIdentifierSymbols = new IGenericParameterIdentifierReferenceSymbol[syntax.GenericParameters.GenericParameterCount];
+
+                // Resolve all
+                for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
+                {
+                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                }
+            }
+
+            // Resolve parameters
+            if(syntax.HasParameters == true)
+            {
+                // Create parameter array
+                parameterIdentifierSymbols = new ILocalIdentifierReferenceSymbol[syntax.Parameters.ParameterCount];
+
+                // Resolve all
+                for(int i = 0; i < parameterIdentifierSymbols.Length; i++)
+                {
+                    parameterIdentifierSymbols[i] = new LocalOrParameterModel(syntax.Parameters.Parameters[i], this, i);
+                }
+            }
         }
     }
 }

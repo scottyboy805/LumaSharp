@@ -10,8 +10,10 @@ namespace LumaSharp_Compiler.Semantics
 
         ITypeReferenceSymbol ReturnTypeSymbol { get; }
 
-        ITypeReferenceSymbol[] GenericParameterSymbols { get; }
+        IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols { get; }
 
-        ITypeReferenceSymbol[] ParameterSymbols { get; }
+        ILocalIdentifierReferenceSymbol[] ParameterSymbols { get; }
+
+        bool HasBody { get; }
     }
 }

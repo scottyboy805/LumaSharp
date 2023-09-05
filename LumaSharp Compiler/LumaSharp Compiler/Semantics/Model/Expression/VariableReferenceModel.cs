@@ -44,13 +44,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Methods
-        public override bool ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider)
         {
             // Try to resolve symbol
             this.identifierSymbol = provider.ResolveIdentifierSymbol(ParentSymbol, syntax);
-
-            // Check for success
-            return identifierSymbol != null;
         }
     }
 }

@@ -42,15 +42,13 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Methods
-        public override bool ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider)
         {
             // Resolve left
-            bool success = left.ResolveSymbols(provider);
+            left.ResolveSymbols(provider);
 
             // Resolve right
-            success &= right.ResolveSymbols(provider);
-
-            return success;
+            right.ResolveSymbols(provider);
         }
 
         //private bool ResolveOperationOrOperatorMethod()

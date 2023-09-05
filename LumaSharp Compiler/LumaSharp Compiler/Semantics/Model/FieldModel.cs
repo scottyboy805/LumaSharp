@@ -50,13 +50,10 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override bool ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider)
         {
             // Resolve field symbol
             fieldTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.FieldType);
-
-            // Check for success
-            return fieldTypeSymbol != null;
         }
     }
 }

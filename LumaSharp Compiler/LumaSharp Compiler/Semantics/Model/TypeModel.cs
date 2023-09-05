@@ -5,7 +5,7 @@ namespace LumaSharp_Compiler.Semantics.Model
     public sealed class TypeModel : MemberModel, ITypeReferenceSymbol
     {
         // Private
-        private TypeSyntax syntax = null;
+        private MemberSyntax syntax = null;
         //private GenericParameterModel[] genericParameters = null;
 
         private ITypeReferenceSymbol[] baseTypesSymbols = null;
@@ -14,6 +14,18 @@ namespace LumaSharp_Compiler.Semantics.Model
         private FieldModel[] memberFields = null;
 
         // Properties
+        public string[] Namespace
+        {
+            get 
+            { 
+                // Check for type
+                if(syntax is TypeSyntax)
+                    return ((TypeSyntax)syntax).Namespace.Identifiers.Select(i => i.Text).ToArray();
+
+                return null;
+            }
+        }
+
         //public GenericParameterModel[] GenericParameters
         //{
         //    get { return genericParameters; }
@@ -41,12 +53,25 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool HasGenericParameters
         {
-            get { return syntax.HasGenericParameters; }
+            get 
+            { 
+                if(syntax is TypeSyntax)
+                    return ((TypeSyntax)syntax).HasGenericParameters;
+
+                return false;
+            }
         }
 
         public bool HasBaseTypes
         {
-            get { return syntax.HasBaseTypes; }
+            get 
+            { 
+                // Check for type
+                if(syntax is TypeSyntax)
+                    return ((TypeSyntax)syntax).HasBaseTypes;
+
+                return false;
+            }
         }
 
         public string TypeName
@@ -66,17 +91,17 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool IsType
         {
-            get { return true; }
+            get { return syntax is TypeSyntax; }
         }
 
         public bool IsContract
         {
-            get { return false; }
+            get { return syntax is ContractSyntax; }
         }
 
         public bool IsEnum
         {
-            get { return false; }
+            get { return syntax is EnumSyntax; }
         }
 
         public ITypeReferenceSymbol[] GenericTypeSymbols => throw new NotImplementedException();
@@ -104,16 +129,37 @@ namespace LumaSharp_Compiler.Semantics.Model
                 ? syntax.Members.Where(t => t is TypeSyntax).Select(t => new TypeModel(model, this, t as TypeSyntax)).ToArray()
                 : null;
 
+            // 
+
             // Create member fields
             memberFields = syntax.HasMembers
                 ? syntax.Members.Where(f => f is FieldSyntax).Select(f => new FieldModel(model, this, f as FieldSyntax)).ToArray()
                 : null;
         }
 
-        // Methods
-        public override bool ResolveSymbols(ISymbolProvider provider)
+        internal TypeModel(SemanticModel model, MemberModel parent, ContractSyntax syntax)
+            : base(model, parent, syntax)
         {
-            return false;
+            this.syntax = syntax;
+            
+            // Create types
+            memberTypes
+        }
+
+        internal TypeModel(SemanticModel model, MemberModel parent, EnumSyntax syntax)
+            : base(model, parent, syntax)
+        {
+            this.syntax = syntax;
+
+            // Create fields
+            memberFields = syntax.HasFields
+                ? syntax.Fields.Select(f => new FieldModel(model, this, f)).ToArray()
+                : null;
+        }
+
+        // Methods
+        public override void ResolveSymbols(ISymbolProvider provider)
+        {
         }
     }
 }
