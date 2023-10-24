@@ -6,10 +6,30 @@ C# is a powerful and mature language with frequent new features added all the ti
 
 # Progress
 WIP - Define language specification and usage (Common language features outlined below but subject to change).  
+- [x] [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/f43f670e914320d4399f02a3af5fbfb467bf7472/LumaSharp%20Specification/Overview.md)
+
 WIP - Implement language parsing using Antlr4 (Partially implemented - work is on going to support all proposed features).  
+- [X] Implement Antlr grammar for language specification - subject to change.
+- [X] Implement Antlr expressions, statements, members and units for language specification.
+- [X] Generate structured parse tree using Antlr runtime.
+- [X] Implement Syntax tree API for working with parsed language.
+- [ ] Implement conversion from Antlr parse tree to syntax tree.
+- [ ] Fully test parsing source text to syntax tree for all cases.
+
 WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, give errors/warnings, etc.).  
+- [ ] Convert parsed syntax tree to equivilent semanitc model.
+- [ ] Implement loading external modules for referencing purposes.
+- [ ] Implement type checking, inference, accessibility rules etc.
+- [ ] Implement resolving symbols and identifiers based on scope.
+- [ ] Semantic model validation to ensure that an output can be generated.
+
 TODO - Implement bytecode compiler to produce an executable format (Work required to transform the AST produced from parsing the source into semantic model for validation, and then into a stack based common bytecode instruction set).  
+- [ ] Define bytecode model used for runtime and compiler purposes (instruction set, format, memory).
+- [ ] Generate bytecode instruction set from semantic model statements.
+- [ ] Emit intermediate module that can be loaded and executed at runtime.
+
 TODO - Implement bytecode runtime to execute code as an application or library (Create a bytecode runtime in software only (No JIT) just as a proof of concept to execute instructions).  
+- [ ] Long term - complete work on compiler first.
 
 # Proposed syntax
 Here is the proposed syntax for the language which may be subject to change: [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/f43f670e914320d4399f02a3af5fbfb467bf7472/LumaSharp%20Specification/Overview.md)
