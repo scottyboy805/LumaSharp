@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class GenericParameterSyntax : SyntaxNode
     {
@@ -40,6 +40,18 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal GenericParameterSyntax(string identifier, TypeReferenceSyntax[] constraintTypes, int index = 0)
+            : base((SyntaxToken)null)
+        {
+            // Identifier
+            this.identifier = new SyntaxToken(identifier);
+
+            // Constrain types
+            this.constraintTypes = constraintTypes;
+
+            this.index = index;
+        }
+
         internal GenericParameterSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericParameterContext paramDef, int index)
             : base(tree, parent, paramDef)
         {

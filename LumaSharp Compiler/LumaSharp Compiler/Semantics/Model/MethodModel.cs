@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
+using System.Runtime.CompilerServices;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -10,6 +11,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ITypeReferenceSymbol returnTypeSymbol = null;
         private IGenericParameterIdentifierReferenceSymbol[] genericParameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] parameterIdentifierSymbols = null;
+        private ILocalIdentifierReferenceSymbol[] localIdentifierSymbols = null;
 
         // Properties
         public string MethodName
@@ -20,6 +22,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public string IdentifierName
         {
             get { return syntax.Identifier.Text; }
+        }
+
+        public bool IsGlobal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
@@ -90,20 +97,84 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Resolve all
                 for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
                 {
-                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                    // Create generic
+                    GenericParameterModel genericModel = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+
+                    // Add to method model
+                    genericParameterIdentifierSymbols[i] = genericModel;
+
+                    // Resolve symbols
+                    genericModel.ResolveSymbols(provider);
                 }
             }
 
             // Resolve parameters
             if(syntax.HasParameters == true)
             {
+                // Check for global
+                int size = (IsGlobal == true) ? syntax.Parameters.ParameterCount : syntax.Parameters.ParameterCount + 1;
+
                 // Create parameter array
-                parameterIdentifierSymbols = new ILocalIdentifierReferenceSymbol[syntax.Parameters.ParameterCount];
+                parameterIdentifierSymbols = new ILocalIdentifierReferenceSymbol[size];
+
+                // Check for global
+                if (IsGlobal == false)
+                {
+                    // Create local model
+                    LocalOrParameterModel localModel = new LocalOrParameterModel(
+                        new ParameterSyntax(new TypeReferenceSyntax(declaringType.Syntax), "this"), this, 0);
+
+                    // Create implicit `this` parameter at position 0
+                    parameterIdentifierSymbols[0] = localModel;
+
+                    // Resolve symbols
+                    localModel.ResolveSymbols(provider);
+                }
+
+                int offset = IsGlobal ? 0 : 1;
 
                 // Resolve all
-                for(int i = 0; i < parameterIdentifierSymbols.Length; i++)
+                for(int i = 0; i < syntax.Parameters.ParameterCount; i++)
                 {
-                    parameterIdentifierSymbols[i] = new LocalOrParameterModel(syntax.Parameters.Parameters[i], this, i);
+                    // Create parameter model
+                    LocalOrParameterModel parameterModel = new LocalOrParameterModel(syntax.Parameters.Parameters[i], this, i + offset);
+
+                    // Store parameter model
+                    parameterIdentifierSymbols[i + offset] = parameterModel;
+
+                    // Resolve symbols
+                    parameterModel.ResolveSymbols(provider);
+                }
+            }
+
+            // Resolve locals
+            IEnumerable<VariableDeclarationStatementSyntax> declarations = syntax.Body.DescendantsOfType<VariableDeclarationStatementSyntax>(true);
+
+            if (declarations.Any() == true)
+            {
+                // Calculate count
+                int size = declarations.Count();
+
+                // Create array
+                if (size > 0)
+                {
+                    // Create symbols array
+                    localIdentifierSymbols = new ILocalIdentifierReferenceSymbol[size];
+                    int index = 0;
+
+                    // Resolve all
+                    foreach(VariableDeclarationStatementSyntax declaration in declarations)
+                    {
+                        // Create local model
+                        LocalOrParameterModel localModel = new LocalOrParameterModel(declaration, this, index);
+
+                        // Store local model
+                        localIdentifierSymbols[index] = localModel;
+                        index++;
+
+                        // Resolve symbols
+                        localModel.ResolveSymbols(provider);
+                    }
                 }
             }
         }

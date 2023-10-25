@@ -1,4 +1,4 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST

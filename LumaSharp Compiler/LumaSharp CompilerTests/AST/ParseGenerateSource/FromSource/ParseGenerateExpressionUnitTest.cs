@@ -1,8 +1,8 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.AST.ParseGenerateSource
+namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSource
 {
     [TestClass]
     public class ParseGenerateExpressionUnitTest

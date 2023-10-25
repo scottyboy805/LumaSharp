@@ -97,5 +97,42 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 }
             }
         }
+
+        public IReadOnlyList<ITypeReferenceSymbol> GetDeclaredRootTypes()
+        {
+            return rootTypes;
+        }
+
+        public IReadOnlyList<ITypeReferenceSymbol> GetDeclaredNamedTypes(string[] namespaceIdentifiers)
+        {
+            NamedTypeCollection namedTypeCollection = null;
+
+            // Process all namespace identifiers in sequence
+            for (int i = 0; i < namespaceIdentifiers.Length; i++)
+            {
+                // Try to match
+                if(namedTypeCollection == null)
+                {
+                    // Try to find matched namespace
+                    namedTypeCollection = namedTypes.Find(n => n.namespaceName == namespaceIdentifiers[i]);
+                }
+                else
+                {
+                    // Try to find nested matched namespace
+                    namedTypeCollection = namedTypeCollection.namedTypes.Find(n => n.namespaceName == namespaceIdentifiers[i]);
+                }
+
+                // Check for not resolved
+                if (namedTypeCollection == null)
+                    return null;
+            }
+
+            // Check for found
+            if (namedTypeCollection != null)
+                return namedTypeCollection.types;
+
+            // No matched types declared
+            return null;
+        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿
 using Antlr4.Runtime;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public enum BinaryOperation
     {

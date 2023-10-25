@@ -2,7 +2,7 @@
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public enum PrimitiveType
     {
@@ -26,7 +26,7 @@ namespace LumaSharp_Compiler.Syntax
     {
         // Private
         private SyntaxToken identifier = null;
-        private SyntaxToken[] namespaceIdentifiers = null;
+        private NamespaceName namespaceName = null;
         private TypeReferenceSyntax[] parentTypes = null;
         private GenericArgumentsSyntax genericArguments = null;
         private ArrayParametersSyntax arrayParameters = null;
@@ -38,9 +38,9 @@ namespace LumaSharp_Compiler.Syntax
             get { return identifier; }
         }
 
-        public SyntaxToken[] NamespaceIdentifiers
+        public NamespaceName Namespace
         {
-            get { return namespaceIdentifiers; }
+            get { return namespaceName; }
         }
 
         public TypeReferenceSyntax[] ParentTypeIdentifiers
@@ -65,7 +65,7 @@ namespace LumaSharp_Compiler.Syntax
 
         public int NamespaceDepth
         {
-            get { return HasNamespace ? namespaceIdentifiers.Length : 0; }
+            get { return HasNamespace ? namespaceName.Identifiers.Length : 0; }
         }
 
         public int NestedDepth
@@ -85,7 +85,12 @@ namespace LumaSharp_Compiler.Syntax
 
         public bool HasNamespace
         {
-            get { return namespaceIdentifiers != null; }
+            get { return namespaceName != null; }
+        }
+
+        public bool HasParentTypeIdentifiers
+        {
+            get { return parentTypes != null; }
         }
 
         public bool IsNested
@@ -110,7 +115,7 @@ namespace LumaSharp_Compiler.Syntax
 
         public bool IsPrimitiveType
         {
-            get { return Enum.TryParse(typeof(PrimitiveType), identifier.Text, true, out _); }
+            get { return GetPrimitiveType(out _); }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -119,11 +124,63 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, PrimitiveType primitive)
-            : base(tree, parent, null)
+        internal TypeReferenceSyntax(PrimitiveType primitive)
+            : base(new SyntaxToken(primitive.ToString().ToLower()))
         {
             // Identifier
-            this.identifier = new SyntaxToken(primitive.ToString().ToLower());
+            this.identifier = base.StartToken;
+        }
+
+        internal TypeReferenceSyntax(string identifier)
+            : base(new SyntaxToken(identifier))
+        {
+            // Identifier
+            this.identifier = base.StartToken;
+        }
+
+        internal TypeReferenceSyntax(MemberSyntax fromMember)
+            : base(fromMember.Identifier)
+        {
+            // Check for type
+            if (fromMember is TypeSyntax)
+            {
+                TypeSyntax fromType = (TypeSyntax)fromMember;
+                this.identifier = fromType.Identifier;
+                this.namespaceName = fromType.Namespace;
+            }
+            // Check for contract
+            else if (fromMember is ContractSyntax)
+            {
+                ContractSyntax fromContract = (ContractSyntax)fromMember;
+                this.identifier = fromContract.Identifier;
+                this.namespaceName = fromContract.Namespace;
+            }
+            // Check for enum
+            else if (fromMember is EnumSyntax)
+            {
+                EnumSyntax fromEnum = (EnumSyntax)fromMember;
+                this.identifier = fromEnum.Identifier;
+                this.namespaceName = fromEnum.Namespace;
+            }
+            else
+                throw new NotSupportedException("Cannot create type reference from non-type member: " + fromMember);
+        }
+
+        internal TypeReferenceSyntax(TypeSyntax fromType)
+            : base(fromType.Identifier)
+        {
+            this.identifier = fromType.Identifier;
+            this.namespaceName = fromType.Namespace;
+        }
+
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, PrimitiveType primitive)
+            : base(new SyntaxToken(primitive.ToString().ToLower()))
+        {
+            this.tree = tree;
+            this.parent = parent;
+
+            // Identifier
+            this.identifier = base.StartToken;
         }
 
         internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.PrimitiveTypeContext typeRef)
@@ -153,13 +210,8 @@ namespace LumaSharp_Compiler.Syntax
                 // Build namespace
                 if(identifiers.Length > 1)
                 {
-                    // Create array
-                    this.namespaceIdentifiers = new SyntaxToken[identifiers.Length - 1];
-
-                    for (int i = 0; i < identifiers.Length - 1; i++)
-                    {
-                        this.namespaceIdentifiers[i] = new SyntaxToken(identifiers[i]);
-                    }
+                    // Create namespace
+                    this.namespaceName = new NamespaceName(tree, parent, identifiers);
                 }
 
                 // Get generics
@@ -187,13 +239,9 @@ namespace LumaSharp_Compiler.Syntax
         public override void GetSourceText(TextWriter writer)
         {
             // Write namespace
-            if(HasNamespace == true)
+            if (HasNamespace == true)
             {
-                for(int i = 0; i < namespaceIdentifiers.Length; i++)
-                {
-                    namespaceIdentifiers[i].GetSourceText(writer);
-                    writer.Write('.');
-                }
+                namespaceName.GetSourceText(writer);
             }
 
             // Write parent types
@@ -222,6 +270,25 @@ namespace LumaSharp_Compiler.Syntax
             // Write reference
             if(IsByReference == true)
                 reference.GetSourceText(writer);
+        }
+
+        internal bool GetPrimitiveType(out PrimitiveType primitiveType)
+        {
+            // Get all available primitives
+            PrimitiveType[] primitiveTypes = Enum.GetValues<PrimitiveType>();
+
+            // Check for all 
+            foreach(PrimitiveType type in primitiveTypes)
+            {
+                // Check for matched - lower case enum
+                if(type.ToString().ToLower() == identifier.Text)
+                {
+                    primitiveType = type;
+                    return true;
+                }
+            }
+            primitiveType = 0;
+            return false;
         }
     }
 }

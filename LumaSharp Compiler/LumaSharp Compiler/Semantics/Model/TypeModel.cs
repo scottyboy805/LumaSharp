@@ -1,4 +1,6 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
+using System.Diagnostics.SymbolStore;
+using System.Reflection;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -8,18 +10,25 @@ namespace LumaSharp_Compiler.Semantics.Model
         private MemberSyntax syntax = null;
         //private GenericParameterModel[] genericParameters = null;
 
+        private TypeModel parentType = null;
         private ITypeReferenceSymbol[] baseTypesSymbols = null;
 
         private TypeModel[] memberTypes = null;
         private FieldModel[] memberFields = null;
+        private MethodModel[] memberMethods = null;
 
         // Properties
+        internal MemberSyntax Syntax
+        {
+            get { return syntax; }
+        }
+
         public string[] Namespace
         {
             get 
             { 
                 // Check for type
-                if(syntax is TypeSyntax)
+                if(syntax is TypeSyntax && ((TypeSyntax)syntax).Namespace != null)
                     return ((TypeSyntax)syntax).Namespace.Identifiers.Select(i => i.Text).ToArray();
 
                 return null;
@@ -30,6 +39,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         //{
         //    get { return genericParameters; }
         //}
+
+        public ITypeReferenceSymbol DeclaringTypeSymbol
+        {
+            get { return parentType; }
+        }
 
         public ITypeReferenceSymbol[] BaseTypesSymbols
         {
@@ -113,6 +127,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
+
+            // Update parent
+            if(parent is TypeModel)
+                this.parentType = (TypeModel)parent;
+
             // Create generics
             //genericParameters = syntax.HasGenericParameters
             //    ? syntax.GenericParameters.GenericTypes.Select(t => new GenericParameterModel(t)).ToArray()
@@ -124,26 +143,21 @@ namespace LumaSharp_Compiler.Semantics.Model
             //    : null;
 
 
-            // Create member types
-            memberTypes = syntax.HasMembers
-                ? syntax.Members.Where(t => t is TypeSyntax).Select(t => new TypeModel(model, this, t as TypeSyntax)).ToArray()
-                : null;
-
-            // 
-
-            // Create member fields
-            memberFields = syntax.HasMembers
-                ? syntax.Members.Where(f => f is FieldSyntax).Select(f => new FieldModel(model, this, f as FieldSyntax)).ToArray()
-                : null;
+            // Build model
+            BuildMembersModel(model, syntax.Members);
         }
 
         internal TypeModel(SemanticModel model, MemberModel parent, ContractSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
-            
-            // Create types
-            memberTypes
+
+            // Update parent
+            if (parent is TypeModel)
+                this.parentType = (TypeModel)parent;
+
+            // Build model
+            BuildMembersModel(model, syntax.Members);
         }
 
         internal TypeModel(SemanticModel model, MemberModel parent, EnumSyntax syntax)
@@ -151,15 +165,46 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             this.syntax = syntax;
 
-            // Create fields
-            memberFields = syntax.HasFields
-                ? syntax.Fields.Select(f => new FieldModel(model, this, f)).ToArray()
-                : null;
+            // Update parent
+            if (parent is TypeModel)
+                this.parentType = (TypeModel)parent;
+
+            // Build model
+            BuildMembersModel(model, syntax.Fields);
         }
 
         // Methods
         public override void ResolveSymbols(ISymbolProvider provider)
         {
+            // Resolve all sub type symbols
+            foreach(TypeModel subType in memberTypes)
+            {
+                subType.ResolveSymbols(provider);
+            }
+
+            // Resolve all field symbols
+            foreach(FieldModel field in memberFields)
+            {
+                field.ResolveSymbols(provider);
+            }
+
+            // Resolve all method symbols
+            foreach(MethodModel method in memberMethods)
+            {
+                method.ResolveSymbols(provider);
+            }
+        }
+
+        private void BuildMembersModel(SemanticModel model, IEnumerable<MemberSyntax> members)
+        {
+            // Create member types
+            memberTypes = members.Where(t => t is TypeSyntax).Select(t => new TypeModel(model, this, t as TypeSyntax)).ToArray();
+
+            // Create member fields
+            memberFields = members.Where(f => f is FieldSyntax).Select(f => new FieldModel(model, this, f as FieldSyntax)).ToArray();
+
+            // Create member methods
+            memberMethods = members.Where(m => m is MethodSyntax).Select(m => new MethodModel(model, this, m as MethodSyntax)).ToArray();
         }
     }
 }

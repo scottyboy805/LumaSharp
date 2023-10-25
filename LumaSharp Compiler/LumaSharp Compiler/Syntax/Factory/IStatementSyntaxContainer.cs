@@ -1,12 +1,9 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax.Factory
+namespace LumaSharp_Compiler.AST.Factory
 {
     public interface IStatementSyntaxContainer : ISyntaxFactory
     {
-        // Properties
-        IEnumerable<StatementSyntax> Statements { get; }
-
         // Methods
-        //void AddStatement(StatementSyntax statement);
+        void AddStatement(StatementSyntax statement);
     }
 }

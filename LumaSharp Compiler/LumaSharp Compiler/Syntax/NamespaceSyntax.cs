@@ -1,7 +1,9 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+using LumaSharp_Compiler.AST.Factory;
+
+namespace LumaSharp_Compiler.AST
 {
-    public sealed class NamespaceSyntax : SyntaxNode
+    public sealed class NamespaceSyntax : SyntaxNode, IRootSyntaxContainer
     {
         // Private
         private SyntaxToken keyword = null;
@@ -45,6 +47,13 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal NamespaceSyntax(string identifier)
+            : base(new SyntaxToken(identifier))
+        {
+            this.name = new NamespaceName(identifier);
+            this.members = new BlockSyntax<MemberSyntax>();
+        }
+
         internal NamespaceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NamespaceDeclarationContext namespaceDef) 
             : base(tree, parent, namespaceDef)
         {
@@ -69,6 +78,20 @@ namespace LumaSharp_Compiler.Syntax
 
             // Write block
             members.GetSourceText(writer);
+        }
+
+        void IRootSyntaxContainer.AddRootSyntax(SyntaxNode node)
+        {
+            if (node is TypeSyntax ||
+                node is ContractSyntax ||
+                node is EnumSyntax)
+            {
+                ((IMemberSyntaxContainer)members).AddMember(node as MemberSyntax);
+
+                // Update hierarchy
+                node.tree = tree;
+                node.parent = this;
+            }
         }
     }
 }

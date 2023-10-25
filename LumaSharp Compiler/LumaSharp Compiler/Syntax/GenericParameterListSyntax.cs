@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public class GenericParameterListSyntax : SyntaxNode
     {
@@ -28,6 +28,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal GenericParameterListSyntax(GenericParameterSyntax[] genericParameters)
+            : base((SyntaxToken)null)
+        {
+            this.genericParameters = genericParameters;
+        }
+
         //internal GenericParameterListSyntax(SyntaxTree tree, SyntaxNode parent, string[] genericNames)
         //    : base(tree, parent)
         //{

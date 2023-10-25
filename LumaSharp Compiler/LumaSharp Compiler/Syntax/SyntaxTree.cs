@@ -1,7 +1,10 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+using LumaSharp_Compiler.AST.Factory;
+using System.Xml.Linq;
+
+namespace LumaSharp_Compiler.AST
 {
-    public sealed class SyntaxTree : SyntaxNode//, IRootMemberSyntaxContainer
+    public sealed class SyntaxTree : SyntaxNode, IRootSyntaxContainer
     {
         // Private
         private List<SyntaxNode> rootElements = null;
@@ -43,9 +46,18 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal SyntaxTree()
+            : base((SyntaxToken)null) 
+        {
+            base.tree = this;
+            this.rootElements = new List<SyntaxNode>();
+        }
+
         internal SyntaxTree(LumaSharpParser.CompilationUnitContext unit)
             : base(null, null, unit)
         {
+            base.tree = this;
+
             // Get root members
             LumaSharpParser.ImportElementContext[] importElements = unit.importElement();
             LumaSharpParser.RootElementContext[] rootElements = unit.rootElement();
@@ -110,6 +122,35 @@ namespace LumaSharp_Compiler.Syntax
         public override void GetSourceText(TextWriter writer)
         {
             throw new NotImplementedException();
+        }
+
+        void IRootSyntaxContainer.AddRootSyntax(SyntaxNode node)
+        {
+            if(node is NamespaceSyntax)
+            {
+                rootElements.Add(node);
+            }
+            else
+            {
+                if(node is TypeSyntax ||
+                    node is ContractSyntax ||
+                    node is EnumSyntax)
+                {
+                    rootElements.Add(node);
+
+                    // Update hierarchy
+                    node.tree = tree;
+                    node.parent = this;
+                }
+            }
+        }
+
+        public static SyntaxTree Create(params SyntaxNode[] rootNodes)
+        {
+            // Create new tree
+            SyntaxTree result = new SyntaxTree();
+            result.rootElements.AddRange(rootNodes);
+            return result;
         }
 
         public static SyntaxTree Parse(InputSource source)

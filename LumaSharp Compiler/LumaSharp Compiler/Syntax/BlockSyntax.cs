@@ -1,22 +1,22 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
-    public class BlockSyntax<T> : SyntaxNode where T : SyntaxNode
+    public class BlockSyntax<T> : SyntaxNode, IMemberSyntaxContainer where T : SyntaxNode
     {
         // Private
         private SyntaxToken start = null;
         private SyntaxToken end = null;
-        private T[] elements = null;
+        private List<T> elements = new List<T>();
 
         // Properties
-        public T[] Elements
+        public IReadOnlyList<T> Elements
         {
             get { return elements; }
         }
 
         public int ElementCount
         {
-            get { return HasElements ? elements.Length : 0; }
+            get { return HasElements ? elements.Count : 0; }
         }
 
         public bool HasElements
@@ -30,6 +30,13 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal BlockSyntax(IEnumerable<T> elements = null)
+            : base((SyntaxToken)null)
+        {
+            if (elements != null)
+                this.elements.AddRange(elements);
+        }
+
         internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.RootMemberBlockContext rootMemberBlock)
             : base(tree, node, rootMemberBlock)
         {
@@ -41,11 +48,9 @@ namespace LumaSharp_Compiler.Syntax
 
             if (members.Length > 0)
             {
-                this.elements = new T[members.Length];
-
                 for (int i = 0; i < members.Length; i++)
                 {
-                    this.elements[i] = MemberSyntax.RootMember(tree, this, members[i]) as T;
+                    this.elements.Add(MemberSyntax.RootMember(tree, this, members[i]) as T);
                 }
             }
         }
@@ -61,11 +66,9 @@ namespace LumaSharp_Compiler.Syntax
 
             if (members.Length > 0)
             {
-                this.elements = new T[members.Length];
-
                 for (int i = 0; i < members.Length; i++)
                 {
-                    this.elements[i] = MemberSyntax.Member(tree, this, members[i]) as T;
+                    this.elements.Add(MemberSyntax.Member(tree, this, members[i]) as T);
                 }
             }
         }
@@ -81,11 +84,9 @@ namespace LumaSharp_Compiler.Syntax
 
             if(fields.Length > 0)
             {
-                this.elements = new T[fields.Length];
-
                 for(int i = 0; i < fields.Length; i++)
                 {
-                    this.elements[i] = new FieldSyntax(tree, this, enumType, fields[i]) as T;
+                    this.elements.Add(new FieldSyntax(tree, this, enumType, fields[i]) as T);
                 }
             }
         }
@@ -101,8 +102,6 @@ namespace LumaSharp_Compiler.Syntax
 
             if (members.Length > 0)
             {
-                this.elements = new T[members.Length];
-
                 for (int i = 0; i < members.Length; i++)
                 {
                     //var typeMember = members[i].typeDeclaration();
@@ -130,13 +129,19 @@ namespace LumaSharp_Compiler.Syntax
             writer.Write(start.ToString());
 
             // Write all elements
-            for(int i = 0; i < elements.Length; i++)
+            for(int i = 0; i < elements.Count; i++)
             {
                 elements[i].GetSourceText(writer);
             }
 
             // Write end
             writer.Write(end.ToString());
+        }
+
+        void IMemberSyntaxContainer.AddMember(MemberSyntax member)
+        {
+            if (member is T)
+                elements.Add(member as T);
         }
     }
 }

@@ -1,11 +1,16 @@
 ﻿using Antlr4.Runtime;
-using LumaSharp_Compiler.Syntax.Expression;
+using LumaSharp_Compiler.AST.Expression;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public abstract class ExpressionSyntax : SyntaxNode
     {
         // Constructor
+        protected ExpressionSyntax(SyntaxToken token)
+            : base(token)
+        {
+        }
+
         protected ExpressionSyntax(SyntaxTree tree, SyntaxNode node, ParserRuleContext context)
             : base(tree, node, context) 
         {
@@ -15,7 +20,7 @@ namespace LumaSharp_Compiler.Syntax
         public static ExpressionSyntax Any(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
         {
             // Check for index first of all
-            if (expression.indexExpression() != null)
+            if (expression.indexExpression() != null && expression.indexExpression().Length > 0)
                 return new ArrayIndexExpressionSyntax(tree, parent, expression);
 
             // Check for base

@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class ThisExpressionSyntax : ExpressionSyntax
     {
@@ -18,6 +18,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal ThisExpressionSyntax()
+            : base(new SyntaxToken("this"))
+        {
+            keyword = base.StartToken;
+        }
+
         internal ThisExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(tree, parent, expression)
         {

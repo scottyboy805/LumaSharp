@@ -1,15 +1,18 @@
-﻿using LumaSharp_Compiler.Syntax;
-using LumaSharp_Compiler.Syntax.Expression;
+﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.AST.Expression;
+using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
-    internal sealed class GlobalSymbolProvider : ISymbolProvider
+    internal sealed class ReferenceSymbolProvider : ISymbolProvider
     {
         // Private
         private ReferenceLibrary thisLibrary = null;
 
+        private ReferenceTypeResolver typeResolver = new ReferenceTypeResolver();
+
         // Constructor
-        public GlobalSymbolProvider(ReferenceLibrary thisLibrary)
+        public ReferenceSymbolProvider(ReferenceLibrary thisLibrary)
         {
             this.thisLibrary = thisLibrary;
         }
@@ -45,13 +48,28 @@ namespace LumaSharp_Compiler.Semantics.Reference
         public ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference)
         {
             // Check for primitive
-            if (reference.IsPrimitiveType == true)
-                return ResolveTypeSymbol(Enum.Parse<PrimitiveType>(reference.Identifier.Text));
+            PrimitiveType primitive;
+            if (reference.GetPrimitiveType(out primitive) == true)
+            {
+                // Resolve as primitive
+                return ResolveTypeSymbol(primitive);
+            }
 
-            // Check for  simple types reference
+            ITypeReferenceSymbol resolvedSymbol;
+
+            // Check for resolve types in this library first
+            if (typeResolver.ResolveReferenceTypeSymbol(thisLibrary, context, reference, out resolvedSymbol) == true)
+                return resolvedSymbol;
+
+            // Check for reference libraries secondly
+
+            // Check for simple types reference
+
 
             throw new NotImplementedException();
         }
+
+        
 
         public IReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
         {

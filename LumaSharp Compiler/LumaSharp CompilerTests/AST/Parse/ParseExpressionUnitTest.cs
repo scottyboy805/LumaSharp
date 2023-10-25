@@ -1,7 +1,7 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.Syntax.Expression;
+using LumaSharp_Compiler.AST.Expression;
 
 namespace LumaSharp_CompilerTests.AST.Parse
 {

@@ -1,5 +1,5 @@
 ﻿
-using LumaSharp_Compiler.Syntax;
+using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {

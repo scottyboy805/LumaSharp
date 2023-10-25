@@ -3,7 +3,7 @@ using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using System.Diagnostics;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public abstract class MemberSyntax : SyntaxNode
     {
@@ -49,11 +49,11 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        //protected MemberSyntax(string identifier, SyntaxTree tree, SyntaxNode parent)
-        //    : base(tree, parent)
-        //{
-        //    this.identifier = new SyntaxToken(identifier);
-        //}
+        protected MemberSyntax(string identifier)
+            : base(new SyntaxToken(identifier))
+        {
+            this.identifier = base.StartToken;
+        }
 
         internal MemberSyntax(ITerminalNode identifier, SyntaxTree tree, SyntaxNode parent, ParserRuleContext context, LumaSharpParser.AttributeDeclarationContext[] attributes, LumaSharpParser.AccessModifierContext[] modifiers)
             : base(tree, parent, context)
@@ -67,7 +67,7 @@ namespace LumaSharp_Compiler.Syntax
             }
 
             // Access modifiers
-            if (accessModifiers != null && modifiers.Length > 0)
+            if (modifiers != null && modifiers.Length > 0)
             {
                 this.accessModifiers = modifiers.Select(m => new SyntaxToken(m.Start)).ToArray();
             }

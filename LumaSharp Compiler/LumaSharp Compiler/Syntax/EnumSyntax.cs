@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class EnumSyntax : MemberSyntax
     {
@@ -13,6 +13,27 @@ namespace LumaSharp_Compiler.Syntax
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public NamespaceName Namespace
+        {
+            get
+            {
+                SyntaxNode current = Parent;
+
+                // Move up until end or namespace
+                while (current != null && (current is NamespaceSyntax) == false)
+                    current = current.Parent;
+
+                // Try to get namespace
+                NamespaceSyntax ns = current as NamespaceSyntax;
+
+                // Get the name
+                if (ns != null)
+                    return ns.Name;
+
+                return null;
+            }
         }
 
         public TypeReferenceSyntax UnderlyingTypeReference
@@ -46,6 +67,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal EnumSyntax(string identifier)
+            : base(identifier)
+        {
+            this.fieldBlock = new BlockSyntax<FieldSyntax>();
+        }
+
         internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
             : base(enumDef.IDENTIFIER(), tree, parent, enumDef, enumDef.attributeDeclaration(), enumDef.accessModifier())
         {

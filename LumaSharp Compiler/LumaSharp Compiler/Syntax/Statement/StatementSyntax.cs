@@ -1,7 +1,7 @@
 ﻿
 using Antlr4.Runtime;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public abstract class StatementSyntax : SyntaxNode
     {
@@ -20,6 +20,11 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal StatementSyntax(SyntaxToken token)
+            : base(token)
+        {
+        }
+
         internal StatementSyntax(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context)
             : base(tree, parent, context)
         {

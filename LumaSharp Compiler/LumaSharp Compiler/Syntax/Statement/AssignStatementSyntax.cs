@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax.Statement
+namespace LumaSharp_Compiler.AST.Statement
 {
     public sealed class AssignStatementSyntax : StatementSyntax
     {
@@ -35,6 +35,13 @@ namespace LumaSharp_Compiler.Syntax.Statement
         }
 
         // Constructor
+        internal AssignStatementSyntax(ExpressionSyntax left, ExpressionSyntax right)
+            : base(new SyntaxToken("="))
+        {
+            this.left = left;
+            this.right = right;
+        }
+
         internal AssignStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AssignStatementContext assign)
             : base(tree, parent, assign)
         {

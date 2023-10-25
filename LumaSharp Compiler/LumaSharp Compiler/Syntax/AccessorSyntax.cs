@@ -1,14 +1,13 @@
 ﻿
 using Antlr4.Runtime.Tree;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public class AccessorSyntax : MemberSyntax
     {
         // Private
         private TypeReferenceSyntax accessorType = null;
-        private ExpressionSyntax assignValue = null;
-        private SyntaxToken assignIdentifier = null;
+        private ExpressionSyntax assignExpression = null;
         private AccessorBodySyntax readBody = null;
         private AccessorBodySyntax writeBody = null;
 
@@ -18,14 +17,9 @@ namespace LumaSharp_Compiler.Syntax
             get { return accessorType; }
         }
 
-        public ExpressionSyntax AssignValue
+        public ExpressionSyntax AssignExpression
         {
-            get { return assignValue; }
-        }
-
-        public SyntaxToken AssignIdentifier
-        {
-            get { return assignIdentifier; }
+            get { return assignExpression; }
         }
 
         public AccessorBodySyntax ReadBody
@@ -38,14 +32,9 @@ namespace LumaSharp_Compiler.Syntax
             get { return writeBody; }
         }
 
-        public bool HasAssignValue
+        public bool HasAssignExpression
         {
-            get { return assignValue != null; }
-        }
-
-        public bool HasAssignIdentifier
-        {
-            get { return assignIdentifier != null; }
+            get { return assignExpression != null; }
         }
 
         public bool HasReadBody
@@ -64,20 +53,30 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal AccessorSyntax(string identifier, TypeReferenceSyntax type)
+            : base(identifier)
+        {
+            // Accessor type
+            this.accessorType = type;
+        }
+
         internal AccessorSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorDeclarationContext accessorDef)
             : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef, accessorDef.attributeDeclaration(), accessorDef.accessModifier())
         {
+            // Accessor type
+            this.accessorType = new TypeReferenceSyntax(tree, this, accessorDef.typeReference());
+
             // Get the body
             LumaSharpParser.AccessorBodyContext body = accessorDef.accessorBody();
 
             // Check for assigned value
-            LumaSharpParser.EndExpressionContext expression = body.endExpression();
+            LumaSharpParser.ExpressionContext expression = body.expression();
 
             if (expression != null)
-                ;//this.assignValue = new ExpressionSyntax(expression);
+                this.assignExpression = ExpressionSyntax.Any(tree, this, expression);
 
             // Check for assigned identifier
-            ITerminalNode identifier = body.IDENTIFIER();
+            ITerminalNode identifier = accessorDef.IDENTIFIER();
 
             if (identifier != null)
                 this.identifier = new SyntaxToken(identifier);

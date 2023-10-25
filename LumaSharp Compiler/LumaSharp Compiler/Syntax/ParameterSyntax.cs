@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class ParameterSyntax : SyntaxNode
     {
@@ -55,6 +55,19 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal ParameterSyntax(TypeReferenceSyntax parameterType, string identifier, bool variableSizedList = false)
+            : base((SyntaxToken)null)
+        {
+            // Param type
+            this.parameterType = parameterType;
+
+            // Identifier
+            this.identifier = new SyntaxToken(identifier);
+
+            // Variable sized
+            this.variableSizedList = variableSizedList;
+        }
+
         internal ParameterSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterContext paramDef, int index)
             : base(tree, parent, paramDef)
         {

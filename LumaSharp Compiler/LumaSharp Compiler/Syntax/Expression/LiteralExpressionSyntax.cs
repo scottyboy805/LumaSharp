@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class LiteralExpressionSyntax : ExpressionSyntax
     {
@@ -33,6 +33,12 @@ namespace LumaSharp_Compiler.Syntax
         //    : base(tree, parent)
         //{
         //}
+
+        internal LiteralExpressionSyntax(SyntaxToken value)
+            : base(value)
+        {
+            this.value = value;
+        }
 
         internal LiteralExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EndExpressionContext end)
             : base(tree, parent, end)

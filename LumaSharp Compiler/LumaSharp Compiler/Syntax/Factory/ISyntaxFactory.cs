@@ -1,10 +1,10 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax.Factory
+namespace LumaSharp_Compiler.AST.Factory
 {
     public interface ISyntaxFactory
     {
         // Properties
-        SyntaxTree Tree { get; }
+        SyntaxTree SyntaxTree { get; }
 
         SyntaxNode Parent { get; }
     }

@@ -140,12 +140,9 @@ accessorDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIF
 
 // Accessor body
 accessorBody: 
-	  '=>' endExpression ';'
-	| '=>' IDENTIFIER ';'
-	| accessorRead
-	| accessorWrite
-	| accessorRead accessorWrite
-	| accessorWrite accessorRead
+	'=>' expression ';'
+	| accessorWrite accessorRead?
+	| accessorRead accessorWrite?
 	;
 
 // Accessor read
@@ -298,7 +295,7 @@ endExpression:
 
 typeExpression: TYPE lparen='(' typeReference rparen=')';
 
-sizeExpression: SIZE '(' typeReference ')';
+sizeExpression: SIZE lparen='(' typeReference rparen=')';
 
 newExpression: (NEW | STACKNEW) initializerInvokeExpression;
 
@@ -306,7 +303,7 @@ newExpression: (NEW | STACKNEW) initializerInvokeExpression;
 indexExpression: larray='[' expression (',' expression)* rarray=']';
 
 // Field access
-fieldAccessExpression: '.' IDENTIFIER;
+fieldAccessExpression: dot='.' IDENTIFIER;
 
 // Method invoke
 methodInvokeExpression: '.' IDENTIFIER genericArguments? '(' methodArgument? (',' methodArgument)* ')';

@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax.Expression
+namespace LumaSharp_Compiler.AST.Expression
 {
     public sealed class MethodInvokeExpressionSyntax : ExpressionSyntax
     {

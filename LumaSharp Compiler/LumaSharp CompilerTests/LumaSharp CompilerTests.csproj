@@ -21,8 +21,4 @@
     <ProjectReference Include="..\LumaSharp Compiler\LumaSharp Compiler.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Semantic\" />
-  </ItemGroup>
-
 </Project>

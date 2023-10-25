@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class MethodSyntax : MemberSyntax
     {
@@ -13,6 +13,7 @@ namespace LumaSharp_Compiler.Syntax
         public TypeReferenceSyntax ReturnType
         {
             get { return returnType; }
+            internal set { returnType = value; }
         }
 
         public GenericParameterListSyntax GenericParameters
@@ -23,11 +24,13 @@ namespace LumaSharp_Compiler.Syntax
         public ParameterListSyntax Parameters
         {
             get { return parameters; }
+            internal set { parameters = value; }
         }
 
         public BlockSyntax<StatementSyntax> Body
         {
             get { return body; }
+            internal set { body = value; }
         }
 
         public bool HasGenericParameters
@@ -48,6 +51,16 @@ namespace LumaSharp_Compiler.Syntax
         internal override IEnumerable<SyntaxNode> Descendants => throw new NotImplementedException();
 
         // Constructor
+        internal MethodSyntax(string identifier, TypeReferenceSyntax returnType)
+            : base(identifier)
+        {
+            this.returnType = returnType != null ? returnType : new TypeReferenceSyntax("void");
+            this.body = new BlockSyntax<StatementSyntax>();
+
+            this.genericParameters = new GenericParameterListSyntax(Array.Empty<GenericParameterSyntax>());
+            this.parameters = new ParameterListSyntax(Array.Empty<ParameterSyntax>());
+        }
+
         internal MethodSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodDeclarationContext methodDef)
             : base(methodDef.IDENTIFIER(), tree, parent, methodDef, methodDef.attributeDeclaration(), methodDef.accessModifier())
         {
@@ -59,12 +72,16 @@ namespace LumaSharp_Compiler.Syntax
             {
                 this.genericParameters = new GenericParameterListSyntax(tree, this, methodDef.genericParameterList());
             }
+            else
+                this.genericParameters = new GenericParameterListSyntax(Array.Empty<GenericParameterSyntax>());
 
             // Parameters
             if (methodDef.methodParameterList() != null)
             {
                 this.parameters = new ParameterListSyntax(tree, this, methodDef.methodParameterList());
             }
+            else
+                this.parameters = new ParameterListSyntax(Array.Empty<ParameterSyntax>());
 
             // Create body
             LumaSharpParser.StatementBlockContext bodyBlock = methodDef.statementBlock();

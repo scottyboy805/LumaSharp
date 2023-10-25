@@ -1,5 +1,7 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+using Antlr4.Runtime.Tree;
+
+namespace LumaSharp_Compiler.AST
 {
     public sealed class NamespaceName : SyntaxNode
     {
@@ -18,6 +20,19 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal NamespaceName(string identifier)
+            : base(new SyntaxToken(identifier))
+        {
+            this.identifiers = identifier.Split('.').Select(i => new SyntaxToken(i)).ToArray();
+        }
+
+        internal NamespaceName(SyntaxTree tree, SyntaxNode parent, ITerminalNode[] identifiers)
+            : base(tree, parent, null)
+        {
+            // Create identifiers
+            this.identifiers = identifiers.Select(i => new SyntaxToken(i)).ToArray();
+        }
+
         internal NamespaceName(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NamespaceNameContext name)
             : base(tree, parent, name)
         {

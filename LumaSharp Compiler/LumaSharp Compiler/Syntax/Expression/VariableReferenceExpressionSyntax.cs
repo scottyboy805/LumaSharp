@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class VariableReferenceExpressionSyntax : ExpressionSyntax
     {
@@ -18,6 +18,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal VariableReferenceExpressionSyntax(string identifier)
+            : base(new SyntaxToken(identifier))
+        {
+            this.identifier = base.StartToken;
+        }
+
         internal VariableReferenceExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(tree, parent, expression)
         {

@@ -1,5 +1,5 @@
 ﻿using Antlr4.Runtime;
-using LumaSharp_Compiler.Syntax;
+using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler
 {

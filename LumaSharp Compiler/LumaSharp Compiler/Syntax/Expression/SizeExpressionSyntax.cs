@@ -1,10 +1,12 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class SizeExpressionSyntax : ExpressionSyntax
     {
         // Private
         private SyntaxToken keyword = null;
+        private SyntaxToken lparen = null;
+        private SyntaxToken rparen = null;
         private TypeReferenceSyntax typeReference = null;
 
         // Properties
@@ -24,11 +26,26 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal SizeExpressionSyntax(TypeReferenceSyntax typeReference)
+            : base(new SyntaxToken("size"))
+        {
+            this.keyword = base.StartToken;
+            this.lparen = new SyntaxToken("(");
+            this.rparen = new SyntaxToken(")");
+
+            // Type reference
+            this.typeReference = typeReference;
+        }
+
         internal SizeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.SizeExpressionContext size)
             : base(tree, parent, size)
         {
             // Keyword
             this.keyword = new SyntaxToken(size.SIZE());
+
+            // LR paren
+            this.lparen = new SyntaxToken(size.lparen);
+            this.rparen = new SyntaxToken(size.rparen);
 
             // Type reference
             this.typeReference = new TypeReferenceSyntax(tree, this, size.typeReference());
@@ -41,13 +58,13 @@ namespace LumaSharp_Compiler.Syntax
             writer.Write(keyword.ToString());
 
             // Write opening
-            //writer.Write(start.ToString());
+            writer.Write(lparen.ToString());
 
             // Write type
             typeReference.GetSourceText(writer);
 
             // Write closing
-            //writer.Write(end.ToString());
+            writer.Write(rparen.ToString());
         }
     }
 }

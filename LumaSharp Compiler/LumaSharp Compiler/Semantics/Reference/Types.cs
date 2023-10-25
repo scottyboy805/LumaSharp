@@ -1,4 +1,4 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
@@ -20,6 +20,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             public bool IsContract => false;
             public bool IsEnum => false;
 
+            public ITypeReferenceSymbol DeclaringTypeSymbol => null;
             public ITypeReferenceSymbol[] GenericTypeSymbols => null;
             public ITypeReferenceSymbol[] BaseTypeSymbols => null;
             public ILibraryReferenceSymbol LibrarySymbol => null;

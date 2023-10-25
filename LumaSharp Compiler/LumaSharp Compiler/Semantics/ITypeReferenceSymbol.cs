@@ -1,4 +1,4 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics
 {
@@ -16,6 +16,8 @@ namespace LumaSharp_Compiler.Semantics
         bool IsContract { get; }
 
         bool IsEnum { get; }
+
+        ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
         ITypeReferenceSymbol[] GenericTypeSymbols { get; }
 

@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public class FieldSyntax : MemberSyntax
     {
@@ -38,6 +38,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType)
+            : base(identifier)
+        {
+            this.fieldType = fieldType;
+        }
+
         internal FieldSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.FieldDeclarationContext fieldDef)
             : base(fieldDef.IDENTIFIER(), tree, node, fieldDef, fieldDef.attributeDeclaration(), fieldDef.accessModifier())
         {

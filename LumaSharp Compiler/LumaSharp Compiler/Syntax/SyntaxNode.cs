@@ -1,18 +1,19 @@
 ﻿using Antlr4.Runtime;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public abstract class SyntaxNode
     {
-        // Private
-        private SyntaxTree tree = null;
-        private SyntaxNode parent = null;
+        // Internal
+        internal SyntaxTree tree = null;
+        internal SyntaxNode parent = null;
 
+        // Private
         private SyntaxToken start = null;
         private SyntaxToken end = null;
 
         // Properties
-        public SyntaxTree Tree
+        public SyntaxTree SyntaxTree
         {
             get { return tree; }
         }
@@ -35,11 +36,8 @@ namespace LumaSharp_Compiler.Syntax
         internal abstract IEnumerable<SyntaxNode> Descendants { get; }
 
         // Constructor
-        protected SyntaxNode(SyntaxTree tree, SyntaxNode parent, SyntaxToken token)
+        protected SyntaxNode(SyntaxToken token)
         {
-            this.tree = tree;
-            this.parent = parent;
-
             this.start = token;
             this.end = token;
         }
@@ -77,22 +75,41 @@ namespace LumaSharp_Compiler.Syntax
             }
         }
 
-        public IEnumerable<T> DescendantsOfType<T>() where T : SyntaxNode
+        public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : SyntaxNode
         {
             foreach(SyntaxNode node in Descendants)
             {
                 if (node is T)
                     yield return node as T;
+
+                // Check for children
+                if(withChildren == true)
+                {
+                    foreach (SyntaxNode child in node.DescendantsOfType<T>(withChildren))
+                        if(child is T)
+                            yield return child as T;
+                }
             }
         }
 
-        public IEnumerable<SyntaxNode> DescendantsOfType(Type type)
+        public IEnumerable<SyntaxNode> DescendantsOfType(Type type, bool withChildren = false)
         {
             foreach (SyntaxNode node in Descendants)
             {
                 if (type.IsAssignableFrom(node.GetType()) == true)
                     yield return node;
+
+                // Check for children
+                if (withChildren == true)
+                {
+                    foreach (SyntaxNode child in node.DescendantsOfType(type, withChildren))
+                        if (type.IsAssignableFrom(child.GetType()) == true)
+                            yield return child;
+                }
             }
         }
+
+
+        
     }
 }

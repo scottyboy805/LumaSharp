@@ -1,9 +1,9 @@
 ﻿
 using Antlr4.Runtime;
-using LumaSharp_Compiler.Syntax.Expression;
+using LumaSharp_Compiler.AST.Expression;
 using System.Linq.Expressions;
 
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class ArrayIndexExpressionSyntax : ExpressionSyntax
     {

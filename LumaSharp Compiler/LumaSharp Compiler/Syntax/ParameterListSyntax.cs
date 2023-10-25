@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class ParameterListSyntax : SyntaxNode
     {
@@ -30,6 +30,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal ParameterListSyntax( ParameterSyntax[] parameters)
+            : base((SyntaxToken)null)
+        {
+            this.parameters = parameters;
+        }
+
         internal ParameterListSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterListContext paramsDef)
             : base(tree, parent, paramsDef)
         {

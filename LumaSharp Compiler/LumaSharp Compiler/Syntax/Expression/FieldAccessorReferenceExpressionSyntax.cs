@@ -1,11 +1,12 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class FieldAccessorReferenceExpressionSyntax : ExpressionSyntax
     {
         // Private
         private ExpressionSyntax accessExpression = null;
         private SyntaxToken identifier = null;
+        private SyntaxToken dot = null;
 
         // Properties
         public ExpressionSyntax AccessExpression
@@ -24,11 +25,22 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal FieldAccessorReferenceExpressionSyntax(string identifier, ExpressionSyntax accessExpression)
+            : base(new SyntaxToken(identifier))
+        {
+            this.identifier = base.StartToken;
+            this.accessExpression = accessExpression;
+            this.dot = new SyntaxToken(".");
+        }
+
         internal FieldAccessorReferenceExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(tree, parent, expression)
         {
             // Identifier
             this.identifier = new SyntaxToken(expression.fieldAccessExpression().IDENTIFIER());
+
+            // Dot
+            this.dot = new SyntaxToken(expression.fieldAccessExpression().dot);
 
             // Create access expression
             if (expression.typeReference() != null)
@@ -48,7 +60,7 @@ namespace LumaSharp_Compiler.Syntax
             accessExpression.GetSourceText(writer);
 
             // Write dot
-            writer.Write('.');
+            dot.GetSourceText(writer);
 
             // Write identifier
             writer.Write(identifier.ToString());

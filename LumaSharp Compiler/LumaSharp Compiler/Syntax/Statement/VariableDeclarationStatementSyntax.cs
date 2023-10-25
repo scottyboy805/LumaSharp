@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class VariableDeclarationStatementSyntax : StatementSyntax
     {
@@ -67,6 +67,13 @@ namespace LumaSharp_Compiler.Syntax
         //        this.identifiers[i] = new SyntaxToken(variableNames[i]);
         //    }
         //}
+
+        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, string identifier)
+            : base(new SyntaxToken(identifier))
+        {
+            this.variableType = variableType;
+            this.identifiers = new SyntaxToken[] { base.StartToken };
+        }
 
         internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.LocalVariableStatementContext local)
             : base(tree, parent, local)

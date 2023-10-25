@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class TypeSyntax : MemberSyntax, IMemberSyntaxContainer
     {
@@ -18,7 +18,23 @@ namespace LumaSharp_Compiler.Syntax
 
         public NamespaceName Namespace
         {
-            get { return Parent as NamespaceName; }
+            get 
+            {
+                SyntaxNode current = Parent;
+
+                // Move up until end or namespace
+                while(current != null && (current is NamespaceSyntax) == false)
+                    current = current.Parent;
+
+                // Try to get namespace
+                NamespaceSyntax ns = current as NamespaceSyntax;
+
+                // Get the name
+                if (ns != null)
+                    return ns.Name;
+
+                return null;
+            }
         }
 
         public GenericParameterListSyntax GenericParameters
@@ -77,14 +93,12 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
-        //internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
-        //    : base(identifier, tree, parent)
-        //{
-        //    this.keyword = new SyntaxToken("type");
-
-        //    this.start = this.keyword;
-        //    this.end = this.identifier;
-        //}
+        internal TypeSyntax(string identifier)
+            : base(identifier)
+        {
+            // Members
+            this.memberBlock = new BlockSyntax<MemberSyntax>();
+        }
 
         internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
             : base(typeDef.IDENTIFIER(), tree, parent, typeDef, typeDef.attributeDeclaration(), typeDef.accessModifier())
@@ -116,6 +130,15 @@ namespace LumaSharp_Compiler.Syntax
         public override void GetSourceText(TextWriter writer)
         {
 
+        }
+
+        void IMemberSyntaxContainer.AddMember(MemberSyntax member)
+        {
+            ((IMemberSyntaxContainer)memberBlock).AddMember(member);
+
+            // Update hierarchy
+            member.tree = tree;
+            member.parent = this;
         }
     }
 }

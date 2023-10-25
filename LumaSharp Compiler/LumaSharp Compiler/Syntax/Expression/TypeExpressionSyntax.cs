@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class TypeExpressionSyntax : ExpressionSyntax
     {
@@ -26,6 +26,17 @@ namespace LumaSharp_Compiler.Syntax
         }
 
         // Constructor
+        internal TypeExpressionSyntax(TypeReferenceSyntax typeReference)
+            : base(new SyntaxToken("type"))
+        {
+            this.keyword = base.StartToken;
+            this.lparen = new SyntaxToken("(");
+            this.rparen = new SyntaxToken(")");
+
+            // Type reference
+            this.typeReference = typeReference;
+        }
+
         internal TypeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeExpressionContext type)
             : base(tree, parent, type)
         {

@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax
+namespace LumaSharp_Compiler.AST
 {
     public sealed class ContractSyntax : MemberSyntax
     {
@@ -14,6 +14,27 @@ namespace LumaSharp_Compiler.Syntax
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public NamespaceName Namespace
+        {
+            get
+            {
+                SyntaxNode current = Parent;
+
+                // Move up until end or namespace
+                while (current != null && (current is NamespaceSyntax) == false)
+                    current = current.Parent;
+
+                // Try to get namespace
+                NamespaceSyntax ns = current as NamespaceSyntax;
+
+                // Get the name
+                if (ns != null)
+                    return ns.Name;
+
+                return null;
+            }
         }
 
         public GenericParameterListSyntax GenericParameters
@@ -80,6 +101,12 @@ namespace LumaSharp_Compiler.Syntax
         //    this.start = keyword;
         //    this.end = this.identifier;
         //}
+
+        internal ContractSyntax(string identifier)
+            : base(identifier)
+        {
+            this.memberBlock = new BlockSyntax<MemberSyntax>();
+        }
 
         internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
             : base(contractDef.IDENTIFIER(), tree, parent, contractDef, contractDef.attributeDeclaration(), contractDef.accessModifier())

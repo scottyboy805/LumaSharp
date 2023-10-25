@@ -1,4 +1,4 @@
-﻿using LumaSharp_Compiler.Syntax;
+﻿using LumaSharp_Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST
@@ -30,8 +30,7 @@ namespace LumaSharp_CompilerTests.AST
             // Check for valid
             Assert.IsNotNull(syntax);
             Assert.AreEqual(identifier, syntax.Identifier.Text);
-            Assert.IsTrue(syntax.HasAssignValue);
-            Assert.IsFalse(syntax.HasAssignIdentifier);
+            Assert.IsTrue(syntax.HasAssignExpression);
             Assert.IsFalse(syntax.HasReadBody);
             Assert.IsFalse(syntax.HasWriteBody);
         }

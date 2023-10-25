@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Syntax.Statement
+namespace LumaSharp_Compiler.AST.Statement
 {
     public sealed class ForeachStatementSyntax : StatementSyntax
     {

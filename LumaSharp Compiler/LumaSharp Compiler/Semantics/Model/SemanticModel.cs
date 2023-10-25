@@ -1,5 +1,5 @@
 ﻿using LumaSharp_Compiler.Semantics.Reference;
-using LumaSharp_Compiler.Syntax;
+using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -26,6 +26,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return thisLibrary.SymbolToken; }
         }
 
+        public IReadOnlyList<TypeModel> TypeModels
+        {
+            get { return typeModels; }
+        }
+
         // Constructor
         internal SemanticModel(string libraryName, IEnumerable<ImportSyntax> importSyntax, IEnumerable<TypeSyntax> rootTypes, IEnumerable<ContractSyntax> rootContracts, IEnumerable<EnumSyntax> rootEnums, IEnumerable<NamespaceSyntax> rootNamespaces)
             : base()
@@ -37,7 +42,28 @@ namespace LumaSharp_Compiler.Semantics.Model
                 typeModels.AddRange(rootTypes.Select(t => new TypeModel(this, null, t)));
 
             // Create root contracts
+            if (rootContracts != null)
+                typeModels.AddRange(rootContracts.Select(c => new TypeModel(this, null, c)));
 
+            // Create root enums
+            if (rootEnums != null)
+                typeModels.AddRange(rootEnums.Select(e => new TypeModel(this, null, e)));
+
+            // Create namespace members
+            if (rootNamespaces != null)
+            {
+                foreach (NamespaceSyntax ns in rootNamespaces)
+                {
+                    // Add all types
+                    typeModels.AddRange(ns.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t)));
+
+                    // Add all contracts
+                    typeModels.AddRange(ns.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(this, null, c)));
+
+                    // Add all enums
+                    typeModels.AddRange(ns.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(this, null, e)));
+                }
+            }
         }
 
         // Methods
@@ -53,10 +79,25 @@ namespace LumaSharp_Compiler.Semantics.Model
                 thisLibrary.DeclareType(type.Namespace, type);
             }
 
-            // Create provider
-            GlobalSymbolProvider symbolProvider = new GlobalSymbolProvider(thisLibrary);
 
-            // Build all members
+            // Load all external references
+            if(references != null)
+            {
+
+            }
+
+            // Create provider
+            ReferenceSymbolProvider symbolProvider = new ReferenceSymbolProvider(thisLibrary);
+
+            // Build all external members
+
+
+            // Resolve symbols
+            foreach(TypeModel type in typeModels)
+            {
+                // Resolve the symbols
+                type.ResolveSymbols(symbolProvider);
+            }
         }
 
         public static SemanticModel BuildModel(string libraryName, SyntaxTree[] syntaxTrees, string[] references)
