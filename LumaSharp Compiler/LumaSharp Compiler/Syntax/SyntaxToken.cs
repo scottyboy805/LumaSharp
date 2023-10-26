@@ -124,6 +124,7 @@ namespace LumaSharp_Compiler.AST
         internal static SyntaxToken Foreach() => new SyntaxToken("foreach");
         internal static SyntaxToken In() => new SyntaxToken("in");
         internal static SyntaxToken For() => new SyntaxToken("for");
+        internal static SyntaxToken Return() => new SyntaxToken("return");
 
         internal static SyntaxToken LParen() => new SyntaxToken("(");
         internal static SyntaxToken RParen() => new SyntaxToken(")");

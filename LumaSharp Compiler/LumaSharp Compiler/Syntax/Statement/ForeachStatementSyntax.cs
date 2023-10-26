@@ -180,7 +180,7 @@ namespace LumaSharp_Compiler.AST.Statement
             // Check for block
             else if (HasBlockStatement == true)
             {
-                BlockStatement.GetSourceText(writer);
+                blockStatement.GetSourceText(writer);
             }
             // Fall back to empty statement
             else if (semicolon != null)

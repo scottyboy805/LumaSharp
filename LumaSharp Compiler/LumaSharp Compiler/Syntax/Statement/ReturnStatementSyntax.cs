@@ -25,6 +25,18 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
+        internal ReturnStatementSyntax(ExpressionSyntax expression)
+            : base(SyntaxToken.Return())
+        {
+            this.keyword = base.StartToken;
+            this.returnExpression = expression;
+            this.semicolon = SyntaxToken.Semi();
+
+            // Check for expression
+            if (expression != null)
+                keyword.WithTrailingWhitespace(" ");
+        }
+
         internal ReturnStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ReturnStatementContext statement)
             : base(tree, parent, statement)
         {
@@ -43,7 +55,7 @@ namespace LumaSharp_Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword
-            writer.Write(keyword.ToString());
+            keyword.GetSourceText(writer);
 
             // Return statement
             if(HasReturnExpression == true)
@@ -52,7 +64,7 @@ namespace LumaSharp_Compiler.AST
             }
 
             // End statement
-            writer.Write(semicolon.ToString());
+            semicolon.GetSourceText(writer);
 
         }
     }

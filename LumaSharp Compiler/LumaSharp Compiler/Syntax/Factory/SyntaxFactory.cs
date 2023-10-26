@@ -1,6 +1,7 @@
 ﻿
 using LumaSharp_Compiler.AST.Expression;
 using LumaSharp_Compiler.AST.Statement;
+using System.Linq.Expressions;
 
 namespace LumaSharp_Compiler.AST.Factory
 {
@@ -25,12 +26,16 @@ namespace LumaSharp_Compiler.AST.Factory
         #endregion
 
         #region Statements
-        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, string identifier) => new VariableDeclarationStatementSyntax(variableType, identifier);
+        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, params string[] identifiers) => new VariableDeclarationStatementSyntax(variableType, identifiers, null);
+        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, string identifier, ExpressionSyntax assignExpression) => new VariableDeclarationStatementSyntax(variableType, new string[] { identifier }, new ExpressionSyntax[] { assignExpression });
+        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, string[] identifiers, ExpressionSyntax[] assignExpressions) => new VariableDeclarationStatementSyntax(variableType, identifiers, assignExpressions);
         public static AssignStatementSyntax Assign(ExpressionSyntax left, ExpressionSyntax right) => new AssignStatementSyntax(left, right);
         public static BreakStatementSyntax Break() => new BreakStatementSyntax();
         public static ConditionStatementSyntax Condition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(condition);
         public static ContinueStatementSyntax Continue() => new ContinueStatementSyntax();
         public static ForeachStatementSyntax Foreach(TypeReferenceSyntax variableType, string identifier, ExpressionSyntax iterateExpression) => new ForeachStatementSyntax(variableType, identifier, iterateExpression);
+        public static ForStatementSyntax For(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, params ExpressionSyntax[] increment) => new ForStatementSyntax(variable, condition, increment);
+        public static ReturnStatementSyntax Return(ExpressionSyntax expression = null) => new ReturnStatementSyntax(expression);
         #endregion
 
         #region Expressions
@@ -113,6 +118,18 @@ namespace LumaSharp_Compiler.AST.Factory
         {
             foreachLoop.InlineStatement = statement;
             return foreachLoop;
+        }
+
+        public static ForStatementSyntax WithStatements(this ForStatementSyntax forLoop, params StatementSyntax[] statements)
+        {
+            forLoop.BlockStatement = new BlockSyntax<StatementSyntax>(statements);
+            return forLoop;
+        }
+
+        public static ForStatementSyntax WithInlineStatement(this ForStatementSyntax forLoop, StatementSyntax statement)
+        {
+            forLoop.InlineStatement = statement;
+            return forLoop;
         }
 
 

@@ -10,9 +10,20 @@ namespace LumaSharp_Compiler.AST
         private SyntaxToken assign = null;
         private SyntaxToken lblock = null;
         private SyntaxToken rblock = null;
-        private SyntaxToken semicolon = null;
 
         // Properties
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if(AssignExpressionCount > 1)
+                {
+                    return rblock;
+                }
+                return base.EndToken;
+            }
+        }
+
         public TypeReferenceSyntax VariableType
         {
             get { return variableType; }
@@ -68,11 +79,18 @@ namespace LumaSharp_Compiler.AST
         //    }
         //}
 
-        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, string identifier)
-            : base(new SyntaxToken(identifier))
+        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, string[] identifiers, ExpressionSyntax[] assignExpressions)
+            : base(variableType.StartToken)
         {
             this.variableType = variableType;
-            this.identifiers = new SyntaxToken[] { base.StartToken };
+            this.identifiers = identifiers.Select(i => new SyntaxToken(i)).ToArray();
+            this.identifiers[0].WithLeadingWhitespace(" ");
+
+            this.assignExpressions = assignExpressions;
+
+            assign = SyntaxToken.Assign();
+            lblock = SyntaxToken.LBlock();
+            rblock = SyntaxToken.RBlock();
         }
 
         internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.LocalVariableStatementContext local)
@@ -104,7 +122,7 @@ namespace LumaSharp_Compiler.AST
             }
             
             // Semicolon
-            this.semicolon = new SyntaxToken(local.semi);
+            this.statementEnd = new SyntaxToken(local.semi);
         }
 
         // Methods
@@ -117,24 +135,24 @@ namespace LumaSharp_Compiler.AST
             for(int i = 0; i < identifiers.Length; i++)
             {
                 // Identifier
-                writer.Write(identifiers[i].Text);
+                identifiers[i].GetSourceText(writer);
 
                 // Separator
                 if(i < identifiers.Length - 1)
-                    writer.Write(", ");
+                    writer.Write(",");
             }
 
             // Check for assignment
             if (HasAssignExpressions == true)
             {
                 // Write assign
-                writer.Write(assign.Text);
+                assign.GetSourceText(writer);
 
                 // Check for multiple assignments
                 if(AssignExpressionCount > 1)
                 {
                     // Start block
-                    writer.Write(lblock.Text);
+                    lblock.GetSourceText(writer);
 
                     // Write all assignments
                     for(int i = 0; i < assignExpressions.Length; i++)
@@ -144,21 +162,26 @@ namespace LumaSharp_Compiler.AST
 
                         // Write comma
                         if(i < assignExpressions.Length - 1)
-                            writer.Write(", ");
+                            writer.Write(",");
                     }
 
                     // End block
-                    writer.Write(rblock.Text);
+                    rblock.GetSourceText(writer);
                 }
                 else
                 {
                     // Write single assignment
                     assignExpressions[0].GetSourceText(writer);
+
+                    
                 }
             }
 
-            // Write semi colon
-            writer.Write(semicolon.Text);
+            if (HasAssignExpressions == false || AssignExpressionCount == 1)
+            {
+                // Write semi colon
+                statementEnd.GetSourceText(writer);
+            }
         }
     }
 }

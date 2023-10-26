@@ -134,5 +134,113 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("foreach", syntax2.StartToken.Text);
             Assert.AreEqual("}", syntax2.EndToken.Text);
         }
+
+        [TestMethod]
+        public void GenerateStatement_For()
+        {
+            SyntaxNode syntax0 = Syntax.For(null, null, null);
+
+            // Get expression text
+            Assert.AreEqual("for(;;);", syntax0.GetSourceText());
+            Assert.AreEqual("for", syntax0.StartToken.Text);
+            Assert.AreEqual(";", syntax0.EndToken.Text);
+
+            SyntaxNode syntax1 = Syntax.For(Syntax.Variable(Syntax.TypeReference("MyType"), "myVar"), null, null);
+
+            // Get expression text
+            Assert.AreEqual("for(MyType myVar;;);", syntax1.GetSourceText());
+            Assert.AreEqual("for", syntax1.StartToken.Text);
+            Assert.AreEqual(";", syntax1.EndToken.Text);
+
+            SyntaxNode syntax2 = Syntax.For(null, Syntax.Literal(true), null);
+
+            // Get expression text
+            Assert.AreEqual("for(;true;);", syntax2.GetSourceText());
+            Assert.AreEqual("for", syntax2.StartToken.Text);
+            Assert.AreEqual(";", syntax2.EndToken.Text);
+
+            SyntaxNode syntax3 = Syntax.For(null, null, Syntax.Binary(Syntax.VariableReference("i"), BinaryOperation.Add, Syntax.Literal(2)));
+
+            // Get expression text
+            Assert.AreEqual("for(;;i+2);", syntax3.GetSourceText());
+            Assert.AreEqual("for", syntax3.StartToken.Text);
+            Assert.AreEqual(";", syntax3.EndToken.Text);
+
+            SyntaxNode syntax4 = Syntax.For(Syntax.Variable(Syntax.TypeReference("MyType"), "myVar"), 
+                Syntax.Literal(true), Syntax.Binary(Syntax.VariableReference("i"), BinaryOperation.Add, Syntax.Literal(2)));
+
+            // Get expression text
+            Assert.AreEqual("for(MyType myVar;true;i+2);", syntax4.GetSourceText());
+            Assert.AreEqual("for", syntax4.StartToken.Text);
+            Assert.AreEqual(";", syntax4.EndToken.Text);
+
+
+            SyntaxNode syntax5 = Syntax.For(null, null, null)
+                .WithInlineStatement(Syntax.Break());
+
+            // Get expression text
+            Assert.AreEqual("for(;;)break;", syntax5.GetSourceText());
+            Assert.AreEqual("for", syntax5.StartToken.Text);
+            Assert.AreEqual(";", syntax5.EndToken.Text);
+
+            SyntaxNode syntax6 = Syntax.For(null, null, null)
+                .WithStatements(Syntax.Break());
+
+            // Get expression text
+            Assert.AreEqual("for(;;){break;}", syntax6.GetSourceText());
+            Assert.AreEqual("for", syntax6.StartToken.Text);
+            Assert.AreEqual(";", syntax6.EndToken.Text);
+        }
+
+        [TestMethod]
+        public void GenerateStatement_Return()
+        {
+            SyntaxNode syntax0 = Syntax.Return();
+
+            // Get expression text
+            Assert.AreEqual("return;", syntax0.GetSourceText());
+            Assert.AreEqual("return", syntax0.StartToken.Text);
+            Assert.AreEqual(";", syntax0.EndToken.Text);
+
+            SyntaxNode syntax1 = Syntax.Return(Syntax.Literal(5));
+
+            // Get expression text
+            Assert.AreEqual("return 5;", syntax1.GetSourceText());
+            Assert.AreEqual("return", syntax1.StartToken.Text);
+            Assert.AreEqual(";", syntax1.EndToken.Text);
+        }
+
+        [TestMethod]
+        public void GenerateStatement_Variable()
+        {
+            SyntaxNode syntax0 = Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "var");
+
+            // Get expression text
+            Assert.AreEqual("i32 var;", syntax0.GetSourceText());
+            Assert.AreEqual("i32", syntax0.StartToken.Text);
+            Assert.AreEqual(";", syntax0.EndToken.Text);
+
+            SyntaxNode syntax1 = Syntax.Variable(Syntax.TypeReference("MyType"), "var1", "var2");
+
+            // Get expression text
+            Assert.AreEqual("MyType var1,var2;", syntax1.GetSourceText());
+            Assert.AreEqual("MyType", syntax1.StartToken.Text);
+            Assert.AreEqual(";", syntax1.EndToken.Text);
+
+            SyntaxNode syntax2 = Syntax.Variable(Syntax.TypeReference("MyType"), "var", Syntax.Literal(5));
+
+            // Get expression text
+            Assert.AreEqual("MyType var=5;", syntax2.GetSourceText());
+            Assert.AreEqual("MyType", syntax2.StartToken.Text);
+            Assert.AreEqual(";", syntax2.EndToken.Text);
+
+            SyntaxNode syntax3 = Syntax.Variable(Syntax.TypeReference("MyType"), new string[] { "var1", "var2" }, new ExpressionSyntax[]
+                { Syntax.Literal(5), Syntax.Literal(10) });
+
+            // Get expression text
+            Assert.AreEqual("MyType var1,var2={5,10}", syntax3.GetSourceText());
+            Assert.AreEqual("MyType", syntax3.StartToken.Text);
+            Assert.AreEqual("}", syntax3.EndToken.Text);
+        }
     }
 }
