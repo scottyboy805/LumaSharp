@@ -98,5 +98,17 @@ namespace LumaSharp_Compiler.AST
                     trailingWhitespace += token.Text;
             }
         }
+
+        public SyntaxToken WithLeadingWhitespace(string whitespace)
+        {
+            leadingWhitespace = whitespace;
+            return this;
+        }
+
+        public SyntaxToken WithTrailingWhitespace(string whitespace)
+        {
+            trailingWhitespace = whitespace;
+            return this;
+        }
     }
 }

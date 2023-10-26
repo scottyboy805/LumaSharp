@@ -1,4 +1,5 @@
 ﻿
+using LumaSharp_Compiler.AST.Expression;
 using LumaSharp_Compiler.AST.Statement;
 
 namespace LumaSharp_Compiler.AST.Factory
@@ -40,6 +41,10 @@ namespace LumaSharp_Compiler.AST.Factory
         public static TypeExpressionSyntax TypeOp(TypeReferenceSyntax typeReference) => new TypeExpressionSyntax(typeReference);
         public static SizeExpressionSyntax SizeOp(TypeReferenceSyntax typeReference) => new SizeExpressionSyntax(typeReference);
         public static FieldAccessorReferenceExpressionSyntax FieldReference(string identifier, ExpressionSyntax accessExpression) => new FieldAccessorReferenceExpressionSyntax(identifier, accessExpression);
+        public static MethodInvokeExpressionSyntax MethodInvoke(string identifier, ExpressionSyntax accessExpression) => new MethodInvokeExpressionSyntax(identifier, accessExpression);
+        public static NewExpressionSyntax New(TypeReferenceSyntax newType, bool stackAlloc) => new NewExpressionSyntax(newType, stackAlloc);
+        public static TernaryExpressionSyntax Ternary(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression) => new TernaryExpressionSyntax(condition, trueExpression, falseExpression);
+        public static BinaryExpressionSyntax Binary(ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right) => new BinaryExpressionSyntax(left, op, right);
         #endregion
 
 
@@ -74,6 +79,25 @@ namespace LumaSharp_Compiler.AST.Factory
             return method;
         }
 
+
+        public static MethodInvokeExpressionSyntax WithGenericArguments(this MethodInvokeExpressionSyntax invoke, params TypeReferenceSyntax[] genericArguments)
+        {
+            invoke.GenericArguments = genericArguments;
+            return invoke;
+        }
+
+        public static MethodInvokeExpressionSyntax WithArguments(this MethodInvokeExpressionSyntax invoke, params ExpressionSyntax[] arguments)
+        {
+            invoke.Arguments = arguments;
+            return invoke;
+        }
+
+
+        public static NewExpressionSyntax WithArguments(this NewExpressionSyntax newExpr, params ExpressionSyntax[] arguments)
+        {
+            newExpr.ArgumentExpressions = arguments;
+            return newExpr;
+        }
         #endregion
 
         //public static NamespaceSyntax Namespace(string identifier)

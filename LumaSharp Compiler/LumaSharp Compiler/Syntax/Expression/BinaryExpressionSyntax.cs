@@ -53,28 +53,13 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context, ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
-            : base(tree, parent, context)
+        public BinaryExpressionSyntax(ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
+            : base(GetBinaryOperation(op))
         {
             this.left = left;
             this.right = right;
 
-            this.operation = new SyntaxToken(op switch
-            {
-                BinaryOperation.Add => "+",
-                BinaryOperation.Subtract => "-",
-                BinaryOperation.Multiply => "*",
-                BinaryOperation.Divide => "/",
-                BinaryOperation.Modulus => "%",
-                BinaryOperation.Greater => ">",
-                BinaryOperation.GreaterEqual => ">=",
-                BinaryOperation.Less => "<",
-                BinaryOperation.LessEqual => "<=",
-                BinaryOperation.Equal => "==",
-                BinaryOperation.NotEqual => "!=",
-                BinaryOperation.And => "&&",
-                BinaryOperation.Or => "||",
-            });
+            this.operation = base.StartToken;
         }
 
         internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
@@ -101,6 +86,26 @@ namespace LumaSharp_Compiler.AST
 
             // Write right
             right.GetSourceText(writer);
+        }
+
+        private static SyntaxToken GetBinaryOperation(BinaryOperation op)
+        {
+            return new SyntaxToken(op switch
+            {
+                BinaryOperation.Add => "+",
+                BinaryOperation.Subtract => "-",
+                BinaryOperation.Multiply => "*",
+                BinaryOperation.Divide => "/",
+                BinaryOperation.Modulus => "%",
+                BinaryOperation.Greater => ">",
+                BinaryOperation.GreaterEqual => ">=",
+                BinaryOperation.Less => "<",
+                BinaryOperation.LessEqual => "<=",
+                BinaryOperation.Equal => "==",
+                BinaryOperation.NotEqual => "!=",
+                BinaryOperation.And => "&&",
+                BinaryOperation.Or => "||",
+            });
         }
     }
 }

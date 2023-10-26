@@ -172,7 +172,7 @@ genericParameterList: '<' genericParameter (',' genericParameter)* '>';
 genericParameter: IDENTIFIER (':' typeReference (',' typeReference)*);
 
 // Generic arguments
-genericArguments: '<' typeReference (',' typeReference)* '>';
+genericArguments: lgen='<' typeReference (',' typeReference)* rgen='>';
 
 // Array parameters
 arrayParameters: '[' ','? ','? ']';
@@ -265,7 +265,7 @@ expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
 	| expression binary=('==' | '!=') expression				// Equals expression
 	| expression binary='&&' expression							// And expression
 	| expression binary='||' expression							// Or expression
-	| expression ternary='?' expression ':' expression			// Ternary expression
+	| expression ternary='?' expression alternate=':' expression			// Ternary expression
 	| IDENTIFIER indexExpression*
 	| endExpression indexExpression*							// Primitives and literals
 	| expression methodInvokeExpression indexExpression*		// Method expression
@@ -306,7 +306,7 @@ indexExpression: larray='[' expression (',' expression)* rarray=']';
 fieldAccessExpression: dot='.' IDENTIFIER;
 
 // Method invoke
-methodInvokeExpression: '.' IDENTIFIER genericArguments? '(' methodArgument? (',' methodArgument)* ')';
+methodInvokeExpression: dot='.' IDENTIFIER genericArguments? lparen='(' methodArgument? (',' methodArgument)* rparen=')';
 methodArgument: '&'? expression;
 
 // Initializer 

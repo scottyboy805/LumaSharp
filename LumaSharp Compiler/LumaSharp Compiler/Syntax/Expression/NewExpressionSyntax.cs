@@ -24,6 +24,7 @@ namespace LumaSharp_Compiler.AST.Expression
         public ExpressionSyntax[] ArgumentExpressions
         {
             get { return argumentExpressions; }
+            internal set { argumentExpressions = value; }
         }
 
         public int ArgumentExpressionCount
@@ -58,6 +59,16 @@ namespace LumaSharp_Compiler.AST.Expression
         }
 
         // Constructor
+        internal NewExpressionSyntax(TypeReferenceSyntax newType, bool stackAlloc)
+            : base(newType.Identifier)
+        {
+            this.newType = newType;
+            this.keyword = stackAlloc == false ? new SyntaxToken("new").WithTrailingWhitespace(" ") : null;
+            
+            lparen = new SyntaxToken("(");
+            rparen = new SyntaxToken(")");
+        }
+
         internal NewExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NewExpressionContext expression)
             : base(tree, parent, expression)
         {
@@ -122,7 +133,7 @@ namespace LumaSharp_Compiler.AST.Expression
 
                     // Separator
                     if (i < argumentExpressions.Length - 1)
-                        writer.Write(", ");
+                        writer.Write(",");
                 }
             }
 

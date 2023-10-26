@@ -8,6 +8,11 @@ namespace LumaSharp_Compiler.AST.Expression
         private SyntaxToken identifier = null;
         private TypeReferenceSyntax[] genericArguments = null;
         private ExpressionSyntax[] arguments = null;
+        private SyntaxToken dot = null;
+        private SyntaxToken lgen = null;
+        private SyntaxToken rgen = null;
+        private SyntaxToken lparen = null;
+        private SyntaxToken rparen = null;
 
         // Properties
         public ExpressionSyntax AccessExpression
@@ -23,11 +28,13 @@ namespace LumaSharp_Compiler.AST.Expression
         public TypeReferenceSyntax[] GenericArguments
         {
             get { return genericArguments; }
+            internal set { genericArguments = value; }
         }
 
         public ExpressionSyntax[] Arguments
         {
             get { return arguments; }
+            internal set { arguments = value; }
         }
 
         public int GenericArgumentCount
@@ -73,6 +80,19 @@ namespace LumaSharp_Compiler.AST.Expression
         }
 
         // Constructor
+        internal MethodInvokeExpressionSyntax(string identifier, ExpressionSyntax accessExpression)
+            : base(new SyntaxToken(identifier))
+        {
+            this.identifier = base.StartToken;
+            this.accessExpression = accessExpression;
+
+            dot = new SyntaxToken(".");
+            lgen = new SyntaxToken("<");
+            rgen = new SyntaxToken(">");
+            lparen = new SyntaxToken("(");
+            rparen = new SyntaxToken(")");
+        }
+
         internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(tree, parent, expression)
         {
@@ -82,13 +102,21 @@ namespace LumaSharp_Compiler.AST.Expression
             // Identifier
             this.identifier = new SyntaxToken(method.IDENTIFIER());
 
+            dot = new SyntaxToken(method.dot);
+
             // Generic arguments
             LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
-
+                       
             if (generics != null)
             {
                 this.genericArguments = generics.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
+
+                lgen = new SyntaxToken(generics.lgen);
+                rgen = new SyntaxToken(generics.rgen);
             }
+
+            lparen = new SyntaxToken(method.lparen);
+            rparen = new SyntaxToken(method.rparen);
 
             // Create access expression
             if (expression.typeReference() != null)
@@ -108,7 +136,7 @@ namespace LumaSharp_Compiler.AST.Expression
             accessExpression.GetSourceText(writer);
 
             // Write dot 
-            writer.Write('.');
+            dot.GetSourceText(writer);
 
             // Write method name
             writer.Write(identifier.ToString());
@@ -117,7 +145,7 @@ namespace LumaSharp_Compiler.AST.Expression
             if(HasGenericArguments == true)
             {
                 // Write lgen
-                writer.Write('<');
+                lgen.GetSourceText(writer);
 
                 // Write all generics
                 for(int i = 0; i < genericArguments.Length; i++)
@@ -126,15 +154,15 @@ namespace LumaSharp_Compiler.AST.Expression
 
                     // Write comma
                     if(i < genericArguments.Length - 1)
-                        writer.Write(", ");
+                        writer.Write(",");
                 }
 
                 // Write rgen
-                writer.Write('>');
+                rgen.GetSourceText(writer);
             }
 
             // Write lparen
-            writer.Write('(');
+            lparen.GetSourceText(writer);
 
             // Write all arguments
             if (HasArguments == true)
@@ -145,12 +173,12 @@ namespace LumaSharp_Compiler.AST.Expression
 
                     // Write comma
                     if(i < arguments.Length - 1)
-                        writer.Write(", ");
+                        writer.Write(",");
                 }
             }
 
             // Write rparen
-            writer.Write(')');
+            rparen.GetSourceText(writer);
         }
     }
 }

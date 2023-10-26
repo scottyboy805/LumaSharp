@@ -7,6 +7,8 @@ namespace LumaSharp_Compiler.AST
         private ExpressionSyntax condition = null;
         private ExpressionSyntax trueExpression = null;
         private ExpressionSyntax falseExpression = null;
+        private SyntaxToken ternary = null;
+        private SyntaxToken alternate = null;
 
         // Properties
         public ExpressionSyntax Condition
@@ -35,6 +37,17 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
+        internal TernaryExpressionSyntax(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression)
+            : base(condition.StartToken)
+        {
+            this.condition = condition;
+            this.trueExpression = trueExpression;
+            this.falseExpression = falseExpression;
+
+            ternary = new SyntaxToken("?");
+            alternate = new SyntaxToken(":");
+        }
+
         internal TernaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(tree, parent, expression)
         {
@@ -46,12 +59,28 @@ namespace LumaSharp_Compiler.AST
 
             // False expression
             this.falseExpression = Any(tree, this, expression.expression(2));
+
+            ternary = new SyntaxToken(expression.ternary);
+            alternate = new SyntaxToken(expression.alternate);
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Write condition
+            condition.GetSourceText(writer);
+
+            // Ternary
+            ternary.GetSourceText(writer);
+
+            // Write true
+            trueExpression.GetSourceText(writer);
+
+            // Write alternate
+            alternate.GetSourceText(writer);
+
+            // Write false
+            falseExpression.GetSourceText(writer);
         }
     }
 }

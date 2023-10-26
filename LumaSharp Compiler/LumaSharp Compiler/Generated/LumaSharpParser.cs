@@ -2646,6 +2646,8 @@ public partial class LumaSharpParser : Parser {
 	}
 
 	public partial class GenericArgumentsContext : ParserRuleContext {
+		public IToken lgen;
+		public IToken rgen;
 		[System.Diagnostics.DebuggerNonUserCode] public TypeReferenceContext[] typeReference() {
 			return GetRuleContexts<TypeReferenceContext>();
 		}
@@ -2684,7 +2686,7 @@ public partial class LumaSharpParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			State = 457;
-			Match(T__12);
+			_localctx.lgen = Match(T__12);
 			State = 458;
 			typeReference();
 			State = 463;
@@ -2704,7 +2706,7 @@ public partial class LumaSharpParser : Parser {
 				_la = TokenStream.LA(1);
 			}
 			State = 466;
-			Match(T__13);
+			_localctx.rgen = Match(T__13);
 			}
 		}
 		catch (RecognitionException re) {
@@ -5090,6 +5092,7 @@ public partial class LumaSharpParser : Parser {
 		public IToken lparen;
 		public IToken binary;
 		public IToken ternary;
+		public IToken alternate;
 		[System.Diagnostics.DebuggerNonUserCode] public ExpressionContext[] expression() {
 			return GetRuleContexts<ExpressionContext>();
 		}
@@ -5541,7 +5544,7 @@ public partial class LumaSharpParser : Parser {
 						State = 872;
 						expression(0);
 						State = 873;
-						Match(T__2);
+						_localctx.alternate = Match(T__2);
 						State = 874;
 						expression(16);
 						}
@@ -6062,6 +6065,9 @@ public partial class LumaSharpParser : Parser {
 	}
 
 	public partial class MethodInvokeExpressionContext : ParserRuleContext {
+		public IToken dot;
+		public IToken lparen;
+		public IToken rparen;
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IDENTIFIER() { return GetToken(LumaSharpParser.IDENTIFIER, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public GenericArgumentsContext genericArguments() {
 			return GetRuleContext<GenericArgumentsContext>(0);
@@ -6104,7 +6110,7 @@ public partial class LumaSharpParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			State = 939;
-			Match(T__1);
+			_localctx.dot = Match(T__1);
 			State = 940;
 			Match(IDENTIFIER);
 			State = 942;
@@ -6118,7 +6124,7 @@ public partial class LumaSharpParser : Parser {
 			}
 
 			State = 944;
-			Match(T__7);
+			_localctx.lparen = Match(T__7);
 			State = 946;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
@@ -6146,7 +6152,7 @@ public partial class LumaSharpParser : Parser {
 				_la = TokenStream.LA(1);
 			}
 			State = 955;
-			Match(T__8);
+			_localctx.rparen = Match(T__8);
 			}
 		}
 		catch (RecognitionException re) {
