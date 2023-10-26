@@ -54,12 +54,12 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         public BinaryExpressionSyntax(ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
-            : base(GetBinaryOperation(op))
+            : base(left.StartToken, right.EndToken)
         {
             this.left = left;
             this.right = right;
 
-            this.operation = base.StartToken;
+            this.operation = GetBinaryOperation(op);
         }
 
         internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)

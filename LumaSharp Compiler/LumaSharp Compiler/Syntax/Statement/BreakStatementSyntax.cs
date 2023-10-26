@@ -13,6 +13,12 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
+        internal BreakStatementSyntax()
+            : base(new SyntaxToken("break"))
+        {
+            this.keyword = base.StartToken;
+        }
+
         internal BreakStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
             : base(tree, parent, statement)
         {
@@ -22,8 +28,8 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            writer.Write(keyword.ToString());
-            writer.Write(statementEnd.ToString());
+            keyword.GetSourceText(writer);
+            statementEnd.GetSourceText(writer);
         }
     }
 }

@@ -7,7 +7,6 @@ namespace LumaSharp_Compiler.AST.Statement
         private SyntaxToken assignOperation = null;
         private ExpressionSyntax left = null;
         private ExpressionSyntax right = null;
-        private SyntaxToken semicolon = null;
 
         // Properties
         public SyntaxToken AssignOperation
@@ -36,10 +35,12 @@ namespace LumaSharp_Compiler.AST.Statement
 
         // Constructor
         internal AssignStatementSyntax(ExpressionSyntax left, ExpressionSyntax right)
-            : base(new SyntaxToken("="))
+            : base(left.StartToken)
         {
             this.left = left;
             this.right = right;
+
+            assignOperation = SyntaxToken.Assign();
         }
 
         internal AssignStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AssignStatementContext assign)
@@ -55,7 +56,7 @@ namespace LumaSharp_Compiler.AST.Statement
             this.right = ExpressionSyntax.Any(tree, this, assign.expression(1));
 
             // Semicolon
-            this.semicolon = new SyntaxToken(assign.semi);
+            this.statementEnd = new SyntaxToken(assign.semi);
         }
 
         // Methods
@@ -65,13 +66,13 @@ namespace LumaSharp_Compiler.AST.Statement
             left.GetSourceText(writer);
 
             // Write op
-            writer.Write(assignOperation.Text);
+            assignOperation.GetSourceText(writer);
 
             // Write right
             right.GetSourceText(writer);
 
             // Semicolon
-            writer.Write(semicolon.Text);
+            statementEnd.GetSourceText(writer);
         }
     }
 }

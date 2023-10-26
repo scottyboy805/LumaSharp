@@ -51,7 +51,7 @@ namespace LumaSharp_Compiler.AST
             : base(new SyntaxToken(identifier))
         {
             this.name = new NamespaceName(identifier);
-            this.members = new BlockSyntax<MemberSyntax>();
+            this.members = new BlockSyntax<MemberSyntax>();            
         }
 
         internal NamespaceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NamespaceDeclarationContext namespaceDef) 

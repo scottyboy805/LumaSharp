@@ -41,7 +41,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal GenericParameterSyntax(string identifier, TypeReferenceSyntax[] constraintTypes, int index = 0)
-            : base((SyntaxToken)null)
+            : base(new SyntaxToken(identifier))
         {
             // Identifier
             this.identifier = new SyntaxToken(identifier);

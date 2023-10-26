@@ -50,9 +50,9 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         protected MemberSyntax(string identifier)
-            : base(new SyntaxToken(identifier))
+            : base(null, null)
         {
-            this.identifier = base.StartToken;
+            this.identifier = new SyntaxToken(identifier);
         }
 
         internal MemberSyntax(ITerminalNode identifier, SyntaxTree tree, SyntaxNode parent, ParserRuleContext context, LumaSharpParser.AttributeDeclarationContext[] attributes, LumaSharpParser.AccessModifierContext[] modifiers)

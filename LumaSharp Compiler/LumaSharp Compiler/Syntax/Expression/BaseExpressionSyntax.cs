@@ -19,7 +19,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal BaseExpressionSyntax()
-            : base(new SyntaxToken("base"))
+            : base(SyntaxToken.Base())
         {
             this.keyword = base.StartToken;
         }

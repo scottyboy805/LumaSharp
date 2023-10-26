@@ -6,8 +6,13 @@ namespace LumaSharp_Compiler.AST
     public abstract class ExpressionSyntax : SyntaxNode
     {
         // Constructor
-        protected ExpressionSyntax(SyntaxToken token)
-            : base(token)
+        protected ExpressionSyntax(SyntaxToken singleToken)
+            : base(singleToken)
+        {
+        }
+
+        protected ExpressionSyntax(SyntaxToken start, SyntaxToken end)
+            : base(start, end)
         {
         }
 

@@ -27,11 +27,11 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal SizeExpressionSyntax(TypeReferenceSyntax typeReference)
-            : base(new SyntaxToken("size"))
+            : base(SyntaxToken.Size(), SyntaxToken.RParen())
         {
             this.keyword = base.StartToken;
-            this.lparen = new SyntaxToken("(");
-            this.rparen = new SyntaxToken(")");
+            this.lparen = SyntaxToken.LParen();
+            this.rparen = base.EndToken;
 
             // Type reference
             this.typeReference = typeReference;

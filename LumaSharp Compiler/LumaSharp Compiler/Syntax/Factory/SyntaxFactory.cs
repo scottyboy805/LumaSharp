@@ -27,6 +27,10 @@ namespace LumaSharp_Compiler.AST.Factory
         #region Statements
         public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, string identifier) => new VariableDeclarationStatementSyntax(variableType, identifier);
         public static AssignStatementSyntax Assign(ExpressionSyntax left, ExpressionSyntax right) => new AssignStatementSyntax(left, right);
+        public static BreakStatementSyntax Break() => new BreakStatementSyntax();
+        public static ConditionStatementSyntax Condition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(condition);
+        public static ContinueStatementSyntax Continue() => new ContinueStatementSyntax();
+        public static ForeachStatementSyntax Foreach(TypeReferenceSyntax variableType, string identifier, ExpressionSyntax iterateExpression) => new ForeachStatementSyntax(variableType, identifier, iterateExpression);
         #endregion
 
         #region Expressions
@@ -77,6 +81,38 @@ namespace LumaSharp_Compiler.AST.Factory
         {
             method.Body = new BlockSyntax<StatementSyntax>(statements);
             return method;
+        }
+
+
+        public static ConditionStatementSyntax WithStatements(this ConditionStatementSyntax condition, params StatementSyntax[] statements)
+        {
+            condition.BlockStatement = new BlockSyntax<StatementSyntax>(statements);
+            return condition;
+        }
+
+        public static ConditionStatementSyntax WithInlineStatement(this ConditionStatementSyntax condition, StatementSyntax statement)
+        {
+            condition.InlineStatement = statement;
+            return condition;
+        }
+
+        public static ConditionStatementSyntax WithAlternate(this ConditionStatementSyntax condition, ConditionStatementSyntax alternate = null)
+        {
+            condition.Alternate = alternate;
+            alternate.MakeAlternate();
+            return condition;
+        }
+
+        public static ForeachStatementSyntax WithStatements(this ForeachStatementSyntax foreachLoop, params StatementSyntax[] statements)
+        {
+            foreachLoop.BlockStatement = new BlockSyntax<StatementSyntax>(statements);
+            return foreachLoop;
+        }
+
+        public static ForeachStatementSyntax WithInlineStatement(this ForeachStatementSyntax foreachLoop, StatementSyntax statement)
+        {
+            foreachLoop.InlineStatement = statement;
+            return foreachLoop;
         }
 
 

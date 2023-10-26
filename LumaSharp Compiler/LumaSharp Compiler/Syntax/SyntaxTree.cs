@@ -47,7 +47,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal SyntaxTree()
-            : base((SyntaxToken)null) 
+            : base(null, null) 
         {
             base.tree = this;
             this.rootElements = new List<SyntaxNode>();

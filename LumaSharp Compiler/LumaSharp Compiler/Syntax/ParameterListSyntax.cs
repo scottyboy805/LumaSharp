@@ -5,8 +5,6 @@ namespace LumaSharp_Compiler.AST
     {
         // Private
         private ParameterSyntax[] parameters = null;
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
 
         // Properties
         public ParameterSyntax[] Parameters
@@ -30,8 +28,8 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal ParameterListSyntax( ParameterSyntax[] parameters)
-            : base((SyntaxToken)null)
+        internal ParameterListSyntax(ParameterSyntax[] parameters)
+            : base(parameters.Length > 0 ? parameters[0].StartToken : null, parameters.Length > 0 ? parameters[parameters.Length - 1].EndToken : null)
         {
             this.parameters = parameters;
         }
@@ -39,10 +37,6 @@ namespace LumaSharp_Compiler.AST
         internal ParameterListSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterListContext paramsDef)
             : base(tree, parent, paramsDef)
         {
-            // Get start and end
-            this.start = new SyntaxToken(paramsDef.Start);
-            this.end = new SyntaxToken(paramsDef.Stop);
-
             // Get all parameters
             LumaSharpParser.MethodParameterContext[] parameters = paramsDef.methodParameter();
 

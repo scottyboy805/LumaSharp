@@ -10,14 +10,30 @@ namespace LumaSharp_Compiler.AST.Statement
         private ExpressionSyntax conditionExpression = null;
         private StatementSyntax inlineStatement = null;
         private BlockSyntax<StatementSyntax> blockStatement = null;
-        private SyntaxToken semicolon = null;
 
+        private bool isAlternate = false;
         private ConditionStatementSyntax alternate = null;
 
         // Properties
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if(HasAlternate == true)
+                {
+                    return alternate.EndToken;
+                }
+                else if(HasBlockStatement == true)
+                {
+                    return blockStatement.EndToken;
+                }
+                return base.EndToken;
+            }
         }
 
         public SyntaxToken LParen
@@ -38,21 +54,24 @@ namespace LumaSharp_Compiler.AST.Statement
         public StatementSyntax InlineStatement
         {
             get { return inlineStatement; }
+            internal set { inlineStatement = value; }
         }
 
         public BlockSyntax<StatementSyntax> BlockStatement
         {
             get { return blockStatement; }
+            internal set { blockStatement = value; }
         }
 
         public SyntaxToken Semicolon
         {
-            get { return semicolon; }
+            get { return statementEnd; }
         }
 
         public ConditionStatementSyntax Alternate
         {
             get { return alternate; }
+            internal set { alternate = value; }
         }
 
         public bool HasCondition
@@ -76,6 +95,17 @@ namespace LumaSharp_Compiler.AST.Statement
         }
 
         // Constructor
+        internal ConditionStatementSyntax(ExpressionSyntax condition)
+            : base(SyntaxToken.If())
+        {
+            this.keyword = base.StartToken;
+            this.lparen = SyntaxToken.LParen();
+            this.rparen = SyntaxToken.RParen();
+
+            // Condition
+            this.conditionExpression = condition;
+        }
+
         internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.IfStatementContext condition)
             : base(tree, parent, condition)
         {
@@ -103,7 +133,7 @@ namespace LumaSharp_Compiler.AST.Statement
 
             // Semi
             if(condition.semi != null)
-                this.semicolon = new SyntaxToken(condition.semi);
+                this.statementEnd = new SyntaxToken(condition.semi);
 
             // Get alternate
         }
@@ -141,19 +171,19 @@ namespace LumaSharp_Compiler.AST.Statement
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword
-            writer.Write(keyword.Text);
+            keyword.GetSourceText(writer);
 
             // Check for condition
             if(HasCondition == true)
             {
                 // Lparen
-                writer.Write(lparen.Text);
+                lparen.GetSourceText(writer);
 
                 // Condition
                 conditionExpression.GetSourceText(writer);
 
                 // Rparen
-                writer.Write(rparen.Text);
+                rparen.GetSourceText(writer);
             }
 
             // Check for inline
@@ -167,9 +197,9 @@ namespace LumaSharp_Compiler.AST.Statement
                 BlockStatement.GetSourceText(writer);
             }
             // Fall back to empty statement
-            else if(semicolon != null)
+            else if(statementEnd != null)
             {
-                writer.Write(semicolon.Text);
+                statementEnd.GetSourceText(writer);
             }
 
             // Write alternate
@@ -177,6 +207,15 @@ namespace LumaSharp_Compiler.AST.Statement
             {
                 alternate.GetSourceText(writer);
             }
+        }
+
+        internal void MakeAlternate()
+        {
+            isAlternate = true;
+            keyword = conditionExpression != null
+                ? SyntaxToken.Elif()
+                : SyntaxToken.Else()
+                    .WithTrailingWhitespace(" ");
         }
     }
 }

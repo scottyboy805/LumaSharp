@@ -31,8 +31,11 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal BlockSyntax(IEnumerable<T> elements = null)
-            : base((SyntaxToken)null)
+            : base(SyntaxToken.LBlock(), SyntaxToken.RBlock())
         {
+            start = base.StartToken;
+            end = base.EndToken;
+
             if (elements != null)
                 this.elements.AddRange(elements);
         }

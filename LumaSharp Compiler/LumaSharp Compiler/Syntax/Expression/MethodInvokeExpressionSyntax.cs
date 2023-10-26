@@ -81,16 +81,16 @@ namespace LumaSharp_Compiler.AST.Expression
 
         // Constructor
         internal MethodInvokeExpressionSyntax(string identifier, ExpressionSyntax accessExpression)
-            : base(new SyntaxToken(identifier))
+            : base(accessExpression.StartToken, SyntaxToken.RParen())
         {
-            this.identifier = base.StartToken;
+            this.identifier = new SyntaxToken(identifier);
             this.accessExpression = accessExpression;
 
-            dot = new SyntaxToken(".");
-            lgen = new SyntaxToken("<");
-            rgen = new SyntaxToken(">");
-            lparen = new SyntaxToken("(");
-            rparen = new SyntaxToken(")");
+            dot = SyntaxToken.Dot();
+            lgen = SyntaxToken.LGeneric();
+            rgen = SyntaxToken.RGeneric();
+            lparen = SyntaxToken.LParen();
+            rparen = base.EndToken;
         }
 
         internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)

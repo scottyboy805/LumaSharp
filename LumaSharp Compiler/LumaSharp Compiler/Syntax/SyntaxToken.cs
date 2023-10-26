@@ -110,5 +110,33 @@ namespace LumaSharp_Compiler.AST
             trailingWhitespace = whitespace;
             return this;
         }
+
+
+        // Internal
+        internal static SyntaxToken Type() => new SyntaxToken("type");
+        internal static SyntaxToken Size() => new SyntaxToken("size");
+        internal static SyntaxToken This() => new SyntaxToken("this");
+        internal static SyntaxToken Base() => new SyntaxToken("base");
+        internal static SyntaxToken New() => new SyntaxToken("new");
+        internal static SyntaxToken If() => new SyntaxToken("if");
+        internal static SyntaxToken Elif() => new SyntaxToken("elif");
+        internal static SyntaxToken Else() => new SyntaxToken("else");
+        internal static SyntaxToken Foreach() => new SyntaxToken("foreach");
+        internal static SyntaxToken In() => new SyntaxToken("in");
+        internal static SyntaxToken For() => new SyntaxToken("for");
+
+        internal static SyntaxToken LParen() => new SyntaxToken("(");
+        internal static SyntaxToken RParen() => new SyntaxToken(")");
+        internal static SyntaxToken LBlock() => new SyntaxToken("{");
+        internal static SyntaxToken RBlock() => new SyntaxToken("}");
+        internal static SyntaxToken LArray() => new SyntaxToken("[");
+        internal static SyntaxToken RArray() => new SyntaxToken("]");
+        internal static SyntaxToken LGeneric() => new SyntaxToken("<");
+        internal static SyntaxToken RGeneric() => new SyntaxToken(">");
+        internal static SyntaxToken Dot() => new SyntaxToken(".");
+        internal static SyntaxToken Comma() => new SyntaxToken(",");
+        internal static SyntaxToken Semi() => new SyntaxToken(";");
+
+        internal static SyntaxToken Assign() => new SyntaxToken("=");
     }
 }

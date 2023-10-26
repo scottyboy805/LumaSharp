@@ -21,6 +21,18 @@ namespace LumaSharp_Compiler.AST.Statement
             get { return keyword; }
         }
 
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if(HasBlockStatement == true)
+                {
+                    return blockStatement.EndToken;
+                }
+                return base.EndToken;
+            }
+        }
+
         public SyntaxToken LParen
         {
             get { return lparen; }
@@ -54,11 +66,13 @@ namespace LumaSharp_Compiler.AST.Statement
         public StatementSyntax InlineStatement
         {
             get { return inlineStatement; }
+            internal set { inlineStatement = value; }
         }
 
         public BlockSyntax<StatementSyntax> BlockStatement
         {
             get { return blockStatement; }
+            internal set { blockStatement = value; }
         }
 
         public SyntaxToken Semicolon
@@ -77,6 +91,23 @@ namespace LumaSharp_Compiler.AST.Statement
         }
 
         // Constructor
+        internal ForeachStatementSyntax(TypeReferenceSyntax variableType, string identifier, ExpressionSyntax iterateExpression)
+            : base(SyntaxToken.Foreach())
+        {
+            this.keyword = base.StartToken;
+            this.variableType = variableType;
+            this.identifier = new SyntaxToken(identifier)
+                .WithLeadingWhitespace(" ");
+            this.inExpression = iterateExpression;
+
+            lparen = SyntaxToken.LParen();
+            rparen = SyntaxToken.RParen();
+            inKeyword = SyntaxToken.In()
+                .WithLeadingWhitespace(" ")
+                .WithTrailingWhitespace(" ");
+            semicolon = SyntaxToken.Semi();
+        }
+
         internal ForeachStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ForeachStatementContext statement)
             : base(tree, parent, statement)
         {
@@ -120,25 +151,25 @@ namespace LumaSharp_Compiler.AST.Statement
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword
-            writer.Write(keyword.Text);
+            keyword.GetSourceText(writer);
 
             // LParen
-            writer.Write(lparen.Text);
+            lparen.GetSourceText(writer);
 
             // Type
             variableType.GetSourceText(writer);
 
             // Identifier
-            writer.Write(identifier.Text);
+            identifier.GetSourceText(writer);
 
             // In
-            writer.Write(inKeyword.Text);
+            inKeyword.GetSourceText(writer);
 
             // Expression
             inExpression.GetSourceText(writer);
 
             // RParen
-            writer.Write(rparen.Text);
+            rparen.GetSourceText(writer);
 
 
             // Check for inline
@@ -154,7 +185,7 @@ namespace LumaSharp_Compiler.AST.Statement
             // Fall back to empty statement
             else if (semicolon != null)
             {
-                writer.Write(semicolon.Text);
+                semicolon.GetSourceText(writer);
             }
         }
     }

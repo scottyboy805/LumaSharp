@@ -23,12 +23,12 @@ namespace LumaSharp_Compiler.AST
             get { return parent; }
         }
 
-        public SyntaxToken StartToken
+        public virtual SyntaxToken StartToken
         {
             get { return start; }
         }
 
-        public SyntaxToken EndToken
+        public virtual SyntaxToken EndToken
         {
             get { return end; }
         }
@@ -40,6 +40,12 @@ namespace LumaSharp_Compiler.AST
         {
             this.start = token;
             this.end = token;
+        }
+
+        protected SyntaxNode(SyntaxToken start, SyntaxToken end)
+        {
+            this.start = start;
+            this.end = end;
         }
 
         protected SyntaxNode(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context)

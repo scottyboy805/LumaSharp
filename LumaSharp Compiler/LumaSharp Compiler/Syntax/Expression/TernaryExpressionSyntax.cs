@@ -38,7 +38,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal TernaryExpressionSyntax(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression)
-            : base(condition.StartToken)
+            : base(condition.StartToken, falseExpression.EndToken)
         {
             this.condition = condition;
             this.trueExpression = trueExpression;

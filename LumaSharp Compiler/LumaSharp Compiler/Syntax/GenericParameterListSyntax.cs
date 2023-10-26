@@ -5,6 +5,8 @@ namespace LumaSharp_Compiler.AST
     {
         // Private        
         private GenericParameterSyntax[] genericParameters = null;
+        private SyntaxToken lgen = null;
+        private SyntaxToken rgen = null;
 
         // Properties
         public GenericParameterSyntax[] GenericParameters
@@ -29,9 +31,11 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal GenericParameterListSyntax(GenericParameterSyntax[] genericParameters)
-            : base((SyntaxToken)null)
+            : base(SyntaxToken.LGeneric(), SyntaxToken.RGeneric())
         {
             this.genericParameters = genericParameters;
+            this.lgen = base.StartToken;
+            this.rgen = base.EndToken;
         }
 
         //internal GenericParameterListSyntax(SyntaxTree tree, SyntaxNode parent, string[] genericNames)

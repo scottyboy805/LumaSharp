@@ -56,7 +56,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal ParameterSyntax(TypeReferenceSyntax parameterType, string identifier, bool variableSizedList = false)
-            : base((SyntaxToken)null)
+            : base(parameterType.StartToken, new SyntaxToken(identifier))
         {
             // Param type
             this.parameterType = parameterType;

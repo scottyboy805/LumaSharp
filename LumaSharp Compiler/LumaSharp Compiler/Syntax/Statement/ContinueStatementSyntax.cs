@@ -13,6 +13,12 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
+        internal ContinueStatementSyntax()
+            : base(new SyntaxToken("continue"))
+        {
+            this.keyword = base.StartToken;
+        }
+
         internal ContinueStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
             : base(tree, parent, statement)
         {

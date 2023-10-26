@@ -15,6 +15,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("base", syntax.GetSourceText());
+            Assert.AreEqual("base", syntax.StartToken.Text);
+            Assert.AreEqual("base", syntax.EndToken.Text);
         }
 
         [TestMethod]
@@ -24,6 +26,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("this", syntax.GetSourceText());
+            Assert.AreEqual("this", syntax.StartToken.Text);
+            Assert.AreEqual("this", syntax.EndToken.Text);
         }
 
         [TestMethod]
@@ -34,12 +38,16 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("type(i32)", syntax0.GetSourceText());
+            Assert.AreEqual("type", syntax0.StartToken.Text);
+            Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.TypeOp(
                 Syntax.TypeReference("MyType"));
 
             // Get expression text
             Assert.AreEqual("type(MyType)", syntax1.GetSourceText());
+            Assert.AreEqual("type", syntax1.StartToken.Text);
+            Assert.AreEqual(")", syntax1.EndToken.Text);
         }
 
         [TestMethod]
@@ -50,12 +58,16 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("size(i32)", syntax0.GetSourceText());
+            Assert.AreEqual("size", syntax0.StartToken.Text);
+            Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.SizeOp(
                 Syntax.TypeReference("MyType"));
 
             // Get expression text
             Assert.AreEqual("size(MyType)", syntax1.GetSourceText());
+            Assert.AreEqual("size", syntax1.StartToken.Text);
+            Assert.AreEqual(")", syntax1.EndToken.Text);
         }
 
         [TestMethod]
@@ -89,12 +101,16 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("myVariable.myField", syntax0?.GetSourceText());
+            Assert.AreEqual("myVariable", syntax0.StartToken.Text);
+            Assert.AreEqual("myField", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.FieldReference(
                 "myField", Syntax.FieldReference("myOtherField", Syntax.VariableReference("myVariable")));
 
             // Get expression text
             Assert.AreEqual("myVariable.myOtherField.myField", syntax1.GetSourceText());
+            Assert.AreEqual("myVariable", syntax1.StartToken.Text);
+            Assert.AreEqual("myField", syntax1.EndToken.Text);
         }
 
         [TestMethod]
@@ -105,6 +121,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod()", syntax0.GetSourceText());
+            Assert.AreEqual("myVariable", syntax0.StartToken.Text);
+            Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.MethodInvoke(
                 "myMethod", Syntax.VariableReference("myVariable"))
@@ -112,6 +130,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod(5,false)", syntax1.GetSourceText());
+            Assert.AreEqual("myVariable", syntax1.StartToken.Text);
+            Assert.AreEqual(")", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.MethodInvoke(
                 "myMethod", Syntax.VariableReference("myVariable"))
@@ -119,6 +139,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod<i32,MyType>()", syntax2.GetSourceText());
+            Assert.AreEqual("myVariable", syntax2.StartToken.Text);
+            Assert.AreEqual(")", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.MethodInvoke(
                 "myMethod", Syntax.VariableReference("myVariable"))
@@ -127,6 +149,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod<i32,MyType>(5,false)", syntax3.GetSourceText());
+            Assert.AreEqual("myVariable", syntax3.StartToken.Text);
+            Assert.AreEqual(")", syntax3.EndToken.Text);
         }
 
         [TestMethod]
@@ -137,12 +161,16 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("new MyType()", syntax0.GetSourceText());
+            Assert.AreEqual("new", syntax0.StartToken.Text);
+            Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.New(
                 Syntax.TypeReference("MyType"), true);
 
             // Get expression text
             Assert.AreEqual("MyType()", syntax1.GetSourceText());
+            Assert.AreEqual("MyType", syntax1.StartToken.Text);
+            Assert.AreEqual(")", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.New(
                 Syntax.TypeReference("MyType"), false)
@@ -150,6 +178,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("new MyType(5,true)", syntax2.GetSourceText());
+            Assert.AreEqual("new", syntax2.StartToken.Text);
+            Assert.AreEqual(")", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.New(
                 Syntax.TypeReference("MyType"), true)
@@ -157,6 +187,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("MyType(5,true)", syntax3.GetSourceText());
+            Assert.AreEqual("MyType", syntax3.StartToken.Text);
+            Assert.AreEqual(")", syntax3.EndToken.Text);
         }
 
         [TestMethod]
@@ -167,6 +199,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("true?1:0", syntax0.GetSourceText());
+            Assert.AreEqual("true", syntax0.StartToken.Text);
+            Assert.AreEqual("0", syntax0.EndToken.Text);
         }
 
         [TestMethod]
@@ -177,6 +211,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             // Get expression text
             Assert.AreEqual("5+10", syntax0.GetSourceText());
+            Assert.AreEqual("5", syntax0.StartToken.Text);
+            Assert.AreEqual("10", syntax0.EndToken.Text);
         }
     }
 }

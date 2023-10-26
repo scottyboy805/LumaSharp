@@ -20,9 +20,10 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal StatementSyntax(SyntaxToken token)
-            : base(token)
+        internal StatementSyntax(SyntaxToken start)
+            : base(start, SyntaxToken.Semi())
         {
+            statementEnd = base.EndToken;
         }
 
         internal StatementSyntax(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context)

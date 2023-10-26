@@ -26,11 +26,11 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal FieldAccessorReferenceExpressionSyntax(string identifier, ExpressionSyntax accessExpression)
-            : base(new SyntaxToken(identifier))
+            : base(accessExpression.StartToken, new SyntaxToken(identifier))
         {
-            this.identifier = base.StartToken;
+            this.identifier = base.EndToken;
             this.accessExpression = accessExpression;
-            this.dot = new SyntaxToken(".");
+            this.dot = SyntaxToken.Dot();
         }
 
         internal FieldAccessorReferenceExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
