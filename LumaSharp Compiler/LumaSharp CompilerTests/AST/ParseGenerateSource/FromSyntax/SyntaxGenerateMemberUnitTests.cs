@@ -84,5 +84,42 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyType", syntax6.StartToken.Text);
             Assert.AreEqual("}", syntax6.EndToken.Text);
         }
+
+        [TestMethod]
+        public void GenerateMember_Method()
+        {
+            SyntaxNode syntax0 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32));
+
+            // Get expression text
+            Assert.AreEqual("i32 MyMethod();", syntax0.GetSourceText());
+            Assert.AreEqual("i32", syntax0.StartToken.Text);
+            Assert.AreEqual(";", syntax0.EndToken.Text);
+
+            SyntaxNode syntax1 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
+                .WithStatements();
+
+            // Get expression text
+            Assert.AreEqual("i32 MyMethod(){}", syntax1.GetSourceText());
+            Assert.AreEqual("i32", syntax1.StartToken.Text);
+            Assert.AreEqual("}", syntax1.EndToken.Text);
+
+            SyntaxNode syntax2 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "MyParam"))
+                .WithStatements();
+
+            // Get expression text
+            Assert.AreEqual("i32 MyMethod(i32 MyParam){}", syntax2.GetSourceText());
+            Assert.AreEqual("i32", syntax2.StartToken.Text);
+            Assert.AreEqual("}", syntax2.EndToken.Text);
+
+            SyntaxNode syntax3 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "MyParam"), Syntax.Parameter(Syntax.TypeReference("MyType"), "Extra"))
+                .WithStatements();
+
+            // Get expression text
+            Assert.AreEqual("i32 MyMethod(i32 MyParam,MyType Extra){}", syntax3.GetSourceText());
+            Assert.AreEqual("i32", syntax3.StartToken.Text);
+            Assert.AreEqual("}", syntax3.EndToken.Text);
+        }
     }
 }

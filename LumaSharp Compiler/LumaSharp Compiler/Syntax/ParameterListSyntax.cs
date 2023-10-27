@@ -5,6 +5,9 @@ namespace LumaSharp_Compiler.AST
     {
         // Private
         private ParameterSyntax[] parameters = null;
+        private SyntaxToken lparen = null;
+        private SyntaxToken rparen = null;
+        private SyntaxToken comma = null;
 
         // Properties
         public ParameterSyntax[] Parameters
@@ -32,6 +35,9 @@ namespace LumaSharp_Compiler.AST
             : base(parameters.Length > 0 ? parameters[0].StartToken : null, parameters.Length > 0 ? parameters[parameters.Length - 1].EndToken : null)
         {
             this.parameters = parameters;
+            this.lparen = SyntaxToken.LParen();
+            this.rparen = SyntaxToken.RParen();
+            this.comma = SyntaxToken.Comma();
         }
 
         internal ParameterListSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterListContext paramsDef)
@@ -50,7 +56,22 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Lparen
+            lparen.GetSourceText(writer);
+
+            // Write all
+            for(int i = 0; i < parameters.Length; i++)
+            {
+                // Write parameter
+                parameters[i].GetSourceText(writer);
+
+                // Comma
+                if (i < parameters.Length - 1)
+                    comma.GetSourceText(writer);
+            }
+
+            // Rparen
+            rparen.GetSourceText(writer);
         }
     }
 }

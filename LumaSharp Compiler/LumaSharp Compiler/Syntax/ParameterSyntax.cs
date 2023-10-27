@@ -62,7 +62,8 @@ namespace LumaSharp_Compiler.AST
             this.parameterType = parameterType;
 
             // Identifier
-            this.identifier = new SyntaxToken(identifier);
+            this.identifier = new SyntaxToken(identifier)
+                .WithLeadingWhitespace(" ");
 
             // Variable sized
             this.variableSizedList = variableSizedList;
@@ -87,7 +88,11 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Parameter type
+            parameterType.GetSourceText(writer);
+
+            // Identifier
+            identifier.GetSourceText(writer);
         }
     }
 }

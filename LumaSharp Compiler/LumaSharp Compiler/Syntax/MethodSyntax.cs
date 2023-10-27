@@ -8,8 +8,21 @@ namespace LumaSharp_Compiler.AST
         private GenericParameterListSyntax genericParameters = null;
         private ParameterListSyntax parameters = null;
         private BlockSyntax<StatementSyntax> body = null;
+        private SyntaxToken semicolon = null;
 
         // Properties
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if(HasBody == true)
+                {
+                    return body.EndToken;
+                }
+                return base.EndToken;
+            }
+        }
+
         public TypeReferenceSyntax ReturnType
         {
             get { return returnType; }
@@ -52,13 +65,15 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal MethodSyntax(string identifier, TypeReferenceSyntax returnType)
-            : base(identifier, returnType.StartToken, null)
+            : base(identifier, returnType.StartToken, SyntaxToken.Semi())
         {
             this.returnType = returnType != null ? returnType : new TypeReferenceSyntax("void");
-            this.body = new BlockSyntax<StatementSyntax>();
+            this.identifier.WithLeadingWhitespace(" ");
+            this.body = null;
 
             this.genericParameters = new GenericParameterListSyntax(Array.Empty<GenericParameterSyntax>());
             this.parameters = new ParameterListSyntax(Array.Empty<ParameterSyntax>());
+            this.semicolon = base.EndToken;
         }
 
         internal MethodSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodDeclarationContext methodDef)
@@ -96,7 +111,27 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Generate attributes
+            base.GetSourceText(writer);
+
+            // Return type
+            returnType.GetSourceText(writer);
+
+            // Identifier
+            identifier.GetSourceText(writer);
+
+            // Parameter list
+            parameters.GetSourceText(writer);
+
+            // Body
+            if(HasBody == true)
+            {
+                body.GetSourceText(writer);
+            }
+            else
+            {
+                semicolon.GetSourceText(writer);
+            }
         }
     }
 }
