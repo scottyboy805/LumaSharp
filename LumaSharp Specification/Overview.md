@@ -56,6 +56,20 @@ export enum MyEnum: u16
   Item1 = 10,
   Item2 = Item1,
 }
+
+// Only thing to mention is the bitmask attribute which forces the enum values to be unique bit values, useful for flag/bitmask values:
+#BitMask
+export enum MyFlags: u8
+{
+  Item1,    // 1
+  Item2,    // 2,
+  Item3,    // 4,
+  Item4,    // 8 and so on...
+  MyItem = 7, // ERROR
+
+  MyDuplicateItem = 4, // Allowed
+  MyCombinedItem = Item1 | Item3, // Allowed
+}
 ```
 
 ### Access Modifiers
