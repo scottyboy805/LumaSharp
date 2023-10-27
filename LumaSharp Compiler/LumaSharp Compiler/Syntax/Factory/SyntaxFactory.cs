@@ -219,6 +219,36 @@ namespace LumaSharp_Compiler.AST.Factory
             newExpr.ArgumentExpressions = arguments;
             return newExpr;
         }
+
+        public static TypeReferenceSyntax WithNamespaceQualifier(this TypeReferenceSyntax type, params string[] namespaceIdentifiers)
+        {
+            type.Namespace = new NamespaceName(namespaceIdentifiers);
+            return type;
+        }
+
+        public static TypeReferenceSyntax WithParentTypeQualifiers(this TypeReferenceSyntax type, params TypeReferenceSyntax[] parentTypes)
+        {
+            type.ParentTypeIdentifiers = parentTypes;
+            return type;
+        }
+
+        public static TypeReferenceSyntax WithGenericArguments(this TypeReferenceSyntax type, params TypeReferenceSyntax[] genericArguments)
+        {
+            type.GenericArguments = new GenericArgumentsSyntax(genericArguments);
+            return type;
+        }
+
+        public static TypeReferenceSyntax WithArrayQualifier(this TypeReferenceSyntax type, int rank)
+        {
+            type.ArrayParameters = new ArrayParametersSyntax(rank);
+            return type;
+        }
+
+        public static TypeReferenceSyntax WithReferenceQualifier(this TypeReferenceSyntax type)
+        {
+            type.Reference = SyntaxToken.Reference();
+            return type;
+        }
         #endregion
 
         //public static NamespaceSyntax Namespace(string identifier)

@@ -4,9 +4,10 @@ namespace LumaSharp_Compiler.AST
     public class GenericArgumentsSyntax : SyntaxNode
     {
         // Private
+        private TypeReferenceSyntax[] genericTypes = null;
         private SyntaxToken genericStart = null;
         private SyntaxToken genericEnd = null;
-        private TypeReferenceSyntax[] genericTypes = null;
+        private SyntaxToken comma = null;
 
         // Properties
         public TypeReferenceSyntax[] GenericTypes
@@ -33,6 +34,15 @@ namespace LumaSharp_Compiler.AST
         //    this.genericTypes = genericTypes;
         //}
 
+        internal GenericArgumentsSyntax(TypeReferenceSyntax[] genericArguments)
+            : base(SyntaxToken.LGeneric(), SyntaxToken.RGeneric())
+        {
+            this.genericTypes = genericArguments;
+            this.genericStart = base.StartToken;
+            this.genericEnd = base.EndToken;
+            this.comma = SyntaxToken.Comma();
+        }
+
         internal GenericArgumentsSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericArgumentsContext generics)
             : base(tree, parent, generics)
         {
@@ -53,7 +63,7 @@ namespace LumaSharp_Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Generic start
-            writer.Write(genericStart.ToString());
+            genericStart.GetSourceText(writer);
 
             // Generic types
             for(int i = 0; i < genericTypes.Length; i++)
@@ -62,12 +72,12 @@ namespace LumaSharp_Compiler.AST
                 writer.Write(genericTypes[i].GetSourceText());
 
                 // Append separator
-                if(i < genericTypes.Length - 1)
-                    writer.Write(", ");
+                if (i < genericTypes.Length - 1)
+                    comma.GetSourceText(writer);
             }
 
             // Generic end
-            writer.Write(genericEnd.ToString());
+            genericEnd.GetSourceText(writer);
         }
     }
 }

@@ -30,9 +30,50 @@ namespace LumaSharp_Compiler.AST
         private TypeReferenceSyntax[] parentTypes = null;
         private GenericArgumentsSyntax genericArguments = null;
         private ArrayParametersSyntax arrayParameters = null;
+        private SyntaxToken colon = null;
+        private SyntaxToken dot = null;
         private SyntaxToken reference = null;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get
+            {
+                if(HasNamespace == true)
+                {
+                    return namespaceName.StartToken;
+                }
+
+                if(HasParentTypeIdentifiers == true)
+                {
+                    return parentTypes[0].StartToken;
+                }
+                return base.StartToken;
+            }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if(IsByReference == true)
+                {
+                    return reference;
+                }
+
+                if(IsArrayType == true)
+                {
+                    return arrayParameters.EndToken;
+                }
+
+                if(IsGenericType == true)
+                {
+                    return genericArguments.EndToken;
+                }
+                return base.EndToken;
+            }
+        }
+
         public SyntaxToken Identifier
         {
             get { return identifier; }
@@ -41,26 +82,31 @@ namespace LumaSharp_Compiler.AST
         public NamespaceName Namespace
         {
             get { return namespaceName; }
+            internal set { namespaceName = value; }
         }
 
         public TypeReferenceSyntax[] ParentTypeIdentifiers
         {
             get { return parentTypes; }
+            internal set {  parentTypes = value; }
         }
 
         public GenericArgumentsSyntax GenericArguments
         {
             get { return genericArguments; }
+            internal set { genericArguments = value; }
         }
 
         public ArrayParametersSyntax ArrayParameters
         {
             get { return arrayParameters; }
+            internal set { arrayParameters = value; }
         }
 
         public SyntaxToken Reference
         {
             get { return reference; }
+            internal set { reference = value; }
         }
 
         public int NamespaceDepth
@@ -136,6 +182,8 @@ namespace LumaSharp_Compiler.AST
         {
             // Identifier
             this.identifier = base.StartToken;
+            this.colon = SyntaxToken.Colon();
+            this.dot = SyntaxToken.Dot();
         }
 
         internal TypeReferenceSyntax(MemberSyntax fromMember)
@@ -242,6 +290,9 @@ namespace LumaSharp_Compiler.AST
             if (HasNamespace == true)
             {
                 namespaceName.GetSourceText(writer);
+
+                // Write trailing :
+                colon.GetSourceText(writer);
             }
 
             // Write parent types
@@ -250,9 +301,7 @@ namespace LumaSharp_Compiler.AST
                 for(int i = 0; i < parentTypes.Length; i++)
                 {
                     parentTypes[i].GetSourceText(writer);
-
-                    if(i < parentTypes.Length - 1)
-                        writer.Write('.');
+                    dot.GetSourceText(writer);
                 }
             }
 

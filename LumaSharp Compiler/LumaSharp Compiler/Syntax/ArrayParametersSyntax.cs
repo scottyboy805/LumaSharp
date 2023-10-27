@@ -6,6 +6,7 @@ namespace LumaSharp_Compiler.AST
         // Private
         private SyntaxToken indexStart = null;
         private SyntaxToken indexEnd = null;
+        private SyntaxToken comma = null;
         private int rank = 0;
 
         // Properties
@@ -32,6 +33,15 @@ namespace LumaSharp_Compiler.AST
         //    this.rank = rank;
         //}
 
+        internal ArrayParametersSyntax(int rank)
+            : base(SyntaxToken.LArray(), SyntaxToken.RArray())
+        {
+            this.rank = rank;
+            this.indexStart = base.StartToken;
+            this.indexEnd = base.EndToken;
+            this.comma = SyntaxToken.Comma();
+        }
+
         internal ArrayParametersSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.ArrayParametersContext array)
             : base(tree, node, array)
         {
@@ -46,14 +56,14 @@ namespace LumaSharp_Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Array start
-            writer.Write(indexStart.ToString());
+            indexStart.GetSourceText(writer);
 
             // Write separator
             for (int i = 0; i < rank - 1; i++)
-                writer.Write(',');
+                comma.GetSourceText(writer);
 
             // Array end
-            writer.Write(indexEnd.ToString());
+            indexEnd.GetSourceText(writer);
         }
     }
 }
