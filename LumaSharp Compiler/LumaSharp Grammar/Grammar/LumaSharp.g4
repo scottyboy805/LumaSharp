@@ -82,10 +82,10 @@ importElement: importStatement | importAlias;
 rootElement: namespaceDeclaration | rootMember;
 
 // Import statement
-importStatement: IMPORT namespaceName ';';
+importStatement: IMPORT namespaceName semi=';';
 
 // Import alias
-importAlias: IMPORT IDENTIFIER AS namespaceName '.' typeReference ';';
+importAlias: IMPORT IDENTIFIER AS namespaceName '.' typeReference semi=';';
 
 
 // ### Declarations

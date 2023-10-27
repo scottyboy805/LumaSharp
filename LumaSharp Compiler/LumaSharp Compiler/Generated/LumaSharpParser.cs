@@ -375,6 +375,7 @@ public partial class LumaSharpParser : Parser {
 	}
 
 	public partial class ImportStatementContext : ParserRuleContext {
+		public IToken semi;
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IMPORT() { return GetToken(LumaSharpParser.IMPORT, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public NamespaceNameContext namespaceName() {
 			return GetRuleContext<NamespaceNameContext>(0);
@@ -414,7 +415,7 @@ public partial class LumaSharpParser : Parser {
 			State = 153;
 			namespaceName();
 			State = 154;
-			Match(T__0);
+			_localctx.semi = Match(T__0);
 			}
 		}
 		catch (RecognitionException re) {
@@ -429,6 +430,7 @@ public partial class LumaSharpParser : Parser {
 	}
 
 	public partial class ImportAliasContext : ParserRuleContext {
+		public IToken semi;
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IMPORT() { return GetToken(LumaSharpParser.IMPORT, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IDENTIFIER() { return GetToken(LumaSharpParser.IDENTIFIER, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode AS() { return GetToken(LumaSharpParser.AS, 0); }
@@ -481,7 +483,7 @@ public partial class LumaSharpParser : Parser {
 			State = 161;
 			typeReference();
 			State = 162;
-			Match(T__0);
+			_localctx.semi = Match(T__0);
 			}
 		}
 		catch (RecognitionException re) {

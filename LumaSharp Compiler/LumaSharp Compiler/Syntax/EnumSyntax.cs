@@ -68,7 +68,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal EnumSyntax(string identifier)
-            : base(identifier)
+            : base(identifier, SyntaxToken.Enum(), null)
         {
             this.fieldBlock = new BlockSyntax<FieldSyntax>();
         }

@@ -7,10 +7,17 @@ namespace LumaSharp_Compiler.AST
         private SyntaxToken keyword = null;
         private GenericParameterListSyntax genericParameters = null;
         private TypeReferenceSyntax[] baseTypeReferences = null;
+        private SyntaxToken colon = null;
+        private SyntaxToken comma = null;
 
         private BlockSyntax<MemberSyntax> memberBlock = null;
 
         // Properties
+        public override SyntaxToken EndToken
+        {
+            get { return memberBlock.EndToken; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
@@ -94,9 +101,12 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal TypeSyntax(string identifier)
-            : base(identifier)
+            : base(identifier, SyntaxToken.Type(), null)
         {
             // Members
+            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
+            this.colon = SyntaxToken.Colon();
+            this.comma = SyntaxToken.Comma();
             this.memberBlock = new BlockSyntax<MemberSyntax>();
         }
 
@@ -129,7 +139,41 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
+            // Generate attributes
+            base.GetSourceText(writer);
 
+            // Keyword
+            keyword.GetSourceText(writer);
+
+            // Identifier
+            identifier.GetSourceText(writer);
+
+            // Generics
+            if(HasGenericParameters == true)
+            {
+                genericParameters.GetSourceText(writer);
+            }
+
+            // Check for base types
+            if(HasBaseTypes == true)
+            {
+                // Colon
+                colon.GetSourceText(writer);
+
+                // Base types
+                for(int i = 0; i < baseTypeReferences.Length; i++)
+                {
+                    // Write type
+                    baseTypeReferences[i].GetSourceText(writer);
+
+                    // Comma
+                    if (i < baseTypeReferences.Length - 1)
+                        comma.GetSourceText(writer);
+                }
+            }
+
+            // Write block
+            memberBlock.GetSourceText(writer);
         }
 
         void IMemberSyntaxContainer.AddMember(MemberSyntax member)

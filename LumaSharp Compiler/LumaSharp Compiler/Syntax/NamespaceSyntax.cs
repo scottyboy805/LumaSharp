@@ -16,6 +16,11 @@ namespace LumaSharp_Compiler.AST
             get { return keyword; }
         }
 
+        public override SyntaxToken EndToken
+        {
+            get { return members.EndToken; }
+        }
+
         public NamespaceName Name
         {
             get { return name; }
@@ -47,10 +52,11 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal NamespaceSyntax(string identifier)
-            : base(new SyntaxToken(identifier))
+        internal NamespaceSyntax(string[] identifiers)
+            : base(SyntaxToken.Namespace(), new SyntaxToken(identifiers[identifiers.Length - 1]))
         {
-            this.name = new NamespaceName(identifier);
+            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
+            this.name = new NamespaceName(identifiers);
             this.members = new BlockSyntax<MemberSyntax>();            
         }
 
@@ -71,7 +77,7 @@ namespace LumaSharp_Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Write keyword
-            writer.Write(keyword.Text);
+            keyword.GetSourceText(writer);
 
             // Write namespace name
             name.GetSourceText(writer);

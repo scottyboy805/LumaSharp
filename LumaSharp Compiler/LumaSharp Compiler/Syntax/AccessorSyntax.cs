@@ -54,7 +54,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal AccessorSyntax(string identifier, TypeReferenceSyntax type)
-            : base(identifier)
+            : base(identifier, type.StartToken, null)
         {
             // Accessor type
             this.accessorType = type;

@@ -1,7 +1,5 @@
-﻿
-using Antlr4.Runtime;
+﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
-using System.Diagnostics;
 
 namespace LumaSharp_Compiler.AST
 {
@@ -13,14 +11,38 @@ namespace LumaSharp_Compiler.AST
         protected SyntaxToken identifier = null;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get
+            {
+                // Check for attributes
+                if (HasAttributes == true)
+                    return attributes[0].StartToken;
+
+                // Check for modifiers
+                if (HasAccessModifiers == true)
+                    return accessModifiers[0];
+
+                return base.StartToken;
+            }
+        }
+
         public AttributeSyntax[] Attributes
         {
             get { return attributes; }
+            internal set { attributes = value; }
         }
 
         public SyntaxToken[] AccessModifiers
         {
             get { return accessModifiers; }
+            internal set 
+            { 
+                accessModifiers = value;
+
+                foreach (SyntaxToken modifier in accessModifiers)
+                    modifier.WithTrailingWhitespace(" ");
+            }
         }
 
         public SyntaxToken Identifier
@@ -49,8 +71,8 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        protected MemberSyntax(string identifier)
-            : base(null, null)
+        protected MemberSyntax(string identifier, SyntaxToken start, SyntaxToken end)
+            : base(start, end)
         {
             this.identifier = new SyntaxToken(identifier);
         }
@@ -74,6 +96,27 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Methods
+        public override void GetSourceText(TextWriter writer)
+        {
+            if (HasAttributes == true)
+            {
+                // Get custom attributes
+                foreach (AttributeSyntax attribute in attributes)
+                {
+                    attribute.GetSourceText(writer);
+                }
+            }
+
+            if (HasAccessModifiers == true)
+            {
+                // Get access modifiers
+                foreach (SyntaxToken modifier in accessModifiers)
+                {
+                    modifier.GetSourceText(writer);
+                }
+            }
+        }
+
         internal static SyntaxNode RootElement(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.RootElementContext element)
         {
             // Check for namespace

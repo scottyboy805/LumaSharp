@@ -1,7 +1,6 @@
 ﻿
 using LumaSharp_Compiler.AST.Expression;
 using LumaSharp_Compiler.AST.Statement;
-using System.Linq.Expressions;
 
 namespace LumaSharp_Compiler.AST.Factory
 {
@@ -9,7 +8,9 @@ namespace LumaSharp_Compiler.AST.Factory
     {
         // Methods
         #region Members
-        public static NamespaceSyntax Namespace(string identifier) => new NamespaceSyntax(identifier);
+        public static ImportSyntax Import(params string[] identifiers) => new ImportSyntax(identifiers);
+        public static ImportSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType, params string[] identifiers) => new ImportSyntax(alias, aliasType, identifiers);
+        public static NamespaceSyntax Namespace(params string[] identifiers) => new NamespaceSyntax(identifiers);
         public static TypeSyntax Type(string identifier) => new TypeSyntax(identifier);
         public static ContractSyntax Contract(string identifier) => new ContractSyntax(identifier);
         public static EnumSyntax Enum(string identifier) => new EnumSyntax(identifier);
@@ -72,6 +73,18 @@ namespace LumaSharp_Compiler.AST.Factory
             foreach (MemberSyntax member in members)
                 node.AddMember(member);
 
+            return node;
+        }
+
+        public static T WithAttributes<T>(this T node, params AttributeSyntax[] attributes) where T : MemberSyntax
+        {
+            node.Attributes = attributes;
+            return node;
+        }
+
+        public static T WithAccessModifiers<T>(this T node, params string[] modifiers) where T : MemberSyntax
+        {
+            node.AccessModifiers = modifiers.Select(m => new SyntaxToken(m)).ToArray();
             return node;
         }
 

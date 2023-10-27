@@ -52,7 +52,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal MethodSyntax(string identifier, TypeReferenceSyntax returnType)
-            : base(identifier)
+            : base(identifier, returnType.StartToken, null)
         {
             this.returnType = returnType != null ? returnType : new TypeReferenceSyntax("void");
             this.body = new BlockSyntax<StatementSyntax>();

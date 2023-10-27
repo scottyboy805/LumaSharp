@@ -20,10 +20,10 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal NamespaceName(string identifier)
-            : base(new SyntaxToken(identifier))
+        internal NamespaceName(string[] identifiers)
+            : base(new SyntaxToken(identifiers[0]), new SyntaxToken(identifiers[identifiers.Length - 1]))
         {
-            this.identifiers = identifier.Split('.').Select(i => new SyntaxToken(i)).ToArray();
+            this.identifiers = identifiers.Select(i => new SyntaxToken(i)).ToArray();
         }
 
         internal NamespaceName(SyntaxTree tree, SyntaxNode parent, ITerminalNode[] identifiers)

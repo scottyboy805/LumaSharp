@@ -103,7 +103,7 @@ namespace LumaSharp_Compiler.AST
         //}
 
         internal ContractSyntax(string identifier)
-            : base(identifier)
+            : base(identifier, SyntaxToken.Contract(), null)
         {
             this.memberBlock = new BlockSyntax<MemberSyntax>();
         }

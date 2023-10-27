@@ -39,7 +39,7 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType)
-            : base(identifier)
+            : base(identifier, fieldType.StartToken, SyntaxToken.Semi())
         {
             this.fieldType = fieldType;
         }
