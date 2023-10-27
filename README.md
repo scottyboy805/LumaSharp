@@ -1,5 +1,5 @@
 # LumaSharp
-C# programming language reimagined
+C# programming language reimagined - Intended as a fun side project/learning exersice, but hope to grow into something useable and feature complete.
 
 # Motivation
 C# is a powerful and mature language with frequent new features added all the time, and as a result has a certain amount of ambiguity as those features have been built upon over the years. Quite simply there are many ways to achieve the same thing in the language which can make it feel disjointed in some cases in my opinion. LumaSharp is my personal idea of what I think the perfect C# inspired language may look like if it was redesigned from stratch today, taking into consideration all the current features that a language like C# has to offer. The main goals are ease of use/simple or familiar syntax, and to eliminate as much ambiguity as possible without compromising on features.
@@ -9,7 +9,7 @@ WIP - Define language specification and usage (Common language features outlined
 - [x] [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/f43f670e914320d4399f02a3af5fbfb467bf7472/LumaSharp%20Specification/Overview.md)
 
 WIP - Implement language parsing using Antlr4 (Partially implemented - work is on going to support all proposed features).  
-- [X] Implement Antlr grammar for language specification - subject to change.
+- [X] Implement Antlr grammar for language specification - subject to change and refinement as the language structure develops.
 - [X] Implement Antlr expressions, statements, members and units for language specification.
 - [X] Generate structured parse tree using Antlr runtime.
 - [X] Implement Syntax tree API for working with parsed language.
@@ -34,3 +34,6 @@ TODO - Implement bytecode runtime to execute code as an application or library (
 # Proposed syntax
 Here is the proposed syntax for the language which may be subject to change: [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/f43f670e914320d4399f02a3af5fbfb467bf7472/LumaSharp%20Specification/Overview.md)
 
+# Sponsors
+You can sponsor this project to help it grow
+[:heart: Sponsor](https://github.com/sponsors/scottyboy805)
