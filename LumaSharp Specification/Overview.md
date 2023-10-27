@@ -17,7 +17,7 @@ import MyList as Collections.Generic.List<i8>;  // Aliasing is supported
 
 ### Namespaces:
 ```cs
-// Much the same, no real changes needed here - just use block syntax only where C# supports `namespace Example;` type syntax which is not needed in my opinion
+// Much the same, only the namespace separator character is `:` to avoid ambiguity (For example: `MyNamespace.MySomething.MyType` in C# `MySomething` could be either a namespace or a type which cannot be determined statically. That potential ambiguity is removed in Luma sharp: `MyNamespace:MySomething.MyType` as we can see that `MySomething` in indeed a type). Also just use block syntax only where C# supports `namespace Example;` type syntax which is not needed in my opinion
 namespace My.Root.Namespace{}
 ```
 ### Types:
