@@ -32,7 +32,6 @@ namespace LumaSharp_Compiler.AST
         private ArrayParametersSyntax arrayParameters = null;
         private SyntaxToken colon = null;
         private SyntaxToken dot = null;
-        private SyntaxToken reference = null;
 
         // Properties
         public override SyntaxToken StartToken
@@ -56,11 +55,6 @@ namespace LumaSharp_Compiler.AST
         {
             get
             {
-                if(IsByReference == true)
-                {
-                    return reference;
-                }
-
                 if(IsArrayType == true)
                 {
                     return arrayParameters.EndToken;
@@ -101,12 +95,6 @@ namespace LumaSharp_Compiler.AST
         {
             get { return arrayParameters; }
             internal set { arrayParameters = value; }
-        }
-
-        public SyntaxToken Reference
-        {
-            get { return reference; }
-            internal set { reference = value; }
         }
 
         public int NamespaceDepth
@@ -152,11 +140,6 @@ namespace LumaSharp_Compiler.AST
         public bool IsArrayType
         {
             get { return arrayParameters != null; }
-        }
-
-        public bool IsByReference
-        {
-            get { return reference != null; }
         }
 
         public bool IsPrimitiveType
@@ -277,10 +260,6 @@ namespace LumaSharp_Compiler.AST
             {
                 this.arrayParameters = new ArrayParametersSyntax(tree, this, array);
             }
-
-            // Check for reference
-            if (typeRef.Stop.Text == "&")
-                this.reference = new SyntaxToken(typeRef.Stop);
         }
 
         // Methods
@@ -315,10 +294,6 @@ namespace LumaSharp_Compiler.AST
             // Write array
             if(IsArrayType == true)
                 arrayParameters.GetSourceText(writer);
-
-            // Write reference
-            if(IsByReference == true)
-                reference.GetSourceText(writer);
         }
 
         internal bool GetPrimitiveType(out PrimitiveType primitiveType)

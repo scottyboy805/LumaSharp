@@ -67,7 +67,7 @@ namespace LumaSharp_Compiler.AST
         internal MethodSyntax(string identifier, TypeReferenceSyntax returnType)
             : base(identifier, returnType.StartToken, SyntaxToken.Semi())
         {
-            this.returnType = returnType != null ? returnType : new TypeReferenceSyntax("void");
+            this.returnType = returnType;
             this.identifier.WithLeadingWhitespace(" ");
             this.body = null;
 

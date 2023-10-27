@@ -7,7 +7,10 @@ namespace LumaSharp_Compiler.AST
         private TypeReferenceSyntax parameterType = null;
         private SyntaxToken identifier = null;
         private ExpressionSyntax assignExpression = null;
+        private SyntaxToken reference = null;
+        private SyntaxToken variableParameterList = null;
         private int index = 0;
+        private bool byReference = false;
         private bool variableSizedList = false;
 
         // Properties
@@ -29,6 +32,11 @@ namespace LumaSharp_Compiler.AST
         public int Index
         {
             get { return index; }
+        }
+
+        public bool IsByReference
+        {
+            get { return byReference; }
         }
 
         public bool IsVariableSizedList
@@ -55,7 +63,7 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal ParameterSyntax(TypeReferenceSyntax parameterType, string identifier, bool variableSizedList = false)
+        internal ParameterSyntax(TypeReferenceSyntax parameterType, string identifier, bool byReference = false, bool variableSizedList = false)
             : base(parameterType.StartToken, new SyntaxToken(identifier))
         {
             // Param type
@@ -66,7 +74,10 @@ namespace LumaSharp_Compiler.AST
                 .WithLeadingWhitespace(" ");
 
             // Variable sized
+            this.byReference = byReference;
+            this.reference = SyntaxToken.Reference();
             this.variableSizedList = variableSizedList;
+            this.variableParameterList = SyntaxToken.VariableParam();
         }
 
         internal ParameterSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterContext paramDef, int index)
@@ -91,8 +102,20 @@ namespace LumaSharp_Compiler.AST
             // Parameter type
             parameterType.GetSourceText(writer);
 
+            // Check for reference
+            if(IsByReference == true)
+            {
+                reference.GetSourceText(writer);
+            }
+
             // Identifier
             identifier.GetSourceText(writer);
+
+            // Variable sized list
+            if(variableSizedList == true)
+            {
+                variableParameterList.GetSourceText(writer);
+            }
         }
     }
 }

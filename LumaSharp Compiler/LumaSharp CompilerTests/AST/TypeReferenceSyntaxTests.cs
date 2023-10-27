@@ -37,40 +37,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsNested);
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsFalse(syntax.IsByReference);
-        }
-
-        [DataTestMethod]
-        [DataRow("any&")]
-        [DataRow("i8&")]
-        [DataRow("u8&")]
-        [DataRow("i16&")]
-        [DataRow("u16&")]
-        [DataRow("i32&")]
-        [DataRow("u32&")]
-        [DataRow("i64&")]
-        [DataRow("u64&")]
-        [DataRow("float&")]
-        [DataRow("double&")]
-        [DataRow("bool&")]
-        [DataRow("char&")]
-        [DataRow("string&")]
-        public void Primitive_Reference(string input)
-        {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
-            // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
-
-            // Check for valid
-            Assert.IsNotNull(syntax);
-            Assert.AreEqual(input.TrimEnd('&'), syntax.Identifier.Text);
-            Assert.IsTrue(syntax.IsPrimitiveType);
-            Assert.IsFalse(syntax.HasNamespace);
-            Assert.IsFalse(syntax.IsNested);
-            Assert.IsFalse(syntax.IsGenericType);
-            Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsTrue(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -104,7 +70,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(1, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -138,7 +103,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(2, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -172,41 +136,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(3, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
-        }
-
-        [DataTestMethod]
-        [DataRow("any[]&")]
-        [DataRow("i8[]&")]
-        [DataRow("u8[]&")]
-        [DataRow("i16[]&")]
-        [DataRow("u16[]&")]
-        [DataRow("i32[]&")]
-        [DataRow("u32[]&")]
-        [DataRow("i64[]&")]
-        [DataRow("u64[]&")]
-        [DataRow("float[]&")]
-        [DataRow("double[]&")]
-        [DataRow("bool[]&")]
-        [DataRow("char[]&")]
-        [DataRow("string[]&")]
-        public void Primitive_Array_1_Ref(string input)
-        {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
-            // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
-
-            // Check for valid
-            Assert.IsNotNull(syntax);
-            Assert.AreEqual(input.TrimEnd('[', ']', '&'), syntax.Identifier.Text);
-            Assert.IsTrue(syntax.IsPrimitiveType);
-            Assert.IsFalse(syntax.HasNamespace);
-            Assert.IsFalse(syntax.IsNested);
-            Assert.IsFalse(syntax.IsGenericType);
-            Assert.IsTrue(syntax.IsArrayType);
-            Assert.AreEqual(1, syntax.ArrayParameterRank);
-            Assert.IsTrue(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -240,7 +169,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(2, syntax.ArrayParameterRank);
-            Assert.IsTrue(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -274,7 +202,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(3, syntax.ArrayParameterRank);
-            Assert.IsTrue(syntax.IsByReference);
         }
         #endregion
 
@@ -299,7 +226,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsNested);
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -322,7 +248,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsNested);
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -345,7 +270,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.AreEqual(nestedDepth, syntax.NestedDepth);
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -372,7 +296,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsTrue(syntax.IsGenericType);
             Assert.AreEqual(genericArguments, syntax.GenericArgumentCount);
             Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -394,7 +317,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(1, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -416,7 +338,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(2, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -438,30 +359,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(3, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
-        }
-
-        [DataTestMethod]
-        [DataRow("MyType&")]
-        [DataRow("_MyType&")]
-        [DataRow("MyType123&")]
-        [DataRow("_MyType123&")]
-        public void UserType_Ref(string input)
-        {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
-            // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
-
-            // Check for valid
-            Assert.IsNotNull(syntax);
-            Assert.AreEqual(input.TrimEnd('&'), syntax.Identifier.Text);
-            Assert.IsFalse(syntax.IsPrimitiveType);
-            Assert.IsFalse(syntax.HasNamespace);
-            Assert.IsFalse(syntax.IsNested);
-            Assert.IsFalse(syntax.IsGenericType);
-            Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsTrue(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -485,7 +382,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsTrue(syntax.IsGenericType);
             Assert.AreEqual(syntax.GenericArgumentCount, genericArguments);
             Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -509,7 +405,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(1, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -533,7 +428,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(2, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
         }
 
         [DataTestMethod]
@@ -557,55 +451,6 @@ namespace LumaSharp_CompilerTests.AST
             Assert.IsFalse(syntax.IsGenericType);
             Assert.IsTrue(syntax.IsArrayType);
             Assert.AreEqual(3, syntax.ArrayParameterRank);
-            Assert.IsFalse(syntax.IsByReference);
-        }
-
-        [DataTestMethod]
-        [DataRow("MyNamespace.MyType&", "MyType", 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType&", "MyType", 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType&", "MyType", 3)]
-        public void UserType_Namespace_Ref(string input, string identifier, int namespaceDepth)
-        {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
-            // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
-
-            // Check for valid
-            Assert.IsNotNull(syntax);
-            Assert.AreEqual(identifier, syntax.Identifier.Text);
-            Assert.IsFalse(syntax.IsPrimitiveType);
-            Assert.IsTrue(syntax.HasNamespace);
-            Assert.AreEqual(namespaceDepth, syntax.NamespaceDepth);
-            Assert.IsFalse(syntax.IsNested);
-            Assert.IsFalse(syntax.IsGenericType);
-            Assert.IsFalse(syntax.IsArrayType);
-            Assert.IsTrue(syntax.IsByReference);
-        }
-
-        [DataTestMethod]
-        [DataRow("MyNamespace.MyType<i32>[]&", "MyType", 1, 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType<float, MyOtherType>[]&", "MyType", 2, 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType<double, string, Type<i8, i16>>[]&", "MyType", 3, 3)]
-        public void UserType_Namespace_Generic_Array_1_Ref(string input, string identifier, int namespaceDepth, int genericArguments)
-        {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
-            // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
-            string tmp = syntax.GetSourceText();
-            // Check for valid
-            Assert.IsNotNull(syntax);
-            Assert.AreEqual(identifier, syntax.Identifier.Text);
-            Assert.IsFalse(syntax.IsPrimitiveType);
-            Assert.IsTrue(syntax.HasNamespace);
-            Assert.AreEqual(namespaceDepth, syntax.NamespaceDepth);
-            Assert.IsFalse(syntax.IsNested);
-            Assert.IsTrue(syntax.IsGenericType);
-            Assert.AreEqual(syntax.GenericArgumentCount, genericArguments);
-            Assert.IsTrue(syntax.IsArrayType);
-            Assert.AreEqual(1, syntax.ArrayParameterRank);
-            Assert.IsTrue(syntax.IsByReference);
         }
         #endregion
     }

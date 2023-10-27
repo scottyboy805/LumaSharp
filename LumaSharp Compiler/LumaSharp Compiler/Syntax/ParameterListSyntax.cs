@@ -32,11 +32,11 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal ParameterListSyntax(ParameterSyntax[] parameters)
-            : base(parameters.Length > 0 ? parameters[0].StartToken : null, parameters.Length > 0 ? parameters[parameters.Length - 1].EndToken : null)
+            : base(SyntaxToken.LParen(), SyntaxToken.RParen())
         {
             this.parameters = parameters;
-            this.lparen = SyntaxToken.LParen();
-            this.rparen = SyntaxToken.RParen();
+            this.lparen = base.StartToken;
+            this.rparen = base.EndToken;
             this.comma = SyntaxToken.Comma();
         }
 

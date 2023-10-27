@@ -16,14 +16,14 @@ namespace LumaSharp_Compiler.AST.Factory
         public static EnumSyntax Enum(string identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, underlyingType);
         public static FieldSyntax Field(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign = null) => new FieldSyntax(identifier, fieldType, fieldAssign);
         public static AccessorSyntax Accessor(string identifier, TypeReferenceSyntax accessorType, ExpressionSyntax assignExpression = null) => new AccessorSyntax(identifier, accessorType, assignExpression);
-        public static MethodSyntax Method(string identifier, TypeReferenceSyntax returnType = null) => new MethodSyntax(identifier, returnType);
+        public static MethodSyntax Method(string identifier, TypeReferenceSyntax returnType = null) => new MethodSyntax(identifier, returnType != null ? returnType : new TypeReferenceSyntax("void"));
         #endregion
 
         #region CommonUse
         public static TypeReferenceSyntax TypeReference(PrimitiveType primitive) => new TypeReferenceSyntax(primitive);
         public static TypeReferenceSyntax TypeReference(string identifier) => new TypeReferenceSyntax(identifier);
         public static GenericParameterSyntax GenericParameter(string identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, constrainTypes);
-        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, string identifier, bool variableSizedList = false) => new ParameterSyntax(parameterType, identifier, variableSizedList);
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, string identifier, bool byReference = false, bool variableSizedList = false) => new ParameterSyntax(parameterType, identifier, byReference, variableSizedList);
         public static AttributeSyntax Attribute(TypeReferenceSyntax attributeType, params ExpressionSyntax[] expressions) => new AttributeSyntax(attributeType, expressions);
         #endregion
 
@@ -241,12 +241,6 @@ namespace LumaSharp_Compiler.AST.Factory
         public static TypeReferenceSyntax WithArrayQualifier(this TypeReferenceSyntax type, int rank)
         {
             type.ArrayParameters = new ArrayParametersSyntax(rank);
-            return type;
-        }
-
-        public static TypeReferenceSyntax WithReferenceQualifier(this TypeReferenceSyntax type)
-        {
-            type.Reference = SyntaxToken.Reference();
             return type;
         }
         #endregion
