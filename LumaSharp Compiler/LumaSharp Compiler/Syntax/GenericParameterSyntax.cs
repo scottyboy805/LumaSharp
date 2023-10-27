@@ -6,6 +6,7 @@ namespace LumaSharp_Compiler.AST
         // Private
         private SyntaxToken identifier = null;
         private TypeReferenceSyntax[] constraintTypes = null;
+        private SyntaxToken colon = null;
         private int index = 0;
 
         // Properties
@@ -48,7 +49,7 @@ namespace LumaSharp_Compiler.AST
 
             // Constrain types
             this.constraintTypes = constraintTypes;
-
+            this.colon = SyntaxToken.Colon();
             this.index = index;
         }
 
@@ -73,7 +74,20 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Write identifier
+            identifier.GetSourceText(writer);
+
+            if (HasConstraintTypes == true)
+            {
+                for (int i = 0; i < constraintTypes.Length; i++)
+                {
+                    // Colon
+                    colon.GetSourceText(writer);
+
+                    // Write constrain types
+                    constraintTypes[i].GetSourceText(writer);
+                }
+            }
         }
     }
 }

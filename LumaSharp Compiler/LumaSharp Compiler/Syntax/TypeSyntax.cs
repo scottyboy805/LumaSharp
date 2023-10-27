@@ -47,11 +47,13 @@ namespace LumaSharp_Compiler.AST
         public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
+            internal set { genericParameters = value; }
         }
 
         public TypeReferenceSyntax[] BaseTypeReferences
         {
             get { return baseTypeReferences; }
+            internal set { baseTypeReferences = value; }
         }
 
         public BlockSyntax<MemberSyntax> MemberBlock

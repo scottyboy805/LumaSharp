@@ -7,6 +7,7 @@ namespace LumaSharp_Compiler.AST
         private GenericParameterSyntax[] genericParameters = null;
         private SyntaxToken lgen = null;
         private SyntaxToken rgen = null;
+        private SyntaxToken comma = null;
 
         // Properties
         public GenericParameterSyntax[] GenericParameters
@@ -36,6 +37,7 @@ namespace LumaSharp_Compiler.AST
             this.genericParameters = genericParameters;
             this.lgen = base.StartToken;
             this.rgen = base.EndToken;
+            this.comma = SyntaxToken.Comma();
         }
 
         //internal GenericParameterListSyntax(SyntaxTree tree, SyntaxNode parent, string[] genericNames)
@@ -64,22 +66,22 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            //// Generic start
-            //writer.Write(genericStart.ToString());
+            // Generic start
+            lgen.GetSourceText(writer);
 
-            //// Generic types
-            //for(int i = 0; i < genericParameters.Length; i++)
-            //{
-            //    // Get source text
-            //    writer.Write(genericParameters[i].ToString());
+            // Generic parameters
+            for(int i = 0; i <  genericParameters.Length; i++)
+            {
+                // Write generic
+                genericParameters[i].GetSourceText(writer);
 
-            //    // Append separator
-            //    if(i < genericParameters.Length - 1)
-            //        writer.Write(", ");
-            //}
+                // Comma
+                if (i < genericParameters.Length - 1)
+                    comma.GetSourceText(writer);
+            }
 
-            //// Generic end
-            //writer.Write(genericEnd.ToString());
+            // Generic end
+            rgen.GetSourceText(writer);
         }
     }
 }

@@ -24,6 +24,7 @@ namespace LumaSharp_Compiler.AST.Factory
         public static TypeReferenceSyntax TypeReference(string identifier) => new TypeReferenceSyntax(identifier);
         public static GenericParameterSyntax GenericParameter(string identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, constrainTypes);
         public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, string identifier, bool variableSizedList = false) => new ParameterSyntax(parameterType, identifier, variableSizedList);
+        public static AttributeSyntax Attribute(TypeReferenceSyntax attributeType, params ExpressionSyntax[] expressions) => new AttributeSyntax(attributeType, expressions);
         #endregion
 
         #region Statements
@@ -86,6 +87,12 @@ namespace LumaSharp_Compiler.AST.Factory
         {
             node.AccessModifiers = modifiers.Select(m => new SyntaxToken(m)).ToArray();
             return node;
+        }
+
+        public static TypeSyntax WithGenericParameters(this TypeSyntax type, params GenericParameterSyntax[] genericParameters)
+        {
+            type.GenericParameters = new GenericParameterListSyntax(genericParameters);
+            return type;
         }
 
         public static MethodSyntax WithParameters(this MethodSyntax method, params ParameterSyntax[] parameters)

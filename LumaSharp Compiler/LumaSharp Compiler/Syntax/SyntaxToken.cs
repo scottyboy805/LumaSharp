@@ -143,6 +143,7 @@ namespace LumaSharp_Compiler.AST
         internal static SyntaxToken Comma() => new SyntaxToken(",");
         internal static SyntaxToken Colon() => new SyntaxToken(":");
         internal static SyntaxToken Semi() => new SyntaxToken(";");
+        internal static SyntaxToken Hash() => new SyntaxToken("#");
 
         internal static SyntaxToken Assign() => new SyntaxToken("=");
     }
