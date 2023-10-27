@@ -6,10 +6,16 @@ namespace LumaSharp_Compiler.AST
         // Private
         private SyntaxToken keyword = null;
         private TypeReferenceSyntax underlyingTypeReference = null;
+        private SyntaxToken colon = null;
 
         private BlockSyntax<FieldSyntax> fieldBlock = null;
 
         // Properties
+        public override SyntaxToken EndToken
+        {
+            get { return fieldBlock.EndToken; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
@@ -67,10 +73,13 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal EnumSyntax(string identifier)
+        internal EnumSyntax(string identifier, TypeReferenceSyntax underlyingType)
             : base(identifier, SyntaxToken.Enum(), null)
         {
+            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
+            this.underlyingTypeReference = underlyingType;
             this.fieldBlock = new BlockSyntax<FieldSyntax>();
+            this.colon = SyntaxToken.Colon();
         }
 
         internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
@@ -98,7 +107,27 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Generate attributes
+            base.GetSourceText(writer);
+
+            // Keyword
+            keyword.GetSourceText(writer);
+
+            // Identifier
+            identifier.GetSourceText(writer);
+
+            // Underlying type
+            if(underlyingTypeReference != null)
+            {
+                // Colon
+                colon.GetSourceText(writer);
+
+                // Underlying type
+                underlyingTypeReference.GetSourceText(writer);
+            }
+
+            // Member block
+            fieldBlock.GetSourceText(writer);
         }
     }
 }

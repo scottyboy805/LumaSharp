@@ -4,9 +4,10 @@ namespace LumaSharp_Compiler.AST
     public class FieldSyntax : MemberSyntax
     {
         // Private
-        private TypeReferenceSyntax fieldType = null;
-        private SyntaxToken assign = null;
+        private TypeReferenceSyntax fieldType = null;        
         private ExpressionSyntax fieldAssignment = null;
+        private SyntaxToken assign = null;
+        private SyntaxToken semicolon = null;
 
         // Properties
         public TypeReferenceSyntax FieldType
@@ -38,10 +39,14 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType)
+        internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign)
             : base(identifier, fieldType.StartToken, SyntaxToken.Semi())
         {
             this.fieldType = fieldType;
+            this.fieldAssignment = fieldAssign;
+            this.identifier.WithLeadingWhitespace(" ");
+            this.assign = SyntaxToken.Assign();
+            this.semicolon = base.EndToken;
         }
 
         internal FieldSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.FieldDeclarationContext fieldDef)
@@ -84,18 +89,27 @@ namespace LumaSharp_Compiler.AST
 
         public override void GetSourceText(TextWriter writer)
         {
-            // Write attributes
-            //if(HasAt)
+            // Attributes
+            base.GetSourceText(writer);
 
-            // Write access modifiers
-            if (HasAccessModifiers == true)
+            // Field type
+            fieldType.GetSourceText(writer);
+
+            // Identifier
+            identifier.GetSourceText(writer);
+
+            // Assign
+            if(HasFieldAssignment == true)
             {
-                for(int i = 0; i < accessModifiers.Length; i++)
-                {
-                    writer.Write(accessModifiers[i].ToString());
-                    writer.Write(' ');
-                }
+                // Assign op
+                assign.GetSourceText(writer);
+
+                // Assign expression
+                fieldAssignment.GetSourceText(writer);
             }
+
+            // End
+            semicolon.GetSourceText(writer);
         }
     }
 }

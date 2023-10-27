@@ -7,8 +7,20 @@ namespace LumaSharp_Compiler.AST
         private SyntaxToken keyword = null;
         private StatementSyntax inlineBody = null;
         private BlockSyntax<StatementSyntax> blockBody = null;
+        private SyntaxToken colon = null;
 
         // Properties
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if (HasBlockBody == true)
+                    return blockBody.EndToken;
+
+                return base.EndToken;
+            }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
@@ -57,12 +69,28 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
+        internal AccessorBodySyntax(SyntaxToken keyword, StatementSyntax inlineBody)
+            : base(keyword, inlineBody.EndToken)
+        {
+            this.keyword = keyword;
+            this.inlineBody = inlineBody;
+            this.colon = SyntaxToken.Colon();
+        }
+
+        internal AccessorBodySyntax(SyntaxToken keyword, StatementSyntax[] blockBody)
+            : base(keyword, null)
+        {
+            this.keyword = keyword;
+            this.blockBody = new BlockSyntax<StatementSyntax>(blockBody);
+            this.colon = SyntaxToken.Colon();
+        }
+
         internal AccessorBodySyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorReadContext read)
             : base(tree, parent, read)
         {
             // Get the keyword
             this.keyword = new SyntaxToken(read.READ());
-
+            
             // Get the statement
             LumaSharpParser.StatementContext statement = read.statement();
 
@@ -105,7 +133,21 @@ namespace LumaSharp_Compiler.AST
 
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Keyword
+            keyword.GetSourceText(writer);
+
+            // Colon
+            colon.GetSourceText(writer);
+
+            // Check for inline
+            if(HasInlineBody == true)
+            {
+                inlineBody.GetSourceText(writer);
+            }
+            else if(HasBlockBody == true)
+            {
+                blockBody.GetSourceText(writer);
+            }
         }
     }
 }

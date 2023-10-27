@@ -1,4 +1,6 @@
 ﻿
+using System.ComponentModel.DataAnnotations;
+
 namespace LumaSharp_Compiler.AST
 {
     public sealed class ContractSyntax : MemberSyntax
@@ -7,10 +9,17 @@ namespace LumaSharp_Compiler.AST
         private SyntaxToken keyword = null;
         private GenericParameterListSyntax genericParameters = null;
         private TypeReferenceSyntax[] baseTypeReferences = null;
+        private SyntaxToken colon = null;
+        private SyntaxToken comma = null;
 
         private BlockSyntax<MemberSyntax> memberBlock = null;
 
         // Properties
+        public override SyntaxToken EndToken
+        {
+            get { return memberBlock.EndToken; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
@@ -40,11 +49,13 @@ namespace LumaSharp_Compiler.AST
         public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
+            internal set { genericParameters = value; }
         }
 
         public TypeReferenceSyntax[] BaseTypeReferences
         {
             get { return baseTypeReferences; }
+            internal set { baseTypeReferences = value; }
         }
 
         public BlockSyntax<MemberSyntax> MemberBlock
@@ -105,7 +116,10 @@ namespace LumaSharp_Compiler.AST
         internal ContractSyntax(string identifier)
             : base(identifier, SyntaxToken.Contract(), null)
         {
+            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
             this.memberBlock = new BlockSyntax<MemberSyntax>();
+            this.colon = SyntaxToken.Colon();
+            this.comma = SyntaxToken.Comma();
         }
 
         internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
@@ -137,7 +151,41 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            throw new NotImplementedException();
+            // Generate attributes
+            base.GetSourceText(writer);
+
+            // Keyword
+            keyword.GetSourceText(writer);
+
+            // Identifier
+            identifier.GetSourceText(writer);
+
+            // Generics
+            if(HasGenericParameters == true)
+            {
+                genericParameters.GetSourceText(writer);
+            }
+
+            // Check for base types
+            if(HasBaseTypes == true)
+            {
+                // Colon
+                colon.GetSourceText(writer);
+
+                // Base types
+                for(int i = 0; i < baseTypeReferences.Length; i++)
+                {
+                    // Write type
+                    baseTypeReferences[i].GetSourceText(writer);
+
+                    // Comma
+                    if(i <  baseTypeReferences.Length - 1)
+                        comma.GetSourceText(writer);
+                }
+            }
+
+            // Write block
+            memberBlock.GetSourceText(writer);
         }
     }
 }

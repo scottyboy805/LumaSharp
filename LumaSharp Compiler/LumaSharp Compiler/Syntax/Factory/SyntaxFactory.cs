@@ -13,9 +13,9 @@ namespace LumaSharp_Compiler.AST.Factory
         public static NamespaceSyntax Namespace(params string[] identifiers) => new NamespaceSyntax(identifiers);
         public static TypeSyntax Type(string identifier) => new TypeSyntax(identifier);
         public static ContractSyntax Contract(string identifier) => new ContractSyntax(identifier);
-        public static EnumSyntax Enum(string identifier) => new EnumSyntax(identifier);
-        public static FieldSyntax Field(string identifier, TypeReferenceSyntax fieldType) => new FieldSyntax(identifier, fieldType);
-        public static AccessorSyntax Accessor(string identifier, TypeReferenceSyntax accessorType) => new AccessorSyntax(identifier, accessorType);
+        public static EnumSyntax Enum(string identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, underlyingType);
+        public static FieldSyntax Field(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign = null) => new FieldSyntax(identifier, fieldType, fieldAssign);
+        public static AccessorSyntax Accessor(string identifier, TypeReferenceSyntax accessorType, ExpressionSyntax assignExpression = null) => new AccessorSyntax(identifier, accessorType, assignExpression);
         public static MethodSyntax Method(string identifier, TypeReferenceSyntax returnType = null) => new MethodSyntax(identifier, returnType);
         #endregion
 
@@ -94,6 +94,54 @@ namespace LumaSharp_Compiler.AST.Factory
             type.GenericParameters = new GenericParameterListSyntax(genericParameters);
             return type;
         }
+
+        public static ContractSyntax WithGenericParameters(this ContractSyntax contract, params GenericParameterSyntax[] genericParameters)
+        {
+            contract.GenericParameters = new GenericParameterListSyntax(genericParameters);
+            return contract;
+        }
+
+        public static TypeSyntax WithBaseTypes(this TypeSyntax type, params TypeReferenceSyntax[] baseTypes)
+        {
+            type.BaseTypeReferences = baseTypes;
+            return type;
+        }
+
+        public static ContractSyntax WithBaseTypes(this ContractSyntax contract, params TypeReferenceSyntax[] baseTypes)
+        {
+            contract.BaseTypeReferences = baseTypes;
+            return contract;
+        }
+
+
+        public static AccessorSyntax WithReadStatement(this AccessorSyntax accessor, StatementSyntax statement)
+        {
+            accessor.AssignExpression = null;
+            accessor.ReadBody = new AccessorBodySyntax(SyntaxToken.Read(), statement);
+            return accessor;
+        }
+
+        public static AccessorSyntax WithReadStatements(this AccessorSyntax accessor, params StatementSyntax[] readStatements)
+        {
+            accessor.AssignExpression = null;
+            accessor.ReadBody = new AccessorBodySyntax(SyntaxToken.Read(), readStatements);
+            return accessor;
+        }
+
+        public static AccessorSyntax WithWriteStatement(this AccessorSyntax accessor, StatementSyntax statement)
+        {
+            accessor.AssignExpression = null;
+            accessor.WriteBody = new AccessorBodySyntax(SyntaxToken.Write(), statement);
+            return accessor;
+        }
+
+        public static AccessorSyntax WithWriteStatements(this AccessorSyntax accessor, params StatementSyntax[] writeStatements)
+        {
+            accessor.AssignExpression = null;
+            accessor.WriteBody = new AccessorBodySyntax(SyntaxToken.Write(), writeStatements);
+            return accessor;
+        }
+
 
         public static MethodSyntax WithParameters(this MethodSyntax method, params ParameterSyntax[] parameters)
         {

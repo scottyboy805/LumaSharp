@@ -119,6 +119,8 @@ namespace LumaSharp_Compiler.AST
         internal static SyntaxToken Type() => new SyntaxToken("type");
         internal static SyntaxToken Contract() => new SyntaxToken("contract");
         internal static SyntaxToken Enum() => new SyntaxToken("enum");
+        internal static SyntaxToken Read() => new SyntaxToken("read");
+        internal static SyntaxToken Write() => new SyntaxToken("write");
         internal static SyntaxToken Size() => new SyntaxToken("size");
         internal static SyntaxToken This() => new SyntaxToken("this");
         internal static SyntaxToken Base() => new SyntaxToken("base");
@@ -145,6 +147,7 @@ namespace LumaSharp_Compiler.AST
         internal static SyntaxToken Semi() => new SyntaxToken(";");
         internal static SyntaxToken Hash() => new SyntaxToken("#");
 
+        internal static SyntaxToken Lambda() => new SyntaxToken("=>");
         internal static SyntaxToken Assign() => new SyntaxToken("=");
     }
 }
