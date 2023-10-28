@@ -19,7 +19,7 @@ namespace LumaSharp_Compiler.Semantics
 
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
-        ITypeReferenceSymbol[] GenericTypeSymbols { get; }
+        IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols { get; }
 
         ITypeReferenceSymbol[] BaseTypeSymbols { get; }
 

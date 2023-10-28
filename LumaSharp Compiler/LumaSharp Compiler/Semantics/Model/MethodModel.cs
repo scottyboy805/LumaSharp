@@ -11,7 +11,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private MethodSyntax syntax = null;
         private TypeModel declaringType = null;
         private ITypeReferenceSymbol returnTypeSymbol = null;
-        private IGenericParameterIdentifierReferenceSymbol[] genericParameterIdentifierSymbols = null;
+        private GenericParameterModel[] genericParameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] parameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] localIdentifierSymbols = null;
         private StatementModel[] bodyStatements = null;
@@ -93,7 +93,21 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             this.syntax = syntax;
             this.declaringType = parent;
-            
+
+            // Create generics
+            if (syntax.HasGenericParameters == true)
+            {
+                // Create symbol array
+                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.GenericParameterCount];
+
+                // Build all
+                for (int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
+                {
+                    // Add to method model
+                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                }
+            }
+
             // Create body
             if (syntax.HasBody == true)
             {
@@ -111,20 +125,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Resolve generics
             if(syntax.HasGenericParameters == true)
             {
-                // Create symbol array
-                genericParameterIdentifierSymbols = new IGenericParameterIdentifierReferenceSymbol[syntax.GenericParameters.GenericParameterCount];
-
                 // Resolve all
                 for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
                 {
-                    // Create generic
-                    GenericParameterModel genericModel = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
-
-                    // Add to method model
-                    genericParameterIdentifierSymbols[i] = genericModel;
-
                     // Resolve symbols
-                    genericModel.ResolveSymbols(provider);
+                    genericParameterIdentifierSymbols[i].ResolveSymbols(provider, report);
                 }
             }
 

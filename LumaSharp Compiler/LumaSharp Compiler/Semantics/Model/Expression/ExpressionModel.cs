@@ -52,6 +52,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             if(syntax is VariableReferenceExpressionSyntax)
                 return new VariableReferenceModel(model, parent, syntax as VariableReferenceExpressionSyntax);
 
+            // Binary
+            if(syntax is BinaryExpressionSyntax)
+                return new BinaryModel(model, parent, syntax as BinaryExpressionSyntax);
+
             throw new NotSupportedException("Specified syntax is not supported");
         }
     }

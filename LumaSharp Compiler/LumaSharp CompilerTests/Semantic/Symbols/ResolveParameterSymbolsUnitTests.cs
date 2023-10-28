@@ -6,10 +6,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace LumaSharp_CompilerTests.Semantic.Symbols
 {
     [TestClass]
-    public class ResolveLocalSymbolsUnitTests
+    public class ResolveParameterSymbolsUnitTests
     {
         [TestMethod]
-        public void ResolveLocalSymbols_Local()
+        public void ResolveParameterSymbols_Local()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("MyType")
@@ -40,7 +40,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
         }
 
         [TestMethod]
-        public void ResolveLocalSymbols_Return()
+        public void ResolveParameterSymbols_Return()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("test")

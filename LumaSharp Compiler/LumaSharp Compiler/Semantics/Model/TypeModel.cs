@@ -1,7 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
-using System.Diagnostics.SymbolStore;
-using System.Reflection;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -12,6 +10,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         //private GenericParameterModel[] genericParameters = null;
 
         private TypeModel parentType = null;
+        private GenericParameterModel[] genericParameterIdentifierSymbols = null;
         private ITypeReferenceSymbol[] baseTypesSymbols = null;
 
         private TypeModel[] memberTypes = null;
@@ -46,7 +45,12 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return parentType; }
         }
 
-        public ITypeReferenceSymbol[] BaseTypesSymbols
+        public IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols
+        {
+            get { return genericParameterIdentifierSymbols; }
+        }
+
+        public ITypeReferenceSymbol[] BaseTypeSymbols
         {
             get { return baseTypesSymbols; }
         }
@@ -119,10 +123,6 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax is EnumSyntax; }
         }
 
-        public ITypeReferenceSymbol[] GenericTypeSymbols => throw new NotImplementedException();
-
-        public ITypeReferenceSymbol[] BaseTypeSymbols => throw new NotImplementedException();
-
         // Constructor
         internal TypeModel(SemanticModel model, MemberModel parent, TypeSyntax syntax)
             : base(model, parent, syntax)
@@ -134,6 +134,19 @@ namespace LumaSharp_Compiler.Semantics.Model
                 this.parentType = (TypeModel)parent;
 
             // Create generics
+            if(syntax.HasGenericParameters == true)
+            {
+                // Create symbol array
+                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.GenericParameterCount];
+
+                // Build all
+                for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
+                {
+                    // Add to type model
+                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                }
+            }
+
             //genericParameters = syntax.HasGenericParameters
             //    ? syntax.GenericParameters.GenericTypes.Select(t => new GenericParameterModel(t)).ToArray()
             //    : null;
@@ -177,6 +190,15 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Methods
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve generics
+            if(HasGenericParameters == true)
+            {
+                for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
+                {
+                    genericParameterIdentifierSymbols[i].ResolveSymbols(provider, report);
+                }
+            }
+
             // Resolve all sub type symbols
             foreach(TypeModel subType in memberTypes)
             {

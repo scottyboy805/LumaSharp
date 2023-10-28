@@ -32,6 +32,7 @@ namespace LumaSharp_Compiler.AST
         public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
+            internal set { genericParameters = value; }
         }
 
         public ParameterListSyntax Parameters

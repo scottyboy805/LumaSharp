@@ -85,22 +85,22 @@ namespace LumaSharp_Compiler.Semantics.Reference
             return null;
         }
 
-        
 
-        public IReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
+
+        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
         {
             // Check for type
-            if(context is ITypeReferenceSymbol typeReference)
+            if (context is ITypeReferenceSymbol typeReference)
             {
                 // Get all matches
                 int matchCount = 0;
-                IReferenceSymbol matchSymbol = null;
+                IIdentifierReferenceSymbol matchSymbol = null;
 
                 // Get all fields
-                foreach(IFieldReferenceSymbol field in typeReference.FieldMemberSymbols)
+                foreach (IFieldReferenceSymbol field in typeReference.FieldMemberSymbols)
                 {
                     // Check for matched field name
-                    if(field.FieldName == reference.Identifier.Text)
+                    if (field.FieldName == reference.Identifier.Text)
                     {
                         matchCount++;
                         matchSymbol = field;
@@ -108,10 +108,10 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 }
 
                 // Get all accessors
-                foreach(IAccessorReferenceSymbol accessor in typeReference.AccessorMemberSymbols)
+                foreach (IAccessorReferenceSymbol accessor in typeReference.AccessorMemberSymbols)
                 {
                     // Check for matched accessor name
-                    if(accessor.AccessorName == reference.Identifier.Text)
+                    if (accessor.AccessorName == reference.Identifier.Text)
                     {
                         matchCount++;
                         matchSymbol = accessor;

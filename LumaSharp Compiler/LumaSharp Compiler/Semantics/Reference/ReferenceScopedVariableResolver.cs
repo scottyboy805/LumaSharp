@@ -30,11 +30,19 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 return false;
             }
 
-            // Check for method parameters first
+            // Check for method context first
             if(context is IMethodReferenceSymbol)
             {
                 // Check if we can resolve from parameters
-                if (ResolveReferenceIdentifierSymbolFromMethodParameterContext((IMethodReferenceSymbol)context, reference, out resolvedIdentifier) == true)
+                if (ResolveReferenceIdentifierSymbolFromMethodContext((IMethodReferenceSymbol)context, reference, out resolvedIdentifier) == true)
+                    return true;
+            }
+
+            // Check for type context
+            if(context is ITypeReferenceSymbol)
+            {
+                // Check if we can resolve from fields or parameters
+                if (ResolveReferenceIdentifierSymbolFromTypeContext((ITypeReferenceSymbol)context, reference, out resolvedIdentifier) == true)
                     return true;
             }
 
@@ -42,23 +50,24 @@ namespace LumaSharp_Compiler.Semantics.Reference
             if(context is IScopedReferenceSymbol)
             {
                 // Still need to check for method parameters before all else, but a little more work is required to move up to the method scope if possible
-                if (ResolveReferenceIdentifierSymbolFromMethodParameterScopedContext((IScopedReferenceSymbol)context, reference, out resolvedIdentifier) == true)
+                if (ResolveReferenceIdentifierSymbolFromMethodScopedContext((IScopedReferenceSymbol)context, reference, out resolvedIdentifier) == true)
                     return true;
 
                 // Check if we can resolve from local scope
                 if (ResolveReferenceIdentifierSymbolFromScopeContext((IScopedReferenceSymbol)context, reference, out resolvedIdentifier) == true)
                     return true;
+
+                // Check for field variables lastly
+                if (ResolveReferenceIdentifierSymbolFromTypeScopedContext((IScopedReferenceSymbol)context, reference, out resolvedIdentifier) == true)
+                    return true;
             }
-
-            // Check for field variables lastly
-
 
             // Failed to resolve
             resolvedIdentifier = null;
             return false;
         }
 
-        private bool ResolveReferenceIdentifierSymbolFromMethodParameterScopedContext(IScopedReferenceSymbol context, VariableReferenceExpressionSyntax reference, out IIdentifierReferenceSymbol resolvedIdentifier)
+        private bool ResolveReferenceIdentifierSymbolFromMethodScopedContext(IScopedReferenceSymbol context, VariableReferenceExpressionSyntax reference, out IIdentifierReferenceSymbol resolvedIdentifier)
         {
             IMethodReferenceSymbol methodSymbol = context as IMethodReferenceSymbol;
             IScopedReferenceSymbol current = context;
@@ -72,14 +81,14 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
             // Check for method found
             if(methodSymbol != null)
-                return ResolveReferenceIdentifierSymbolFromMethodParameterContext(methodSymbol, reference, out resolvedIdentifier);
+                return ResolveReferenceIdentifierSymbolFromMethodContext(methodSymbol, reference, out resolvedIdentifier);
 
             // Cannot resolve because we are not in a method context?
             resolvedIdentifier = null;
             return false;
         }
 
-        private bool ResolveReferenceIdentifierSymbolFromMethodParameterContext(IMethodReferenceSymbol context, VariableReferenceExpressionSyntax reference, out IIdentifierReferenceSymbol resolvedIdentifier)
+        private bool ResolveReferenceIdentifierSymbolFromMethodContext(IMethodReferenceSymbol context, VariableReferenceExpressionSyntax reference, out IIdentifierReferenceSymbol resolvedIdentifier)
         {
             // Check for no parameters
             if(context.ParameterSymbols != null)
@@ -109,6 +118,80 @@ namespace LumaSharp_Compiler.Semantics.Reference
                         return true;
                     }
                 }
+            }
+
+            // Failed to resolve
+            resolvedIdentifier = null;
+            return false;
+        }
+
+        private bool ResolveReferenceIdentifierSymbolFromTypeScopedContext(IScopedReferenceSymbol context, VariableReferenceExpressionSyntax reference, out IIdentifierReferenceSymbol resolvedIdentifier)
+        {
+            IMethodReferenceSymbol methodSymbol = context as IMethodReferenceSymbol;
+            IScopedReferenceSymbol current = context;
+
+            // Move up the chain
+            while (methodSymbol == null && current != null)
+            {
+                current = current.ParentSymbol as IScopedReferenceSymbol;
+                methodSymbol = current as IMethodReferenceSymbol;
+            }
+
+            // Check for no method - something went wrong
+            if(methodSymbol == null)
+            {
+                resolvedIdentifier = null;
+                return false;
+            }
+
+            // Get type symbol
+            ITypeReferenceSymbol typeSymbol = methodSymbol.DeclaringTypeSymbol;
+
+            // Check for method found
+            if (typeSymbol != null)
+                return ResolveReferenceIdentifierSymbolFromTypeContext(typeSymbol, reference, out resolvedIdentifier);
+
+            // Cannot resolve because we are not in a method context?
+            resolvedIdentifier = null;
+            return false;
+        }
+
+        private bool ResolveReferenceIdentifierSymbolFromTypeContext(ITypeReferenceSymbol context, VariableReferenceExpressionSyntax reference, out IIdentifierReferenceSymbol resolvedIdentifier)
+        {
+            // Check for fields
+            if(context.FieldMemberSymbols != null)
+            {
+                // Check for matching field variable
+                foreach(IFieldReferenceSymbol field in context.FieldMemberSymbols)
+                {
+                    // Check for matching identifier
+                    if(field.FieldName == reference.Identifier.Text)
+                    {
+                        resolvedIdentifier = field;
+                        return true;
+                    }
+                }
+            }
+
+            // Check for generics
+            if(context.GenericParameterSymbols != null)
+            {
+                // Check for matching generic variable
+                foreach(IGenericParameterIdentifierReferenceSymbol genericParameter in context.GenericParameterSymbols)
+                {
+                    // Check for matching identifier
+                    if (genericParameter.IdentifierName == reference.Identifier.Text)
+                    {
+                        resolvedIdentifier = genericParameter;
+                        return true;
+                    }
+                }
+            }
+
+            // Move to parent type
+            if(context.DeclaringTypeSymbol != null)
+            {
+                return ResolveReferenceIdentifierSymbolFromTypeContext(context.DeclaringTypeSymbol, reference, out resolvedIdentifier);
             }
 
             // Failed to resolve

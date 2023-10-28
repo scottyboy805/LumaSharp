@@ -95,6 +95,12 @@ namespace LumaSharp_Compiler.AST.Factory
             return type;
         }
 
+        public static MethodSyntax WithGenericParameters(this MethodSyntax method,  params GenericParameterSyntax[] genericParameters)
+        {
+            method.GenericParameters = new GenericParameterListSyntax(genericParameters);
+            return method;
+        }
+
         public static ContractSyntax WithGenericParameters(this ContractSyntax contract, params GenericParameterSyntax[] genericParameters)
         {
             contract.GenericParameters = new GenericParameterListSyntax(genericParameters);
