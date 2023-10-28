@@ -21,6 +21,7 @@ namespace LumaSharp_Compiler.Reporting
             // Syntax
 
             // Semantic
+            { 1001, "The type `{0}` could not be found. Are you missing a library reference or import statement?" }
 
             // Logical
         };

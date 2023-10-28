@@ -1,5 +1,6 @@
 ﻿
 using LumaSharp_Compiler.AST.Factory;
+using LumaSharp_Compiler.Reporting;
 using System.Xml.Linq;
 
 namespace LumaSharp_Compiler.AST
@@ -8,6 +9,7 @@ namespace LumaSharp_Compiler.AST
     {
         // Private
         private List<SyntaxNode> rootElements = null;
+        private CompileReport report = new CompileReport();
 
         // Properties
         public int RootElementCount
@@ -38,6 +40,11 @@ namespace LumaSharp_Compiler.AST
         public bool HasNamespaceMembers
         {
             get { return DescendantsOfType<NamespaceSyntax>().Any(); }
+        }
+
+        public ICompileReportProvider Report
+        {
+            get { return report; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants

@@ -1,9 +1,19 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
     internal sealed class ReferenceTypeResolver
     {
+        // Private
+        private ICompileReportProvider report = null;
+
+        // Constructor
+        public ReferenceTypeResolver(ICompileReportProvider report)
+        {
+            this.report = report;
+        }
+
         // Methods
         public bool ResolveReferenceTypeSymbol(ReferenceLibrary library, IReferenceSymbol context, TypeReferenceSyntax reference, out ITypeReferenceSymbol resolvedType)
         {

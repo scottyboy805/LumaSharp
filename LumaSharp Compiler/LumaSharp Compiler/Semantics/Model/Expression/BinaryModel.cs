@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
@@ -42,13 +43,13 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve left
-            left.ResolveSymbols(provider);
+            left.ResolveSymbols(provider, report);
 
             // Resolve right
-            right.ResolveSymbols(provider);
+            right.ResolveSymbols(provider, report);
         }
 
         //private bool ResolveOperationOrOperatorMethod()

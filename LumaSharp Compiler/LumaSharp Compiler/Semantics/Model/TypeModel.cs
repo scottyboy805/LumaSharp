@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 using System.Diagnostics.SymbolStore;
 using System.Reflection;
 
@@ -174,24 +175,24 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve all sub type symbols
             foreach(TypeModel subType in memberTypes)
             {
-                subType.ResolveSymbols(provider);
+                subType.ResolveSymbols(provider, report);
             }
 
             // Resolve all field symbols
             foreach(FieldModel field in memberFields)
             {
-                field.ResolveSymbols(provider);
+                field.ResolveSymbols(provider, report);
             }
 
             // Resolve all method symbols
             foreach(MethodModel method in memberMethods)
             {
-                method.ResolveSymbols(provider);
+                method.ResolveSymbols(provider, report);
             }
         }
 

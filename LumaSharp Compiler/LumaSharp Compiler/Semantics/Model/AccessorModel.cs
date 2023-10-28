@@ -1,5 +1,6 @@
 ﻿
 using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -59,7 +60,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve accessor symbol
             accessorTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.AccessorType);

@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp_Compiler.Reporting;
+
 namespace LumaSharp_Compiler.Semantics.Model
 {
     public abstract class SymbolModel// : ModelNode
@@ -28,6 +30,6 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public abstract void ResolveSymbols(ISymbolProvider provider);
+        public abstract void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report);
     }
 }

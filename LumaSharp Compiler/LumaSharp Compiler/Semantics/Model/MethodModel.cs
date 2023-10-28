@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 using System.Runtime.CompilerServices;
 
 namespace LumaSharp_Compiler.Semantics.Model
@@ -83,7 +84,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get return type
             returnTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.ReturnType);

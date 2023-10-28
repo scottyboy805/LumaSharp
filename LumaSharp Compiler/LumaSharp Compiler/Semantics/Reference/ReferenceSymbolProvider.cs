@@ -1,5 +1,6 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.AST.Expression;
+using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.Semantics.Reference
@@ -9,12 +10,15 @@ namespace LumaSharp_Compiler.Semantics.Reference
         // Private
         private ReferenceLibrary thisLibrary = null;
 
-        private ReferenceTypeResolver typeResolver = new ReferenceTypeResolver();
+        private ICompileReportProvider report = null;
+        private ReferenceTypeResolver typeResolver = null;
 
         // Constructor
-        public ReferenceSymbolProvider(ReferenceLibrary thisLibrary)
+        public ReferenceSymbolProvider(ReferenceLibrary thisLibrary, ICompileReportProvider report)
         {
             this.thisLibrary = thisLibrary;
+            this.report = report;
+            this.typeResolver = new ReferenceTypeResolver(report);
         }
 
         // Methods
@@ -66,7 +70,9 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Check for simple types reference
 
 
-            throw new NotImplementedException();
+            // Type not found error
+            report.ReportMessage(1001, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
+            return null;
         }
 
         

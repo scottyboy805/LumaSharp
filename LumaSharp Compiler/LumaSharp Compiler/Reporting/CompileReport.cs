@@ -71,5 +71,13 @@ namespace LumaSharp_Compiler.Reporting
         {
             return messages.Any(m => m.Severity == severity);
         }
+
+        public void Combine(ICompileReportProvider fromReport)
+        {
+            foreach(CompileMessage message in fromReport.Messages)
+            {
+                messages.Add(message);
+            }
+        }
     }
 }

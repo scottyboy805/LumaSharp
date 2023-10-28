@@ -1,5 +1,6 @@
 ﻿using LumaSharp_Compiler.Semantics.Reference;
 using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -9,6 +10,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private string libraryName = "";
         private ReferenceLibrary thisLibrary = null;
         private List<TypeModel> typeModels = new List<TypeModel>();
+        private CompileReport report = null;
 
         // Properties
         public string LibraryName
@@ -29,6 +31,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public IReadOnlyList<TypeModel> TypeModels
         {
             get { return typeModels; }
+        }
+
+        public ICompileReportProvider Report
+        {
+            get { return report; }
         }
 
         // Constructor
@@ -87,7 +94,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Create provider
-            ReferenceSymbolProvider symbolProvider = new ReferenceSymbolProvider(thisLibrary);
+            ReferenceSymbolProvider symbolProvider = new ReferenceSymbolProvider(thisLibrary, report);
 
             // Build all external members
 
@@ -96,7 +103,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             foreach(TypeModel type in typeModels)
             {
                 // Resolve the symbols
-                type.ResolveSymbols(symbolProvider);
+                type.ResolveSymbols(symbolProvider, report);
             }
         }
 
@@ -109,8 +116,15 @@ namespace LumaSharp_Compiler.Semantics.Model
             List<EnumSyntax> rootEnums = new List<EnumSyntax>();
             List<NamespaceSyntax> rootNamespaces = new List<NamespaceSyntax>();
 
+            // Get combined report
+            CompileReport report = syntaxTrees.Length > 0
+                ? (CompileReport)syntaxTrees[0].Report
+                : new CompileReport();
+
+            int index = 0;
+
             // Process all trees
-            foreach(SyntaxTree tree in syntaxTrees)
+            foreach (SyntaxTree tree in syntaxTrees)
             {
                 // Add imports
                 imports.AddRange(tree.DescendantsOfType<ImportSyntax>());
@@ -126,10 +140,17 @@ namespace LumaSharp_Compiler.Semantics.Model
 
                 // Add namespace
                 rootNamespaces.AddRange(tree.DescendantsOfType<NamespaceSyntax>());
+
+                // Combine the report
+                if (index > 1) report.Combine(tree.Report);
+                index++;
             }
 
             // Create the model
             SemanticModel model = new SemanticModel(libraryName, imports, rootTypes, rootContracts, rootEnums, rootNamespaces);
+
+            // Store report
+            model.report = report;
 
             // Build the model
             model.Build(references);

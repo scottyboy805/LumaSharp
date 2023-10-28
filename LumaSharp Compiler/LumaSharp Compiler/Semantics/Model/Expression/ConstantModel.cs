@@ -1,5 +1,6 @@
 ﻿using LumaSharp_Compiler.Semantics.Model.Expression;
 using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -44,7 +45,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider)
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get the constant type
             ConstantType constantType = ResolveConstantType(syntax.Value, syntax.Descriptor);
