@@ -8,6 +8,9 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         private ExpressionSyntax syntax = null;
 
         // Properties
+        /// <summary>
+        /// Can the expression value or type be determined at compile time.
+        /// </summary>
         public abstract bool IsStaticallyEvaluated { get; }
 
         public abstract ITypeReferenceSymbol EvaluatedTypeSymbol { get; }
@@ -31,6 +34,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         internal ExpressionModel(SemanticModel model, SymbolModel parent, ExpressionSyntax syntax)
             : base(model, parent)
         {
+            this.syntax = syntax;
         }
 
         // Methods
@@ -39,6 +43,14 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             // Check for literal
             if(syntax is LiteralExpressionSyntax)
                 return new ConstantModel(model, parent, syntax as  LiteralExpressionSyntax);
+
+            // Check for type
+            if (syntax is TypeReferenceSyntax)
+                return new TypeReferenceModel(model, parent, syntax as TypeReferenceSyntax);
+
+            // Check for variable
+            if(syntax is VariableReferenceExpressionSyntax)
+                return new VariableReferenceModel(model, parent, syntax as VariableReferenceExpressionSyntax);
 
             throw new NotSupportedException("Specified syntax is not supported");
         }

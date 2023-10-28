@@ -1,10 +1,11 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using LumaSharp_Compiler.Semantics.Model.Statement;
 using System.Runtime.CompilerServices;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
-    public sealed class MethodModel : MemberModel, IMethodReferenceSymbol, IIdentifierReferenceSymbol
+    public sealed class MethodModel : MemberModel, IMethodReferenceSymbol, IScopedReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
         private MethodSyntax syntax = null;
@@ -13,11 +14,17 @@ namespace LumaSharp_Compiler.Semantics.Model
         private IGenericParameterIdentifierReferenceSymbol[] genericParameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] parameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] localIdentifierSymbols = null;
+        private StatementModel[] bodyStatements = null;
 
         // Properties
         public string MethodName
         {
             get { return syntax.Identifier.Text; }
+        }
+
+        public string ScopeName
+        {
+            get { return "Method Body"; }
         }
 
         public string IdentifierName
@@ -60,6 +67,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return parameterIdentifierSymbols; }
         }
 
+        public ILocalIdentifierReferenceSymbol[] LocalsInScope
+        {
+            get { return localIdentifierSymbols; }
+        }
+
         public bool HasReturnType
         {
             get { return syntax.ReturnType.Identifier.Text != "void"; }
@@ -81,6 +93,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             this.syntax = syntax;
             this.declaringType = parent;
+            
+            // Create body
+            if (syntax.HasBody == true)
+            {
+                this.bodyStatements = syntax.Body.Elements
+                    .Select(s => StatementModel.Any(model, this, s)).ToArray();
+            }
         }
 
         // Methods
@@ -176,6 +195,18 @@ namespace LumaSharp_Compiler.Semantics.Model
                         // Resolve symbols
                         localModel.ResolveSymbols(provider);
                     }
+                }
+            }
+
+
+            // Check for body provided
+            if (HasBody == true)
+            {
+                // Resolve all body statements
+                foreach (StatementModel statement in bodyStatements)
+                {
+                    // Resolve the statement
+                    statement.ResolveSymbols(provider, report);
                 }
             }
         }

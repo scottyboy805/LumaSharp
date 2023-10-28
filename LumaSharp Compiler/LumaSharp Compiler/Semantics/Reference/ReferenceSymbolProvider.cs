@@ -12,6 +12,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         private ICompileReportProvider report = null;
         private ReferenceTypeResolver typeResolver = null;
+        private ReferenceScopedVariableResolver variableResolver = null;
 
         // Constructor
         public ReferenceSymbolProvider(ReferenceLibrary thisLibrary, ICompileReportProvider report)
@@ -19,6 +20,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             this.thisLibrary = thisLibrary;
             this.report = report;
             this.typeResolver = new ReferenceTypeResolver(report);
+            this.variableResolver = new ReferenceScopedVariableResolver(report);
         }
 
         // Methods
@@ -57,6 +59,14 @@ namespace LumaSharp_Compiler.Semantics.Reference
             {
                 // Resolve as primitive
                 return ResolveTypeSymbol(primitive);
+            }
+
+            // Check for void
+            if(reference.Identifier.Text == "void" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
+            {
+                // Report errors if void type usage is not correct - used as generic/array for example
+                typeResolver.CheckVoidTypeUsage(reference);
+                return Types._void;
             }
 
             ITypeReferenceSymbol resolvedSymbol;
@@ -120,8 +130,16 @@ namespace LumaSharp_Compiler.Semantics.Reference
         }
 
         public IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference)
-        {
-            throw new NotImplementedException();
+        {            
+            IIdentifierReferenceSymbol resolvedSymbol;
+
+            // Try to resolve identifier
+            if (variableResolver.ResolveReferenceIdentifierSymbol(thisLibrary, context, reference, out resolvedSymbol) == true)
+                return resolvedSymbol;
+
+            // Failed to resolve
+            report.ReportMessage(1031, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
+            return null;
         }
 
         public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference)

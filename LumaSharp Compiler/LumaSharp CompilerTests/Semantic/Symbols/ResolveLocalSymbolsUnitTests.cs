@@ -38,5 +38,22 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsFalse(type.IsEnum);
             Assert.IsFalse(type.IsPrimitive);
         }
+
+        [TestMethod]
+        public void ResolveLocalSymbols_Return()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("test")
+                .WithMembers(Syntax.Method("test")
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myVal"))
+                .WithStatements(Syntax.Return(Syntax.VariableReference("myVal")))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Assert.IsNotNull(model);
+            Assert.AreEqual(1, model.TypeModels.Count);
+            Assert.AreEqual(0, model.Report.MessageCount);
+        }
     }
 }

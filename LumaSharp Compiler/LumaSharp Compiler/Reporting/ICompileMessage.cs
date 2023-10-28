@@ -12,6 +12,8 @@ namespace LumaSharp_Compiler.Reporting
     public interface ICompileMessage
     {
         // Properties
+        int Code { get; }
+
         MessageSeverity Severity { get; }
 
         SyntaxSource Source { get; }

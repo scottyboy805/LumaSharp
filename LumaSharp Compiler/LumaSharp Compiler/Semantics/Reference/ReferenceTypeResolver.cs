@@ -15,6 +15,24 @@ namespace LumaSharp_Compiler.Semantics.Reference
         }
 
         // Methods
+        public bool CheckVoidTypeUsage(TypeReferenceSyntax voidType)
+        {
+            // Check for invalid use of generic
+            if (voidType.IsGenericType == true)
+            {
+                report.ReportMessage(1002, MessageSeverity.Error, voidType.GenericArguments.StartToken.Source, voidType.Identifier.Text);
+                return false;
+            }
+
+            // Check for invalid use of  array indexing
+            if(voidType.IsArrayType == true)
+            {
+                report.ReportMessage(1003, MessageSeverity.Error, voidType.ArrayParameters.StartToken.Source, voidType.Identifier.Text);
+                return false;
+            }
+            return true;
+        }
+
         public bool ResolveReferenceTypeSymbol(ReferenceLibrary library, IReferenceSymbol context, TypeReferenceSyntax reference, out ITypeReferenceSymbol resolvedType)
         {
             // Try to resolve from context

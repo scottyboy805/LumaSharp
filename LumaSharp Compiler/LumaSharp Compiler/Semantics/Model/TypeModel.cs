@@ -63,7 +63,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public IMethodReferenceSymbol[] MethodMemberSymbols
         {
-            get { throw new NotImplementedException(); }
+            get { return memberMethods; }
         }
 
         public bool HasGenericParameters

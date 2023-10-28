@@ -52,7 +52,7 @@ namespace LumaSharp_Compiler.Reporting
             // Build error string
             try
             {
-                messages.Add(new CompileMessage(severity, source,
+                messages.Add(new CompileMessage(id, severity, source,
                     string.Format(message, args)));
             }
             catch(FormatException)
