@@ -81,7 +81,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
 
             // Type not found error
-            report.ReportMessage(1001, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
+            report.ReportMessage(Code.TypeNotFound, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
             return null;
         }
 
@@ -138,7 +138,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 return resolvedSymbol;
 
             // Failed to resolve
-            report.ReportMessage(1031, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
+            report.ReportMessage(Code.IdentifierNotFound, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
             return null;
         }
 

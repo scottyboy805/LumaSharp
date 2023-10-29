@@ -28,9 +28,9 @@ namespace LumaSharp_Compiler.Reporting
         }
 
         // Methods
-        public void ReportMessage(int id, MessageSeverity severity, SyntaxSource source, params object[] args)
+        public void ReportMessage(Code id, MessageSeverity severity, SyntaxSource source, params object[] args)
         {
-            Dictionary<int, string> messageSet;
+            Dictionary<Code, string> messageSet;
 
             // Check severity
             messageSet = severity switch
@@ -52,7 +52,7 @@ namespace LumaSharp_Compiler.Reporting
             // Build error string
             try
             {
-                messages.Add(new CompileMessage(id, severity, source,
+                messages.Add(new CompileMessage((int)id, severity, source,
                     string.Format(message, args)));
             }
             catch(FormatException)

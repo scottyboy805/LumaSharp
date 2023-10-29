@@ -3,31 +3,41 @@ using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Reporting
 {
+    // Type
+    public enum Code
+    {
+        TypeNotFound = 1001,
+        TypeGenericPrimitive = 1002,
+        TypeArrayPrimitive = 1003,
+
+        IdentifierNotFound = 1031,
+    }
+
     internal static class CompilerErrors
     {
         // Public
-        public static readonly Dictionary<int, string> messages = new Dictionary<int, string>
+        public static readonly Dictionary<Code, string> messages = new Dictionary<Code, string>
         {
 
         };
 
-        public static readonly Dictionary<int, string> warnings = new Dictionary<int, string>
+        public static readonly Dictionary<Code, string> warnings = new Dictionary<Code, string>
         {
 
         };
 
-        public static readonly Dictionary<int, string> errors = new Dictionary<int, string>
+        public static readonly Dictionary<Code, string> errors = new Dictionary<Code, string>
         {
             // Lexer
 
             // Syntax
 
             // Semantic
-            { 1001, "The type `{0}` could not be found. Are you missing a library reference or import statement?" },
-            { 1002, "Cannot apply generic parameters to built in type `{0}`" },
-            { 1003, "Cannot apply array indexing to built in type `{0}`" },
+            { Code.TypeNotFound, "The type `{0}` could not be found. Are you missing a library reference or import statement?" },
+            { Code.TypeGenericPrimitive, "Cannot apply generic parameters to built in type `{0}`" },
+            { Code.TypeArrayPrimitive, "Cannot apply array indexing to built in type `{0}`" },
 
-            { 1031, "The identifier `{0}` does not exist in the current context" },
+            { Code.IdentifierNotFound, "The identifier `{0}` does not exist in the current context" },
 
 
             // Logical
