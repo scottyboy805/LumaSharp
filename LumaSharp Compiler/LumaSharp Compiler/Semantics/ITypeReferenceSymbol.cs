@@ -7,6 +7,8 @@ namespace LumaSharp_Compiler.Semantics
         // Properties
         string TypeName { get; }
 
+        string[] NamespaceName { get; }
+
         PrimitiveType PrimitiveType { get; }
 
         bool IsPrimitive { get; }
@@ -17,11 +19,15 @@ namespace LumaSharp_Compiler.Semantics
 
         bool IsEnum { get; }
 
+        INamespaceReferenceSymbol NamespaceSymbol { get; }
+
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
         IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols { get; }
 
         ITypeReferenceSymbol[] BaseTypeSymbols { get; }
+
+        ITypeReferenceSymbol[] TypeMemberSymbols { get; }
 
         IFieldReferenceSymbol[] FieldMemberSymbols { get; }
 

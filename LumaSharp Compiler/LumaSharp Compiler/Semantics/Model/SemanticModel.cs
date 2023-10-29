@@ -61,6 +61,15 @@ namespace LumaSharp_Compiler.Semantics.Model
             {
                 foreach (NamespaceSyntax ns in rootNamespaces)
                 {
+                    //// Build the namespace model
+                    //NamespaceModel nsModel = new NamespaceModel(this, null, ns);
+
+                    //// Register all types
+                    //foreach (TypeModel type in nsModel.TypesInScope)
+                    //{
+                    //    typeModels.Add(type);
+                    //}
+
                     // Add all types
                     typeModels.AddRange(ns.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t)));
 
@@ -82,8 +91,16 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Register all types
             foreach(TypeModel type in typeModels)
             {
-                // Declare this type
-                thisLibrary.DeclareType(type.Namespace, type);
+                if (type.NamespaceSymbol != null)
+                {
+                    // Declare a named type - will only add the namespace if it does not yet exist
+                    thisLibrary.DeclareNamedType(type);
+                }
+                else
+                {
+                    // Declare this type
+                    thisLibrary.DeclareType(type);
+                }
             }
 
 

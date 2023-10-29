@@ -27,7 +27,7 @@ namespace LumaSharp_CompilerTests.Semantic.Mapping
             TypeModel type = model.TypeModels[0];
 
             Assert.AreEqual("MyType", type.TypeName);
-            Assert.AreEqual("MyNamespace", type.Namespace[0]);
+            Assert.AreEqual("MyNamespace", type.NamespaceName[0]);
             Assert.IsTrue(type.IsType);
             Assert.IsFalse(type.IsContract);
             Assert.IsFalse(type.IsEnum);

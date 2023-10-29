@@ -6,11 +6,13 @@ namespace LumaSharp_Compiler.Semantics.Reference
     internal sealed class ReferenceTypeResolver
     {
         // Private
+        private ISymbolProvider provider = null;
         private ICompileReportProvider report = null;
 
         // Constructor
-        public ReferenceTypeResolver(ICompileReportProvider report)
+        public ReferenceTypeResolver(ISymbolProvider provider, ICompileReportProvider report)
         {
+            this.provider = provider;
             this.report = report;
         }
 
@@ -42,16 +44,29 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Check for namespace provided
             if (reference.HasNamespace == true)
             {
-                // Check the library for named types
-                foreach (ITypeReferenceSymbol typeSymbol in library.GetDeclaredNamedTypes(reference.Namespace.Identifiers.Select(i => i.Text).ToArray()))
+                // Resolve the namespace
+                INamespaceReferenceSymbol resolvedNamespace = provider.ResolveNamespaceSymbol(reference.Namespace);
+
+                // Check for no namespace
+                if(resolvedNamespace == null)
                 {
-                    // Check for matched
-                    if (IsReferenceTypeSymbolMatch(typeSymbol, reference) == true)
-                    {
-                        resolvedType = typeSymbol;
-                        return true;
-                    }
+                    resolvedType = null;
+                    return false;
                 }
+
+                // Search in namespace for type
+                //foreach(ITypeReferenceSymbol )
+
+                //// Check the library for named types
+                //foreach (ITypeReferenceSymbol typeSymbol in library.GetDeclaredNamedTypes(reference.Namespace.Identifiers.Select(i => i.Text).ToArray()))
+                //{
+                //    // Check for matched
+                //    if (IsReferenceTypeSymbolMatch(typeSymbol, reference) == true)
+                //    {
+                //        resolvedType = typeSymbol;
+                //        return true;
+                //    }
+                //}
             }
             else
             {

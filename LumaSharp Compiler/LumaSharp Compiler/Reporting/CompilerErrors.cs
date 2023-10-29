@@ -6,9 +6,13 @@ namespace LumaSharp_Compiler.Reporting
     // Type
     public enum Code
     {
+        NamespaceNotFound = 971,
+        SubNamespaceNotFound = 972,
+
         TypeNotFound = 1001,
-        TypeGenericPrimitive = 1002,
-        TypeArrayPrimitive = 1003,
+        TypeNotFoundNamespace = 1002,
+        TypeGenericPrimitive = 1003,
+        TypeArrayPrimitive = 1004,
 
         IdentifierNotFound = 1031,
     }
@@ -33,7 +37,11 @@ namespace LumaSharp_Compiler.Reporting
             // Syntax
 
             // Semantic
+            { Code.NamespaceNotFound, "The namespace `{0}` could not be found. Are you missing a library reference?" },
+            { Code.SubNamespaceNotFound, "The namespace name `{0}` could not be found in namespace `{1}`. Are you missing a library reference?" },
+
             { Code.TypeNotFound, "The type `{0}` could not be found. Are you missing a library reference or import statement?" },
+            { Code.TypeNotFoundNamespace, "The type `{0}` does not exist in the namespace `{0}`" },
             { Code.TypeGenericPrimitive, "Cannot apply generic parameters to built in type `{0}`" },
             { Code.TypeArrayPrimitive, "Cannot apply array indexing to built in type `{0}`" },
 

@@ -9,8 +9,10 @@ namespace LumaSharp_Compiler.Semantics.Reference
     {
         // Private
         private ReferenceLibrary thisLibrary = null;
+        private ReferenceLibrary[] referenceLibraries = null;
 
         private ICompileReportProvider report = null;
+        private ReferenceNamespaceResolver namespaceResolver = null;
         private ReferenceTypeResolver typeResolver = null;
         private ReferenceScopedVariableResolver variableResolver = null;
 
@@ -19,7 +21,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
         {
             this.thisLibrary = thisLibrary;
             this.report = report;
-            this.typeResolver = new ReferenceTypeResolver(report);
+            this.namespaceResolver = new ReferenceNamespaceResolver();
+            this.typeResolver = new ReferenceTypeResolver(this, report);
             this.variableResolver = new ReferenceScopedVariableResolver(report);
         }
 
@@ -49,6 +52,19 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 PrimitiveType.Float => Types._float,
                 PrimitiveType.Double => Types._double,
             };
+        }
+
+        public INamespaceReferenceSymbol ResolveNamespaceSymbol(NamespaceName name)
+        {
+            INamespaceReferenceSymbol resolvedSymbol;
+
+            // Check for resolve namespaces
+            if (namespaceResolver.ResolveReferenceNamespaceSymbol(thisLibrary, referenceLibraries, name, out resolvedSymbol) == true)
+                return resolvedSymbol;
+
+            // Namespace not found error
+            report.ReportMessage(Code.NamespaceNotFound, MessageSeverity.Error, name.StartToken.Source, name.GetSourceText());
+            return null;
         }
 
         public ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference)

@@ -6,6 +6,8 @@ namespace LumaSharp_Compiler.Semantics
     public interface ISymbolProvider
     {
         // Methods
+        INamespaceReferenceSymbol ResolveNamespaceSymbol(NamespaceName namespaceName);
+
         ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType);
 
         ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference);

@@ -12,6 +12,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
             // Properties
             public string TypeName => primitiveType.ToString().ToLower();
+            public string[] NamespaceName => null;
+
             public int SymbolToken => (int)primitiveType;
 
             public PrimitiveType PrimitiveType => primitiveType;
@@ -20,12 +22,15 @@ namespace LumaSharp_Compiler.Semantics.Reference
             public bool IsContract => false;
             public bool IsEnum => false;
 
+            public INamespaceReferenceSymbol NamespaceSymbol => null;
             public ITypeReferenceSymbol DeclaringTypeSymbol => null;
             public IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols => null;
             public ITypeReferenceSymbol[] BaseTypeSymbols => null;
             public ILibraryReferenceSymbol LibrarySymbol => null;
 
             public string LibraryName => "runtime";
+
+            public ITypeReferenceSymbol[] TypeMemberSymbols => throw new NotImplementedException();
 
             public IFieldReferenceSymbol[] FieldMemberSymbols => throw new NotImplementedException();
 

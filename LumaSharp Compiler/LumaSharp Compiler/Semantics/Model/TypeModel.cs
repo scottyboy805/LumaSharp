@@ -7,9 +7,10 @@ namespace LumaSharp_Compiler.Semantics.Model
     {
         // Private
         private MemberSyntax syntax = null;
-        //private GenericParameterModel[] genericParameters = null;
+        private NamespaceName namespaceName = null;
 
         private TypeModel parentType = null;
+        private INamespaceReferenceSymbol namespaceSymbol = null;
         private GenericParameterModel[] genericParameterIdentifierSymbols = null;
         private ITypeReferenceSymbol[] baseTypesSymbols = null;
 
@@ -23,22 +24,10 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax; }
         }
 
-        public string[] Namespace
+        public INamespaceReferenceSymbol NamespaceSymbol
         {
-            get 
-            { 
-                // Check for type
-                if(syntax is TypeSyntax && ((TypeSyntax)syntax).Namespace != null)
-                    return ((TypeSyntax)syntax).Namespace.Identifiers.Select(i => i.Text).ToArray();
-
-                return null;
-            }
+            get { return namespaceSymbol; }
         }
-
-        //public GenericParameterModel[] GenericParameters
-        //{
-        //    get { return genericParameters; }
-        //}
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
         {
@@ -53,6 +42,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public ITypeReferenceSymbol[] BaseTypeSymbols
         {
             get { return baseTypesSymbols; }
+        }
+
+        public ITypeReferenceSymbol[] TypeMemberSymbols
+        {
+            get { return memberTypes; }
         }
 
         public IFieldReferenceSymbol[] FieldMemberSymbols
@@ -98,6 +92,17 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return MemberName; }
         }
 
+        public string[] NamespaceName
+        {
+            get 
+            { 
+                if(namespaceName != null)
+                    return namespaceName.Identifiers.Select(i => i.Text).ToArray();
+
+                return null;
+            }
+        }
+
         public PrimitiveType PrimitiveType
         {
             get { return PrimitiveType.Any; }
@@ -124,12 +129,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
-        internal TypeModel(SemanticModel model, MemberModel parent, TypeSyntax syntax)
+        internal TypeModel(SemanticModel model, SymbolModel parent, TypeSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
+            this.namespaceName = syntax.Namespace;
 
-            // Update parent
+            // Update parent type
             if(parent is TypeModel)
                 this.parentType = (TypeModel)parent;
 
@@ -161,10 +167,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             BuildMembersModel(model, syntax.Members);
         }
 
-        internal TypeModel(SemanticModel model, MemberModel parent, ContractSyntax syntax)
+        internal TypeModel(SemanticModel model, SymbolModel parent, ContractSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
+            this.namespaceName = syntax.Namespace;
 
             // Update parent
             if (parent is TypeModel)
@@ -174,10 +181,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             BuildMembersModel(model, syntax.Members);
         }
 
-        internal TypeModel(SemanticModel model, MemberModel parent, EnumSyntax syntax)
+        internal TypeModel(SemanticModel model, SymbolModel parent, EnumSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
+            this.namespaceName = syntax.Namespace;
 
             // Update parent
             if (parent is TypeModel)
@@ -190,6 +198,12 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Methods
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve namespace
+            if(namespaceName != null)
+            {
+                namespaceSymbol = provider.ResolveNamespaceSymbol(namespaceName);
+            }
+
             // Resolve generics
             if(HasGenericParameters == true)
             {

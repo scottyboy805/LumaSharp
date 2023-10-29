@@ -62,11 +62,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
-        protected MemberModel(SemanticModel model, MemberModel parent, MemberSyntax syntax)
+        protected MemberModel(SemanticModel model, SymbolModel parent, MemberSyntax syntax)
             : base(model, parent)
         {
             this.syntax = syntax;
-            this.parent = parent;
+
+            if(parent is MemberModel)
+                this.parent = parent as MemberModel;   
 
             if (syntax.HasAccessModifiers == true)
                 accessModifiers = GetAccessModifiers(syntax.AccessModifiers);
