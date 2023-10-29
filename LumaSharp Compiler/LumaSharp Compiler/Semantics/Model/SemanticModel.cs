@@ -91,7 +91,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Register all types
             foreach(TypeModel type in typeModels)
             {
-                if (type.NamespaceSymbol != null)
+                if (type.NamespaceName != null)
                 {
                     // Declare a named type - will only add the namespace if it does not yet exist
                     thisLibrary.DeclareNamedType(type);

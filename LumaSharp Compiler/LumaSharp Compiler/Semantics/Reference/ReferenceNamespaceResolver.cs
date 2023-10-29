@@ -14,12 +14,15 @@ namespace LumaSharp_Compiler.Semantics.Reference
             if (ResolveReferenceNamespaceSymbol(thisLibrary, namespaceName, out resovledNamespace) == true)
                 return true;
 
-            // Check references libraries in order
-            for(int i = 0; i < referenceLibraries.Length; i++)
+            if (referenceLibraries != null)
             {
-                // Check for found
-                if (ResolveReferenceNamespaceSymbol(referenceLibraries[i], namespaceName, out resovledNamespace) == true)
-                    return true;
+                // Check references libraries in order
+                for (int i = 0; i < referenceLibraries.Length; i++)
+                {
+                    // Check for found
+                    if (ResolveReferenceNamespaceSymbol(referenceLibraries[i], namespaceName, out resovledNamespace) == true)
+                        return true;
+                }
             }
 
             // Failed to resolve
