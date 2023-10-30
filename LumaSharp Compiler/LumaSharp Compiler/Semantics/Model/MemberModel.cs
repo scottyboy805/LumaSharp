@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -66,7 +67,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             : base(model, parent)
         {
             this.syntax = syntax;
-
+            
             if(parent is MemberModel)
                 this.parent = parent as MemberModel;   
 
@@ -75,6 +76,21 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        {
+            // Check for multiple access modifiers
+            if ((accessModifiers.Contains(AccessModifier.Internal) == true && accessModifiers.Contains(AccessModifier.Hidden) == true)
+                || (accessModifiers.Contains(AccessModifier.Internal) == true && accessModifiers.Contains(AccessModifier.Export) == true)
+                || (accessModifiers.Contains(AccessModifier.Hidden) == true && accessModifiers.Contains(AccessModifier.Export) == true))
+            {
+                report.ReportMessage(Code.MultipleAccessModifiers, MessageSeverity.Error, syntax.AccessModifiers[0].Source);
+            }
+
+            // Check for type
+            if (this is TypeModel && accessModifiers.Contains(AccessModifier.Global) == true)
+                report.ReportMessage(Code.AccessModifierNotValid, MessageSeverity.Error, syntax.AccessModifiers.First(m => m.Text == "global").Source, "global");
+        }
+
         public bool HasAccessModifier(AccessModifier accessModifier)
         {
             return accessModifiers.Contains(accessModifier);

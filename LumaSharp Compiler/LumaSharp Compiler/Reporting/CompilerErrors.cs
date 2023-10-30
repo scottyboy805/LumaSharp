@@ -6,6 +6,10 @@ namespace LumaSharp_Compiler.Reporting
     // Type
     public enum Code
     {
+        MultipleAccessModifiers = 531,
+        AccessModifierNotValid = 532,
+        AccessModifierCantChange = 533,
+
         NamespaceNotFound = 971,
         SubNamespaceNotFound = 972,
 
@@ -15,6 +19,21 @@ namespace LumaSharp_Compiler.Reporting
         TypeArrayPrimitive = 1004,
 
         IdentifierNotFound = 1031,
+        IdentifierUsedBeforeDeclared = 1032,
+
+        FieldAccessorNotFound = 1061,
+        FieldRequiresInstance = 1062,
+        FieldRequiresType = 1063,
+        FieldReadOnly = 1064,
+
+        AccessorRequiresInstance = 1092,
+        AccessorRequiresType = 1093,
+        AccessorNoRead = 1094,
+        AccessorNoWrite = 1095,
+
+        MethodNotFound = 1121,
+        MethodRequiresInstance = 1122,
+        MethodRequiresType = 1123,
     }
 
     internal static class CompilerErrors
@@ -37,6 +56,10 @@ namespace LumaSharp_Compiler.Reporting
             // Syntax
 
             // Semantic
+            { Code.MultipleAccessModifiers, "Multiple access modifiers" },
+            { Code.AccessModifierNotValid, "Access modifier `{0}` is not valid in the current context" },
+            { Code.AccessModifierCantChange, "Cannot change access modifier `{0}` when overriding" },
+
             { Code.NamespaceNotFound, "The namespace `{0}` could not be found. Are you missing a library reference?" },
             { Code.SubNamespaceNotFound, "The namespace name `{0}` could not be found in namespace `{1}`. Are you missing a library reference?" },
 
@@ -46,7 +69,21 @@ namespace LumaSharp_Compiler.Reporting
             { Code.TypeArrayPrimitive, "Cannot apply array indexing to built in type `{0}`" },
 
             { Code.IdentifierNotFound, "The identifier `{0}` does not exist in the current context" },
+            { Code.IdentifierUsedBeforeDeclared, "The identifier `{0}` cannot be accessed before it is declared" },
 
+            { Code.FieldAccessorNotFound, "The field or accessor `{0}` is not defined on the type `{1}`" },
+            { Code.FieldRequiresInstance, "The field `{0}` must be accessed via an instance" },
+            { Code.FieldRequiresType, "The field `{0}` is marked as global must be accessed via a type qualifier" },
+            { Code.FieldReadOnly, "The field `{0}` is marked as read only and cannot be assigned after initialization" },
+
+            { Code.AccessorRequiresInstance, "The accessor `{0}` must be accessed via an instance" },
+            { Code.AccessorRequiresType, "The accessor `{0}` is marked as global must be accessed via a type qualifier" },
+            { Code.AccessorNoRead, "The accessor `{0}` does not define a read implementation" },
+            { Code.AccessorNoWrite, "The accessor `{0}` does not define a write implementation and cannot be assigned" },
+
+            { Code.MethodNotFound, "The method `{0}` is not defined on the type `{1}`" },
+            { Code.MethodRequiresInstance, "The method `{0}` must be invoked via an instance" },
+            { Code.MethodRequiresType, "The method `{0}` is marked as global must be invoked via a type qualifier" },
 
             // Logical
         };

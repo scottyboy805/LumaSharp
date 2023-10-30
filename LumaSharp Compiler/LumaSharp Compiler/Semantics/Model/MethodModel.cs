@@ -129,6 +129,17 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            // Check for body
+            if (HasBody == true)
+            {
+                // Statements
+                foreach (StatementModel model in bodyStatements)
+                    visitor.VisitStatement(model);
+            }
+        }
+
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get return type

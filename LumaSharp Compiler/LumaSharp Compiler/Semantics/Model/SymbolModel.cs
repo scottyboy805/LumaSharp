@@ -31,6 +31,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
+        public abstract void Accept(ISemanticVisitor visitor);
+
         public abstract void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report);
 
         public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : SymbolModel
