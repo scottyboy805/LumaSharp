@@ -34,7 +34,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
             public IFieldReferenceSymbol[] FieldMemberSymbols => throw new NotImplementedException();
 
-            public IFieldReferenceSymbol[] AccessorMemberSymbols => throw new NotImplementedException();
+            public IAccessorReferenceSymbol[] AccessorMemberSymbols => throw new NotImplementedException();
 
             public IMethodReferenceSymbol[] MethodMemberSymbols => throw new NotImplementedException();
 

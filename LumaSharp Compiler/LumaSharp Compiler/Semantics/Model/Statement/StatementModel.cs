@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.AST.Statement;
 
 namespace LumaSharp_Compiler.Semantics.Model.Statement
 {
@@ -36,6 +37,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             // Check for return
             if(syntax is ReturnStatementSyntax)
                 return new ReturnModel(model, parent, syntax as ReturnStatementSyntax);
+
+            // Check for assign
+            if(syntax is AssignStatementSyntax)
+                return new AssignModel(model, parent, syntax as AssignStatementSyntax);
 
             throw new NotSupportedException("Specified syntax is not supported");
         }

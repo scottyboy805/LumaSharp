@@ -1,4 +1,5 @@
 ﻿
+using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.Semantics.Reference
@@ -63,24 +64,53 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         public void DeclareNamedType(ITypeReferenceSymbol namedType)
         {
-            // Get the namespace
-            string[] namespaceIdentifiers = namedType.NamespaceName;
+            //// Get the namespace
+            //string[] namespaceIdentifiers = namedType.NamespaceName;
+
+            //// Check for invalid
+            //if (namespaceIdentifiers == null)
+            //    throw new InvalidOperationException("Cannot declare a names type which does not have a namespace");
+
+            //// Get the target namespace
+            //NamespaceModel declaringNamespace = null;
+
+            //for(int i = 0; i < namedType.NamespaceName.Length; i++)
+            //{
+            //    // Move down the hierarchy chain
+            //    declaringNamespace = GetOrCreateNamespace(namedType.NamespaceName[i], i, declaringNamespace);
+            //}
 
             // Check for invalid
-            if (namespaceIdentifiers == null)
+            if (namedType.NamespaceName == null)
                 throw new InvalidOperationException("Cannot declare a names type which does not have a namespace");
 
-            // Get the target namespace
-            NamespaceModel declaringNamespace = null;
-
-            for(int i = 0; i < namedType.NamespaceName.Length; i++)
-            {
-                // Move down the hierarchy chain
-                declaringNamespace = GetOrCreateNamespace(namedType.NamespaceName[i], i, declaringNamespace);
-            }
+            // Declare the namespace
+            NamespaceModel declaringNamespace = DeclareNamespace(namedType.NamespaceName);
 
             // Declare the type
             declaringNamespace.AddType(namedType);
+        }
+
+        public NamespaceModel DeclareNamespace(NamespaceName namespaceName)
+        {
+            // Get the namespace
+            string[] namespaceIdentifiers = namespaceName.Identifiers.Select(i => i.Text).ToArray();
+
+            // Declare with identifiers
+            return DeclareNamespace(namespaceIdentifiers);
+        }
+
+        private NamespaceModel DeclareNamespace(string[] namespaceIdentifiers)
+        {
+            // Get the target namespace
+            NamespaceModel declaringNamespace = null;
+
+            for (int i = 0; i < namespaceIdentifiers.Length; i++)
+            {
+                // Move down the hierarchy chain
+                declaringNamespace = GetOrCreateNamespace(namespaceIdentifiers[i], i, declaringNamespace);
+            }
+            return declaringNamespace;
         }
 
         private NamespaceModel GetOrCreateNamespace(string name, int depth, NamespaceModel parent)

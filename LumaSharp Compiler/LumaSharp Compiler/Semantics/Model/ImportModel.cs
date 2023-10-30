@@ -4,28 +4,77 @@ using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
-    public sealed class ImportModel : IAliasIdentifierReferenceSymbol
+    public sealed class ImportModel : IAliasIdentifierReferenceSymbol, INamespaceReferenceSymbol
     {
         // Private
         private ImportSyntax syntax = null;
+        private INamespaceReferenceSymbol namespaceSymbol = null;
         private ITypeReferenceSymbol aliasType = null;
 
         // Properties
-        public string[] Namespace
+        public string NamespaceName
         {
             get
             {
                 // Check for type
-                if (syntax.Name != null)
-                    return syntax.Name.Identifiers.Select(i => i.Text).ToArray();
+                if (namespaceSymbol != null)
+                    return namespaceSymbol.NamespaceName;
 
                 return null;
+            }
+        }
+
+        public int NamespaceDepth
+        {
+            get
+            {
+                // Check for symbol
+                if(namespaceSymbol != null)
+                    return namespaceSymbol.NamespaceDepth;
+
+                return 0;
             }
         }
 
         public string IdentifierName
         {
             get { return syntax.AliasIdentifier.Text; }
+        }
+
+        public INamespaceReferenceSymbol ParentNamespace
+        {
+            get
+            {
+                // Get parent from symbol
+                if(namespaceSymbol != null)
+                    return namespaceSymbol.ParentNamespace;
+
+                return null;
+            }
+        }
+
+        public IReadOnlyList<INamespaceReferenceSymbol> NamespacesInScope
+        {
+            get
+            {
+                // Get namespaces from symbol
+                if (namespaceSymbol != null)
+                    return namespaceSymbol.NamespacesInScope;
+
+                return null;
+            }
+        }
+
+        public IReadOnlyList<ITypeReferenceSymbol> TypesInScope
+        {
+            get
+            {
+                // Get types from symbol
+                if(namespaceSymbol != null)
+                    return namespaceSymbol.TypesInScope;
+
+                return null;
+            }
         }
 
         public ITypeReferenceSymbol AliasType
@@ -48,6 +97,16 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax.HasAlias; }
         }
 
+        public ILibraryReferenceSymbol LibrarySymbol
+        {
+            get { return null; }
+        }
+
+        public int SymbolToken
+        {
+            get { return -1; }
+        }
+
         // Constructor
         public ImportModel(ImportSyntax syntax)
         {
@@ -58,13 +117,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve namespace names
+            namespaceSymbol = provider.ResolveNamespaceSymbol(syntax.Name);
 
             // Resolve alias type
             if(IsAlias == true)
             {
                 // Resolve alias type
-                aliasType = provider.ResolveTypeSymbol(null, syntax.AliasTypeReference
-                    .WithNamespaceQualifier(Namespace));
+                aliasType = provider.ResolveTypeSymbol(namespaceSymbol, syntax.AliasTypeReference);
             }
         }
     }

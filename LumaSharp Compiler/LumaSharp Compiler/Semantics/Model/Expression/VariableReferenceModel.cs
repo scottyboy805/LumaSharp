@@ -37,6 +37,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal VariableReferenceModel(SemanticModel model, SymbolModel parent, VariableReferenceExpressionSyntax syntax)
             : base(model, parent, syntax)

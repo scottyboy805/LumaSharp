@@ -21,6 +21,15 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             get { return syntax.HasReturnExpression; }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get
+            {
+                if(returnModel != null)
+                    yield return returnModel;
+            }
+        }
+
         // Constructor
         public ReturnModel(SemanticModel model, SymbolModel parent, ReturnStatementSyntax syntax)
             : base(model, parent, syntax)

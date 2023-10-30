@@ -31,7 +31,7 @@ namespace LumaSharp_Compiler.Semantics
 
         IFieldReferenceSymbol[] FieldMemberSymbols { get; }
 
-        IFieldReferenceSymbol[] AccessorMemberSymbols { get; }
+        IAccessorReferenceSymbol[] AccessorMemberSymbols { get; }
 
         IMethodReferenceSymbol[] MethodMemberSymbols { get; }
     }

@@ -33,6 +33,15 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             get { return inferredTypeSymbol; }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get
+            {
+                yield return left;
+                yield return right;
+            }
+        }
+
         // Constructor
         internal BinaryModel(SemanticModel model, SymbolModel parent, BinaryExpressionSyntax syntax)
             : base(model, parent, syntax)

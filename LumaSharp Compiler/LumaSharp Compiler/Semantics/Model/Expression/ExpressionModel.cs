@@ -52,9 +52,17 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             if(syntax is VariableReferenceExpressionSyntax)
                 return new VariableReferenceModel(model, parent, syntax as VariableReferenceExpressionSyntax);
 
+            // Check for field
+            if(syntax is FieldAccessorReferenceExpressionSyntax)
+                return new FieldAccessorReferenceModel(model, parent, syntax as FieldAccessorReferenceExpressionSyntax);
+
             // Binary
             if(syntax is BinaryExpressionSyntax)
                 return new BinaryModel(model, parent, syntax as BinaryExpressionSyntax);
+
+            // This
+            if (syntax is ThisExpressionSyntax)
+                return new ThisReferenceModel(model, parent, syntax as ThisExpressionSyntax);
 
             throw new NotSupportedException("Specified syntax is not supported");
         }

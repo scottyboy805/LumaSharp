@@ -1,6 +1,7 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.AST.Factory;
 using LumaSharp_Compiler.Semantics.Model;
+using LumaSharp_Compiler.Semantics.Model.Statement;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.Semantic.Symbols
@@ -12,7 +13,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
         public void ResolveNamespaceSymbols_Import()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Import("MyNamespaceh"),
+                Syntax.Import("MyNamespace"),
                 Syntax.Namespace("MyNamespace"));
 
             // Create model
@@ -34,8 +35,12 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            ReturnModel returnModel = model.DescendantsOfType<ReturnModel>(true).FirstOrDefault();
 
             Assert.IsNotNull(model);
+            Assert.IsNotNull(returnModel);
+            Assert.IsNotNull(returnModel.ReturnModelExpression.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", returnModel.ReturnModelExpression.EvaluatedTypeSymbol.TypeName);
             Assert.AreEqual(0, model.Report.MessageCount);
         }
 
@@ -51,8 +56,12 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            ReturnModel returnModel = model.DescendantsOfType<ReturnModel>(true).FirstOrDefault();
 
             Assert.IsNotNull(model);
+            Assert.IsNotNull(returnModel);
+            Assert.IsNotNull(returnModel.ReturnModelExpression.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", returnModel.ReturnModelExpression.EvaluatedTypeSymbol.TypeName);
             Assert.AreEqual(0, model.Report.MessageCount);
         }
     }

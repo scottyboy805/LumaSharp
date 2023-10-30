@@ -37,6 +37,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return constantTypeSymbol; }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         public ConstantModel(SemanticModel model, SymbolModel parent, LiteralExpressionSyntax literal) 
             : base(model, parent, literal)

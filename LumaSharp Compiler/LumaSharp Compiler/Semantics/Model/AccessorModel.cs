@@ -1,5 +1,4 @@
-﻿
-using LumaSharp_Compiler.AST;
+﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
@@ -49,6 +48,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public bool HasWriteBody
         {
             get { return syntax.HasWriteBody; }
+        }
+
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get { yield break; }
         }
 
         // Constructor

@@ -87,6 +87,18 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax.HasBody; }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get
+            {
+                if(HasBody == true)
+                {
+                    foreach (SymbolModel model in bodyStatements)
+                        yield return model;
+                }
+            }
+        }
+
         // Constructor
         internal MethodModel(SemanticModel model, TypeModel parent, MethodSyntax syntax)
             : base(model, parent, syntax)

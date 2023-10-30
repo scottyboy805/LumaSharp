@@ -3,11 +3,10 @@ using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
-    public sealed class TypeReferenceModel : ExpressionModel
+    public sealed class ThisReferenceModel : ExpressionModel
     {
         // Private
-        private TypeReferenceSyntax syntax = null;
-        private ITypeReferenceSymbol typeSymbol = null;
+        private ITypeReferenceSymbol thisTypeReference = null;
 
         // Properties
         public override bool IsStaticallyEvaluated
@@ -17,7 +16,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
 
         public override ITypeReferenceSymbol EvaluatedTypeSymbol
         {
-            get { return typeSymbol; }
+            get { return thisTypeReference; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -26,17 +25,23 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Constructor
-        internal TypeReferenceModel(SemanticModel model, SymbolModel parent, TypeReferenceSyntax syntax)
+        public ThisReferenceModel(SemanticModel model, SymbolModel parent, ThisExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
-            this.syntax = syntax;
         }
 
         // Methods
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
-            // Try to resolve symbol
-            this.typeSymbol = provider.ResolveTypeSymbol(ParentSymbol, syntax);
+            // Get parent type
+            SymbolModel current = this;
+
+            // Move up the hierarchy
+            while (current.Parent != null && (current is TypeModel) == false)
+                current = current.Parent;
+
+            // Get type symbol
+            thisTypeReference = current as ITypeReferenceSymbol;
         }
     }
 }

@@ -10,12 +10,14 @@ namespace LumaSharp_Compiler.Semantics.Model
         private NamespaceName namespaceName = null;
 
         private TypeModel parentType = null;
+        private IReadOnlyList<INamespaceReferenceSymbol> importSymbols = null;
         private INamespaceReferenceSymbol namespaceSymbol = null;
         private GenericParameterModel[] genericParameterIdentifierSymbols = null;
         private ITypeReferenceSymbol[] baseTypesSymbols = null;
 
         private TypeModel[] memberTypes = null;
         private FieldModel[] memberFields = null;
+        private AccessorModel[] memberAccessors = null;
         private MethodModel[] memberMethods = null;
 
         // Properties
@@ -54,9 +56,9 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return memberFields; }
         }
 
-        public IFieldReferenceSymbol[] AccessorMemberSymbols
+        public IAccessorReferenceSymbol[] AccessorMemberSymbols
         {
-            get { throw new NotImplementedException(); }
+            get { return memberAccessors; }
         }
 
         public IMethodReferenceSymbol[] MethodMemberSymbols
@@ -128,25 +130,48 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax is EnumSyntax; }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get
+            {
+                // Types
+                foreach (SymbolModel type in memberTypes)
+                    yield return type;
+
+                // Fields
+                foreach(SymbolModel field in memberFields)
+                    yield return field;
+
+                // Accessors
+                foreach (SymbolModel accessor in memberAccessors)
+                    yield return accessor;
+
+                // Methods
+                foreach (SymbolModel method in memberMethods)
+                    yield return method;
+            }
+        }
+
         // Constructor
-        internal TypeModel(SemanticModel model, SymbolModel parent, TypeSyntax syntax)
+        internal TypeModel(SemanticModel model, SymbolModel parent, TypeSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
             this.namespaceName = syntax.Namespace;
+            this.importSymbols = importSymbols;
 
             // Update parent type
-            if(parent is TypeModel)
+            if (parent is TypeModel)
                 this.parentType = (TypeModel)parent;
 
             // Create generics
-            if(syntax.HasGenericParameters == true)
+            if (syntax.HasGenericParameters == true)
             {
                 // Create symbol array
                 genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.GenericParameterCount];
 
                 // Build all
-                for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
+                for (int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
                 {
                     // Add to type model
                     genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
@@ -167,11 +192,12 @@ namespace LumaSharp_Compiler.Semantics.Model
             BuildMembersModel(model, syntax.Members);
         }
 
-        internal TypeModel(SemanticModel model, SymbolModel parent, ContractSyntax syntax)
+        internal TypeModel(SemanticModel model, SymbolModel parent, ContractSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
             this.namespaceName = syntax.Namespace;
+            this.importSymbols = importSymbols;
 
             // Update parent
             if (parent is TypeModel)
@@ -181,11 +207,12 @@ namespace LumaSharp_Compiler.Semantics.Model
             BuildMembersModel(model, syntax.Members);
         }
 
-        internal TypeModel(SemanticModel model, SymbolModel parent, EnumSyntax syntax)
+        internal TypeModel(SemanticModel model, SymbolModel parent, EnumSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
             this.namespaceName = syntax.Namespace;
+            this.importSymbols = importSymbols;
 
             // Update parent
             if (parent is TypeModel)
@@ -235,10 +262,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         private void BuildMembersModel(SemanticModel model, IEnumerable<MemberSyntax> members)
         {
             // Create member types
-            memberTypes = members.Where(t => t is TypeSyntax).Select(t => new TypeModel(model, this, t as TypeSyntax)).ToArray();
+            memberTypes = members.Where(t => t is TypeSyntax).Select(t => new TypeModel(model, this, t as TypeSyntax, importSymbols)).ToArray();
 
             // Create member fields
             memberFields = members.Where(f => f is FieldSyntax).Select(f => new FieldModel(model, this, f as FieldSyntax)).ToArray();
+
+            // Create member accessors
+            memberAccessors = members.Where(a => a is AccessorSyntax).Select(a => new AccessorModel(model, this, a as AccessorSyntax)).ToArray();
 
             // Create member methods
             memberMethods = members.Where(m => m is MethodSyntax).Select(m => new MethodModel(model, this, m as MethodSyntax)).ToArray();

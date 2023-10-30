@@ -42,6 +42,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return fieldTypeSymbol; }
         }
 
+        public override IEnumerable<SymbolModel> Descendants
+        {
+            get { yield break; }
+        }
+
         // Constructor
         internal FieldModel(SemanticModel model, TypeModel parent, FieldSyntax syntax)
             : base(model, parent, syntax)
