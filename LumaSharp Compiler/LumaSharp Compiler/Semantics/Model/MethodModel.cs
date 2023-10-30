@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
-    public sealed class MethodModel : MemberModel, IMethodReferenceSymbol, IScopedReferenceSymbol, IIdentifierReferenceSymbol
+    public sealed class MethodModel : MemberModel, IScopeModel, IMethodReferenceSymbol, IScopedReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
         private MethodSyntax syntax = null;
@@ -124,7 +124,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             if (syntax.HasBody == true)
             {
                 this.bodyStatements = syntax.Body.Elements
-                    .Select(s => StatementModel.Any(model, this, s)).ToArray();
+                    .Select((s, i) => StatementModel.Any(model, this, s, i)).ToArray();
             }
         }
 
@@ -165,7 +165,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                     parameterIdentifierSymbols[0] = localModel;
 
                     // Resolve symbols
-                    localModel.ResolveSymbols(provider);
+                    localModel.ResolveSymbols(provider, report);
                 }
 
                 int offset = IsGlobal ? 0 : 1;
@@ -180,7 +180,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                     parameterIdentifierSymbols[i + offset] = parameterModel;
 
                     // Resolve symbols
-                    parameterModel.ResolveSymbols(provider);
+                    parameterModel.ResolveSymbols(provider, report);
                 }
             }
 
@@ -210,7 +210,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                         index++;
 
                         // Resolve symbols
-                        localModel.ResolveSymbols(provider);
+                        localModel.ResolveSymbols(provider, report);
                     }
                 }
             }
@@ -226,6 +226,31 @@ namespace LumaSharp_Compiler.Semantics.Model
                     statement.ResolveSymbols(provider, report);
                 }
             }
+        }
+
+        public VariableModel DeclareScopedLocal(SemanticModel model, VariableDeclarationStatementSyntax syntax, int index)
+        {
+            // Create the variable
+            VariableModel variableModel = new VariableModel(model, this, syntax, index);
+
+            // Register locals
+            LocalOrParameterModel[] localModels = variableModel.VariableModels.Where(m  => m != null).ToArray();
+
+            // Declare all
+            if(localModels.Length > 0)
+            {
+                int startOffset = localIdentifierSymbols.Length;
+
+                // Resize the array
+                Array.Resize(ref localIdentifierSymbols, localIdentifierSymbols.Length + localModels.Length);
+
+                // Append elements
+                for(int i = 0; i < localModels.Length; i++)
+                {
+                    localIdentifierSymbols[startOffset + i] = localModels[i];
+                }
+            }
+            return variableModel;
         }
     }
 }

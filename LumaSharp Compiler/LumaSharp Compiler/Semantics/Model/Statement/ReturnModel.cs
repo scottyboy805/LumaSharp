@@ -31,8 +31,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         }
 
         // Constructor
-        public ReturnModel(SemanticModel model, SymbolModel parent, ReturnStatementSyntax syntax)
-            : base(model, parent, syntax)
+        public ReturnModel(SemanticModel model, SymbolModel parent, ReturnStatementSyntax syntax, int statementIndex)
+            : base(model, parent, syntax, statementIndex)
         {
             this.syntax = syntax;
             this.returnModel = ExpressionModel.Any(model, this, syntax.ReturnExpression);

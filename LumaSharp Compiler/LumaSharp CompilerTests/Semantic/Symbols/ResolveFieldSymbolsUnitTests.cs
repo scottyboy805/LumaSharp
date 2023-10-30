@@ -30,5 +30,27 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.AreEqual("Test", fieldModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.MessageCount);
         }
+
+        [TestMethod]
+        public void ResolveFieldSymbols_LocalVariable()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test")
+                .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test")),
+                Syntax.Method("Test")
+                .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.VariableReference("myVar")), Syntax.Literal(5)))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            FieldAccessorReferenceModel fieldModel = model.DescendantsOfType<FieldAccessorReferenceModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(fieldModel);
+            Assert.IsNotNull(fieldModel.EvaluatedTypeSymbol);
+            Assert.IsNotNull(fieldModel.AccessModelExpression.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", fieldModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName);
+            Assert.AreEqual(0, model.Report.MessageCount);
+        }
     }
 }

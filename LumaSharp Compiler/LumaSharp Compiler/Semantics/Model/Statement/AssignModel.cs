@@ -32,8 +32,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         }
 
         // Constructor
-        public AssignModel(SemanticModel model, SymbolModel parent, AssignStatementSyntax syntax)
-            : base(model, parent, syntax)
+        public AssignModel(SemanticModel model, SymbolModel parent, AssignStatementSyntax syntax, int statementIndex)
+            : base(model, parent, syntax, statementIndex)
         {
             this.syntax = syntax;
             this.left = ExpressionModel.Any(model, this, syntax.Left);

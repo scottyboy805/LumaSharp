@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -65,7 +66,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
-        public void ResolveSymbols(ISymbolProvider provider)
+        public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Check for variable
             if(syntax is VariableDeclarationStatementSyntax)
