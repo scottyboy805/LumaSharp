@@ -50,6 +50,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            visitor.VisitVariableReference(this);
+        }
+
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Try to resolve symbol

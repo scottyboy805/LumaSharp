@@ -50,6 +50,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            visitor.VisitConstant(this);
+        }
+
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get the constant type

@@ -72,6 +72,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return localIdentifierSymbols; }
         }
 
+        public StatementModel[] BodyStatements
+        {
+            get { return bodyStatements; }
+        }
+
         public bool HasReturnType
         {
             get { return syntax.ReturnType.Identifier.Text != "void"; }

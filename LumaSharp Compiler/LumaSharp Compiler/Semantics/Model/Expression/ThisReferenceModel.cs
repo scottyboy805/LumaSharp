@@ -31,6 +31,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            visitor.VisitThis(this);
+        }
+
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get parent type

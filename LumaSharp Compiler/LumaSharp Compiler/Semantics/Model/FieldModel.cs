@@ -56,6 +56,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            visitor.VisitField(this);
+        }
+
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve field symbol

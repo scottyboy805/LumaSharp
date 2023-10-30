@@ -44,6 +44,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         }
 
         // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            visitor.VisitVariable(this);
+        }
+
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve type
