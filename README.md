@@ -7,6 +7,7 @@ C# is a powerful and mature language with frequent new features added all the ti
 # Progress
 WIP - Define language specification and usage (Common language features outlined below but subject to change).  
 - [x] [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/8a8926501a255674007b9978fd80b3e9a29988a1/LumaSharp%20Specification/Overview.md)
+- [X] [Runtime Specification](https://github.com/scottyboy805/LumaSharp/blob/528d759a2f59e890cf6e676030cc1d97364e9cf3/LumaSharp%20Specification/Runtime/Instructions.md)
 
 WIP - Implement language parsing using Antlr4 (Partially implemented - work is on going to support all proposed features).  
 - [X] Implement Antlr grammar for language specification - subject to change and refinement as the language structure develops.
