@@ -192,7 +192,7 @@ export void MyPureVirtualMethod() override; // Pure virtual - must be overriden 
 import Collections.Generic;
 
 // Enclosing namespace
-namespace BubbleSort.Example
+namespace BubbleSort:Example
 {
   // Main type
   global type Program
