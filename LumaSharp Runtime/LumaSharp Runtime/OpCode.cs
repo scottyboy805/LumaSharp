@@ -70,14 +70,14 @@ namespace LumaSharp.Runtime
         Ld_Addr_I8 = 0x64,      // No data
         Ld_Addr_F4 = 0x65,      // No data
         Ld_Addr_F8 = 0x66,      // No data
-        Ld_Addr_Obj = 0x67,     // No data
+        Ld_Addr_Any = 0x67,     // No data
         St_Addr_I1 = 0x68,      // No data
         St_Addr_I2 = 0x69,      // No data
         St_Addr_I4 = 0x6A,      // No data
         St_Addr_I8 = 0x6B,      // No data
         St_Addr_F4 = 0x6C,      // No data
         St_Addr_F8 = 0x6D,      // No data
-        St_Addr_Obj = 0x6E,     // No data
+        St_Addr_Any = 0x6E,     // No data
 
         // Arithmetic
         Add = 0x71,             // 1 byte type code
@@ -100,17 +100,17 @@ namespace LumaSharp.Runtime
         Cmp_NEq = 0x9A,         // 1 byte type code
 
         // Convert
-        Cast_I1 = 0xA1,         // 4 byte data - type token - cast 8 bit integer on top of stack to type specified by token
-        Cast_I2 = 0xA2,         // 4 byte data - type token
-        Cast_I4 = 0xA3,         // 4 byte data - type token
-        Cast_I8 = 0XA4,         // 4 byte data - type token
-        Cast_F4 = 0xA5,         // 4 byte data - type token
-        Cast_F8 = 0xA6,         // 4 byte data - type token
-        Cast_UI1 = 0xA7,        // 4 byte data - type token
-        Cast_UI2 = 0xA8,        // 4 byte data - type token
-        Cast_UI4 = 0xA9,        // 4 byte data - type token
-        Cast_UI8 = 0xAA,        // 4 byte data - type token
-        Cast_Obj = 0xAB,        // 4 byte data - type token
+        Cast_I1 = 0xA1,         // 1 byte data - primitive type token - cast 8 bit integer on top of stack to type specified by token
+        Cast_I2 = 0xA2,         // 1 byte data - primitive type token
+        Cast_I4 = 0xA3,         // 1 byte data - primitive type token
+        Cast_I8 = 0XA4,         // 1 byte data - primitive type token
+        Cast_F4 = 0xA5,         // 1 byte data - primitive type token
+        Cast_F8 = 0xA6,         // 1 byte data - primitive type token
+        Cast_UI1 = 0xA7,        // 1 byte data - primitive type token
+        Cast_UI2 = 0xA8,        // 1 byte data - primitive type token
+        Cast_UI4 = 0xA9,        // 1 byte data - primitive type token
+        Cast_UI8 = 0xAA,        // 1 byte data - primitive type token
+        Cast_Any = 0xAB,        // 4 byte data - type token
 
         // Jump
         Jmp_Eq = 0xB1,          // 1 byte type code, 4 byte instruction offset
@@ -128,9 +128,9 @@ namespace LumaSharp.Runtime
         NewArr = 0xF2,          // 4 byte data - type token
         Call = 0xF3,            // 4 byte data - method token
         Call_Addr = 0xF4,
-        Is_Obj = 0xF5,          // 4 byte data - type token - Is obj of specified type
-        As_Obj = 0xF6,          // 4 byte data - type token - Convert object or primitive to object of type
-        From_Obj = 0xF7,        // 4 byte data - type token - Convert primitive boxed value to primitive
+        Is_Any = 0xF5,          // 4 byte data - type token - Is obj of specified type
+        As_Any = 0xF6,          // 4 byte data - type token - Convert object or primitive to object of type
+        From_Any = 0xF7,        // 4 byte data - type token - Convert primitive boxed value to primitive
         Ld_Size = 0xF8,         // No data
 		Ld_Type = 0xF9,			// No data
         Ld_Func = 0xFA,         // 4 byte data - type token
@@ -211,14 +211,14 @@ namespace LumaSharp.Runtime
                 case OpCode.Ld_Addr_I8: return 0;      // No data
                 case OpCode.Ld_Addr_F4: return 0;      // No data
                 case OpCode.Ld_Addr_F8: return 0;      // No data
-                case OpCode.Ld_Addr_Obj: return 0;     // No data
+                case OpCode.Ld_Addr_Any: return 0;     // No data
                 case OpCode.St_Addr_I1: return 0;      // No data
                 case OpCode.St_Addr_I2: return 0;      // No data
                 case OpCode.St_Addr_I4: return 0;      // No data
                 case OpCode.St_Addr_I8: return 0;      // No data
                 case OpCode.St_Addr_F4: return 0;      // No data
                 case OpCode.St_Addr_F8: return 0;      // No data
-                case OpCode.St_Addr_Obj: return 0;     // No data
+                case OpCode.St_Addr_Any: return 0;     // No data
 
                 // Arithmetic
                 case OpCode.Add: return 1;             // 1 byte type code
@@ -251,7 +251,7 @@ namespace LumaSharp.Runtime
                 case OpCode.Cast_UI2: return 4;        // 4 byte data - type token
                 case OpCode.Cast_UI4: return 4;        // 4 byte data - type token
                 case OpCode.Cast_UI8: return 4;        // 4 byte data - type token
-                case OpCode.Cast_Obj: return 4;        // 4 byte data - type token
+                case OpCode.Cast_Any: return 4;        // 4 byte data - type token
 
                 // Jump
                 case OpCode.Jmp_Eq: return 5;          // 1 byte type code, 4 byte instruction offset
@@ -269,9 +269,9 @@ namespace LumaSharp.Runtime
                 case OpCode.NewArr: return 4;          // 4 byte data - type token
                 case OpCode.Call: return 4;            // 4 byte data - method token
                 case OpCode.Call_Addr: return 4;
-                case OpCode.Is_Obj: return 4;          // 4 byte data - type token - Is obj of specified type
-                case OpCode.As_Obj: return 4;          // 4 byte data - type token - Convert object or primitive to object of type
-                case OpCode.From_Obj: return 4;        // 4 byte data - type token - Convert primitive boxed value to primitive
+                case OpCode.Is_Any: return 4;          // 4 byte data - type token - Is obj of specified type
+                case OpCode.As_Any: return 4;          // 4 byte data - type token - Convert object or primitive to object of type
+                case OpCode.From_Any: return 4;        // 4 byte data - type token - Convert primitive boxed value to primitive
                 case OpCode.Ld_Size: return 0;         // No data
                 case OpCode.Ld_Type: return 0;  	   // No data
                 case OpCode.Ld_Func: return 4;         // 4 byte data - type token

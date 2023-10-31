@@ -375,7 +375,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 case PrimitiveType.Double: instructions.EmitOpCode(OpCode.Ld_Addr_F8); break;
                 default:
                     {
-                        instructions.EmitOpCode(OpCode.Ld_Addr_Obj, typeSymbol);
+                        instructions.EmitOpCode(OpCode.Ld_Addr_Any, typeSymbol);
                         break;
                     }
             }
@@ -397,7 +397,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 case PrimitiveType.Double: instructions.EmitOpCode(OpCode.St_Addr_F8); break;
                 default:
                     {
-                        instructions.EmitOpCode(OpCode.St_Addr_Obj, typeSymbol);
+                        instructions.EmitOpCode(OpCode.St_Addr_Any, typeSymbol);
                         break;
                     }
             }
