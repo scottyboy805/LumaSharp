@@ -1,6 +1,7 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
+using LumaSharp_Compiler.Semantics.Reference;
 
 namespace LumaSharp_Compiler.Semantics.Model.Statement
 {
@@ -46,11 +47,20 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Check if method has return
+            IMethodReferenceSymbol parentMethod = ParentSymbol as IMethodReferenceSymbol;
+
             // Check for return
             if(HasReturnExpression == true)
             {
                 // Resolve symbols in return model
                 returnModel.ResolveSymbols(provider, report);
+
+                // Check for return type conversion
+                if(TypeChecker.IsTypeAssignable(returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol) == false)
+                {
+                    report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol);
+                }
             }
         }
     }

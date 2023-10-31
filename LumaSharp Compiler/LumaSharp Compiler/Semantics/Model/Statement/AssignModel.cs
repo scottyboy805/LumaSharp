@@ -1,6 +1,7 @@
 ﻿using LumaSharp_Compiler.AST.Statement;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
+using LumaSharp_Compiler.Semantics.Reference;
 
 namespace LumaSharp_Compiler.Semantics.Model.Statement
 {
@@ -55,6 +56,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             right.ResolveSymbols(provider, report);
 
             // Check for assignment
+            if (TypeChecker.IsTypeAssignable(right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol) == false)
+            {
+                report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right.Source, right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol);
+            }
         }
     }
 }

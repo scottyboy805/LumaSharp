@@ -30,6 +30,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             }
         }
 
+        public SyntaxSource Source
+        {
+            get { return syntax.StartToken.Source; }
+        }
+
         // Constructor
         internal ExpressionModel(SemanticModel model, SymbolModel parent, ExpressionSyntax syntax)
             : base(model, parent)

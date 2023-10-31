@@ -6,6 +6,8 @@ namespace LumaSharp_Compiler.Reporting
     // Type
     public enum Code
     {
+        InvalidConversion = 331,
+
         MultipleAccessModifiers = 531,
         AccessModifierNotValid = 532,
         AccessModifierCantChange = 533,
@@ -56,6 +58,8 @@ namespace LumaSharp_Compiler.Reporting
             // Syntax
 
             // Semantic
+            { Code.InvalidConversion, "Cannot implicitly convert type `{0}` to `{1}`. Are you missing a cast?" },
+
             { Code.MultipleAccessModifiers, "Multiple access modifiers" },
             { Code.AccessModifierNotValid, "Access modifier `{0}` is not valid in the current context" },
             { Code.AccessModifierCantChange, "Cannot change access modifier `{0}` when overriding" },
