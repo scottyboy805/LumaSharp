@@ -17,15 +17,15 @@ WIP - Implement language parsing using Antlr4 (Partially implemented - work is o
 - [ ] Fully test parsing source text to syntax tree for all cases.
 
 WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, give errors/warnings, etc.).  
-- [ ] Convert parsed syntax tree to equivilent semanitc model.
+- [X] Convert parsed syntax tree to equivilent semanitc model.
 - [ ] Implement loading external modules for referencing purposes.
 - [ ] Implement type checking, inference, accessibility rules etc.
-- [ ] Implement resolving symbols and identifiers based on scope.
+- [X] Implement resolving symbols and identifiers based on scope (Partially implemented).
 - [ ] Semantic model validation to ensure that an output can be generated.
 
 TODO - Implement bytecode compiler to produce an executable format (Work required to transform the AST produced from parsing the source into semantic model for validation, and then into a stack based common bytecode instruction set).  
 - [ ] Define bytecode model used for runtime and compiler purposes (instruction set, format, memory).
-- [ ] Generate bytecode instruction set from semantic model statements.
+- [X] Generate bytecode instruction set from semantic model statements (Partially implemented).
 - [ ] Emit intermediate module that can be loaded and executed at runtime.
 
 TODO - Implement bytecode runtime to execute code as an application or library (Create a bytecode runtime in software only (No JIT) just as a proof of concept to execute instructions).  
