@@ -170,6 +170,23 @@ type MyType{
 type MyType{}
 ```
 
+### Overrides
+All types are sealed by default and cannot be derived from unless explicitly marked as override. It is possible to have a pure virtual type (Abstract in C#) by simply declaring all members as override.
+```cs
+// Overridable type
+export type MyType override
+{
+}
+```
+Methods and accessors can be marked as overridable and can be pure virtual (abstract in C#) if no body is defined:
+```cs
+export void MyMethod() override
+{
+  // Default implementation - can be overriden in sub classes
+}
+export void MyPureVirtualMethod() override; // Pure virtual - must be overriden in sub classes
+```
+
 ## A Complete Example - Bubble Sort
 ```cs
 import Collections.Generic;
