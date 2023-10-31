@@ -41,7 +41,11 @@ namespace LumaSharp_Compiler.AST.Factory
         #endregion
 
         #region Expressions
-        public static LiteralExpressionSyntax Literal(long val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString()));
+        public static LiteralExpressionSyntax LiteralNull() => new LiteralExpressionSyntax(new SyntaxToken("null"));
+        public static LiteralExpressionSyntax Literal(int val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString()));
+        public static LiteralExpressionSyntax Literal(uint val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString()), new SyntaxToken("U"));
+        public static LiteralExpressionSyntax Literal(long val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString()), new SyntaxToken("L"));
+        public static LiteralExpressionSyntax Literal(ulong val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString()), new SyntaxToken("UL"));
         public static LiteralExpressionSyntax Literal(double val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString()));
         public static LiteralExpressionSyntax Literal(string val) => new LiteralExpressionSyntax(new SyntaxToken(val));
         public static LiteralExpressionSyntax Literal(bool val) => new LiteralExpressionSyntax(new SyntaxToken(val.ToString().ToLower()));

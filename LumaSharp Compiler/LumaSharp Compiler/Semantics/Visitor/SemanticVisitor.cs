@@ -60,7 +60,10 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             {
                 VisitVariableReference((VariableReferenceModel)model);
             }
-            throw new NotSupportedException();
+            else
+            {
+                throw new NotSupportedException();
+            }
         }
 
         public virtual void VisitField(FieldModel model)
@@ -110,17 +113,23 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         {
             // Check for assign
             if (model is AssignModel)
+            {
                 VisitAssign(model as AssignModel);
-
+            }
             // Check for retrun
-            if(model is ReturnModel)
+            else if (model is ReturnModel)
+            {
                 VisitReturn(model as ReturnModel);
-
+            }
             // Check for variable
-            if(model is VariableModel) 
+            else if (model is VariableModel)
+            {
                 VisitVariable(model as VariableModel);
-
-            throw new NotSupportedException();
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
         }
 
         public virtual void VisitThis(ThisReferenceModel model)

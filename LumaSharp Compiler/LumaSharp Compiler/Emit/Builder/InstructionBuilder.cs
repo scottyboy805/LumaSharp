@@ -4,11 +4,59 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
+    internal sealed class Instruction
+    {
+        // Public
+        public int index;
+        public OpCode opCode;
+        public object data0;
+        public object data1;
+
+        // Constructor
+        public Instruction(int index, OpCode opCode)
+        {
+            this.index = index;
+            this.opCode = opCode;
+        }
+
+        public Instruction(int index, OpCode opCode, object data)
+        {
+            this.index = index;
+            this.opCode = opCode;
+            this.data0 = data;
+        }
+
+        public Instruction(int index, OpCode opCode, object data0, object data1)
+        {
+            this.index = index;
+            this.opCode = opCode;
+            this.data0 = data0;
+            this.data1 = data1;
+        }
+
+        // Methods
+        public override string ToString()
+        {
+            if(data0 != null && data1 != null)
+            {
+                return string.Format("{0}: {1}: {2}, {3}", index, data0, data1);
+            }
+            else if(data0 != null)
+            {
+                return string.Format("{0}: {1}: {2}", index, data0);
+            }
+            else
+            {
+                return string.Format("{0}: {1}", index, opCode);
+            }    
+        }
+    }
+
     internal sealed class InstructionBuilder
     {
         // Private
         private BinaryWriter writer = null;
-        private List<string> instructions = null;
+        private List<Instruction> instructions = null;
         private int instructionIndex = 0;
 
         // Properties
@@ -17,18 +65,23 @@ namespace LumaSharp_Compiler.Emit.Builder
             get { return instructionIndex; }
         }
 
+        public Instruction this[int index]
+        {
+            get { return instructions[index]; }
+        }        
+
         // Constructor
         public InstructionBuilder(BinaryWriter writer)
         {
             this.writer = writer;
-            this.instructions = new List<string>();
+            this.instructions = new List<Instruction>();
         }
 
         // Methods
         public void EmitOpCode(OpCode code)
         {
             // Add op code
-            instructions.Add(string.Format("{0}: {1}", instructionIndex, code.ToString()));
+            instructions.Add(new Instruction(instructionIndex, code));
 
             writer.Write((byte)code);
             instructionIndex++;
@@ -40,7 +93,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -53,7 +106,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -66,7 +119,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -79,7 +132,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -92,7 +145,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -105,7 +158,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -118,7 +171,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -131,7 +184,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), data));
+            instructions.Add(new Instruction(instructionIndex, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -144,7 +197,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}, {3}", instructionIndex, code.ToString(), data0, data1));
+            instructions.Add(new Instruction(instructionIndex, code, data0, data1));
 
             writer.Write((byte)code);
             writer.Write(data0);
@@ -158,7 +211,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(string.Format("{0}: {1}: {2}", instructionIndex, code.ToString(), symbol));
+            instructions.Add(new Instruction(instructionIndex, code, symbol));
 
             writer.Write((byte)code);
             writer.Write(symbol.SymbolToken);

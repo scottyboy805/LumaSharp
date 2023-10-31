@@ -34,10 +34,11 @@ namespace LumaSharp_Compiler.AST
         //{
         //}
 
-        internal LiteralExpressionSyntax(SyntaxToken value)
+        internal LiteralExpressionSyntax(SyntaxToken value, SyntaxToken descriptor = null)
             : base(value)
         {
             this.value = value;
+            this.descriptor = descriptor;
         }
 
         internal LiteralExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EndExpressionContext end)

@@ -151,6 +151,29 @@ namespace LumaSharp_Compiler.Emit.Builder
                         instructions.EmitOpCode(OpCode.Cast_I4, (int)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
+
+                case PrimitiveType.I64:
+                    {
+                        // Get long value
+                        long value = model.GetConstantValueAs<long>();
+
+                        // Write instruction
+                        instructions.EmitOpCode(OpCode.Ld_I8, value);
+                        break;
+                    }
+
+                case PrimitiveType.U64:
+                    {
+                        // Get ulong value
+                        ulong value = model.GetConstantValueAs<ulong>();
+
+                        // Write instruction
+                        instructions.EmitOpCode(OpCode.Ld_I8, value);
+
+                        // Add convert instruction
+                        instructions.EmitOpCode(OpCode.Cast_I8, (int)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
             }
         }
 
