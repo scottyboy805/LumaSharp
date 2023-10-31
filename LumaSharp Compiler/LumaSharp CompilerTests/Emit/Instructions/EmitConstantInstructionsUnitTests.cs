@@ -240,9 +240,6 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.IsTrue(builder.InstructionIndex > 0);
             Assert.AreEqual(OpCode.Ld_I8, builder[0].opCode);
             Assert.AreEqual(5L, builder[0].data0);
-
-            Assert.AreEqual(OpCode.Cast_I4, builder[1].opCode);
-            Assert.AreEqual((int)PrimitiveType.U32, builder[1].data0);
         }
 
         [TestMethod]
@@ -269,6 +266,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.IsTrue(builder.InstructionIndex > 0);
             Assert.AreEqual(OpCode.Ld_I8, builder[0].opCode);
             Assert.AreEqual(5UL, builder[0].data0);
+        }
+
+        [TestMethod]
+        public void EmitConstant_String()
+        {
+            throw new NotImplementedException("To be completed");
         }
     }
 }

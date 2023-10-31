@@ -183,66 +183,32 @@ namespace LumaSharp_Compiler.Emit.Builder
             ILocalIdentifierReferenceSymbol localSymbol = model.IdentifierSymbol as ILocalIdentifierReferenceSymbol;
 
             // Check for read
-            if(referenceContextScope.Peek() == ReferenceContext.Read)
+            if (referenceContextScope.Peek() == ReferenceContext.Read)
             {
+                // Create load local/parameter instruction
+                EmitLoadLocal(localSymbol);
+
                 // Check for by reference
+                // Should use the sequence: [ld_arg.., ld_addr] to load value from address
                 if (localSymbol.IsByReference == true)
                 {
                     EmitLoadAddress(localSymbol.TypeSymbol);
-                }
-                else
-                {
-                    // Check for parameter
-                    if (localSymbol.IsParameter == true)
-                    {
-                        switch (localSymbol.Index)
-                        {
-                            case 0: instructions.EmitOpCode(OpCode.Ld_Arg_0); break;
-                            case 1: instructions.EmitOpCode(OpCode.Ld_Arg_1); break;
-                            case 2: instructions.EmitOpCode(OpCode.Ld_Arg_2); break;
-                            case 3: instructions.EmitOpCode(OpCode.Ld_Arg_3); break;
-                            default:
-                                {
-                                    if (localSymbol.Index < byte.MaxValue)
-                                    {
-                                        instructions.EmitOpCode(OpCode.Ld_Arg, (byte)localSymbol.Index);
-                                    }
-                                    else
-                                    {
-                                        instructions.EmitOpCode(OpCode.Ld_Arg_E, (ushort)localSymbol.Index);
-                                    }
-                                    break;
-                                }
-                        }
-                    }
-                    // Check for local
-                    else if (localSymbol.IsLocal == true)
-                    {
-                        switch(localSymbol.Index)
-                        {
-                            case 0: instructions.EmitOpCode(OpCode.Ld_Loc_0); break;
-                            case 1: instructions.EmitOpCode (OpCode.Ld_Loc_1); break;
-                            case 2: instructions.EmitOpCode(OpCode.Ld_Loc_2); break;
-                            default:
-                                {
-                                    if(localSymbol.Index < byte.MaxValue)
-                                    {
-                                        instructions.EmitOpCode(OpCode.Ld_Loc, (byte)localSymbol.Index);
-                                    }
-                                    else
-                                    {
-                                        instructions.EmitOpCode(OpCode.Ld_Loc_E, (ushort)localSymbol.Index);
-                                    }
-                                    break;
-                                }
-                        }
-                    }
                 }
             }
             // Must be write
             else
             {
-
+                // Check for by reference - need to load the address first
+                if (localSymbol.IsByReference == true)
+                {
+                    EmitLoadLocal(localSymbol);
+                    EmitStoreAddress(localSymbol.TypeSymbol);
+                }
+                else
+                {
+                    // Create store local/parameter instruction
+                    EmitStoreLocal(localSymbol);
+                }
             }
         }
 
@@ -293,6 +259,104 @@ namespace LumaSharp_Compiler.Emit.Builder
         {
             // Load type symbols
             instructions.EmitOpCode(OpCode.Ld_Type, model.EvaluatedTypeSymbol);
+        }
+
+        private void EmitLoadLocal(ILocalIdentifierReferenceSymbol localSymbol)
+        {
+            // Check for parameter
+            if (localSymbol.IsParameter == true)
+            {
+                switch (localSymbol.Index)
+                {
+                    case 0: instructions.EmitOpCode(OpCode.Ld_Arg_0); break;
+                    case 1: instructions.EmitOpCode(OpCode.Ld_Arg_1); break;
+                    case 2: instructions.EmitOpCode(OpCode.Ld_Arg_2); break;
+                    case 3: instructions.EmitOpCode(OpCode.Ld_Arg_3); break;
+                    default:
+                        {
+                            if (localSymbol.Index < byte.MaxValue)
+                            {
+                                instructions.EmitOpCode(OpCode.Ld_Arg, (byte)localSymbol.Index);
+                            }
+                            else
+                            {
+                                instructions.EmitOpCode(OpCode.Ld_Arg_E, (ushort)localSymbol.Index);
+                            }
+                            break;
+                        }
+                }
+            }
+            // Check for local
+            else if (localSymbol.IsLocal == true)
+            {
+                switch (localSymbol.Index)
+                {
+                    case 0: instructions.EmitOpCode(OpCode.Ld_Loc_0); break;
+                    case 1: instructions.EmitOpCode(OpCode.Ld_Loc_1); break;
+                    case 2: instructions.EmitOpCode(OpCode.Ld_Loc_2); break;
+                    default:
+                        {
+                            if (localSymbol.Index < byte.MaxValue)
+                            {
+                                instructions.EmitOpCode(OpCode.Ld_Loc, (byte)localSymbol.Index);
+                            }
+                            else
+                            {
+                                instructions.EmitOpCode(OpCode.Ld_Loc_E, (ushort)localSymbol.Index);
+                            }
+                            break;
+                        }
+                }
+            }
+        }
+
+        private void EmitStoreLocal(ILocalIdentifierReferenceSymbol localSymbol)
+        {
+            // Check for parameter
+            if (localSymbol.IsParameter == true)
+            {
+                switch (localSymbol.Index)
+                {
+                    case 0: instructions.EmitOpCode(OpCode.St_Arg_0); break;
+                    case 1: instructions.EmitOpCode(OpCode.St_Arg_1); break;
+                    case 2: instructions.EmitOpCode(OpCode.St_Arg_2); break;
+                    case 3: instructions.EmitOpCode(OpCode.St_Arg_3); break;
+                    default:
+                        {
+                            if (localSymbol.Index < byte.MaxValue)
+                            {
+                                instructions.EmitOpCode(OpCode.St_Arg, (byte)localSymbol.Index);
+                            }
+                            else
+                            {
+                                instructions.EmitOpCode(OpCode.St_Arg_E, (ushort)localSymbol.Index);
+                            }
+                            break;
+                        }
+                }
+            }
+            // Check for local
+            else if (localSymbol.IsLocal == true)
+            {
+                switch (localSymbol.Index)
+                {
+                    case 0: instructions.EmitOpCode(OpCode.St_Loc_0); break;
+                    case 1: instructions.EmitOpCode(OpCode.St_Loc_1); break;
+                    case 2: instructions.EmitOpCode(OpCode.St_Loc_2); break;
+                    default:
+                        {
+                            if (localSymbol.Index < byte.MaxValue)
+                            {
+                                instructions.EmitOpCode(OpCode.St_Loc, (byte)localSymbol.Index);
+                            }
+                            else
+                            {
+                                instructions.EmitOpCode(OpCode.St_Loc_E, (ushort)localSymbol.Index);
+                            }
+                            break;
+                        }
+                }
+            }
         }
 
         private void EmitLoadAddress(ITypeReferenceSymbol typeSymbol)

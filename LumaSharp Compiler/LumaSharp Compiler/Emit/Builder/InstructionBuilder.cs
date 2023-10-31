@@ -1,6 +1,5 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp_Compiler.Semantics;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {

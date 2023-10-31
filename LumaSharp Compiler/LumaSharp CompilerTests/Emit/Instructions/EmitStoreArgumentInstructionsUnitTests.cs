@@ -8,16 +8,16 @@ using LumaSharp.Runtime;
 namespace LumaSharp_CompilerTests.Emit.Instructions
 {
     [TestClass]
-    public sealed class EmitStoreLocalInstructionsUnitTests
+    public sealed class EmitStoreArgumentInstructionsUnitTests
     {
         [TestMethod]
-        public void EmitStoreLocal_0()
+        public void EmitStoreArg_1()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5)))));
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
+                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -31,19 +31,20 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
+            // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.St_Loc_0, builder[1].opCode);
+            Assert.AreEqual(OpCode.St_Arg_1, builder[1].opCode);
         }
 
         [TestMethod]
-        public void EmitStoreLocal_1()
+        public void EmitStoreArg_2()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
-                    Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5)))));
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a1"),
+                    Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
+                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -57,20 +58,21 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
+            // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.St_Loc_1, builder[1].opCode);
+            Assert.AreEqual(OpCode.St_Arg_2, builder[1].opCode);
         }
 
         [TestMethod]
-        public void EmitStoreLocal_2()
+        public void EmitStoreArg_3()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
-                    Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5)))));
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a1"),
+                    Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a2"),
+                    Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
+                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -84,21 +86,22 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
+            // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.St_Loc_2, builder[1].opCode);
+            Assert.AreEqual(OpCode.St_Arg_3, builder[1].opCode);
         }
 
         [TestMethod]
-        public void EmitStoreLocal_Index()
+        public void EmitStoreArg_Index()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l2"),
-                    Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5)))));
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a1"),
+                    Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a2"),
+                    Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a3"),
+                    Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
+                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -112,30 +115,28 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
+            // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.St_Loc, builder[1].opCode);
-            Assert.AreEqual((byte)3, builder[1].data0);
+            Assert.AreEqual(OpCode.St_Arg, builder[1].opCode);
+            Assert.AreEqual((byte)4, builder[1].data0);
         }
 
         [TestMethod]
-        public void EmitStoreLocal_Index_Extended()
+        public void EmitStoreArg_Index_Extended()
         {
-            // If the local index is greater than 255, the load local index will be ushort instead of byte using the extended instruction
-            StatementSyntax[] statements = new StatementSyntax[byte.MaxValue + 2];
+            ParameterSyntax[] parameters = new ParameterSyntax[byte.MaxValue + 1];
 
             for (int i = 0; i < byte.MaxValue; i++)
-                statements[i] = Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "l" + i);
+                parameters[i] = Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a" + i);
 
-            // Store our variable last
-            statements[byte.MaxValue] = Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar");
-
-            // Store our access expression finally
-            statements[byte.MaxValue + 1] = Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5));
+            // Store our target parameter last
+            parameters[byte.MaxValue] = Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg");
 
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(statements)));
+                .WithParameters(parameters)
+                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -149,9 +150,37 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
+            // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.St_Loc_E, builder[1].opCode);
-            Assert.AreEqual((ushort)byte.MaxValue, builder[1].data0);
+            Assert.AreEqual(OpCode.St_Arg_E, builder[1].opCode);
+            Assert.AreEqual((ushort)(byte.MaxValue + 1), builder[1].data0);
+        }
+
+        [TestMethod]
+        public void EmitStoreArg_1_Addr()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("Test")
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg", true))
+                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.Literal(5)))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            MethodModel methodModel = model.DescendantsOfType<MethodModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(methodModel);
+            Assert.AreEqual(0, model.Report.MessageCount);
+
+            // Build instructions
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
+            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+
+            // Note that for instance methods arg0 is reserved for `this` instance
+            Assert.IsTrue(builder.InstructionIndex > 1);
+            Assert.AreEqual(OpCode.Ld_Arg_1, builder[1].opCode);
+            Assert.AreEqual(OpCode.St_Addr_I4, builder[2].opCode);
         }
     }
 }
