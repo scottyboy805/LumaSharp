@@ -1,9 +1,11 @@
 # Bytecode Instruction Set
 
 The runtime and compiler will use the following bytecode instruction set which should support all possible use cases of the language. 
-Inspiration taken from C# CLR and JVM to outline the minimum required instruction set:
+Inspiration taken from C# CLR and JVM to outline the minimum required instruction set without compromising features or performance.
 
-All OpCodes `[code]` are stored as 1 byte
+All OpCodes `[code]` are stored as 1 byte, but may also store additional data per instruction as listed below.
+
+*Instruction set is liable to change at any time!*
 
 ### Default Op
 `Nop` - No operation - debug marker only
@@ -97,3 +99,37 @@ All OpCodes `[code]` are stored as 1 byte
 `Cmp_Ge`: [code, 1 byte] Compare the 2 values on top of the stack using a greater than equal check and push the result. Primitive type code is stored with instruction  
 `Cmp_Eq`: [code, 1 byte] Compare the 2 values on top of the stack using an equal check and push the result. Primitive type code is stored with instruction  
 `Cmp_NEq`: [code, 1 byte] Compare the 2 values on top of the stack using a not equal check and push the result. Primitive type code is stored with instruction  
+
+### Convert
+`Cast_I1`: [code, 1 byte] Convert the 8-bit value on top of the stack to the provided primitivetype token  
+`Cast_I2`: [code, 1 byte] Convert the 16-bit value on top of the stack to the provided primitive type token  
+`Cast_I4`: [code, 1 byte] Convert the 32-bit value on top of the stack to the provided primitive type token  
+`Cast_I8`: [code, 1 byte] Convert the 64-bit value on top of the stack to the provided primitive type token  
+`Cast_F4`: [code, 1 byte] Convert the 32-bit floating point value on top of the stack to the provided primitive type token  
+`Cast_F8`: [code, 1 byte] Convert the 64-bit floating point value on top of the stack to the provided primitive type token  
+`Cast_Any`: [code, 4 bytes] Convert the reference value on top of the stack to the provided type token  
+
+### Jump
+`Jmp_Eq`: [code, 1 byte, 4 bytes] Jump to the target offset if the 2 values on top of the stack are equal. Primitive type code and instruction offset are stored with instruction  
+`Jmp_NEq`: [code, 1 byte, 4 bytes] Jump to the target offset if the 2 values on top of the stack are not equal. Primitive type code and instruction offset are stored with instruction  
+`Jmp_1`: [code, 4 bytes] Jump to the target offset if the 32-bit value on top of the stack is equal to `1`. Instruction offset is stored with instruction  
+`Jmp_0`: [code, 4 bytes] Jump to the target offset if the 32-bit value on top of the stack is equal to `0`. Instruction offset is stored with instruction  
+`Jmp_L`: [code, 1 byte, 4 bytes] Jump to the target offset if a less than check for the 2 values on top of the stack is true. Primitive type code and instruction offset are stored with instruction  
+`Jmp_Le`: [code, 1 byte, 4 bytes] Jump to the target offset if a less than equal check for the 2 values on top of the stack is true. Primitive type code and instruction offset are stored with instruction  
+`Jmp_G`: [code, 1 byte, 4 bytes] Jump to the target offset if a greater than check for the 2 values on top of the stack is true. Primitive type code and instruction offset are stored with instruction  
+`Jmp_Ge`: [code, 1 byte, 4 bytes] Jump to the target offset if a greather than equal check for the 2 values on top of the stack is true. Primitive type code and instruction offset are stored with instruction  
+`Jmp`: [code, 4 bytes] Jump unconditionally to the target offset  
+
+### Object
+`New`: [code, 4 bytes] Allocate a new instance of the type provided by the type token. Constructor arguments must first be pushed to the stack  
+`NewArray`: [code, 4 bytes] Allocate a new array instance of the type provided by the type token. Array size must first be pushed to the stack as a 64-bit value  
+`Call`: [code, 4 bytes] Call the method indicated by the method token. Instance (If non-global method) and arguments must first be pushed to the stack  
+`Call_Addr`: [code] Call the method at the provided address. Instance (If non-global method) and arguments must first be pushed  
+`Is_Any`: [code, 4 bytes] Check if the reference value on top of the stack is the type provided by the type token and push the result  
+`As_Any`: [code, 1 byte] Convert the value on top of the stack of the type provided by type token to `any` representation (Box primitive, allocate on heap and return reference). Primtive type code is provided with instruction  
+`From_Any`: [code, 4 bytes] Convert the value on top of the stack from an `any` represenation to the type provided by the type token and push the value (Unbox primitive from reference)  
+`Ld_Size`: [code, 4 bytes] Load the size of the type provided by the type token onto the stack as a 32-bit value  
+`Ld_Type`: [code, 4 bytes] Load the type address of the type provided by the type token onto the stack  
+`Ld_Func`: [code, 4 bytes] Load the address of the method provided by the method token onto the stack  
+`Ret`: [code] Return from current call scope  
+`Throw`: [code] Throw the exception object on top of the stack  
