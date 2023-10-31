@@ -25,7 +25,7 @@ WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, 
 - [ ] Semantic model validation to ensure that an output can be generated.
 
 TODO - Implement bytecode compiler to produce an executable format (Work required to transform the AST produced from parsing the source into semantic model for validation, and then into a stack based common bytecode instruction set).  
-- [ ] Define bytecode model used for runtime and compiler purposes (instruction set, format, memory).
+- [X] Define bytecode model used for runtime and compiler purposes (instruction set, format, memory) (Partially implemented [Runtime Specification](https://github.com/scottyboy805/LumaSharp/blob/528d759a2f59e890cf6e676030cc1d97364e9cf3/LumaSharp%20Specification/Runtime/Instructions.md)).
 - [X] Generate bytecode instruction set from semantic model statements (Partially implemented).
 - [ ] Emit intermediate module that can be loaded and executed at runtime.
 
