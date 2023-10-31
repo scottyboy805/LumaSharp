@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp_Compiler.Semantics
 {
-    public interface IIdentifierReferenceSymbol
+    public interface IIdentifierReferenceSymbol : IReferenceSymbol
     {
         // Properties
         IReferenceSymbol ParentSymbol { get; }

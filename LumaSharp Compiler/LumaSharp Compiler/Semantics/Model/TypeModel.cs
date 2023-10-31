@@ -225,24 +225,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Methods
         public override void Accept(ISemanticVisitor visitor)
         {
-            // Generics
-            // Base types
-
-            // Nested types
-            foreach(TypeModel type in memberTypes)
-                visitor.VisitType(type);
-
-            // Fields
-            foreach (FieldModel field in memberFields)
-                visitor.VisitField(field);
-
-            // Accessors
-            foreach(AccessorModel accessor in memberAccessors)
-                visitor.VisitAccessor(accessor);
-
-            // Methods
-            foreach(MethodModel methodModel in memberMethods)
-                visitor.VisitMethod(methodModel);
+            visitor.VisitType(this);
         }
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)

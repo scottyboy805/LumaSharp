@@ -1,4 +1,7 @@
 ﻿
+using System.Data;
+using System;
+
 namespace LumaSharp.Runtime
 {
     public enum OpCode : byte
@@ -133,5 +136,148 @@ namespace LumaSharp.Runtime
         Ld_Func = 0xFA,         // 4 byte data - type token
         Ret = 0xFB,             // No data
         Throw = 0xFC,           // No data
+    }
+
+    public static class OpCodeCheck
+    {
+        // Methods
+        public static int GetOpCodeDataSize(OpCode code)
+        {
+            switch (code)
+            {
+                default:
+                case OpCode.Nop: return 0;
+
+
+                // Const
+                case OpCode.Ld_I1: return 1;           // 1 byte data
+                case OpCode.Ld_I2: return 2;           // 2 byte data
+                case OpCode.Ld_I4: return 4;           // 4 byte data
+                case OpCode.Ld_I8: return 8;           // 8 byte data
+                case OpCode.Ld_F4: return 4;           // 4 byte data
+                case OpCode.Ld_F8: return 8;           // 8 byte data
+                case OpCode.Ld_Str: return 4;          // 4 byte data - offset into string table
+                case OpCode.Ld_Null: return 0;         // No data
+
+                case OpCode.Ld_I4_0: return 4;         // 4 byte data - Load 32 bit int with value of '0'
+                case OpCode.Ld_I4_1: return 4;         // 4 byte data - Load 32 bit int with value of '1'
+                case OpCode.Ld_I4_M1: return 4;        // 4 byte data -  Load 32 bit int with value of '-1'
+                case OpCode.Ld_F4_0: return 4;         // 4 byte data - Load 32 bit float with value 0f '0'
+
+                // Locals
+                case OpCode.Ld_Loc_0: return 0;        // No data
+                case OpCode.Ld_Loc_1: return 0;        // No data
+                case OpCode.Ld_Loc_2: return 0;        // No data
+                case OpCode.Ld_Loc: return 1;          // 1 byte data
+                case OpCode.Ld_Loc_E: return 2;        // 2 byte data
+                case OpCode.Ld_Loc_A: return 1;        // 1 byte data
+                case OpCode.Ld_Loc_EA: return 2;       // 2 byte data
+                case OpCode.St_Loc_0: return 0;        // No data
+                case OpCode.St_Loc_1: return 0;        // No data
+                case OpCode.St_Loc_2: return 0;        // No data
+                case OpCode.St_Loc: return 1;          // 1 byte data
+                case OpCode.St_Loc_E: return 2;        // 2 byte data
+
+                // Arguments
+                case OpCode.Ld_Arg_0: return 0;        // No data
+                case OpCode.Ld_Arg_1: return 0;        // No data
+                case OpCode.Ld_Arg_2: return 0;        // No data
+                case OpCode.Ld_Arg_3: return 0;        // No data
+                case OpCode.Ld_Arg: return 1;          // 1 byte data
+                case OpCode.Ld_Arg_E: return 2;        // 2 byte data
+                case OpCode.Ld_Arg_A: return 1;        // 1 byte data
+                case OpCode.Ld_Arg_EA: return 2;       // 2 byte data
+                case OpCode.St_Arg_0: return 0;        // No data
+                case OpCode.St_Arg_1: return 0;        // No data
+                case OpCode.St_Arg_2: return 0;        // No data
+                case OpCode.St_Arg_3: return 0;        // No data
+                case OpCode.St_Arg: return 1;          // 1 byte data
+                case OpCode.St_Arg_E: return 2;        // 2 byte data
+
+                // Fields
+                case OpCode.Ld_Fld: return 4;          // 4 byte data - field token
+                case OpCode.Ld_Fld_A: return 4;        // 4 byte data - field token
+                case OpCode.St_Fld: return 4;          // 4 byte data - field token
+
+                // Arrays
+                case OpCode.Ld_Elem: return 0;         // No data
+                case OpCode.Ld_Elem_A: return 0;       // No data
+                case OpCode.St_Elem: return 0;         // No data
+
+                // Indirect
+                case OpCode.Ld_Addr_I1: return 0;      // No data
+                case OpCode.Ld_Addr_I2: return 0;      // No data
+                case OpCode.Ld_Addr_I4: return 0;      // No data
+                case OpCode.Ld_Addr_I8: return 0;      // No data
+                case OpCode.Ld_Addr_F4: return 0;      // No data
+                case OpCode.Ld_Addr_F8: return 0;      // No data
+                case OpCode.Ld_Addr_Obj: return 0;     // No data
+                case OpCode.St_Addr_I1: return 0;      // No data
+                case OpCode.St_Addr_I2: return 0;      // No data
+                case OpCode.St_Addr_I4: return 0;      // No data
+                case OpCode.St_Addr_I8: return 0;      // No data
+                case OpCode.St_Addr_F4: return 0;      // No data
+                case OpCode.St_Addr_F8: return 0;      // No data
+                case OpCode.St_Addr_Obj: return 0;     // No data
+
+                // Arithmetic
+                case OpCode.Add: return 1;             // 1 byte type code
+                case OpCode.Sub: return 1;
+                case OpCode.Mul: return 1;
+                case OpCode.Div: return 1;
+                case OpCode.Neg: return 1;
+                case OpCode.And: return 1;
+                case OpCode.Or: return 1;
+                case OpCode.XOr: return 1;
+                case OpCode.Not: return 1;
+                case OpCode.Bit_Shl: return 1;
+                case OpCode.Bit_Shr: return 1;
+                case OpCode.Mod: return 1;
+                case OpCode.Cmp_L: return 1;           // 1 byte type code
+                case OpCode.Cmp_Le: return 1;          // 1 byte type code
+                case OpCode.Cmp_G: return 1;           // 1 byte type code
+                case OpCode.Cmp_Ge: return 1;          // 1 byte type code
+                case OpCode.Cmp_Eq: return 1;          // 1 byte type code
+                case OpCode.Cmp_NEq: return 1;         // 1 byte type code
+
+                // Convert
+                case OpCode.Cast_I1: return 4;         // 4 byte data - type token - cast 8 bit integer on top of stack to type specified by token
+                case OpCode.Cast_I2: return 4;         // 4 byte data - type token
+                case OpCode.Cast_I4: return 4;         // 4 byte data - type token
+                case OpCode.Cast_I8: return 4;         // 4 byte data - type token
+                case OpCode.Cast_F4: return 4;         // 4 byte data - type token
+                case OpCode.Cast_F8: return 4;         // 4 byte data - type token
+                case OpCode.Cast_UI1: return 4;        // 4 byte data - type token
+                case OpCode.Cast_UI2: return 4;        // 4 byte data - type token
+                case OpCode.Cast_UI4: return 4;        // 4 byte data - type token
+                case OpCode.Cast_UI8: return 4;        // 4 byte data - type token
+                case OpCode.Cast_Obj: return 4;        // 4 byte data - type token
+
+                // Jump
+                case OpCode.Jmp_Eq: return 5;          // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_NEq: return 5;         // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_1: return 5;           // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_0: return 5;           // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_L: return 5;           // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_Le: return 5;          // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_G: return 5;           // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_Ge: return 5;          // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp: return 4;             // 4 byte instruction offset
+
+                // Obj
+                case OpCode.New: return 4;             // 4 byte data - type token
+                case OpCode.NewArr: return 4;          // 4 byte data - type token
+                case OpCode.Call: return 4;            // 4 byte data - method token
+                case OpCode.Call_Addr: return 4;
+                case OpCode.Is_Obj: return 4;          // 4 byte data - type token - Is obj of specified type
+                case OpCode.As_Obj: return 4;          // 4 byte data - type token - Convert object or primitive to object of type
+                case OpCode.From_Obj: return 4;        // 4 byte data - type token - Convert primitive boxed value to primitive
+                case OpCode.Ld_Size: return 0;         // No data
+                case OpCode.Ld_Type: return 0;  	   // No data
+                case OpCode.Ld_Func: return 4;         // 4 byte data - type token
+                case OpCode.Ret: return 0;             // No data
+                case OpCode.Throw: return 0;           // No data
+            }
+        }
     }
 }

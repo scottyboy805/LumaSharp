@@ -11,6 +11,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ITypeReferenceSymbol type = null;
         private string identifier = null;
         private int index = 0;
+        private bool isByReference = false;
 
         // Properties
         public bool IsLocal
@@ -21,6 +22,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public bool IsParameter
         {
             get { return syntax is ParameterSyntax; }
+        }
+
+        public bool IsByReference
+        {
+            get { return isByReference; }
         }
 
         public bool IsOptional
@@ -43,6 +49,16 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return type; }
         }
 
+        public ILibraryReferenceSymbol LibrarySymbol
+        {
+            get { return type.LibrarySymbol; }
+        }
+
+        public int SymbolToken
+        {
+            get { return -1; }
+        }
+
         public string IdentifierName
         {
             get { return identifier; }
@@ -63,6 +79,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             this.parent = parent;
             this.identifier = syntax.Identifier.Text;
             this.index = paramIndex;
+            this.isByReference = syntax.IsByReference;
         }
 
         // Methods

@@ -25,6 +25,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Private
         private LiteralExpressionSyntax syntax = null;
         private ITypeReferenceSymbol constantTypeSymbol = null;
+        private object constantValue = null;
 
         // Properties
         public override bool IsStaticallyEvaluated
@@ -81,23 +82,40 @@ namespace LumaSharp_Compiler.Semantics.Model
             this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType);
         }
 
+        public T GetConstantValueAs<T>()
+        {
+            return (T)constantValue;
+        }
+
         private ConstantType ResolveConstantType(SyntaxToken token, SyntaxToken descriptor)
         {
             // Check for literal
             if (token.Text.Length >= 2 && token.Text[0] == '"' && token.Text[token.Text.Length - 1] == '"')
+            {
+                constantValue = token.Text.Substring(1, token.Text.Length - 2);
                 return ConstantType.LiteralString;
+            }
 
             // Check for true
-            if(token.Text == "true")
+            if (token.Text == "true")
+            {
+                constantValue = true;
                 return ConstantType.True;
+            }
 
             // Check for false
-            if(token.Text == "false")
+            if (token.Text == "false")
+            {
+                constantValue = false;
                 return ConstantType.False;
+            }
 
             // Check for null
             if (token.Text == "null")
+            {
+                constantValue = null;
                 return ConstantType.Null;
+            }
 
             // Check for hex
             if (token.Text.StartsWith("0x") == true)
@@ -118,30 +136,42 @@ namespace LumaSharp_Compiler.Semantics.Model
                     // Check for D
                     if(descriptor.Text == "D")
                     {
-                        if (double.TryParse(token.Text, out _) == false)
+                        double d;
+                        if (double.TryParse(token.Text, out d) == false)
                             throw new InvalidOperationException("Constant expression decorated as 'double' cannot be expressed as a 64-bit value because it exceeds the maximum value: " + token.Text);
 
                         // Get as double
+                        constantValue = d;
                         return ConstantType.Decimal_Double;
                     }
                     // Check for F
                     else if(descriptor.Text == "F")
                     {
-                        if (float.TryParse(token.Text, out _) == false)
+                        float f;
+                        if (float.TryParse(token.Text, out f) == false)
                             throw new InvalidOperationException("Constant expression decorated as `float` cannot be expressed as a 32-bit value because it exceeds the maximum value: " + token.Text);
 
+                        constantValue = f;
                         return ConstantType.Decimal_Single;
                     }
                 }
                 else
                 {
                     // Try to get as double
-                    if (double.TryParse(token.Text, out _) == true)
+                    double d;
+                    if (double.TryParse(token.Text, out d) == true)
+                    {
+                        constantValue = d;
                         return ConstantType.Decimal_Double;
+                    }
 
                     // Try to get as float
-                    if (float.TryParse(token.Text, out _) == true)
+                    float f;
+                    if (float.TryParse(token.Text, out f) == true)
+                    {
+                        constantValue = f;
                         return ConstantType.Decimal_Single;
+                    }
                 }
 
                 // Invalid
@@ -155,41 +185,59 @@ namespace LumaSharp_Compiler.Semantics.Model
                     // Check for U
                     if (descriptor.Text == "U")
                     {
-                        if (uint.TryParse(token.Text, out _) == false)
+                        uint u;
+                        if (uint.TryParse(token.Text, out u) == false)
                             throw new InvalidOperationException("Constant expression decorated as `u32` cannot be expressed as a 32-bit unsigned value because it exceeds the maximum value: " + token.Text);
 
+                        constantValue = u;
                         return ConstantType.Integer_Unsigned;
                     }
                     // Check for L
                     else if(descriptor.Text == "L")
                     {
-                        if (long.TryParse(token.Text, out _) == false)
+                        long l;
+                        if (long.TryParse(token.Text, out l) == false)
                             throw new InvalidOperationException("Constant expression decorated as `i64` cannot be expressed as a 64-bit value because it exceeds the maximum value: " + token.Text);
 
+                        constantValue = l;
                         return ConstantType.Integer_Long;
                     }
                     // Check for UL
                     else if(descriptor.Text == "UL")
                     {
-                        if (ulong.TryParse(token.Text, out _) == false)
+                        ulong ul;
+                        if (ulong.TryParse(token.Text, out ul) == false)
                             throw new InvalidOperationException("Constant expression decorated as `u64` cannot be expressed as a 64-bit unsigned value because it exceeds the maximum value: " + token.Text);
 
+                        constantValue = ul;
                         return ConstantType.Integer_UnsignedLong;
                     }
                 }
                 else
                 {
                     // Check for integer
-                    if (int.TryParse(token.Text, out _) == true)
+                    int i;
+                    if (int.TryParse(token.Text, out i) == true)
+                    {
+                        constantValue = i;
                         return ConstantType.Integer;
+                    }
 
                     // Check for long int
-                    if (long.TryParse(token.Text, out _) == true)
+                    long l;
+                    if (long.TryParse(token.Text, out l) == true)
+                    {
+                        constantValue = l;
                         return ConstantType.Integer_Long;
+                    }
 
                     // Check for unsigned long int
-                    if(ulong.TryParse(token.Text, out _) == true)
+                    ulong ul;
+                    if (ulong.TryParse(token.Text, out ul) == true)
+                    {
+                        constantValue = ul;
                         return ConstantType.Integer_UnsignedLong;
+                    }
                 }
             }
 

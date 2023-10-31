@@ -49,6 +49,16 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
         }
 
+        public ILibraryReferenceSymbol LibrarySymbol
+        {
+            get { return parent.LibrarySymbol; }
+        }
+
+        public int SymbolToken
+        {
+            get { return -1; }
+        }
+
         public string IdentifierName
         {
             get { return syntax.Identifier.Text; }

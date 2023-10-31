@@ -9,76 +9,101 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         // Methods
         public virtual void VisitAccessor(AccessorModel model)
         {
-            model.Accept(this);
+
         }
 
         public virtual void VisitAssign(AssignModel model)
         {
-            model.Accept(this);
+            VisitExpression(model.Right);
+            VisitExpression(model.Left);
         }
 
         public virtual void VisitBinary(BinaryModel model)
         {
-            model.Accept(this);
+            VisitExpression(model.Right);
+            VisitExpression(model.Left);
         }
 
         public virtual void VisitConstant(ConstantModel model)
         {
-            model.Accept(this);
         }
 
         public virtual void VisitExpression(ExpressionModel model)
         {
             // Check for binary
-            if(model is BinaryModel)
+            if (model is BinaryModel)
+            {
                 VisitBinary((BinaryModel)model);
-
+            }
             // Check for constant
-            if(model is ConstantModel)
+            else if (model is ConstantModel)
+            {
                 VisitConstant((ConstantModel)model);
-
+            }
             // Check for field
-            if(model is FieldAccessorReferenceModel)
+            else if (model is FieldAccessorReferenceModel)
+            {
                 VisitFieldAccessorReference((FieldAccessorReferenceModel)model);
-
+            }
             // Check for this
-            if(model is ThisReferenceModel)
+            else if (model is ThisReferenceModel)
+            {
                 VisitThis((ThisReferenceModel)model);
-
+            }
             // Check for type
-            if(model is TypeReferenceModel)
+            else if (model is TypeReferenceModel)
+            {
                 VisitTypeReference((TypeReferenceModel)model);
-
+            }
             // Check for variable
-            if(model is VariableReferenceModel)
+            else if (model is VariableReferenceModel)
+            {
                 VisitVariableReference((VariableReferenceModel)model);
-
+            }
             throw new NotSupportedException();
         }
 
         public virtual void VisitField(FieldModel model)
         {
-            model.Accept(this);
         }
 
         public virtual void VisitFieldAccessorReference(FieldAccessorReferenceModel model)
         {
-            model.Accept(this);
+            VisitExpression(model.AccessModelExpression);
         }
 
         public virtual void VisitMember(MemberModel model)
         {
-            model.Accept(this);
+            // Check for type
+            if(model is TypeModel)
+            {
+                VisitType((TypeModel)model);
+            }
+            else if(model is FieldModel)
+            {
+                VisitField((FieldModel)model);
+            }
+            else if(model is AccessorModel)
+            {
+                VisitAccessor((AccessorModel)model);
+            }
+            else if(model is MethodModel)
+            {
+                VisitMethod((MethodModel)model);
+            }
+            throw new NotSupportedException();
         }
 
         public virtual void VisitMethod(MethodModel model)
         {
-            model.Accept(this);
+            foreach(StatementModel statement in model.DescendantsOfType<StatementModel>())
+                VisitStatement(statement);
         }
 
         public virtual void VisitReturn(ReturnModel model)
         {
-            model.Accept(this);
+            if (model.HasReturnExpression == true)
+                VisitExpression(model.ReturnModelExpression);
         }
 
         public virtual void VisitStatement(StatementModel model)
@@ -100,27 +125,24 @@ namespace LumaSharp_Compiler.Semantics.Visitor
 
         public virtual void VisitThis(ThisReferenceModel model)
         {
-            model.Accept(this);
         }
 
         public virtual void VisitType(TypeModel model)
         {
-            model.Accept(this);
+            foreach (MemberModel member in model.DescendantsOfType<MemberModel>())
+                VisitMember(member);
         }
 
         public virtual void VisitTypeReference(TypeReferenceModel model)
         {
-            model.Accept(this);
         }
 
         public virtual void VisitVariable(VariableModel model)
         {
-            model.Accept(this);
         }
 
         public virtual void VisitVariableReference(VariableReferenceModel model)
         {
-            model.Accept(this);
         }
     }
 }
