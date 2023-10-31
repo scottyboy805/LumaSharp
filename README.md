@@ -14,7 +14,7 @@ WIP - Implement language parsing using Antlr4 (Partially implemented - work is o
 - [X] Implement Antlr expressions, statements, members and units for language specification.
 - [X] Generate structured parse tree using Antlr runtime.
 - [X] Implement Syntax tree API for working with parsed language.
-- [ ] Implement conversion from Antlr parse tree to syntax tree.
+- [X] Implement conversion from Antlr parse tree to syntax tree.
 - [ ] Fully test parsing source text to syntax tree for all cases.
 
 WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, give errors/warnings, etc.).  
