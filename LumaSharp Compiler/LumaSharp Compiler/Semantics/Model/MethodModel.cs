@@ -194,36 +194,39 @@ namespace LumaSharp_Compiler.Semantics.Model
                 }
             }
 
-            // Resolve locals
-            IEnumerable<VariableDeclarationStatementSyntax> declarations = syntax.Body.DescendantsOfType<VariableDeclarationStatementSyntax>(true);
+            //// Check for body
+            //if(syntax.HasBody == true)
+            //{ 
+            //// Resolve locals
+            //IEnumerable<VariableDeclarationStatementSyntax> declarations = syntax.Body.DescendantsOfType<VariableDeclarationStatementSyntax>(true);
 
-            if (declarations.Any() == true)
-            {
-                // Calculate count
-                int size = declarations.Count();
+            //if (declarations.Any() == true)
+            //{
+            //    // Calculate count
+            //    int size = declarations.Count();
 
-                // Create array
-                if (size > 0)
-                {
-                    // Create symbols array
-                    localIdentifierSymbols = new ILocalIdentifierReferenceSymbol[size];
-                    int index = 0;
+            //    // Create array
+            //    if (size > 0)
+            //    {
+            //        // Create symbols array
+            //        localIdentifierSymbols = new ILocalIdentifierReferenceSymbol[size];
+            //        int index = 0;
 
-                    // Resolve all
-                    foreach(VariableDeclarationStatementSyntax declaration in declarations)
-                    {
-                        // Create local model
-                        LocalOrParameterModel localModel = new LocalOrParameterModel(declaration, this, index);
+            //        // Resolve all
+            //        foreach(VariableDeclarationStatementSyntax declaration in declarations)
+            //        {
+            //            // Create local model
+            //            LocalOrParameterModel localModel = new LocalOrParameterModel(declaration, this, index);
 
-                        // Store local model
-                        localIdentifierSymbols[index] = localModel;
-                        index++;
+            //            // Store local model
+            //            localIdentifierSymbols[index] = localModel;
+            //            index++;
 
-                        // Resolve symbols
-                        localModel.ResolveSymbols(provider, report);
-                    }
-                }
-            }
+            //            // Resolve symbols
+            //            localModel.ResolveSymbols(provider, report);
+            //        }
+            //    }
+            //}
 
 
             // Check for body provided

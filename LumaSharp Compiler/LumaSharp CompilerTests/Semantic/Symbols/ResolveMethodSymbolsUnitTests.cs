@@ -1,0 +1,33 @@
+﻿using LumaSharp_Compiler.AST.Factory;
+using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Semantics.Model.Expression;
+using LumaSharp_Compiler.Semantics.Model;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace LumaSharp_CompilerTests.Semantic.Symbols
+{
+    [TestClass]
+    public sealed class ResolveMethodSymbolsUnitTests
+    {
+        [TestMethod]
+        public void ResolveMethodSymbols_LocalThis()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32)),
+                Syntax.Method("Test")
+                .WithStatements(Syntax.Assign(Syntax.MethodInvoke("myMethod", Syntax.This()), Syntax.Literal(5)))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            MethodInvokeModel methodModel = model.DescendantsOfType<MethodInvokeModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(methodModel);
+            Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
+            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.AreEqual(0, model.Report.MessageCount);
+        }
+    }
+}

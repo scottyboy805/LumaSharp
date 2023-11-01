@@ -36,6 +36,8 @@ namespace LumaSharp_Compiler.Reporting
         MethodNotFound = 1121,
         MethodRequiresInstance = 1122,
         MethodRequiresType = 1123,
+        MethodNoMatch = 1124,
+        MethodAmbiguousMatch = 1125,
     }
 
     internal static class CompilerErrors
@@ -88,6 +90,8 @@ namespace LumaSharp_Compiler.Reporting
             { Code.MethodNotFound, "The method `{0}` is not defined on the type `{1}`" },
             { Code.MethodRequiresInstance, "The method `{0}` must be invoked via an instance" },
             { Code.MethodRequiresType, "The method `{0}` is marked as global must be invoked via a type qualifier" },
+            { Code.MethodNoMatch, "No method found matching or inferable from the provided arguments" },
+            { Code.MethodAmbiguousMatch, "Multiple ambiguous methods found matching or inferable from the provided arguments" },
 
             // Logical
         };

@@ -167,12 +167,27 @@ namespace LumaSharp_Compiler.Semantics.Reference
                     }
                 }
 
+                // Try to resolve best matching method if there are overloads available
                 IMethodReferenceSymbol resolveMethod = null;
+                int matchIndex = MethodChecker.GetBestMatchingMethodOverload(matchMethods, argumentTypes);
 
-                // TODO - match method by arguments
-
+                // Check for matched
+                if (matchIndex >= 0)
+                {
+                    resolveMethod = matchMethods[matchIndex];
+                }
+                // Check for no inferable match
+                else if(matchIndex == -1 && matchMethods.Count > 0)
+                {
+                    report.ReportMessage(Code.MethodNoMatch, MessageSeverity.Error, reference.StartToken.Source);
+                }
+                // Check for multiple equally inferable matches
+                else if(matchIndex == -2 && matchMethods.Count > 0)
+                {
+                    report.ReportMessage(Code.MethodAmbiguousMatch, MessageSeverity.Error, reference.StartToken.Source);
+                }
                 // Check for failure - report as error
-                if (resolveMethod == null)
+                else if (resolveMethod == null)
                 {
                     report.ReportMessage(Code.MethodNotFound, MessageSeverity.Error, reference.StartToken.Source, reference.Identifier.Text, typeReference.TypeName);
                 }

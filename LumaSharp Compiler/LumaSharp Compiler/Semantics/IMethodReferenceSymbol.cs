@@ -14,6 +14,8 @@ namespace LumaSharp_Compiler.Semantics
 
         ILocalIdentifierReferenceSymbol[] ParameterSymbols { get; }
 
+        bool IsGlobal { get; }
+
         bool HasBody { get; }
     }
 }

@@ -54,5 +54,65 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
             return false;
         }
+
+        public static int GetBaseTypeDepth(ITypeReferenceSymbol type)
+        {
+            int depth = 0;
+            GetBaseTypeDepth(type, ref depth);
+
+            return depth;
+        }
+
+        public static int GetBaseTypeMatchDepth(ITypeReferenceSymbol from, ITypeReferenceSymbol to)
+        {
+            int depth = 0;
+            GetBaseTypeMatchDepth(from, to, ref depth);
+
+            return depth;
+        }
+
+        private static void GetBaseTypeDepth(ITypeReferenceSymbol type, ref int depth)
+        {
+            if(type != null && type.BaseTypeSymbols != null)
+            {
+                // Check for base type
+                if(type.BaseTypeSymbols.Length > 0 && type.BaseTypeSymbols[0].IsType == true)
+                {
+                    depth++;
+                    GetBaseTypeDepth(type.BaseTypeSymbols[0], ref depth);
+                }
+            }
+        }
+
+        private static void GetBaseTypeMatchDepth(ITypeReferenceSymbol from, ITypeReferenceSymbol to, ref int depth)
+        {
+            if (from != null && from.BaseTypeSymbols != null)
+            {
+                // Check for match
+                if (from == to)
+                    return;
+
+                // Check for base type
+                if (from.BaseTypeSymbols.Length > 0 && from.BaseTypeSymbols[0].IsType == true)
+                {
+                    depth++;
+                    GetBaseTypeMatchDepth(from.BaseTypeSymbols[0], to, ref depth);
+                }
+            }
+        }
+
+        public static int GetTypeMatchScore(ITypeReferenceSymbol from, ITypeReferenceSymbol to)
+        {
+            // Make sure they are assignable first
+            if (IsTypeAssignable(from, to) == false)
+                return 0;
+
+            // Get base type depth
+            int depth = GetBaseTypeDepth(from);
+            int score = depth - GetBaseTypeMatchDepth(from, to);
+
+            // Get score
+            return score;
+        }
     }
 }
