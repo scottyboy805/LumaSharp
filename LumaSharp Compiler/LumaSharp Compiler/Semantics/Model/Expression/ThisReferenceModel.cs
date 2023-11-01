@@ -6,6 +6,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
     public sealed class ThisReferenceModel : ExpressionModel
     {
         // Private
+        private ThisExpressionSyntax syntax = null;
         private ITypeReferenceSymbol thisTypeReference = null;
 
         // Properties
@@ -28,6 +29,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         public ThisReferenceModel(SemanticModel model, SymbolModel parent, ThisExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
+            this.syntax = syntax;
         }
 
         // Methods
@@ -42,11 +44,23 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             SymbolModel current = this;
 
             // Move up the hierarchy
-            while (current.Parent != null && (current is TypeModel) == false)
+            while (current.Parent != null && (current is MethodModel) == false)
                 current = current.Parent;
 
-            // Get type symbol
-            thisTypeReference = current as ITypeReferenceSymbol;
+            // Get method scope
+            IMethodReferenceSymbol thisMethodScope = current as IMethodReferenceSymbol;
+
+            if (thisMethodScope != null)
+            {
+                // Get type symbol
+                thisTypeReference = thisMethodScope.DeclaringTypeSymbol;
+            }
+
+            // Must be invalid usage context
+            if(thisMethodScope == null || thisMethodScope.IsGlobal == true)
+            {
+                report.ReportMessage(Code.KeywordNotValid, MessageSeverity.Error, syntax.StartToken.Source, syntax.Keyword.Text);
+            }
         }
     }
 }

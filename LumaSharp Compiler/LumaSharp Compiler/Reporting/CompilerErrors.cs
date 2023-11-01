@@ -8,6 +8,8 @@ namespace LumaSharp_Compiler.Reporting
     {
         InvalidConversion = 331,
 
+        KeywordNotValid = 501,
+
         MultipleAccessModifiers = 531,
         AccessModifierNotValid = 532,
         AccessModifierCantChange = 533,
@@ -64,6 +66,8 @@ namespace LumaSharp_Compiler.Reporting
 
             // Semantic
             { Code.InvalidConversion, "Cannot implicitly convert type `{0}` to `{1}`. Are you missing a cast?" },
+
+            { Code.KeywordNotValid, "Keyword `{0}` is not valid in the current context" },
 
             { Code.MultipleAccessModifiers, "Multiple access modifiers" },
             { Code.AccessModifierNotValid, "Access modifier `{0}` is not valid in the current context" },
