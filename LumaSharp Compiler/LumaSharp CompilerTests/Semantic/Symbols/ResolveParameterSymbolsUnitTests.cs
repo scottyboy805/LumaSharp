@@ -44,8 +44,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("test")
-                .WithMembers(Syntax.Method("test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myVal"))
+                .WithMembers(Syntax.Method("test", Syntax.TypeReference("test"))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference("test"), "myVal"))
                 .WithStatements(Syntax.Return(Syntax.VariableReference("myVal")))));
 
             // Create model
