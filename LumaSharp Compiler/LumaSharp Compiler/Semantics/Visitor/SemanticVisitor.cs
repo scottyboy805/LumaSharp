@@ -75,6 +75,20 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             VisitExpression(model.AccessModelExpression);
         }
 
+        public virtual void VisitMethodInvoke(MethodInvokeModel model)
+        {
+            VisitExpression(model.AccessModelExpression);
+
+            // Visit arguments
+            if(model.ArgumentModelExpressions != null)
+            {
+                for(int i = 0; i < model.ArgumentModelExpressions.Length; i++)
+                {
+                    VisitExpression(model.ArgumentModelExpressions[i]);
+                }
+            }
+        }
+
         public virtual void VisitMember(MemberModel model)
         {
             // Check for type

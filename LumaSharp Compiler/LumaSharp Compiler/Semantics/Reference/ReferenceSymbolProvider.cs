@@ -162,7 +162,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             return null;
         }
 
-        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference)
+        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference, ITypeReferenceSymbol[] argumentTypes)
         {
             throw new NotImplementedException();
         }

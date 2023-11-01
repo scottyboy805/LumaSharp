@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.AST.Expression;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
@@ -60,6 +61,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             // Check for field
             if(syntax is FieldAccessorReferenceExpressionSyntax)
                 return new FieldAccessorReferenceModel(model, parent, syntax as FieldAccessorReferenceExpressionSyntax);
+
+            // Check for method
+            if (syntax is MethodInvokeExpressionSyntax)
+                return new MethodInvokeModel(model, parent, syntax as MethodInvokeExpressionSyntax);
 
             // Binary
             if(syntax is BinaryExpressionSyntax)

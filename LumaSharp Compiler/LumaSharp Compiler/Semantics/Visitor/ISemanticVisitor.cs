@@ -38,6 +38,8 @@ namespace LumaSharp_Compiler.Semantics
 
         void VisitFieldAccessorReference(FieldAccessorReferenceModel model);
 
+        void VisitMethodInvoke(MethodInvokeModel model);
+
         void VisitThis(ThisReferenceModel model);
 
         void VisitTypeReference(TypeReferenceModel model);
