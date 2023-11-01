@@ -55,10 +55,14 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             // Resolve right
             right.ResolveSymbols(provider, report);
 
-            // Check for assignment
-            if (TypeChecker.IsTypeAssignable(right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol) == false)
+            // Check for resolved
+            if (left.EvaluatedTypeSymbol != null && right.EvaluatedTypeSymbol != null)
             {
-                report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right.Source, right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol);
+                // Check for assignment
+                if (TypeChecker.IsTypeAssignable(right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol) == false)
+                {
+                    report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right.Source, right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol);
+                }
             }
         }
     }

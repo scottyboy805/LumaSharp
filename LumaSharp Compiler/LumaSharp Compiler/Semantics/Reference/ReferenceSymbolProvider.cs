@@ -138,6 +138,10 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 if (matchCount > 1)
                     throw new Exception("Ambiguous match: " + typeReference);
 
+                // Check for null
+                if (matchSymbol == null)
+                    report.ReportMessage(Code.FieldAccessorNotFound, MessageSeverity.Error, reference.StartToken.Source, reference.Identifier.Text, typeReference.TypeName);
+
                 return matchSymbol;
             }
 
