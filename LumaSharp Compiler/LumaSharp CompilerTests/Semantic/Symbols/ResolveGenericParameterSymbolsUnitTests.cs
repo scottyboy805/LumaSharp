@@ -13,9 +13,9 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("test")
-                .WithMembers(Syntax.Method("test")
+                .WithMembers(Syntax.Method("test", Syntax.TypeReference("T"))
                 .WithGenericParameters(Syntax.GenericParameter("T"))
-                .WithStatements(Syntax.Return(Syntax.VariableReference("T")))));
+                .WithStatements(Syntax.Return(Syntax.New(Syntax.TypeReference("T"), false)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

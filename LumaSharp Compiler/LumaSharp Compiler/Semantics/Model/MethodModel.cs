@@ -142,7 +142,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get return type
-            returnTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.ReturnType);
+            returnTypeSymbol = provider.ResolveTypeSymbol(this, syntax.ReturnType);
 
             // Resolve generics
             if(syntax.HasGenericParameters == true)

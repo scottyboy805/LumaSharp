@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp_Compiler.Semantics
 {
-    public interface IGenericParameterIdentifierReferenceSymbol : IIdentifierReferenceSymbol
+    public interface IGenericParameterIdentifierReferenceSymbol : ITypeReferenceSymbol
     {
         bool IsTypeParameter { get; }
 

@@ -29,7 +29,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Namespace("MyNamespace")
                 .WithRootMembers(Syntax.Type("Test")
-                .WithMembers(Syntax.Method("M")
+                .WithMembers(Syntax.Method("M", Syntax.TypeReference("Test"))
                 .WithStatements(Syntax.Return(Syntax.TypeReference("Test")
                 .WithNamespaceQualifier("MyNamespace"))))));
 
@@ -50,7 +50,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Namespace("MyNamespace:MySubNamespace:MyFinalNamespace")
                 .WithRootMembers(Syntax.Type("Test")
-                .WithMembers(Syntax.Method("M")
+                .WithMembers(Syntax.Method("M", Syntax.TypeReference("Test"))
                 .WithStatements(Syntax.Return(Syntax.TypeReference("Test")
                 .WithNamespaceQualifier("MyNamespace", "MySubNamespace", "MyFinalNamespace"))))));
 

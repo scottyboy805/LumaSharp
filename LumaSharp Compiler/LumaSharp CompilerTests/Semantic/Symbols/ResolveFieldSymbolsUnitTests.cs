@@ -39,7 +39,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
                 .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.VariableReference("myVar")), Syntax.Literal(5)))));
+                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.VariableReference("myVar")), Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -58,10 +58,11 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test")
-                .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test")),
+                .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
+                .WithAccessModifiers("global"),
                 Syntax.Method("Test")
                 .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.TypeReference("Test")), Syntax.Literal(5)))));
+                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.TypeReference("Test")), Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

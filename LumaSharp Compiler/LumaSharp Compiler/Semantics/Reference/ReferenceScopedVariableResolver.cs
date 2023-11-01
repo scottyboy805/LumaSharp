@@ -105,20 +105,20 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 }
             }
 
-            // Check for generic parameters
-            if(context.GenericParameterSymbols != null)
-            {
-                // Check for generic parameters matching variable
-                foreach(IGenericParameterIdentifierReferenceSymbol genericParameter in context.GenericParameterSymbols)
-                {
-                    // Check for matching identifier
-                    if(genericParameter.IdentifierName == reference.Identifier.Text)
-                    {
-                        resolvedIdentifier = genericParameter;
-                        return true;
-                    }
-                }
-            }
+            //// Check for generic parameters
+            //if(context.GenericParameterSymbols != null)
+            //{
+            //    // Check for generic parameters matching variable
+            //    foreach(IGenericParameterIdentifierReferenceSymbol genericParameter in context.GenericParameterSymbols)
+            //    {
+            //        // Check for matching identifier
+            //        if(genericParameter.IdentifierName == reference.Identifier.Text)
+            //        {
+            //            resolvedIdentifier = genericParameter;
+            //            return true;
+            //        }
+            //    }
+            //}
 
             // Failed to resolve
             resolvedIdentifier = null;
@@ -173,20 +173,20 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 }
             }
 
-            // Check for generics
-            if(context.GenericParameterSymbols != null)
-            {
-                // Check for matching generic variable
-                foreach(IGenericParameterIdentifierReferenceSymbol genericParameter in context.GenericParameterSymbols)
-                {
-                    // Check for matching identifier
-                    if (genericParameter.IdentifierName == reference.Identifier.Text)
-                    {
-                        resolvedIdentifier = genericParameter;
-                        return true;
-                    }
-                }
-            }
+            //// Check for generics
+            //if(context.GenericParameterSymbols != null)
+            //{
+            //    // Check for matching generic variable
+            //    foreach(IGenericParameterIdentifierReferenceSymbol genericParameter in context.GenericParameterSymbols)
+            //    {
+            //        // Check for matching identifier
+            //        if (genericParameter.IdentifierName == reference.Identifier.Text)
+            //        {
+            //            resolvedIdentifier = genericParameter;
+            //            return true;
+            //        }
+            //    }
+            //}
 
             // Move to parent type
             if(context.DeclaringTypeSymbol != null)

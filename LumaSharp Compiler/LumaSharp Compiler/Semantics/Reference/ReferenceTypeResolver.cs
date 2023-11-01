@@ -103,10 +103,18 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for parent type context - recursive up search
-            if(context is ITypeReferenceSymbol && ((ITypeReferenceSymbol)context).DeclaringTypeSymbol != null)
+            if (context is ITypeReferenceSymbol)
             {
-                // Move up the hierarchy to parent type (Sub type context)
-                return ResolveReferenceTypeSymbolFromContext(((ITypeReferenceSymbol)context).DeclaringTypeSymbol, reference, out resolvedType);
+                // Try to resolve from method generic parameters
+                if (ResolveReferenceTypeSymbolFromTypeGenericContext((ITypeReferenceSymbol)context, reference, out resolvedType) == true)
+                    return true;
+
+                // Check for declaring type
+                if (((ITypeReferenceSymbol)context).DeclaringTypeSymbol != null)
+                {
+                    // Move up the hierarchy to parent type (Sub type context)
+                    return ResolveReferenceTypeSymbolFromContext(((ITypeReferenceSymbol)context).DeclaringTypeSymbol, reference, out resolvedType);
+                }
             }
 
             // Check for field context
@@ -126,11 +134,57 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Check for method context
             if(context is IMethodReferenceSymbol)
             {
+                // Try to resolve from method generic parameters
+                if (ResolveReferenceTypeSymbolFromMethodGenericContext((IMethodReferenceSymbol)context, reference, out resolvedType) == true)
+                    return true;
+
                 // Move up the hierarchy to declaring type
                 return ResolveReferenceTypeSymbolFromContext(((IMethodReferenceSymbol)context).DeclaringTypeSymbol, reference, out resolvedType);
             }
 
             // Could not resolve from context
+            resolvedType = null;
+            return false;
+        }
+
+        private bool ResolveReferenceTypeSymbolFromTypeGenericContext(ITypeReferenceSymbol typeContext, TypeReferenceSyntax reference, out ITypeReferenceSymbol resolvedType)
+        {
+            // Check for generic parameters
+            if(typeContext.GenericParameterSymbols != null)
+            {
+                for(int i = 0; i <  typeContext.GenericParameterSymbols.Length; i++)
+                {
+                    // Check for matching symbol
+                    if (IsReferenceTypeSymbolMatch(typeContext.GenericParameterSymbols[i], reference) == true)
+                    {
+                        resolvedType = typeContext.GenericParameterSymbols[i];
+                        return true;
+                    }
+                }
+            }
+
+            // Failed to resolve
+            resolvedType = null;
+            return false;
+        }
+
+        private bool ResolveReferenceTypeSymbolFromMethodGenericContext(IMethodReferenceSymbol methodContext, TypeReferenceSyntax reference, out ITypeReferenceSymbol resolvedType)
+        {
+            // Check for generic parameters
+            if(methodContext.GenericParameterSymbols != null)
+            {
+                for(int i = 0; i < methodContext.GenericParameterSymbols.Length; i++)
+                {
+                    // Check for matching symbol
+                    if (IsReferenceTypeSymbolMatch(methodContext.GenericParameterSymbols[i], reference) == true)
+                    {
+                        resolvedType = methodContext.GenericParameterSymbols[i];
+                        return true;
+                    }
+                }
+            }
+
+            // Failed to resolve
             resolvedType = null;
             return false;
         }

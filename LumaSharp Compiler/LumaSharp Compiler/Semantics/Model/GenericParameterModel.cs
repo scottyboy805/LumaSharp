@@ -11,7 +11,86 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ITypeReferenceSymbol[] genericConstraints = null;
         private ITypeReferenceSymbol anyType = null;
 
+        private IFieldReferenceSymbol[] fieldMembers = null;
+        private IAccessorReferenceSymbol[] accessorMembers = null;
+        private IMethodReferenceSymbol[] methodMembers = null;
+
         // Properties
+        public string TypeName
+        {
+            get { return syntax.Identifier.Text; }
+        }
+
+        public string[] NamespaceName
+        {
+            get { return null; }
+        }
+
+        public INamespaceReferenceSymbol NamespaceSymbol
+        {
+            get { return null; }
+        }
+
+        public PrimitiveType PrimitiveType
+        {
+            get { return PrimitiveType.Any; }
+        }
+
+        public bool IsPrimitive
+        {
+            get { return false; }
+        }
+
+        public bool IsType
+        {
+            get { return true; }
+        }
+
+        public bool IsContract
+        {
+            get { return false; }
+        }
+
+        public bool IsEnum
+        {
+            get { return false; }
+        }
+
+        public ITypeReferenceSymbol DeclaringTypeSymbol
+        {
+            get { return parent as ITypeReferenceSymbol; }
+        }
+
+        public IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols
+        {
+            get { return null; }
+        }
+
+        public ITypeReferenceSymbol[] BaseTypeSymbols
+        {
+            get { return genericConstraints; }
+        }
+
+        public ITypeReferenceSymbol[] TypeMemberSymbols
+        {
+            get { return null; }
+        }
+
+        public IFieldReferenceSymbol[] FieldMemberSymbols
+        {
+            get { return fieldMembers; }
+        }
+
+        public IAccessorReferenceSymbol[] AccessorMemberSymbols
+        {
+            get { return accessorMembers; }
+        }
+
+        public IMethodReferenceSymbol[] MethodMemberSymbols
+        {
+            get { return methodMembers; }
+        }
+
         public bool IsTypeParameter
         {
             get { return parent is ITypeReferenceSymbol; }
@@ -88,6 +167,11 @@ namespace LumaSharp_Compiler.Semantics.Model
                 {
                     genericConstraints[i] = provider.ResolveTypeSymbol(parent, syntax.ConstraintTypes[i]);
                 }
+
+                // Update members
+                fieldMembers = genericConstraints.SelectMany(c => c.FieldMemberSymbols).ToArray();
+                accessorMembers = genericConstraints.SelectMany(c => c.AccessorMemberSymbols).ToArray();
+                methodMembers = genericConstraints.SelectMany(c => c.MethodMemberSymbols).ToArray();
             }
         }
     }
