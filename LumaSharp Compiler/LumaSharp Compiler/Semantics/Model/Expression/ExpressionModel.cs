@@ -1,5 +1,6 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.AST.Expression;
+using System.Linq.Expressions;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
@@ -73,6 +74,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             // This
             if (syntax is ThisExpressionSyntax)
                 return new ThisReferenceModel(model, parent, syntax as ThisExpressionSyntax);
+
+            // New
+            if (syntax is NewExpressionSyntax)
+                return new NewModel(model, parent, syntax as NewExpressionSyntax);
 
             throw new NotSupportedException("Specified syntax is not supported");
         }

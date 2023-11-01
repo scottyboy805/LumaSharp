@@ -90,7 +90,13 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             // Resolve method if accessor is valid - require that arguments are resolved because we will use them to resolve method overloading
             if (accessModel.EvaluatedTypeSymbol != null && argumentsResolved == true)
             {
-                methodIdentifierSymbol = provider.ResolveMethodIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax) as IMethodReferenceSymbol;
+                // Select argument evaluated types used to infer method overloads
+                ITypeReferenceSymbol[] argumentTypes = (argumentModels != null && argumentModels.Length > 0)
+                    ? argumentModels.Select(a => a.EvaluatedTypeSymbol).ToArray()
+                    : null;
+
+                // Try to resolve the method with arguments
+                methodIdentifierSymbol = provider.ResolveMethodIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax, argumentTypes) as IMethodReferenceSymbol;
             }
         }
     }

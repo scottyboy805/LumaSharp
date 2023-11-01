@@ -37,6 +37,11 @@ namespace LumaSharp_Compiler.AST.Expression
             get { return keyword != null && keyword.Text == "new"; }
         }
 
+        public bool IsStackAlloc
+        {
+            get { return keyword == null; }
+        }
+
         public bool HasKeyword
         {
             get { return keyword != null; }

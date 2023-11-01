@@ -45,6 +45,8 @@ namespace LumaSharp_Compiler.Semantics
         void VisitTypeReference(TypeReferenceModel model);
 
         void VisitVariableReference(VariableReferenceModel model);
+
+        void VisitNew(NewModel model);
         #endregion
     }
 }

@@ -167,5 +167,10 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         public virtual void VisitVariableReference(VariableReferenceModel model)
         {
         }
+
+        public virtual void VisitNew(NewModel model)
+        {
+            VisitTypeReference(model.NewTypeExpression);
+        }
     }
 }

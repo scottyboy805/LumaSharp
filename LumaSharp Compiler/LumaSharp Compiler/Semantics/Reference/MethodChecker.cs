@@ -17,7 +17,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check all arguments
-            for(int i = parameterOffset, j = 0; i < method.ParameterSymbols.Length + parameterOffset; i++, j++)
+            for(int i = parameterOffset, j = 0; i < method.ParameterSymbols.Length; i++, j++)
             {
                 // Get parameter
                 ILocalIdentifierReferenceSymbol parameter = method.ParameterSymbols[i];
@@ -52,7 +52,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Calculate score
             int score = 0;
 
-            for(int i = parameterOffset, j = 0; i < method.ParameterSymbols.Length + parameterOffset; i++, j++)
+            for(int i = parameterOffset, j = 0; i < method.ParameterSymbols.Length; i++, j++)
             {
                 // Get parameter
                 ILocalIdentifierReferenceSymbol parameter = method.ParameterSymbols[i];
