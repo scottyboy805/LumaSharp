@@ -6,6 +6,8 @@ namespace LumaSharp_Compiler.Semantics
         // Properties
         string FieldName { get; }
 
+        bool IsGlobal { get; }
+
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
     }
 }

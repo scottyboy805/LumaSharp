@@ -87,7 +87,26 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             // Resolve field if accessor is valid
             if(accessModel.EvaluatedTypeSymbol != null)
             {
+                // Try to resolve the field first of all
                 fieldAccessorIdentifierSymbol = provider.ResolveFieldIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax);
+
+
+                // Check for valid access of field
+                if (fieldAccessorIdentifierSymbol is IFieldReferenceSymbol fieldIdentifier)
+                {
+                    // Check for instance field accessed via type reference
+                    if(fieldIdentifier.IsGlobal == false && accessModel is TypeReferenceModel)
+                    {
+                        report.ReportMessage(Code.FieldRequiresInstance, MessageSeverity.Error, syntax.StartToken.Source, fieldIdentifier.IdentifierName);
+                    }
+                    // Check for global field accessed via anything other than type reference
+                    else if(fieldIdentifier.IsGlobal == true && (accessModel is TypeReferenceModel) == false)
+                    {
+                        report.ReportMessage(Code.FieldRequiresType, MessageSeverity.Error, syntax.StartToken.Source, fieldIdentifier.IdentifierName);
+                    }
+                }
+
+                
             }
         }
     }

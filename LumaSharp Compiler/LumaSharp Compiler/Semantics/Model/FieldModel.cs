@@ -1,6 +1,9 @@
 ﻿
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using LumaSharp_Compiler.Semantics.Model.Expression;
+using LumaSharp_Compiler.Semantics.Model.Statement;
+using LumaSharp_Compiler.Semantics.Reference;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -9,6 +12,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         // Private
         private FieldSyntax syntax = null;
         private TypeModel declaringType = null;
+        private ExpressionModel assignModel = null;
         private ITypeReferenceSymbol fieldTypeSymbol = null;
 
         // Properties
@@ -20,6 +24,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public string IdentifierName
         {
             get { return syntax.Identifier.Text; }
+        }
+
+        public bool IsGlobal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
@@ -53,6 +62,9 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             this.syntax = syntax;
             this.declaringType = parent;
+            this.assignModel = syntax.HasFieldAssignment == true
+                ? ExpressionModel.Any(model, this, syntax.FieldAssignment)
+                : null;
         }
 
         // Methods
@@ -65,6 +77,23 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             // Resolve field symbol
             fieldTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.FieldType);
+
+            // Check for assignment
+            if(assignModel != null)
+            {
+                // Resolve assignment symbols
+                assignModel.ResolveSymbols(provider, report);
+
+                // Check for assigned and valid conversion
+                if(fieldTypeSymbol != null && assignModel.EvaluatedTypeSymbol != null)
+                {
+                    // Check for return type conversion
+                    if (TypeChecker.IsTypeAssignable(assignModel.EvaluatedTypeSymbol, fieldTypeSymbol) == false)
+                    {
+                        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, fieldTypeSymbol, assignModel.EvaluatedTypeSymbol);
+                    }
+                }
+            }
         }
     }
 }

@@ -97,5 +97,29 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.MessageCount);
         }
+
+        [TestMethod]
+        public void ResolveMethodSymbols_Parameter_2()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg0"),
+                Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Any), "arg1")),
+                Syntax.Method("Test")
+                .WithStatements(Syntax.Assign(Syntax.MethodInvoke("myMethod", Syntax.TypeReference("Test"))
+                .WithArguments(Syntax.Literal(5), Syntax.Literal("Hello")), Syntax.Literal(5)))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            MethodInvokeModel methodModel = model.DescendantsOfType<MethodInvokeModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(methodModel);
+            Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
+            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.AreEqual(0, model.Report.MessageCount);
+        }
     }
 }

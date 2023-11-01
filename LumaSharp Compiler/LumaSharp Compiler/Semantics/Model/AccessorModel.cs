@@ -21,6 +21,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax.Identifier.Text; }
         }
 
+        public bool IsGlobal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
+        }
+
         public ITypeReferenceSymbol DeclaringTypeSymbol
         {
             get { return declaringType; }

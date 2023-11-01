@@ -36,9 +36,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             this.variableModels = new LocalOrParameterModel[syntax.IdentifierCount];
 
             // Get assign expression models
-            for(int i = 0; i < syntax.AssignExpressionCount; i++)
+            for(int i = 0; i < syntax.IdentifierCount; i++)
             {
-                if (i < variableModels.Length)
                     variableModels[i] = new LocalOrParameterModel(syntax, parent as IReferenceSymbol, i, i);
             }
         }

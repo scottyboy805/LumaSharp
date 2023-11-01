@@ -51,7 +51,7 @@ namespace LumaSharp_Compiler.AST
             this.fieldType = fieldType;
             this.fieldAssignment = fieldAssign;
             this.identifier.WithLeadingWhitespace(" ");
-            this.reference = (byReference != null) ? SyntaxToken.Reference() : null;
+            this.reference = (byReference != false) ? SyntaxToken.Reference() : null;
             this.assign = SyntaxToken.Assign();
             this.semicolon = base.EndToken;
         }

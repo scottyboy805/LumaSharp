@@ -129,7 +129,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             if (syntax.HasBody == true)
             {
                 this.bodyStatements = syntax.Body.Elements
-                    .Select((s, i) => StatementModel.Any(model, this, s, i)).ToArray();
+                    .Select((s, i) => StatementModel.Any(model, this, s, i, this)).ToArray();
             }
         }
 
@@ -252,6 +252,10 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Declare all
             if(localModels.Length > 0)
             {
+                // Make sure array is allocated
+                if(localIdentifierSymbols == null)
+                    localIdentifierSymbols = Array.Empty<LocalOrParameterModel>();
+
                 int startOffset = localIdentifierSymbols.Length;
 
                 // Resize the array

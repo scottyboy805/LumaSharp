@@ -16,7 +16,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             PrimitiveType toPrimitive = to.PrimitiveType;
 
             // Call types can be converted to special type `any` implicitly
-            if (toPrimitive == PrimitiveType.Any)
+            if (toPrimitive == PrimitiveType.Any && to == Types.any)
                 return true;
 
             // Check for any
