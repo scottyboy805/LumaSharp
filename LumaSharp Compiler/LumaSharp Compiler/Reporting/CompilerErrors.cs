@@ -24,6 +24,8 @@ namespace LumaSharp_Compiler.Reporting
 
         IdentifierNotFound = 1031,
         IdentifierUsedBeforeDeclared = 1032,
+        MultipleLocalIdentifiers = 1033,
+        MultipleParameterIdentifiers = 1034,
 
         FieldAccessorNotFound = 1061,
         FieldRequiresInstance = 1062,
@@ -83,6 +85,7 @@ namespace LumaSharp_Compiler.Reporting
 
             { Code.IdentifierNotFound, "The identifier `{0}` does not exist in the current context" },
             { Code.IdentifierUsedBeforeDeclared, "The identifier `{0}` cannot be accessed before it is declared" },
+            { Code.MultipleLocalIdentifiers, "The local identifier `{0}` is defined multiple times" },
 
             { Code.FieldAccessorNotFound, "The field or accessor `{0}` is not defined on the type `{1}`" },
             { Code.FieldRequiresInstance, "The field `{0}` must be accessed via an instance" },

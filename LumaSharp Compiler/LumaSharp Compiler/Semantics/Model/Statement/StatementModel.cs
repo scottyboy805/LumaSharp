@@ -25,6 +25,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             }
         }
 
+        public int StatementIndex
+        {
+            get { return statementIndex; }
+        }
+
         // Constructor
         internal StatementModel(SemanticModel model, SymbolModel parent, StatementSyntax syntax, int statementIndex)
             : base(model, parent)

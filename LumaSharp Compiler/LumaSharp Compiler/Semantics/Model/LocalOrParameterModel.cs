@@ -11,9 +11,15 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ITypeReferenceSymbol type = null;
         private string identifier = null;
         private int index = 0;
+        private int statementIndex = 0;
         private bool isByReference = false;
 
         // Properties
+        public SyntaxNode Syntax
+        {
+            get { return syntax; }
+        }
+
         public bool IsLocal
         {
             get { return syntax is VariableDeclarationStatementSyntax; }
@@ -37,6 +43,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public int Index
         {
             get { return index; }
+        }
+
+        public int DeclareIndex
+        {
+            get { return statementIndex; }
         }
 
         public IReferenceSymbol ParentSymbol
@@ -65,12 +76,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
-        public LocalOrParameterModel(VariableDeclarationStatementSyntax syntax, IReferenceSymbol parent, int localIndex, int variableIndex = 0)
+        public LocalOrParameterModel(VariableDeclarationStatementSyntax syntax, IReferenceSymbol parent, int localIndex, int variableIndex, int statementIndex)
         {
             this.syntax = syntax;
             this.parent = parent;
             this.identifier = syntax.Identifiers[variableIndex].Text;
             this.index = localIndex;
+            this.statementIndex = statementIndex;
         }
 
         public LocalOrParameterModel(ParameterSyntax syntax, IReferenceSymbol parent, int paramIndex)

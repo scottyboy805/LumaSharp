@@ -1,6 +1,7 @@
 ﻿
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using LumaSharp_Compiler.Semantics.Model.Statement;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
@@ -59,6 +60,22 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         {
             // Try to resolve symbol
             this.identifierSymbol = provider.ResolveIdentifierSymbol(ParentSymbol, syntax);
+
+            // Check for symbol resolved
+            if(identifierSymbol != null && identifierSymbol is ILocalIdentifierReferenceSymbol localIdentifier)
+            {
+                // Get base statements
+                SymbolModel current = this;
+
+                while ((current is StatementModel) == false && current.Parent != null)
+                    current = current.Parent;
+
+                // Check for local
+                if(current != null && localIdentifier.IsLocal == true && localIdentifier.DeclareIndex > ((StatementModel)current).StatementIndex)
+                {
+                    report.ReportMessage(Code.IdentifierUsedBeforeDeclared, MessageSeverity.Error, syntax.StartToken.Source, syntax.Identifier.Text);
+                }
+            }
         }
     }
 }
