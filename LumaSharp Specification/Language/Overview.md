@@ -11,8 +11,8 @@ any = 123;
 ```cs
 // Import seems like a better fit rather than using
 import Collections;
-import Collections.Generic;
-import MyList as Collections.Generic.List<i8>;  // Aliasing is supported
+import Collections:Generic;
+import MyList as Collections:Generic:List<i8>;  // Aliasing is supported
 ```
 
 ### Namespaces:
