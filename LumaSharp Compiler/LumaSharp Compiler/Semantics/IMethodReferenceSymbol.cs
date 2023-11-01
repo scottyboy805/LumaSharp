@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp_Compiler.Semantics
 {
-    public interface IMethodReferenceSymbol : IReferenceSymbol
+    public interface IMethodReferenceSymbol : IIdentifierReferenceSymbol
     {
         // Properties
         string MethodName { get; }

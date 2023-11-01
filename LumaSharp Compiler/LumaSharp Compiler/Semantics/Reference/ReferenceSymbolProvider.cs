@@ -149,6 +149,40 @@ namespace LumaSharp_Compiler.Semantics.Reference
             throw new InvalidOperationException("Invalid context");
         }
 
+        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference, ITypeReferenceSymbol[] argumentTypes)
+        {
+            // Check for type reference
+            if (context is ITypeReferenceSymbol typeReference)
+            {
+                // Get all matches
+                List<IMethodReferenceSymbol> matchMethods = new List<IMethodReferenceSymbol>();
+
+                // Get all methods
+                foreach(IMethodReferenceSymbol method in typeReference.MethodMemberSymbols)
+                {
+                    // Check for matched name
+                    if(method.MethodName == reference.Identifier.Text)
+                    {
+                        matchMethods.Add(method);
+                    }
+                }
+
+                IMethodReferenceSymbol resolveMethod = null;
+
+                // TODO - match method by arguments
+
+                // Check for failure - report as error
+                if (resolveMethod == null)
+                {
+                    report.ReportMessage(Code.MethodNotFound, MessageSeverity.Error, reference.StartToken.Source, reference.Identifier.Text, typeReference.TypeName);
+                }
+
+                return resolveMethod;
+            }
+            
+            return null;
+        }
+
         public IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference)
         {            
             IIdentifierReferenceSymbol resolvedSymbol;
@@ -160,11 +194,6 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Failed to resolve
             report.ReportMessage(Code.IdentifierNotFound, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
             return null;
-        }
-
-        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference, ITypeReferenceSymbol[] argumentTypes)
-        {
-            throw new NotImplementedException();
         }
     }
 }
