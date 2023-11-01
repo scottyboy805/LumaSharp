@@ -228,34 +228,54 @@ namespace LumaSharp_Compiler.Semantics.Model
             //    }
             //}
 
-
-            // Check for body provided
-            if (HasBody == true)
+            // Check for parameters
+            if (parameterIdentifierSymbols != null)
             {
-                // Resolve all body statements
-                foreach (StatementModel statement in bodyStatements)
+                // Check for multiple symbols
+                HashSet<string> definedParameters = new HashSet<string>();
+
+                for (int i = 0; i < parameterIdentifierSymbols.Length; i++)
                 {
-                    // Resolve the statement
-                    statement.ResolveSymbols(provider, report);
+                    // Add the parameter identifier
+                    if (definedParameters.Contains(parameterIdentifierSymbols[i].IdentifierName) == false)
+                    {
+                        definedParameters.Add(parameterIdentifierSymbols[i].IdentifierName);
+                    }
+                    else
+                    {
+                        report.ReportMessage(Code.MultipleParameterIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)parameterIdentifierSymbols[i]).Syntax.StartToken.Source, parameterIdentifierSymbols[i].IdentifierName);
+                    }
                 }
 
 
-                // Check for any locals
-                if (localIdentifierSymbols != null)
+                // Check for body provided
+                if (HasBody == true)
                 {
-                    // Check for multiple symbols
-                    HashSet<string> definedLocals = new HashSet<string>();
-
-                    for (int i = 0; i < localIdentifierSymbols.Length; i++)
+                    // Resolve all body statements
+                    foreach (StatementModel statement in bodyStatements)
                     {
-                        // Add the local identifier
-                        if (definedLocals.Contains(localIdentifierSymbols[i].IdentifierName) == false)
+                        // Resolve the statement
+                        statement.ResolveSymbols(provider, report);
+                    }
+
+
+                    // Check for any locals
+                    if (localIdentifierSymbols != null)
+                    {
+                        // Check for multiple symbols
+                        HashSet<string> definedLocals = new HashSet<string>();
+
+                        for (int i = 0; i < localIdentifierSymbols.Length; i++)
                         {
-                            definedLocals.Add(localIdentifierSymbols[i].IdentifierName);
-                        }
-                        else
-                        {
-                            report.ReportMessage(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localIdentifierSymbols[i]).Syntax.StartToken.Source, localIdentifierSymbols[i].IdentifierName);
+                            // Add the local identifier
+                            if (definedLocals.Contains(localIdentifierSymbols[i].IdentifierName) == false)
+                            {
+                                definedLocals.Add(localIdentifierSymbols[i].IdentifierName);
+                            }
+                            else
+                            {
+                                report.ReportMessage(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localIdentifierSymbols[i]).Syntax.StartToken.Source, localIdentifierSymbols[i].IdentifierName);
+                            }
                         }
                     }
                 }
