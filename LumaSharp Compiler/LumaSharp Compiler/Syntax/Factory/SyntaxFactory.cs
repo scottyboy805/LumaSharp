@@ -14,7 +14,7 @@ namespace LumaSharp_Compiler.AST.Factory
         public static TypeSyntax Type(string identifier) => new TypeSyntax(identifier);
         public static ContractSyntax Contract(string identifier) => new ContractSyntax(identifier);
         public static EnumSyntax Enum(string identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, underlyingType);
-        public static FieldSyntax Field(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign = null) => new FieldSyntax(identifier, fieldType, fieldAssign);
+        public static FieldSyntax Field(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign = null, bool byReference = false) => new FieldSyntax(identifier, fieldType, fieldAssign, byReference);
         public static AccessorSyntax Accessor(string identifier, TypeReferenceSyntax accessorType, ExpressionSyntax assignExpression = null) => new AccessorSyntax(identifier, accessorType, assignExpression);
         public static MethodSyntax Method(string identifier, TypeReferenceSyntax returnType = null) => new MethodSyntax(identifier, returnType != null ? returnType : new TypeReferenceSyntax("void"));
         #endregion

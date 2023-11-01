@@ -6,6 +6,7 @@ namespace LumaSharp_Compiler.AST
         // Private
         private TypeReferenceSyntax fieldType = null;        
         private ExpressionSyntax fieldAssignment = null;
+        private SyntaxToken reference = null;
         private SyntaxToken assign = null;
         private SyntaxToken semicolon = null;
 
@@ -25,6 +26,11 @@ namespace LumaSharp_Compiler.AST
             get { return fieldAssignment != null; }
         }
 
+        public bool IsByReference
+        {
+            get { return reference != null; }
+        }
+
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
@@ -39,12 +45,13 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign)
+        internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign, bool byReference)
             : base(identifier, fieldType.StartToken, SyntaxToken.Semi())
         {
             this.fieldType = fieldType;
             this.fieldAssignment = fieldAssign;
             this.identifier.WithLeadingWhitespace(" ");
+            this.reference = (byReference != null) ? SyntaxToken.Reference() : null;
             this.assign = SyntaxToken.Assign();
             this.semicolon = base.EndToken;
         }
@@ -94,6 +101,12 @@ namespace LumaSharp_Compiler.AST
 
             // Field type
             fieldType.GetSourceText(writer);
+
+            // Check for by reference
+            if(IsByReference == true)
+            {
+                reference.GetSourceText(writer);
+            }
 
             // Identifier
             identifier.GetSourceText(writer);

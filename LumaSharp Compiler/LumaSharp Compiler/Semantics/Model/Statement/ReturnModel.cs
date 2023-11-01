@@ -56,10 +56,13 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
                 // Resolve symbols in return model
                 returnModel.ResolveSymbols(provider, report);
 
-                // Check for return type conversion
-                if(TypeChecker.IsTypeAssignable(returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol) == false)
+                if (returnModel.EvaluatedTypeSymbol != null && parentMethod.ReturnTypeSymbol != null)
                 {
-                    report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol);
+                    // Check for return type conversion
+                    if (TypeChecker.IsTypeAssignable(returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol) == false)
+                    {
+                        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol);
+                    }
                 }
             }
         }

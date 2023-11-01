@@ -34,16 +34,23 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         public static bool HasBaseType(ITypeReferenceSymbol from, ITypeReferenceSymbol to)
         {
-            // Check for base type
-            foreach(ITypeReferenceSymbol baseType in from.BaseTypeSymbols)
+            if (from.BaseTypeSymbols != null)
             {
-                // Check for base
-                if(baseType == to) 
-                    return true;
+                // Check for base type
+                foreach (ITypeReferenceSymbol baseType in from.BaseTypeSymbols)
+                {
+                    // Check for null
+                    if (baseType == null)
+                        continue;
 
-                // Deep search
-                if(HasBaseType(baseType, to) == true)
-                    return true;
+                    // Check for base
+                    if (baseType == to)
+                        return true;
+
+                    // Deep search
+                    if (HasBaseType(baseType, to) == true)
+                        return true;
+                }
             }
             return false;
         }
