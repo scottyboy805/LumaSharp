@@ -75,6 +75,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve base symbols
+            base.ResolveSymbols(provider, report);
+
             // Resolve field symbol
             fieldTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.FieldType);
 

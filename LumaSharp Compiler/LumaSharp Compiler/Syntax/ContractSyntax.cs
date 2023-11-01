@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LumaSharp_Compiler.AST
 {
-    public sealed class ContractSyntax : MemberSyntax
+    public sealed class ContractSyntax : MemberSyntax, IMemberSyntaxContainer
     {
         // Private
         private SyntaxToken keyword = null;
@@ -186,6 +186,15 @@ namespace LumaSharp_Compiler.AST
 
             // Write block
             memberBlock.GetSourceText(writer);
+        }
+
+        public void AddMember(MemberSyntax member)
+        {
+            ((IMemberSyntaxContainer)memberBlock).AddMember(member);
+
+            // Update hierarchy
+            member.tree = tree;
+            member.parent = this;
         }
     }
 }

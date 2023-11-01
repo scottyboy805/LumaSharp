@@ -87,8 +87,17 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Check for type
-            if (this is TypeModel && accessModifiers.Contains(AccessModifier.Global) == true)
+            if ((this is TypeModel) && accessModifiers.Contains(AccessModifier.Global) == true)
                 report.ReportMessage(Code.AccessModifierNotValid, MessageSeverity.Error, syntax.AccessModifiers.First(m => m.Text == "global").Source, "global");
+
+            // Check for contract or enum parent
+            if(parent is TypeModel && ((TypeModel)parent).IsContract == true || ((TypeModel)parent).IsEnum == true)
+            {
+                foreach(SyntaxToken token in syntax.AccessModifiers)
+                {
+                    report.ReportMessage(Code.AccessModifierNotValid, MessageSeverity.Error, token.Source, token.Text);
+                }
+            }
         }
 
         public bool HasAccessModifier(AccessModifier accessModifier)

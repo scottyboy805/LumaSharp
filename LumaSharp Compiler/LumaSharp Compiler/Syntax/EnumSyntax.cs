@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp_Compiler.AST
 {
-    public sealed class EnumSyntax : MemberSyntax
+    public sealed class EnumSyntax : MemberSyntax, IMemberSyntaxContainer
     {
         // Private
         private SyntaxToken keyword = null;
@@ -128,6 +128,19 @@ namespace LumaSharp_Compiler.AST
 
             // Member block
             fieldBlock.GetSourceText(writer);
+        }
+
+        public void AddMember(MemberSyntax member)
+        {
+            // Check for field
+            if ((member is FieldSyntax) == false)
+                throw new NotSupportedException("Must be a field");
+
+            ((IMemberSyntaxContainer)fieldBlock).AddMember(member);
+
+            // Update hierarchy
+            member.tree = tree;
+            member.parent = this;
         }
     }
 }

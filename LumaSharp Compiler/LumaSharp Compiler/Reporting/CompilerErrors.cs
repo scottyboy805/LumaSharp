@@ -27,17 +27,20 @@ namespace LumaSharp_Compiler.Reporting
         FieldRequiresInstance = 1062,
         FieldRequiresType = 1063,
         FieldReadOnly = 1064,
+        FieldUsedLikeMethod = 1065,
 
         AccessorRequiresInstance = 1092,
         AccessorRequiresType = 1093,
         AccessorNoRead = 1094,
         AccessorNoWrite = 1095,
+        AccessorUsedLikeMethod = 1096,
 
         MethodNotFound = 1121,
         MethodRequiresInstance = 1122,
         MethodRequiresType = 1123,
         MethodNoMatch = 1124,
         MethodAmbiguousMatch = 1125,
+        MethodUsedLikeFieldAccessor = 1126,
     }
 
     internal static class CompilerErrors
