@@ -177,5 +177,10 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         {
             VisitTypeReference(model.SizeTypeExpression);
         }
+
+        public virtual void VisitTypeToken(TypeTokenModel model)
+        {
+            VisitTypeReference(model.TypeTokenExpression);
+        }
     }
 }

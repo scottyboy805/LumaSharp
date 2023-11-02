@@ -49,6 +49,8 @@ namespace LumaSharp_Compiler.Semantics
         void VisitNew(NewModel model);
 
         void VisitSize(SizeModel model);
+
+        void VisitTypeToken(TypeTokenModel model);
         #endregion
     }
 }
