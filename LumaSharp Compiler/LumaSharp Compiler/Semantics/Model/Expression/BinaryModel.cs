@@ -41,7 +41,14 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
 
         public override ITypeReferenceSymbol EvaluatedTypeSymbol
         {
-            get { return inferredTypeSymbol; }
+            get 
+            {
+                // Check for operator method available
+                if (inferredMethodOperatorSymbol != null)
+                    return inferredMethodOperatorSymbol.ReturnTypeSymbol;
+
+                return inferredTypeSymbol; 
+            }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -146,7 +153,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             {
                 switch(type.PrimitiveType)
                 {
-                    // Note - bool does not require prmotion because it is represented as i32 by the runtime
+                    // Note - bool does not require promotion because it is represented as i32 by the runtime
                     case PrimitiveType.I8:
                     case PrimitiveType.U8:
                     case PrimitiveType.I16:
@@ -175,22 +182,5 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             }
             return type.PrimitiveType;
         }
-
-        //private bool ResolveOperationOrOperatorMethod()
-        //{
-        //    // Get type codes
-        //    PrimitiveType leftType = left.EvaluatedTypeSymbol.PrimitiveType;
-        //    PrimitiveType rightType = right.EvaluatedTypeSymbol.PrimitiveType;
-
-        //    switch (syntax.Operation.Text)
-        //    {
-        //        // Add operation
-        //        case "+":
-        //            {
-        //                break;
-        //            }
-        //    }
-
-        //}
     }
 }
