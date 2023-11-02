@@ -84,6 +84,12 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 return Types._void;
             }
 
+            // Check for string
+            if(reference.Identifier.Text == "string" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
+            {
+                return Types._string;
+            }
+
             ITypeReferenceSymbol resolvedSymbol;
 
             // Check for resolve types in this library first

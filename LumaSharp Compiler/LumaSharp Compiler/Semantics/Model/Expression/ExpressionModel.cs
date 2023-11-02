@@ -1,6 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.AST.Expression;
-using System.Linq.Expressions;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
@@ -45,6 +44,16 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Methods
+        public virtual ExpressionModel StaticallyEvaluateExpression(ISymbolProvider provider)
+        {
+            return this;
+        }
+
+        public virtual object GetStaticallyEvaluatedValue()
+        {
+            return null;
+        }
+
         internal static ExpressionModel Any(SemanticModel model, SymbolModel parent, ExpressionSyntax syntax)
         {
             // Check for literal

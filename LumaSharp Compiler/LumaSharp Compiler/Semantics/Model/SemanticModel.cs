@@ -1,8 +1,6 @@
 ﻿using LumaSharp_Compiler.Semantics.Reference;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
-using System;
-using System.Reflection;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -10,6 +8,7 @@ namespace LumaSharp_Compiler.Semantics.Model
     {
         // Private
         private string libraryName = "";
+        private ReferenceSymbolProvider symbolProvider = null;
         private ReferenceLibrary thisLibrary = null;
         private List<TypeModel> typeModels = new List<TypeModel>();
         private CompileReport report = null;
@@ -181,7 +180,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Create provider
-            ReferenceSymbolProvider symbolProvider = new ReferenceSymbolProvider(thisLibrary, report);
+            symbolProvider = new ReferenceSymbolProvider(thisLibrary, report);
 
             // Build all external members
 
@@ -197,6 +196,14 @@ namespace LumaSharp_Compiler.Semantics.Model
             {
                 // Resolve the symbols
                 type.ResolveSymbols(symbolProvider, report);
+            }
+        }
+
+        public void StaticallyEvaluate()
+        {
+            foreach(TypeModel type in typeModels)
+            {
+                type.StaticallyEvaluateMember(symbolProvider);
             }
         }
 

@@ -282,6 +282,19 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
         }
 
+        public override void StaticallyEvaluateMember(ISymbolProvider provider)
+        {
+            // Check for body
+            if(HasBody == true && bodyStatements.Length > 0)
+            {
+                // Statically evaluate all statements
+                foreach(StatementModel statement in bodyStatements)
+                {
+                    statement.StaticallyEvaluateStatement(provider);
+                }
+            }
+        }
+
         public VariableModel DeclareScopedLocal(SemanticModel model, VariableDeclarationStatementSyntax syntax, int index)
         {
             // Create the variable

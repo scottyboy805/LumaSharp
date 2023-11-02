@@ -264,6 +264,15 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
         }
 
+        public override void StaticallyEvaluateMember(ISymbolProvider provider)
+        {
+            // Evaluate all child members
+            foreach(MemberModel member in Descendants)
+            {
+                member.StaticallyEvaluateMember(provider);
+            }
+        }
+
         private void BuildMembersModel(SemanticModel model, IEnumerable<MemberSyntax> members)
         {
             // Create member types

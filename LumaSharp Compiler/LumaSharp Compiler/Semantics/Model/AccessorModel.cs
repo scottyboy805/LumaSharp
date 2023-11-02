@@ -79,5 +79,9 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Resolve accessor symbol
             accessorTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.AccessorType);
         }
+
+        public override void StaticallyEvaluateMember(ISymbolProvider provider)
+        {
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.AST.Factory;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Reference;
 
@@ -145,6 +146,67 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                     }
                 }
             }
+        }
+
+        public override ExpressionModel StaticallyEvaluateExpression(ISymbolProvider provider)
+        {
+            // Check for both expressions can be evaluated statically
+            bool bothExpressionsStaticallyEvaluated = left.IsStaticallyEvaluated == true && right.IsStaticallyEvaluated == true;
+
+            // Evaluate left
+            if(left.IsStaticallyEvaluated == true)
+            {
+                // Evaluate all static expressions
+                left = left.StaticallyEvaluateExpression(provider);
+            }
+
+            // Evaluate right
+            if(right.IsStaticallyEvaluated == true)
+            {
+                // Evaluate all static expressions
+                right = right.StaticallyEvaluateExpression(provider);
+            }
+
+            // Check for both left and right statically evaluated
+            if (bothExpressionsStaticallyEvaluated == true)
+            {
+                // Try to get the target operation
+                BinaryOperation operation = syntax.BinaryOperation;
+
+                // Get left/right types
+                PrimitiveType leftTypeCode = GetPromotedTypeCode(left.EvaluatedTypeSymbol);
+                PrimitiveType rightTypeCode = GetPromotedTypeCode(right.EvaluatedTypeSymbol);
+
+                // Evaluate left and right
+                object leftVal = left.GetStaticallyEvaluatedValue();
+                object rightVal = right.GetStaticallyEvaluatedValue();
+
+                ExpressionModel optimizedModel = null;
+
+                // Check operation type
+                switch(operation)
+                {
+                    case BinaryOperation.Add:
+                        {
+                            // Perform operation
+                            object evaluated = OpTable.GetAddOperationStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+
+                            // Create simplified constant
+                            optimizedModel = new ConstantModel(Model, Parent, evaluated);
+                            break;
+                        }
+                }
+
+                // Check for optimized model provided
+                if(optimizedModel != null)
+                {
+                    optimizedModel.ResolveSymbols(provider, null);
+                    return optimizedModel;
+                }
+            }
+
+            // Fallback to default behaviour
+            return base.StaticallyEvaluateExpression(provider);
         }
 
         private bool IsSmallPrimitive(ITypeReferenceSymbol type)

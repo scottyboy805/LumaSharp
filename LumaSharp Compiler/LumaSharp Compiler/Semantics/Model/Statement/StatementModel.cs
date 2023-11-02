@@ -39,6 +39,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         }
 
         // Methods
+        public virtual void StaticallyEvaluateStatement(ISymbolProvider provider) { }
+
         internal static StatementModel Any(SemanticModel model, SymbolModel parent, StatementSyntax syntax, int statementIndex, IScopeModel scope = null)
         {
             // Check for variable

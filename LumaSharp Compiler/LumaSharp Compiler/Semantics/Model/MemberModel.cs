@@ -104,6 +104,8 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
         }
 
+        public abstract void StaticallyEvaluateMember(ISymbolProvider provider);
+
         public bool HasAccessModifier(AccessModifier accessModifier)
         {
             return accessModifiers.Contains(accessModifier);

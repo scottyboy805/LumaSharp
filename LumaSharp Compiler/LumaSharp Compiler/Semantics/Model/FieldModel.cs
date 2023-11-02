@@ -98,5 +98,9 @@ namespace LumaSharp_Compiler.Semantics.Model
                 }
             }
         }
+
+        public override void StaticallyEvaluateMember(ISymbolProvider provider)
+        {
+        }
     }
 }

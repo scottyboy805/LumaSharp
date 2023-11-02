@@ -1,6 +1,7 @@
 ﻿using LumaSharp_Compiler.Semantics.Model.Expression;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using System.Linq.Expressions;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -23,14 +24,15 @@ namespace LumaSharp_Compiler.Semantics.Model
     public sealed class ConstantModel : ExpressionModel
     {
         // Private
-        private LiteralExpressionSyntax syntax = null;
+        private SyntaxToken literal;
+        private SyntaxToken descriptor;
         private ITypeReferenceSymbol constantTypeSymbol = null;
         private object constantValue = null;
 
         // Properties
         public override bool IsStaticallyEvaluated
         {
-            get { return true; }
+            get { return constantTypeSymbol.PrimitiveType != PrimitiveType.Any; }
         }
 
         public override ITypeReferenceSymbol EvaluatedTypeSymbol
@@ -44,10 +46,70 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Constructor
+        public ConstantModel(SemanticModel model, SymbolModel parent, object value)
+            : base(model, parent, null)
+        {
+            if(value == null)
+            {
+                literal = new SyntaxToken("null");
+            }
+            else if(value is string)
+            {
+                literal = new SyntaxToken("\"" + value + "\"");
+            }
+            else
+            {
+                switch(Type.GetTypeCode(value.GetType()))
+                {
+                    case TypeCode.Byte:
+                    case TypeCode.Char:
+                    case TypeCode.SByte:
+                    case TypeCode.Int16:
+                    case TypeCode.UInt16:
+                    case TypeCode.Int32:
+                        {
+                            literal = new SyntaxToken(value.ToString());                            
+                            break;
+                        }
+                    case TypeCode.UInt32:
+                        {
+                            literal = new SyntaxToken(value.ToString());
+                            descriptor = new SyntaxToken("U");
+                            break;
+                        }
+                    case TypeCode.Int64:
+                        {
+                            literal = new SyntaxToken(value.ToString());
+                            descriptor = new SyntaxToken("L");
+                            break;
+                        }
+                    case TypeCode.UInt64:
+                        {
+                            literal = new SyntaxToken(value.ToString());
+                            descriptor = new SyntaxToken("UL");
+                            break;
+                        }
+                    case TypeCode.Single:
+                        {
+                            literal = new SyntaxToken(value.ToString());
+                            descriptor = new SyntaxToken("F");
+                            break;
+                        }
+                    case TypeCode.Double:
+                        {
+                            literal = new SyntaxToken(value.ToString());
+                            descriptor = new SyntaxToken("D");
+                            break;
+                        }
+                }
+            }
+        }
+
         public ConstantModel(SemanticModel model, SymbolModel parent, LiteralExpressionSyntax literal) 
             : base(model, parent, literal)
         {
-            this.syntax = literal;
+            this.literal = literal.Value;
+            this.descriptor = literal.Descriptor;
         }
 
         // Methods
@@ -59,7 +121,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get the constant type
-            ConstantType constantType = ResolveConstantType(syntax.Value, syntax.Descriptor);
+            ConstantType constantType = ResolveConstantType(literal, descriptor);
 
             // Check for string
             if (constantType == ConstantType.LiteralString)
@@ -88,6 +150,28 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Resolve symbol
                 this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType);
             }
+        }
+
+        public override object GetStaticallyEvaluatedValue()
+        {
+            // Get the constant type
+            ConstantType constantType = ResolveConstantType(literal, descriptor);
+
+            // Check type
+            switch (constantType)
+            {
+                case ConstantType.Hexadecimal:
+                case ConstantType.Integer: return GetConstantValueAs<int>();
+                case ConstantType.Integer_Unsigned: return GetConstantValueAs<uint>();
+                case ConstantType.Hexadecimal_Long:
+                case ConstantType.Integer_Long: return GetConstantValueAs<long>();
+                case ConstantType.Integer_UnsignedLong: return GetConstantValueAs<ulong>();
+                case ConstantType.Decimal_Single: return GetConstantValueAs<float>();
+                case ConstantType.Decimal_Double: return GetConstantValueAs<double>();
+                case ConstantType.True: return 1;
+                case ConstantType.False: return 0;
+            }
+            return null;
         }
 
         public T GetConstantValueAs<T>()

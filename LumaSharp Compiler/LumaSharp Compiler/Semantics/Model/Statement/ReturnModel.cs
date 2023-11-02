@@ -66,5 +66,15 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
                 }
             }
         }
+
+        public override void StaticallyEvaluateStatement(ISymbolProvider provider)
+        {
+            // Check for expression which can be statically evaluated
+            if(HasReturnExpression == true && returnModel.IsStaticallyEvaluated == true)
+            {
+                // Evaluate the expression
+                returnModel = returnModel.StaticallyEvaluateExpression(provider);
+            }
+        }
     }
 }
