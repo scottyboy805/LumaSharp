@@ -46,7 +46,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "param1", true))
                 .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                Syntax.Return(Syntax.MethodInvoke("Test", Syntax.FieldReference("myField", Syntax.VariableReference("myVar")))))));
+                Syntax.Return(Syntax.MethodInvoke("Test", Syntax.FieldReference("myField", Syntax.VariableReference("myVar")))
+                .WithArguments(Syntax.VariableReference("myVar"))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -196,7 +196,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.U32), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5U)))));
 
             // Create model
@@ -248,7 +248,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I64), "myVar"),
+                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.U64), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5UL)))));
 
             // Create model

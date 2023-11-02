@@ -60,6 +60,11 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             {
                 VisitVariableReference((VariableReferenceModel)model);
             }
+            // Check for method
+            else if(model is MethodInvokeModel)
+            {
+                VisitMethodInvoke((MethodInvokeModel)model);
+            }
             else
             {
                 throw new NotSupportedException();
