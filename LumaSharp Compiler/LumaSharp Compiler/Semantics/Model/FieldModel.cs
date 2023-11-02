@@ -101,6 +101,12 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public override void StaticallyEvaluateMember(ISymbolProvider provider)
         {
+            // Check for expression which can be statically evaluated
+            if(assignModel != null && assignModel.IsStaticallyEvaluated == true)
+            {
+                // Evaluate the expression
+                assignModel = assignModel.StaticallyEvaluateExpression(provider);
+            }
         }
     }
 }

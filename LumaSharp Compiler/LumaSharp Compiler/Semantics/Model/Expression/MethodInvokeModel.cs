@@ -14,7 +14,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         // Properties
         public override bool IsStaticallyEvaluated
         {
-            get { return accessModel.IsStaticallyEvaluated; }
+            get { return false; }
         }
 
         public override ITypeReferenceSymbol EvaluatedTypeSymbol

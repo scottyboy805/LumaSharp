@@ -118,6 +118,13 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                                 opReturnType = OpTable.GetAddOperationReturnType(leftTypeCode, rightTypeCode);
                                 break;
                             }
+                        case BinaryOperation.Subtract:
+                            {
+                                // Check for defined
+                                opReturnType = OpTable.GetSubtractOperationReturnType(leftTypeCode, rightTypeCode);
+                                break;
+                            }
+
                     }
 
                     // Check for invalid
@@ -150,6 +157,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
 
         public override ExpressionModel StaticallyEvaluateExpression(ISymbolProvider provider)
         {
+            // Check for resolved symbols
+            if(left.EvaluatedTypeSymbol == null || right.EvaluatedTypeSymbol == null)
+                return base.StaticallyEvaluateExpression(provider);
+
             // Check for both expressions can be evaluated statically
             bool bothExpressionsStaticallyEvaluated = left.IsStaticallyEvaluated == true && right.IsStaticallyEvaluated == true;
 
@@ -190,6 +201,15 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                         {
                             // Perform operation
                             object evaluated = OpTable.GetAddOperationStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+
+                            // Create simplified constant
+                            optimizedModel = new ConstantModel(Model, Parent, evaluated);
+                            break;
+                        }
+                    case BinaryOperation.Subtract:
+                        {
+                            // Perform operation
+                            object evaluated = OpTable.GetSubtractOperationStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
 
                             // Create simplified constant
                             optimizedModel = new ConstantModel(Model, Parent, evaluated);
