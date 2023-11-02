@@ -192,6 +192,7 @@ statementBlock: '{' statement* '}';
 
 statement: 
 	  returnStatement
+	| methodInvokeStatement
 	| postfixStatement
 	| statementBlock
 	| localVariableStatement
@@ -207,6 +208,9 @@ statement:
 
 // Return statement
 returnStatement: RETURN expression? semi=';';
+
+// Invoke statement
+methodInvokeStatement: expression? methodInvokeExpression semi=';';
 
 // Postfix statement
 postfixStatement: expression ('++' | '--') ';';
@@ -306,7 +310,7 @@ indexExpression: larray='[' expression (',' expression)* rarray=']';
 fieldAccessExpression: dot='.' IDENTIFIER;
 
 // Method invoke
-methodInvokeExpression: dot='.' IDENTIFIER genericArguments? lparen='(' methodArgument? (',' methodArgument)* rparen=')';
+methodInvokeExpression: dot='.'? IDENTIFIER genericArguments? lparen='(' methodArgument? (',' methodArgument)* rparen=')';
 methodArgument: '&'? expression;
 
 // Initializer 

@@ -260,6 +260,12 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitReturnStatement([NotNull] LumaSharpParser.ReturnStatementContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.methodInvokeStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMethodInvokeStatement([NotNull] LumaSharpParser.MethodInvokeStatementContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.postfixStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

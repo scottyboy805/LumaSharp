@@ -106,7 +106,7 @@ namespace LumaSharp_Compiler.AST.Expression
 
             // Generic arguments
             LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
-                       
+
             if (generics != null)
             {
                 this.genericArguments = generics.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
@@ -129,14 +129,56 @@ namespace LumaSharp_Compiler.AST.Expression
             }
         }
 
+        internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression, LumaSharpParser.MethodInvokeExpressionContext method)
+            : base(tree, parent, method)
+        {
+            // Identifier
+            this.identifier = new SyntaxToken(method.IDENTIFIER());
+
+            dot = new SyntaxToken(method.dot);
+
+            // Generic arguments
+            LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
+
+            if (generics != null)
+            {
+                this.genericArguments = generics.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
+
+                lgen = new SyntaxToken(generics.lgen);
+                rgen = new SyntaxToken(generics.rgen);
+            }
+
+            lparen = new SyntaxToken(method.lparen);
+            rparen = new SyntaxToken(method.rparen);
+
+            if (expression != null)
+            {
+                // Create access expression
+                if (expression.typeReference() != null)
+                {
+                    this.accessExpression = new TypeReferenceSyntax(tree, this, expression.typeReference());
+                }
+                else
+                {
+                    this.accessExpression = Any(tree, this, expression.expression(0));
+                }
+            }
+        }
+
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            // Write access
-            accessExpression.GetSourceText(writer);
+            if (accessExpression != null)
+            {
+                // Write access
+                accessExpression.GetSourceText(writer);
+            }
 
-            // Write dot 
-            dot.GetSourceText(writer);
+            if (dot != null)
+            {
+                // Write dot 
+                dot.GetSourceText(writer);
+            }
 
             // Write method name
             writer.Write(identifier.ToString());
