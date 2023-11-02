@@ -10,6 +10,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         private ITypeReferenceSymbol typeSymbol = null;
 
         // Properties
+        public TypeReferenceSyntax Syntax
+        {
+            get { return syntax; }
+        }
+
         public override bool IsStaticallyEvaluated
         {
             get { return false; }

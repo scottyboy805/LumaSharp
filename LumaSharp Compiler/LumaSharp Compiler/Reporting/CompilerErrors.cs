@@ -55,6 +55,14 @@ namespace LumaSharp_Compiler.Reporting
         OperatorIncorrectVoidParameter = 1403,
         OperatorIncorrectParameterCount = 1404,
         OperatorIncorrectParameter = 1405,
+
+        InvalidSelfBaseType = 1601,
+        InvalidSelfBaseContract = 1602,
+        InvalidEnumBaseType = 1603,
+        InvalidEnumBaseContract = 1604,
+        InvalidTypeBaseContract = 1605,
+        MultipleBaseTypes = 1606,
+        FirstBaseType = 1607,
     }
 
     internal static class CompilerErrors
@@ -123,6 +131,14 @@ namespace LumaSharp_Compiler.Reporting
             { Code.OperatorIncorrectVoidParameter, "Operator `{0}` cannot accept any parameters" },
             { Code.OperatorIncorrectParameterCount, "Operator `{0}` does not have the required parameter count `{1}`" },
             { Code.OperatorIncorrectParameter, "Operator `{0}` does not have the correct parameter type. Expected `{1}`" },
+
+            { Code.InvalidSelfBaseType, "Inheritance cycle detected for base type `{0}`" },
+            { Code.InvalidSelfBaseContract, "Inheritance cycle detected for base contract `{0}`" },
+            { Code.InvalidEnumBaseType, "Enum type `{0}` cannot be used as a base type" },
+            { Code.InvalidEnumBaseContract, "Enum type `{0}` cannot be used as a base contract" },
+            { Code.InvalidTypeBaseContract, "Type `{0}` cannot be used as a base contract" },
+            { Code.MultipleBaseTypes, "Cannot have multiple base types `{0}` and `{1}`" },
+            { Code.FirstBaseType, "Base type `{0}` must come before any contract declarations" },
 
             // Logical
         };
