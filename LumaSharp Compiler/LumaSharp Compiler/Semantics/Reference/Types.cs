@@ -37,7 +37,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             public IAccessorReferenceSymbol[] AccessorMemberSymbols => throw new NotImplementedException();
 
             public IMethodReferenceSymbol[] MethodMemberSymbols => throw new NotImplementedException();
-
+            public IMethodReferenceSymbol[] OperatorMemberSymbols => throw new NotImplementedException();
 
             // Constructor
             internal BuiltIn_Primitive(PrimitiveType primitiveType)

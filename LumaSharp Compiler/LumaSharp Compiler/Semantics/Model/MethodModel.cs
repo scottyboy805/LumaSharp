@@ -17,6 +17,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         private StatementModel[] bodyStatements = null;
 
         // Properties
+        public MethodSyntax Syntax
+        {
+            get { return syntax; }
+        }
+
         public string MethodName
         {
             get { return syntax.Identifier.Text; }

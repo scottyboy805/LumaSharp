@@ -34,5 +34,7 @@ namespace LumaSharp_Compiler.Semantics
         IAccessorReferenceSymbol[] AccessorMemberSymbols { get; }
 
         IMethodReferenceSymbol[] MethodMemberSymbols { get; }
+
+        IMethodReferenceSymbol[] OperatorMemberSymbols { get; }
     }
 }

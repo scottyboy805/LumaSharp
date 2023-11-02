@@ -1,5 +1,7 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using LumaSharp_Compiler.Semantics.Reference;
+using System.Linq;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -19,6 +21,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private FieldModel[] memberFields = null;
         private AccessorModel[] memberAccessors = null;
         private MethodModel[] memberMethods = null;
+        private MethodModel[] operatorMethods = null;
 
         // Properties
         internal MemberSyntax Syntax
@@ -64,6 +67,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public IMethodReferenceSymbol[] MethodMemberSymbols
         {
             get { return memberMethods; }
+        }
+
+        public IMethodReferenceSymbol[] OperatorMemberSymbols
+        {
+            get { return operatorMethods; }
         }
 
         public bool HasGenericParameters
@@ -262,6 +270,15 @@ namespace LumaSharp_Compiler.Semantics.Model
             {
                 method.ResolveSymbols(provider, report);
             }
+
+            // Resolve all operator symbols
+            foreach(MethodModel operatorMethod in operatorMethods)
+            {
+                operatorMethod.ResolveSymbols(provider, report);
+
+                // Check usage
+                OpTable.CheckSpecialOpUsage(operatorMethod, report);
+            }
         }
 
         public override void StaticallyEvaluateMember(ISymbolProvider provider)
@@ -285,7 +302,12 @@ namespace LumaSharp_Compiler.Semantics.Model
             memberAccessors = members.Where(a => a is AccessorSyntax).Select(a => new AccessorModel(model, this, a as AccessorSyntax)).ToArray();
 
             // Create member methods
-            memberMethods = members.Where(m => m is MethodSyntax).Select(m => new MethodModel(model, this, m as MethodSyntax)).ToArray();
+            memberMethods = members.Where(m => m is MethodSyntax && OpTable.specialOpMethods.Contains(m.Identifier.Text) == false)
+                .Select(m => new MethodModel(model, this, m as MethodSyntax)).ToArray();
+
+            // Create operator methods
+            operatorMethods = members.Where(m => m is MethodSyntax && OpTable.specialOpMethods.Contains(m.Identifier.Text) == true)
+                .Select(m => new MethodModel(model, this, m as MethodSyntax)).ToArray();
         }
     }
 }

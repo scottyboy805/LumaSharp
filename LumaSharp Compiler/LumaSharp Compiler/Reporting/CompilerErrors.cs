@@ -49,6 +49,11 @@ namespace LumaSharp_Compiler.Reporting
         MethodNoMatch = 1124,
         MethodAmbiguousMatch = 1125,
         MethodUsedLikeFieldAccessor = 1126,
+
+        OperatorMustBeGlobal = 1401,
+        OperatorIncorrectReturn = 1402,
+        OperatorIncorrectParameterCount = 1403,
+        OperatorIncorrectParameter = 1404,
     }
 
     internal static class CompilerErrors
@@ -111,6 +116,11 @@ namespace LumaSharp_Compiler.Reporting
             { Code.MethodRequiresType, "The method `{0}` is marked as global must be invoked via a type qualifier" },
             { Code.MethodNoMatch, "No method found matching or inferable from the provided arguments" },
             { Code.MethodAmbiguousMatch, "Multiple ambiguous methods found matching or inferable from the provided arguments" },
+
+            { Code.OperatorMustBeGlobal, "Operator `{0}` must be declared as global" },
+            { Code.OperatorIncorrectReturn, "Operator `{0}` must have the return type `{1}`" },
+            { Code.OperatorIncorrectParameterCount, "Operator `{0}` does not have the required parameter count `{1}`" },
+            { Code.OperatorIncorrectParameter, "Operator `{0}` does not have the correct parameter type. Expected `{1}`" },
 
             // Logical
         };

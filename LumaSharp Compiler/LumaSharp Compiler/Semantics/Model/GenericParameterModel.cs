@@ -14,6 +14,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private IFieldReferenceSymbol[] fieldMembers = null;
         private IAccessorReferenceSymbol[] accessorMembers = null;
         private IMethodReferenceSymbol[] methodMembers = null;
+        private IMethodReferenceSymbol[] operatorMembers = null;
 
         // Properties
         public string TypeName
@@ -89,6 +90,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public IMethodReferenceSymbol[] MethodMemberSymbols
         {
             get { return methodMembers; }
+        }
+
+        public IMethodReferenceSymbol[] OperatorMemberSymbols
+        {
+            get { return operatorMembers; }
         }
 
         public bool IsTypeParameter
@@ -172,6 +178,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                 fieldMembers = genericConstraints.SelectMany(c => c.FieldMemberSymbols).ToArray();
                 accessorMembers = genericConstraints.SelectMany(c => c.AccessorMemberSymbols).ToArray();
                 methodMembers = genericConstraints.SelectMany(c => c.MethodMemberSymbols).ToArray();
+                operatorMembers = genericConstraints.SelectMany(c => c.OperatorMemberSymbols).ToArray();
             }
         }
     }
