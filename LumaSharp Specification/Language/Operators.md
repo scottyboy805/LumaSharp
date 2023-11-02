@@ -10,7 +10,7 @@ MyType b = MyType();
 
 bool equal = a == b;
 i32 hash = a.Hash + b.Hash;
-string asString = (string)a;
+string asString = a.String;
 ```
 
 Much like C# we have equals, hash code and string conversion methods available for all types by default. They can also be overriden per type using the special reserved operator names:
