@@ -422,5 +422,60 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
         }
+
+
+
+        [TestMethod]
+        public void ReportSpecialOperatorMessages_Negate_NonGlobal()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("op_negate", Syntax.TypeReference("Test"))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
+                .WithStatements()));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Assert.IsNotNull(model);
+            Assert.AreEqual(1, model.Report.MessageCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+        }
+
+        [TestMethod]
+        public void ReportSpecialOperatorMessages_Negate_InvalidParameterCount()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("op_negate", Syntax.TypeReference("Test"))
+                .WithAccessModifiers("global")
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "par"))
+                .WithStatements()));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Assert.IsNotNull(model);
+            Assert.AreEqual(1, model.Report.MessageCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+        }
+
+        [TestMethod]
+        public void ReportSpecialOperatorMessages_Negate_InvalidParameter()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("op_negate", Syntax.TypeReference("Test"))
+                .WithAccessModifiers("global")
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"))
+                .WithStatements()));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Assert.IsNotNull(model);
+            Assert.AreEqual(1, model.Report.MessageCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+        }
     }
 }
