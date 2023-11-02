@@ -68,7 +68,7 @@ namespace LumaSharp_Compiler.Emit.Builder
         #endregion
 
         #region Expression
-        public override void VisitThis(ThisReferenceModel model)
+        public override void VisitThis(ThisModel model)
         {
             // This object is always implicitly passed as arg0
             instructions.EmitOpCode(OpCode.Ld_Arg_0);

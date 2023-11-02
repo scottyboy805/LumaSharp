@@ -46,9 +46,9 @@ namespace LumaSharp_Compiler.Semantics.Visitor
                 VisitFieldAccessorReference((FieldAccessorReferenceModel)model);
             }
             // Check for this
-            else if (model is ThisReferenceModel)
+            else if (model is ThisModel)
             {
-                VisitThis((ThisReferenceModel)model);
+                VisitThis((ThisModel)model);
             }
             // Check for type
             else if (model is TypeReferenceModel)
@@ -80,9 +80,9 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             VisitExpression(model.AccessModelExpression);
 
             // Visit arguments
-            if(model.ArgumentModelExpressions != null)
+            if (model.ArgumentModelExpressions != null)
             {
-                for(int i = 0; i < model.ArgumentModelExpressions.Length; i++)
+                for (int i = 0; i < model.ArgumentModelExpressions.Length; i++)
                 {
                     VisitExpression(model.ArgumentModelExpressions[i]);
                 }
@@ -92,19 +92,19 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         public virtual void VisitMember(MemberModel model)
         {
             // Check for type
-            if(model is TypeModel)
+            if (model is TypeModel)
             {
                 VisitType((TypeModel)model);
             }
-            else if(model is FieldModel)
+            else if (model is FieldModel)
             {
                 VisitField((FieldModel)model);
             }
-            else if(model is AccessorModel)
+            else if (model is AccessorModel)
             {
                 VisitAccessor((AccessorModel)model);
             }
-            else if(model is MethodModel)
+            else if (model is MethodModel)
             {
                 VisitMethod((MethodModel)model);
             }
@@ -113,7 +113,7 @@ namespace LumaSharp_Compiler.Semantics.Visitor
 
         public virtual void VisitMethod(MethodModel model)
         {
-            foreach(StatementModel statement in model.DescendantsOfType<StatementModel>())
+            foreach (StatementModel statement in model.DescendantsOfType<StatementModel>())
                 VisitStatement(statement);
         }
 
@@ -146,7 +146,7 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             }
         }
 
-        public virtual void VisitThis(ThisReferenceModel model)
+        public virtual void VisitThis(ThisModel model)
         {
         }
 
@@ -171,6 +171,11 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         public virtual void VisitNew(NewModel model)
         {
             VisitTypeReference(model.NewTypeExpression);
+        }
+
+        public virtual void VisitSize(SizeModel model)
+        {
+            VisitTypeReference(model.SizeTypeExpression);
         }
     }
 }

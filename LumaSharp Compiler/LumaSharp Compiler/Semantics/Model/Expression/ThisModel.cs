@@ -3,7 +3,7 @@ using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
 {
-    public sealed class ThisReferenceModel : ExpressionModel
+    public sealed class ThisModel : ExpressionModel
     {
         // Private
         private ThisExpressionSyntax syntax = null;
@@ -26,7 +26,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Constructor
-        public ThisReferenceModel(SemanticModel model, SymbolModel parent, ThisExpressionSyntax syntax)
+        public ThisModel(SemanticModel model, SymbolModel parent, ThisExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;

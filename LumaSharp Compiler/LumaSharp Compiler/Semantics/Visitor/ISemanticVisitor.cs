@@ -40,13 +40,15 @@ namespace LumaSharp_Compiler.Semantics
 
         void VisitMethodInvoke(MethodInvokeModel model);
 
-        void VisitThis(ThisReferenceModel model);
+        void VisitThis(ThisModel model);
 
         void VisitTypeReference(TypeReferenceModel model);
 
         void VisitVariableReference(VariableReferenceModel model);
 
         void VisitNew(NewModel model);
+
+        void VisitSize(SizeModel model);
         #endregion
     }
 }

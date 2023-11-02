@@ -73,7 +73,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
 
             // This
             if (syntax is ThisExpressionSyntax)
-                return new ThisReferenceModel(model, parent, syntax as ThisExpressionSyntax);
+                return new ThisModel(model, parent, syntax as ThisExpressionSyntax);
 
             // New
             if (syntax is NewExpressionSyntax)
