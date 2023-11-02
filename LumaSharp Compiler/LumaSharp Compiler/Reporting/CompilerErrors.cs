@@ -52,8 +52,9 @@ namespace LumaSharp_Compiler.Reporting
 
         OperatorMustBeGlobal = 1401,
         OperatorIncorrectReturn = 1402,
-        OperatorIncorrectParameterCount = 1403,
-        OperatorIncorrectParameter = 1404,
+        OperatorIncorrectVoidParameter = 1403,
+        OperatorIncorrectParameterCount = 1404,
+        OperatorIncorrectParameter = 1405,
     }
 
     internal static class CompilerErrors
@@ -119,6 +120,7 @@ namespace LumaSharp_Compiler.Reporting
 
             { Code.OperatorMustBeGlobal, "Operator `{0}` must be declared as global" },
             { Code.OperatorIncorrectReturn, "Operator `{0}` must have the return type `{1}`" },
+            { Code.OperatorIncorrectVoidParameter, "Operator `{0}` cannot accept any parameters" },
             { Code.OperatorIncorrectParameterCount, "Operator `{0}` does not have the required parameter count `{1}`" },
             { Code.OperatorIncorrectParameter, "Operator `{0}` does not have the correct parameter type. Expected `{1}`" },
 

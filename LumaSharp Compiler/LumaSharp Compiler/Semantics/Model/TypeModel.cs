@@ -277,7 +277,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                 operatorMethod.ResolveSymbols(provider, report);
 
                 // Check usage
-                OpTable.CheckSpecialOpUsage(operatorMethod, report);
+                OpTable.CheckSpecialOpUsage(operatorMethod, provider, report);
             }
         }
 

@@ -91,7 +91,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             return result.Item2(valA, valB);
         }
 
-        public static void CheckSpecialOpUsage(MethodModel method, ICompileReportProvider report)
+        public static void CheckSpecialOpUsage(MethodModel method, ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get operator first
             string methodName = method.MethodName;
@@ -119,7 +119,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if(method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, "bool");
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool));
                             }
 
                             // Check for parameters
@@ -145,10 +145,35 @@ namespace LumaSharp_Compiler.Semantics.Reference
                         }
                     case SpecialOperator.OpHash:
                         {
+                            // Check return type
+                            if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.I32)
+                            {
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.I32));
+                            }
+
+                            // Check for parameters
+                            if (method.IsGlobal == true && method.ParameterSymbols != null && method.ParameterSymbols.Length > 0)
+                            {
+                                report.ReportMessage(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName);
+                            }
                             break;
                         }
                     case SpecialOperator.OpString:
                         {
+                            // Resolve string symbol
+                            ITypeReferenceSymbol stringSymbol = provider.ResolveTypeSymbol(null, new TypeReferenceSyntax("string"));
+
+                            // Check return type
+                            if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Any && method.ReturnTypeSymbol != stringSymbol)
+                            {
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, stringSymbol);
+                            }
+
+                            // Check for parameters
+                            if (method.IsGlobal == true && method.ParameterSymbols != null && method.ParameterSymbols.Length > 0)
+                            {
+                                report.ReportMessage(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName);
+                            }
                             break;
                         }
                 }
