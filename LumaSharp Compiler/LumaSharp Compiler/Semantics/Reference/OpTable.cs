@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime.Reflection;
+using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model;
 
@@ -174,6 +175,98 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             {
                                 report.ReportMessage(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName);
                             }
+                            break;
+                        }
+                    case SpecialOperator.OpAdd:
+                        {
+                            // Check parameter count
+                            if (method.IsGlobal == true && method.ParameterSymbols != null)
+                            {
+                                if (method.ParameterSymbols.Length != 2)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, 2);
+                                }
+
+                                // First parameter must be of declaring type
+                                if(method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, method.DeclaringTypeSymbol);
+                                }
+                            }
+                            break;
+                        }
+                    case SpecialOperator.OpSubtract:
+                        {
+                            // Check parameter count
+                            if (method.IsGlobal == true && method.ParameterSymbols != null)
+                            {
+                                if (method.ParameterSymbols.Length != 2)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, 2);
+                                }
+
+                                // First parameter must be of declaring type
+                                if (method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, method.DeclaringTypeSymbol);
+                                }
+                            }
+                            break;
+                        }
+                    case SpecialOperator.OpMultiply:
+                        {
+                            // Check parameter count
+                            if (method.IsGlobal == true && method.ParameterSymbols != null)
+                            {
+                                if (method.ParameterSymbols.Length != 2)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, 2);
+                                }
+
+                                // First parameter must be of declaring type
+                                if (method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, method.DeclaringTypeSymbol);
+                                }
+                            }
+                            break;
+                        }
+                    case SpecialOperator.OpDivide:
+                        {
+                            // Check parameter count
+                            if (method.IsGlobal == true && method.ParameterSymbols != null)
+                            {
+                                if (method.ParameterSymbols.Length != 2)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, 2);
+                                }
+
+                                // First parameter must be of declaring type
+                                if (method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
+                                {
+                                    report.ReportMessage(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, method.DeclaringTypeSymbol);
+                                }
+                            }
+                            break;
+                        }
+                    case SpecialOperator.OpNegate:
+                        {
+                            break;
+                        }
+                    case SpecialOperator.OpGreater:
+                        {
+                            break;
+                        }
+                    case SpecialOperator.OpGreaterEqual:
+                        {
+                            break;
+                        }
+                    case SpecialOperator.OpLess:
+                        {
+                            break;
+                        }
+                    case SpecialOperator.OpLessEqual:
+                        {
                             break;
                         }
                 }
