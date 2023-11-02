@@ -52,7 +52,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         public static readonly BuiltIn_Primitive any = new BuiltIn_Primitive(PrimitiveType.Any);
         public static readonly BuiltIn_Primitive _bool = new BuiltIn_Primitive(PrimitiveType.Bool);
         public static readonly BuiltIn_Primitive _char = new BuiltIn_Primitive(PrimitiveType.Char);
-        public static readonly BuiltIn_Primitive _string = new BuiltIn_Primitive(PrimitiveType.String);
+        public static readonly BuiltIn_Primitive _string = new BuiltIn_Primitive(PrimitiveType.Any);
 
         public static readonly BuiltIn_Primitive i8 = new BuiltIn_Primitive(PrimitiveType.I8);
         public static readonly BuiltIn_Primitive u8 = new BuiltIn_Primitive(PrimitiveType.U8);

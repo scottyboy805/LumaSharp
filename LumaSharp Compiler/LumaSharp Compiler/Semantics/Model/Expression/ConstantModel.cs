@@ -61,25 +61,33 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Get the constant type
             ConstantType constantType = ResolveConstantType(syntax.Value, syntax.Descriptor);
 
-            // Map to primitive value
-            PrimitiveType primitiveType = constantType switch
+            // Check for string
+            if (constantType == ConstantType.LiteralString)
             {
-                ConstantType.Null => PrimitiveType.Any,
-                ConstantType.Hexadecimal => PrimitiveType.I32,
-                ConstantType.Hexadecimal_Long => PrimitiveType.I64,
-                ConstantType.Integer => PrimitiveType.I32,
-                ConstantType.Integer_Unsigned => PrimitiveType.U32,
-                ConstantType.Integer_Long => PrimitiveType.I64,
-                ConstantType.Integer_UnsignedLong => PrimitiveType.U64,
-                ConstantType.Decimal_Single => PrimitiveType.Float,
-                ConstantType.Decimal_Double => PrimitiveType.Double,
-                ConstantType.LiteralString => PrimitiveType.String,
-                ConstantType.True => PrimitiveType.Bool,
-                ConstantType.False => PrimitiveType.Bool,
-            };
+                // Resolve symbol
+                this.constantTypeSymbol = provider.ResolveTypeSymbol(null, new TypeReferenceSyntax("string"));
+            }
+            else
+            {
+                // Map to primitive value
+                PrimitiveType primitiveType = constantType switch
+                {
+                    ConstantType.Null => PrimitiveType.Any,
+                    ConstantType.Hexadecimal => PrimitiveType.I32,
+                    ConstantType.Hexadecimal_Long => PrimitiveType.I64,
+                    ConstantType.Integer => PrimitiveType.I32,
+                    ConstantType.Integer_Unsigned => PrimitiveType.U32,
+                    ConstantType.Integer_Long => PrimitiveType.I64,
+                    ConstantType.Integer_UnsignedLong => PrimitiveType.U64,
+                    ConstantType.Decimal_Single => PrimitiveType.Float,
+                    ConstantType.Decimal_Double => PrimitiveType.Double,
+                    ConstantType.True => PrimitiveType.Bool,
+                    ConstantType.False => PrimitiveType.Bool,
+                };
 
-            // Resolve symbol
-            this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType);
+                // Resolve symbol
+                this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType);
+            }
         }
 
         public T GetConstantValueAs<T>()

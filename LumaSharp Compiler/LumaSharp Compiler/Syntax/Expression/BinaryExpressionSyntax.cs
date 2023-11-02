@@ -43,6 +43,30 @@ namespace LumaSharp_Compiler.AST
             get { return right; }
         }
 
+        public BinaryOperation BinaryOperation
+        {
+            get
+            {
+                return operation.Text switch
+                {
+                    "+" => BinaryOperation.Add,
+                    "-" => BinaryOperation.Subtract,
+                    "*" => BinaryOperation.Multiply,
+                    "/" => BinaryOperation.Divide,
+                    "%" => BinaryOperation.Modulus,
+                    ">" => BinaryOperation.Greater,
+                    ">=" => BinaryOperation.GreaterEqual,
+                    "<" => BinaryOperation.Less,
+                    "<=" => BinaryOperation.LessEqual,
+                    "==" => BinaryOperation.Equal,
+                    "!=" => BinaryOperation.NotEqual,
+                    "&&" => BinaryOperation.And,
+                    "||" => BinaryOperation.Or,
+                };
+                throw new NotSupportedException("Invalid binary operation");
+            }
+        }
+
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get

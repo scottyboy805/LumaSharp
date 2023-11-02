@@ -19,7 +19,6 @@ namespace LumaSharp_Compiler.AST
         U64,
         Float,
         Double,
-        String
     }
 
     public class TypeReferenceSyntax : ExpressionSyntax

@@ -38,7 +38,6 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 PrimitiveType.Any => Types.any,
                 PrimitiveType.Bool => Types._bool,
                 PrimitiveType.Char => Types._char,
-                PrimitiveType.String => Types._string,
 
                 PrimitiveType.I8 => Types.i8,
                 PrimitiveType.U8 => Types.u8,

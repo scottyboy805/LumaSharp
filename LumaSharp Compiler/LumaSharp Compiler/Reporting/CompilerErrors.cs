@@ -8,6 +8,10 @@ namespace LumaSharp_Compiler.Reporting
     {
         InvalidConversion = 331,
 
+        InvalidOperation = 401,
+        NoBuiltInOperation = 402,
+        NoOperation = 403,
+
         KeywordNotValid = 501,
 
         MultipleAccessModifiers = 531,
@@ -68,6 +72,10 @@ namespace LumaSharp_Compiler.Reporting
 
             // Semantic
             { Code.InvalidConversion, "Cannot implicitly convert type `{0}` to `{1}`. Are you missing a cast?" },
+
+            { Code.InvalidOperation, "Operation is not supported" },
+            { Code.NoBuiltInOperation, "Cannot apply operation `{0}` to `{1}` and `{2}`" },
+            { Code.NoOperation, "Cannot apply operation `{0}` to `{1}` and `{2}`. No suitable operator found" },
 
             { Code.KeywordNotValid, "Keyword `{0}` is not valid in the current context" },
 
