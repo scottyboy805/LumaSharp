@@ -111,25 +111,25 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                 // Check for both primitive
                 if (leftTypeCode != PrimitiveType.Any && rightTypeCode != PrimitiveType.Any)
                 {
-                    PrimitiveType opReturnType = 0;
+                    PrimitiveType opReturnType = OpTable.GetOperationReturnType(leftTypeCode, rightTypeCode);
 
-                    // Check for operation defined
-                    switch (operation)
-                    {
-                        case BinaryOperation.Add:
-                            {
-                                // Check for defined
-                                opReturnType = OpTable.GetAddOperationReturnType(leftTypeCode, rightTypeCode);
-                                break;
-                            }
-                        case BinaryOperation.Subtract:
-                            {
-                                // Check for defined
-                                opReturnType = OpTable.GetSubtractOperationReturnType(leftTypeCode, rightTypeCode);
-                                break;
-                            }
+                    //// Check for operation defined
+                    //switch (operation)
+                    //{
+                    //    case BinaryOperation.Add:
+                    //        {
+                    //            // Check for defined
+                    //            opReturnType = OpTable.GetAddOperationReturnType(leftTypeCode, rightTypeCode);
+                    //            break;
+                    //        }
+                    //    case BinaryOperation.Subtract:
+                    //        {
+                    //            // Check for defined
+                    //            opReturnType = OpTable.GetSubtractOperationReturnType(leftTypeCode, rightTypeCode);
+                    //            break;
+                    //        }
 
-                    }
+                    //}
 
                     // Check for invalid
                     if(opReturnType == 0)
@@ -196,34 +196,79 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                 object leftVal = left.GetStaticallyEvaluatedValue();
                 object rightVal = right.GetStaticallyEvaluatedValue();
 
-                ExpressionModel optimizedModel = null;
+                object evaluated = null;
 
                 // Check operation type
                 switch(operation)
                 {
+                    case BinaryOperation.Equal:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetEqualStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.NotEqual:
+                        {
+                            evaluated = OpTable.GetNotEqualStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
                     case BinaryOperation.Add:
                         {
                             // Perform operation
-                            object evaluated = OpTable.GetAddOperationStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
-
-                            // Create simplified constant
-                            optimizedModel = new ConstantModel(Model, Parent, evaluated);
+                            evaluated = OpTable.GetAddStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
                             break;
                         }
                     case BinaryOperation.Subtract:
                         {
                             // Perform operation
-                            object evaluated = OpTable.GetSubtractOperationStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
-
-                            // Create simplified constant
-                            optimizedModel = new ConstantModel(Model, Parent, evaluated);
+                            evaluated = OpTable.GetSubtractStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.Multiply:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetMultiplyStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.Divide:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetDivideStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.Greater:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetGreaterStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.GreaterEqual:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetGreaterEqualStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.Less:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetLessStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
+                            break;
+                        }
+                    case BinaryOperation.LessEqual:
+                        {
+                            // Perform operation
+                            evaluated = OpTable.GetLessEqualStaticallyEvaluatedValue(leftTypeCode, rightTypeCode, leftVal, rightVal);
                             break;
                         }
                 }
 
                 // Check for optimized model provided
-                if(optimizedModel != null)
+                if(evaluated != null)
                 {
+                    // Create optimized model
+                    ConstantModel optimizedModel = new ConstantModel(Model, Parent, evaluated);
+
+                    // Resolve symbols
                     optimizedModel.ResolveSymbols(provider, null);
                     return optimizedModel;
                 }

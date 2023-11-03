@@ -1,5 +1,4 @@
-﻿using LumaSharp.Runtime.Reflection;
-using LumaSharp_Compiler.AST;
+﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model;
 
@@ -25,27 +24,120 @@ namespace LumaSharp_Compiler.Semantics.Reference
         }
 
         // Delegate
-        private delegate object Op(object a, object b);
+        private delegate object UnaryOp(object val);
+        private delegate object BinaryOp(object a, object b);
 
         // Private
-        private static Dictionary<(PrimitiveType, PrimitiveType), (PrimitiveType, Op)> addOpLookup = new Dictionary<(PrimitiveType, PrimitiveType), (PrimitiveType, Op)>
+        // Takes in left and right operand types are returns the return type (Also the type that the operands must be converted to in order to be evaluated)
+        private readonly static Dictionary<(PrimitiveType, PrimitiveType), PrimitiveType> operationTable = new Dictionary<(PrimitiveType, PrimitiveType), PrimitiveType>
         {
-            { (PrimitiveType.I32, PrimitiveType.I32), (PrimitiveType.I32, (a, b) => (int)a + (int)b) },
-            { (PrimitiveType.I32, PrimitiveType.U32), (PrimitiveType.I64, (a, b) => (int)a + (uint)b) },
-            { (PrimitiveType.I32, PrimitiveType.I64), (PrimitiveType.I64, (a, b) => (int)a + (long)b) },
-            { (PrimitiveType.I32, PrimitiveType.U64), (PrimitiveType.U64, (a, b) => ((ulong)(int)a + (ulong)b)) },  // ??
-            { (PrimitiveType.I32, PrimitiveType.Float), (PrimitiveType.Float, (a, b) => (int)a + (float)b) },
-            { (PrimitiveType.I32, PrimitiveType.Double), (PrimitiveType.Double, (a, b) => (int)a + (double)b) },
+            { (PrimitiveType.I32, PrimitiveType.I32), PrimitiveType.I32 },
+            { (PrimitiveType.I32, PrimitiveType.U32), PrimitiveType.I64 },
+            { (PrimitiveType.I32, PrimitiveType.I64), PrimitiveType.I64 },
+            { (PrimitiveType.I32, PrimitiveType.U64), PrimitiveType.U64 },
+            { (PrimitiveType.I32, PrimitiveType.Float), PrimitiveType.Float },
+            { (PrimitiveType.I32, PrimitiveType.Double), PrimitiveType.Double },
         };
-        private static Dictionary<(PrimitiveType, PrimitiveType), (PrimitiveType, Op)> subtractOpLookup = new Dictionary<(PrimitiveType, PrimitiveType), (PrimitiveType, Op)>
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> equalOperationTable = new Dictionary<PrimitiveType, BinaryOp>
         {
-            { (PrimitiveType.I32, PrimitiveType.I32), (PrimitiveType.I32, (a, b) => (int)a - (int)b) },
-            { (PrimitiveType.I32, PrimitiveType.U32), (PrimitiveType.I64, (a, b) => (int)a - (uint)b) },
-            { (PrimitiveType.I32, PrimitiveType.I64), (PrimitiveType.I64, (a, b) => (int)a - (long)b) },
-            { (PrimitiveType.I32, PrimitiveType.U64), (PrimitiveType.U64, (a, b) => (ulong)(int)a - (ulong)b) },    // ??
-            { (PrimitiveType.I32, PrimitiveType.Float), (PrimitiveType.Float, (a, b) => (int)a - (float)b) },
-            { (PrimitiveType.I32, PrimitiveType.Double), (PrimitiveType.Double, (a, b) => (int)a - (double)b) },
+            { PrimitiveType.I32, (a, b) => (int)a == (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a == (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a == (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a == (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a == (double)b },
         };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> notEqualOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a != (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a != (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a != (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a != (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a != (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> addOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a + (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a + (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a + (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a + (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a + (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> subtractOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a - (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a - (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a - (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a - (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a - (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> multiplyOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a * (int)b },
+            { PrimitiveType.I64, (a, b) => (long) a * (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a * (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a * (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a * (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> divideOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a / (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a / (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a / (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a / (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a / (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, UnaryOp> negateOperationTable = new Dictionary<PrimitiveType, UnaryOp>
+        {
+            { PrimitiveType.I32, (val) => -(int)val },
+            { PrimitiveType.I64, (val) => -(long)val },
+            //{ PrimitiveType.U64, (val) => -(ulong)val },
+            { PrimitiveType.Float, (val) => -(float)val },
+            { PrimitiveType.Double, (val) => -(double)val },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> greaterOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a > (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a > (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a > (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a > (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a > (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> greaterEqualOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a >= (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a >= (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a >= (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a >= (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a >= (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> lessOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a < (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a < (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a < (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a < (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a < (double)b },
+        };
+
+        private readonly static Dictionary<PrimitiveType, BinaryOp> lessEqualOperationTable = new Dictionary<PrimitiveType, BinaryOp>
+        {
+            { PrimitiveType.I32, (a, b) => (int)a < (int)b },
+            { PrimitiveType.I64, (a, b) => (long)a < (long)b },
+            { PrimitiveType.U64, (a, b) => (ulong)a < (ulong)b },
+            { PrimitiveType.Float, (a, b) => (float)a < (float)b },
+            { PrimitiveType.Double, (a, b) => (double)a < (double)b },
+        };
+
 
         public static readonly string[] specialOpMethods =
         {
@@ -64,32 +156,101 @@ namespace LumaSharp_Compiler.Semantics.Reference
         };
 
         // Methods
-        public static PrimitiveType GetAddOperationReturnType(PrimitiveType a, PrimitiveType b)
+        public static PrimitiveType GetOperationReturnType(PrimitiveType left, PrimitiveType right)
         {
-            (PrimitiveType, Op) result;
-            addOpLookup.TryGetValue((a, b), out result);
-            return result.Item1;
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+            return opType;
         }
 
-        public static object GetAddOperationStaticallyEvaluatedValue(PrimitiveType a, PrimitiveType b, object valA, object valB) 
+        public static object GetEqualStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
         {
-            (PrimitiveType, Op) result;
-            addOpLookup.TryGetValue((a, b), out result);
-            return result.Item2(valA, valB);
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select add op
+            return equalOperationTable[opType](leftVal, rightVal);
         }
 
-        public static PrimitiveType GetSubtractOperationReturnType(PrimitiveType a, PrimitiveType b)
+        public static object GetNotEqualStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
         {
-            (PrimitiveType, Op) result;
-            subtractOpLookup.TryGetValue((a, b), out result);
-            return result.Item1;
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select add op
+            return notEqualOperationTable[opType](leftVal, rightVal);
         }
 
-        public static object GetSubtractOperationStaticallyEvaluatedValue(PrimitiveType a, PrimitiveType b, object valA, object valB)
+        public static object GetAddStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
         {
-            (PrimitiveType, Op) result;
-            subtractOpLookup.TryGetValue((a, b), out result);
-            return result.Item2(valA, valB);
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select add op
+            return addOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetSubtractStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return subtractOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetMultiplyStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return multiplyOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetDivideStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return divideOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetGreaterStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return greaterOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetGreaterEqualStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return greaterEqualOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetLessStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return lessOperationTable[opType](leftVal, rightVal);
+        }
+
+        public static object GetLessEqualStaticallyEvaluatedValue(PrimitiveType left, PrimitiveType right, object leftVal, object rightVal)
+        {
+            PrimitiveType opType;
+            operationTable.TryGetValue((left, right), out opType);
+
+            // Select subtract op
+            return lessEqualOperationTable[opType](leftVal, rightVal);
         }
 
         public static void CheckSpecialOpUsage(MethodModel method, ISymbolProvider provider, ICompileReportProvider report)
