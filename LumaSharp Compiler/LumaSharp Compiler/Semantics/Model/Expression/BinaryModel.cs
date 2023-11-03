@@ -1,5 +1,4 @@
 ﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Factory;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Reference;
 
@@ -13,6 +12,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         private ExpressionModel right = null;
         private ITypeReferenceSymbol inferredTypeSymbol = null;
         private IMethodReferenceSymbol inferredMethodOperatorSymbol = null;
+        private BinaryOperation operation = 0;
 
         // Properties
         public ExpressionModel Left
@@ -52,6 +52,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             }
         }
 
+        public BinaryOperation Operation
+        {
+            get { return operation; }
+        }
+
         public override IEnumerable<SymbolModel> Descendants
         {
             get
@@ -86,7 +91,6 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
 
 
             // Try to get the target operation
-            BinaryOperation operation = 0;
             try
             {
                 operation = syntax.BinaryOperation;

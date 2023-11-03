@@ -148,7 +148,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                         }
 
                         // Add convert instruction
-                        instructions.EmitOpCode(OpCode.Cast_I4, (int)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cast_I4, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
 
@@ -171,7 +171,40 @@ namespace LumaSharp_Compiler.Emit.Builder
                         instructions.EmitOpCode(OpCode.Ld_I8, value);
 
                         // Add convert instruction
-                        instructions.EmitOpCode(OpCode.Cast_I8, (int)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cast_I8, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+            }
+        }
+
+        public override void VisitBinary(BinaryModel model)
+        {
+            // Emit right
+            model.Right.Accept(this);
+
+            // Check for right promotion required
+            if(model.IsRightPromotionRequired == true || model.Right.EvaluatedTypeSymbol != model.EvaluatedTypeSymbol)
+            {
+                // Emit conversion instruction
+                EmitConversion(model.Right.EvaluatedTypeSymbol, model.EvaluatedTypeSymbol);
+            }
+
+            // Emit left
+            model.Left.Accept(this);
+
+            // Check for left promotion required
+            if(model.IsLeftPromotionRequired == true || model.Left.EvaluatedTypeSymbol != model.EvaluatedTypeSymbol)
+            {
+                // Emit conversion instruction
+                EmitConversion(model.Left.EvaluatedTypeSymbol, model.EvaluatedTypeSymbol);
+            }
+
+            // Emit op code
+            switch(model.Operation)
+            {
+                case BinaryOperation.Add:
+                    {
+                        instructions.EmitOpCode(OpCode.Add, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
             }
@@ -400,6 +433,81 @@ namespace LumaSharp_Compiler.Emit.Builder
                         instructions.EmitOpCode(OpCode.St_Addr_Any, typeSymbol);
                         break;
                     }
+            }
+        }
+
+        private void EmitConversion(ITypeReferenceSymbol fromSymbol, ITypeReferenceSymbol toSymbol)
+        {
+            // Check for objects
+            if (fromSymbol.PrimitiveType == PrimitiveType.Any && toSymbol.PrimitiveType == PrimitiveType.Any)
+            {
+                instructions.EmitOpCode(OpCode.Cast_Any, toSymbol);
+            }
+            // Check for boxed conversion to primitive
+            else if (fromSymbol.PrimitiveType == PrimitiveType.Any)
+            {
+                instructions.EmitOpCode(OpCode.From_Any, toSymbol);
+            }
+            // Check for primitive conversion to boxed any
+            else if (toSymbol.PrimitiveType == PrimitiveType.Any)
+            {
+                instructions.EmitOpCode(OpCode.As_Any, toSymbol);
+            }
+            else
+            {
+                switch (fromSymbol.PrimitiveType)
+                {
+                    case PrimitiveType.I8:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_I1, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.U8:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_UI1, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.I16:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_I2, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.U16:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_UI2, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.I32:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_I4, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.U32:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_UI4, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.I64:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_I8, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.U64:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_UI8, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.Float:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_F4, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                    case PrimitiveType.Double:
+                        {
+                            instructions.EmitOpCode(OpCode.Cast_F8, (byte)toSymbol.PrimitiveType);
+                            break;
+                        }
+                }
             }
         }
         #endregion

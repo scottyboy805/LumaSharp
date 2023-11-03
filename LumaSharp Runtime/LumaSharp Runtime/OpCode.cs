@@ -241,16 +241,16 @@ namespace LumaSharp.Runtime
                 case OpCode.Cmp_NEq: return 1;         // 1 byte type code
 
                 // Convert
-                case OpCode.Cast_I1: return 4;         // 4 byte data - type token - cast 8 bit integer on top of stack to type specified by token
-                case OpCode.Cast_I2: return 4;         // 4 byte data - type token
-                case OpCode.Cast_I4: return 4;         // 4 byte data - type token
-                case OpCode.Cast_I8: return 4;         // 4 byte data - type token
-                case OpCode.Cast_F4: return 4;         // 4 byte data - type token
-                case OpCode.Cast_F8: return 4;         // 4 byte data - type token
-                case OpCode.Cast_UI1: return 4;        // 4 byte data - type token
-                case OpCode.Cast_UI2: return 4;        // 4 byte data - type token
-                case OpCode.Cast_UI4: return 4;        // 4 byte data - type token
-                case OpCode.Cast_UI8: return 4;        // 4 byte data - type token
+                case OpCode.Cast_I1: return 1;         // 1 byte type code - cast 8 bit integer on top of stack to type specified by token
+                case OpCode.Cast_I2: return 1;         // 1 byte type code
+                case OpCode.Cast_I4: return 1;         // 1 byte type code
+                case OpCode.Cast_I8: return 1;         // 1 byte type code
+                case OpCode.Cast_F4: return 1;         // 1 byte type code
+                case OpCode.Cast_F8: return 1;         // 1 byte type code
+                case OpCode.Cast_UI1: return 1;        // 1 byte type code
+                case OpCode.Cast_UI2: return 1;        // 1 byte type code
+                case OpCode.Cast_UI4: return 1;        // 1 byte type code
+                case OpCode.Cast_UI8: return 1;        // 1 byte type code
                 case OpCode.Cast_Any: return 4;        // 4 byte data - type token
 
                 // Jump

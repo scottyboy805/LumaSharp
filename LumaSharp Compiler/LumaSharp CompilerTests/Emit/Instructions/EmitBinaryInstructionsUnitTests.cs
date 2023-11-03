@@ -1,0 +1,99 @@
+﻿using LumaSharp_Compiler.AST.Factory;
+using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.Emit.Builder;
+using LumaSharp_Compiler.Semantics.Model;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using LumaSharp.Runtime;
+
+namespace LumaSharp_CompilerTests.Emit.Instructions
+{
+    [TestClass]
+    public sealed class EmitBinaryInstructionsUnitTests
+    {
+        [TestMethod]
+        public void EmitBinary_Add_I32_I32()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("Test")
+                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(2))))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            MethodModel methodModel = model.DescendantsOfType<MethodModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(methodModel);
+            Assert.AreEqual(0, model.Report.MessageCount);
+
+            // Build instructions
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
+            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+
+            Assert.IsTrue(builder.InstructionIndex >= 3);
+            Assert.AreEqual(OpCode.Ld_I4, builder[0].opCode);
+            Assert.AreEqual(OpCode.Ld_I4, builder[1].opCode);
+            Assert.AreEqual(OpCode.Add, builder[2].opCode);
+        }
+
+        [TestMethod]
+        public void EmitBinary_Add_I32_I64()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("Test")
+                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(2L))))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            MethodModel methodModel = model.DescendantsOfType<MethodModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(methodModel);
+            Assert.AreEqual(0, model.Report.MessageCount);
+
+            // Build instructions
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
+            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+
+            Assert.IsTrue(builder.InstructionIndex >= 3);
+            Assert.AreEqual(OpCode.Ld_I8, builder[0].opCode);
+            Assert.AreEqual(OpCode.Ld_I4, builder[1].opCode);
+            Assert.AreEqual(OpCode.Cast_I4, builder[2].opCode);
+            Assert.AreEqual((byte)PrimitiveType.I64, builder[2].data0);
+            Assert.AreEqual(OpCode.Add, builder[3].opCode);
+        }
+
+        [TestMethod]
+        public void EmitBinary_Add_I32_U64()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("Test")
+                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(2UL))))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            MethodModel methodModel = model.DescendantsOfType<MethodModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(methodModel);
+            Assert.AreEqual(0, model.Report.MessageCount);
+
+            // Build instructions
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
+            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+
+            Assert.IsTrue(builder.InstructionIndex >= 3);
+            Assert.AreEqual(OpCode.Ld_I8, builder[0].opCode);
+            Assert.AreEqual(OpCode.Cast_I8, builder[1].opCode);
+            Assert.AreEqual(OpCode.Ld_I4, builder[2].opCode);
+            Assert.AreEqual(OpCode.Cast_I4, builder[3].opCode);
+            Assert.AreEqual((byte)PrimitiveType.U64, builder[3].data0);
+            Assert.AreEqual(OpCode.Add, builder[4].opCode);
+        }
+    }
+}
