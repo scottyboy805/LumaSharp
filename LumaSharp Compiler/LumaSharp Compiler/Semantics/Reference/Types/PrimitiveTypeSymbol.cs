@@ -2,7 +2,7 @@
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
-    internal class PrimitiveTypeSymbol : ITypeReferenceSymbol
+    internal sealed class PrimitiveTypeSymbol : ITypeReferenceSymbol
     {
         // Private
         private string typeName = "";

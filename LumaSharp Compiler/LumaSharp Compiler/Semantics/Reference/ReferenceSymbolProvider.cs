@@ -24,6 +24,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
         internal readonly PrimitiveTypeSymbol _float = null;
         internal readonly PrimitiveTypeSymbol _double = null;
 
+        internal readonly EnumTypeSymbol _enum = null;
+
         // Private
         private ReferenceLibrary runtimeLibrary = null;
         private ReferenceLibrary thisLibrary = null;
@@ -64,6 +66,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 _u64 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U64, _any);
                 _float = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Float, _any);
                 _double = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Double, _any);
+
+                _enum = new EnumTypeSymbol(runtimeLibrary, _any);
             }
         }
 
@@ -154,6 +158,17 @@ namespace LumaSharp_Compiler.Semantics.Reference
                     report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "string");
                 }
                 return _string;
+            }
+
+            // Check for enum
+            if(reference.Identifier.Text == "enum" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
+            {
+                // Check for resolved
+                if(_enum == null)
+                {
+                    report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "enum");
+                }
+                return _enum;
             }
 
             ITypeReferenceSymbol resolvedSymbol;
