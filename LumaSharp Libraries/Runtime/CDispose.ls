@@ -2,5 +2,5 @@
 export contract CDispose
 {
 	// Methods
-	export void Dispose();
+	void Dispose();
 }
