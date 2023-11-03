@@ -199,7 +199,8 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Update base types
             this.baseTypesSymbols = syntax.HasBaseTypes == true
                 ? syntax.BaseTypeReferences.Select(t => new TypeReferenceModel(model, this, t)).ToArray()
-                : new TypeReferenceModel[] { new TypeReferenceModel(model, this, new TypeReferenceSyntax("any")) };
+                : null;
+
 
             // Build model
             BuildMembersModel(model, syntax.Members);
@@ -278,20 +279,23 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Resolve base types
-            if(HasBaseTypes == true)
+            if (HasBaseTypes == true)
             {
                 for(int i = 0; i < baseTypesSymbols.Length; i++)
                 {
                     // Resolve the base type
                     baseTypesSymbols[i].ResolveSymbols(provider, report);
                 }
-
+    
                 // Check base type usage
                 CheckBaseTypes(baseTypesSymbols, report);
             }
 
+            // Make sure that default bases are implemented (Any type must derive from `any` for example)
+            ImplementDefaultBaseTypes(provider, report);
+
             // Resolve all sub type symbols
-            foreach(TypeModel subType in memberTypes)
+            foreach (TypeModel subType in memberTypes)
             {
                 subType.ResolveSymbols(provider, report);
             }
@@ -345,6 +349,42 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Create operator methods
             operatorMethods = members.Where(m => m is MethodSyntax && OpTable.specialOpMethods.Contains(m.Identifier.Text) == true)
                 .Select(m => new MethodModel(model, this, m as MethodSyntax)).ToArray();
+        }
+
+        private void ImplementDefaultBaseTypes(ISymbolProvider provider, ICompileReportProvider report)
+        {
+            // Check for all resolved
+            bool allResolved = baseTypesSymbols == null || baseTypesSymbols.Any(t => t.EvaluatedTypeSymbol == null) == false;
+
+            // Update base type
+            if (baseTypesSymbols == null || (allResolved == true && baseTypesSymbols.Any(t => t.EvaluatedTypeSymbol.IsType == true) == false))
+            {
+                // Select the new implicit base type
+                string newBaseName = (IsType == true) ? "any" : (IsEnum == true)
+                    ? "enum" : null;
+
+                // Apply the base type
+                if (newBaseName != null)
+                {
+                    if (baseTypesSymbols == null)
+                    {
+                        baseTypesSymbols = new TypeReferenceModel[] { new TypeReferenceModel(Model, this, new TypeReferenceSyntax(newBaseName)) };
+                    }
+                    else
+                    {
+                        List<TypeReferenceModel> baseModels = new List<TypeReferenceModel>(baseTypesSymbols);
+                        baseModels.Insert(0, new TypeReferenceModel(Model, this, new TypeReferenceSyntax(newBaseName)));
+
+                        baseTypesSymbols = baseModels.ToArray();
+                    }
+
+                    // Resolve the symbols
+                    for (int i = 0; i < baseTypesSymbols.Length; i++)
+                    {
+                        baseTypesSymbols[i].ResolveSymbols(provider, report);
+                    }
+                }
+            }
         }
 
         private void CheckBaseTypes(TypeReferenceModel[] baseModels, ICompileReportProvider report)

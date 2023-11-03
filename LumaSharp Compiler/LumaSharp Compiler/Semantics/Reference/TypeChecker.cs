@@ -19,6 +19,20 @@ namespace LumaSharp_Compiler.Semantics.Reference
             return false;
         }
 
+        public static bool IsSpecialTypeEnum(ITypeReferenceSymbol type)
+        {
+            if (type == null)
+                return false;
+
+            // Check library and name
+            if(type.LibrarySymbol.LibraryName == "runtime" &&
+                type.TypeName == "enum")
+            {
+                return true;
+            }
+            return false;
+        }
+
         public static bool IsTypeAssignable(ITypeReferenceSymbol from, ITypeReferenceSymbol to)
         {
             // Check for trivial case
