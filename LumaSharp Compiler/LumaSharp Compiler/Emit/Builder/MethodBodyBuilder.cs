@@ -202,9 +202,54 @@ namespace LumaSharp_Compiler.Emit.Builder
             // Emit op code
             switch(model.Operation)
             {
+                case BinaryOperation.Equal:
+                    {
+                        instructions.EmitOpCode(OpCode.Cmp_Eq, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.NotEqual:
+                    {
+                        instructions.EmitOpCode(OpCode.Cmp_NEq, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
                 case BinaryOperation.Add:
                     {
                         instructions.EmitOpCode(OpCode.Add, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.Subtract:
+                    {
+                        instructions.EmitOpCode(OpCode.Sub, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.Multiply:
+                    {
+                        instructions.EmitOpCode(OpCode.Mul, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.Divide:
+                    {
+                        instructions.EmitOpCode(OpCode.Div, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.Greater:
+                    {
+                        instructions.EmitOpCode(OpCode.Cmp_G, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.GreaterEqual:
+                    {
+                        instructions.EmitOpCode(OpCode.Cmp_Ge, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.Less:
+                    {
+                        instructions.EmitOpCode(OpCode.Cmp_L, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        break;
+                    }
+                case BinaryOperation.LessEqual:
+                    {
+                        instructions.EmitOpCode(OpCode.Cmp_Le, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
             }
