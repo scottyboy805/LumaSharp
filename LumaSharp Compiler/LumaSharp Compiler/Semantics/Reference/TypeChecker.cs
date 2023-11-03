@@ -5,6 +5,20 @@ namespace LumaSharp_Compiler.Semantics.Reference
     internal static class TypeChecker
     {
         // Methods
+        public static bool IsSpecialTypeAny(ITypeReferenceSymbol type)
+        {
+            if (type == null)
+                return false;
+
+            // Check library and name
+            if(type.LibrarySymbol.LibraryName == "runtime" &&
+                type.TypeName == "any")
+            {
+                return true;
+            }
+            return false;
+        }
+
         public static bool IsTypeAssignable(ITypeReferenceSymbol from, ITypeReferenceSymbol to)
         {
             // Check for trivial case
@@ -16,7 +30,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             PrimitiveType toPrimitive = to.PrimitiveType;
 
             // Call types can be converted to special type `any` implicitly
-            if (toPrimitive == PrimitiveType.Any && to == Types.any)
+            if (toPrimitive == PrimitiveType.Any && IsSpecialTypeAny(to) == true)
                 return true;
 
             // Check for any

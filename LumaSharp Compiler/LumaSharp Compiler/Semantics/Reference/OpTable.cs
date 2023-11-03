@@ -120,7 +120,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if(method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool));
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.Syntax.StartToken.Source));
                             }
 
                             // Check for parameters
@@ -149,7 +149,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.I32)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.I32));
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.I32, method.Syntax.StartToken.Source));
                             }
 
                             // Check for parameters
@@ -279,7 +279,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool));
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.Syntax.StartToken.Source));
                             }
 
                             // Check for parameters
@@ -308,7 +308,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool));
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.Syntax.StartToken.Source));
                             }
 
                             // Check for parameters
@@ -337,7 +337,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool));
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.Syntax.StartToken.Source));
                             }
 
                             // Check for parameters
@@ -366,7 +366,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                             // Check return type
                             if (method.ReturnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool));
+                                report.ReportMessage(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Syntax.StartToken.Source, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.Syntax.StartToken.Source));
                             }
 
                             // Check for parameters

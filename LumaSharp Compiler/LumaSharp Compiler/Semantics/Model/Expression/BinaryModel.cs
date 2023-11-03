@@ -135,7 +135,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                     else
                     {
                         // We can resolve the inferred return type
-                        inferredTypeSymbol = provider.ResolveTypeSymbol(opReturnType);
+                        inferredTypeSymbol = provider.ResolveTypeSymbol(opReturnType, syntax.Operation.Source);
                     }
                 }
                 // Left and or right must be a custom type

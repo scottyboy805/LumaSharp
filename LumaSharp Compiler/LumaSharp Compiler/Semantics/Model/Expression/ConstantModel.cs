@@ -148,7 +148,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                 };
 
                 // Resolve symbol
-                this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType);
+                this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType, literal.Source);
             }
         }
 

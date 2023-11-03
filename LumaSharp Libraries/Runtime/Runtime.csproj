@@ -8,4 +8,12 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Type\I32.ls" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Type\I32.ls" />
+  </ItemGroup>
+
 </Project>

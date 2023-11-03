@@ -8,7 +8,7 @@ namespace LumaSharp_Compiler.Semantics
         // Methods
         INamespaceReferenceSymbol ResolveNamespaceSymbol(NamespaceName namespaceName);
 
-        ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType);
+        ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource source);
 
         ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference);
 

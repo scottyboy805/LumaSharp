@@ -56,7 +56,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             typeModel.ResolveSymbols(provider, report);
 
             // Resolve return type
-            returnSymbol = provider.ResolveTypeSymbol(PrimitiveType.I32);
+            returnSymbol = provider.ResolveTypeSymbol(PrimitiveType.I32, syntax.StartToken.Source);
         }
     }
 }

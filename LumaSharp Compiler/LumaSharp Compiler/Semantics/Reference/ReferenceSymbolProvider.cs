@@ -1,13 +1,31 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.AST.Expression;
 using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
     internal sealed class ReferenceSymbolProvider : ISymbolProvider
     {
+        // Internal
+        internal readonly PrimitiveTypeSymbol _void = null;
+        internal readonly PrimitiveTypeSymbol _any = null;
+
+        internal readonly PrimitiveTypeSymbol _bool = null;
+        internal readonly PrimitiveTypeSymbol _char = null;
+        internal readonly PrimitiveTypeSymbol _string = null;
+        internal readonly PrimitiveTypeSymbol _i8 = null;
+        internal readonly PrimitiveTypeSymbol _u8 = null;
+        internal readonly PrimitiveTypeSymbol _i16 = null;
+        internal readonly PrimitiveTypeSymbol _u16 = null;
+        internal readonly PrimitiveTypeSymbol _i32 = null;
+        internal readonly PrimitiveTypeSymbol _u32 = null;
+        internal readonly PrimitiveTypeSymbol _i64 = null;
+        internal readonly PrimitiveTypeSymbol _u64 = null;
+        internal readonly PrimitiveTypeSymbol _float = null;
+        internal readonly PrimitiveTypeSymbol _double = null;
+
         // Private
+        private ReferenceLibrary runtimeLibrary = null;
         private ReferenceLibrary thisLibrary = null;
         private ReferenceLibrary[] referenceLibraries = null;
 
@@ -17,40 +35,77 @@ namespace LumaSharp_Compiler.Semantics.Reference
         private ReferenceScopedVariableResolver variableResolver = null;
 
         // Constructor
-        public ReferenceSymbolProvider(ReferenceLibrary thisLibrary, ICompileReportProvider report)
+        public ReferenceSymbolProvider(ReferenceLibrary runtimeLibrary, ReferenceLibrary thisLibrary, ICompileReportProvider report)
         {
+            this.runtimeLibrary = runtimeLibrary;
             this.thisLibrary = thisLibrary;
             this.report = report;
             this.namespaceResolver = new ReferenceNamespaceResolver();
             this.typeResolver = new ReferenceTypeResolver(this, report);
             this.variableResolver = new ReferenceScopedVariableResolver(report);
+
+            // Resolve primitive types
+            if(runtimeLibrary != null && runtimeLibrary.LibraryName == "runtime")
+            {
+                // Build primitives
+                _void = new PrimitiveTypeSymbol(runtimeLibrary, 0);
+                _any = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Any);
+
+                _bool = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Bool, _any);
+                _char = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Char, _any);
+                _string = new PrimitiveTypeSymbol(runtimeLibrary, "string", PrimitiveType.Any, _any);
+                _i8 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I8, _any);
+                _u8 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U8, _any);
+                _i16 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I16, _any);
+                _u16 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U16, _any);
+                _i32 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I32, _any);
+                _u32 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U32, _any);
+                _i64 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I64, _any);
+                _u64 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U64, _any);
+                _float = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Float, _any);
+                _double = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Double, _any);
+            }
         }
 
         // Methods
-        public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType)
+        public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource source)
         {
+            ITypeReferenceSymbol primitive = null;
+
             // Check for void
             if (primitiveType == 0)
-                return Types._void;
-
-            return primitiveType switch
             {
-                PrimitiveType.Any => Types.any,
-                PrimitiveType.Bool => Types._bool,
-                PrimitiveType.Char => Types._char,
+                primitive = _void;
+            }
+            // Check for other primitive type
+            else
+            {
+                primitive = primitiveType switch
+                {
+                    PrimitiveType.Any => _any,
+                    PrimitiveType.Bool => _bool,
+                    PrimitiveType.Char => _char,
 
-                PrimitiveType.I8 => Types.i8,
-                PrimitiveType.U8 => Types.u8,
-                PrimitiveType.I16 => Types.i16,
-                PrimitiveType.U16 => Types.u16,
-                PrimitiveType.I32 => Types.i32,
-                PrimitiveType.U32 => Types.u32,
-                PrimitiveType.I64 => Types.i64,
-                PrimitiveType.U64 => Types.u64,
+                    PrimitiveType.I8 => _i8,
+                    PrimitiveType.U8 => _u8,
+                    PrimitiveType.I16 => _i16,
+                    PrimitiveType.U16 => _u16,
+                    PrimitiveType.I32 => _i32,
+                    PrimitiveType.U32 => _u32,
+                    PrimitiveType.I64 => _i64,
+                    PrimitiveType.U64 => _u64,
 
-                PrimitiveType.Float => Types._float,
-                PrimitiveType.Double => Types._double,
-            };
+                    PrimitiveType.Float => _float,
+                    PrimitiveType.Double => _double,
+                };
+            }
+
+            // Check for null
+            if(primitive == null)
+            {
+                report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, source, primitiveType.ToString().ToLower());
+            }
+            return primitive;
         }
 
         public INamespaceReferenceSymbol ResolveNamespaceSymbol(NamespaceName name)
@@ -73,7 +128,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             if (reference.GetPrimitiveType(out primitive) == true)
             {
                 // Resolve as primitive
-                return ResolveTypeSymbol(primitive);
+                return ResolveTypeSymbol(primitive, reference.StartToken.Source);
             }
 
             // Check for void
@@ -81,13 +136,24 @@ namespace LumaSharp_Compiler.Semantics.Reference
             {
                 // Report errors if void type usage is not correct - used as generic/array for example
                 typeResolver.CheckVoidTypeUsage(reference);
-                return Types._void;
+
+                // Check for resolved
+                if(_void == null)
+                {
+                    report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "void");
+                }
+                return _void;
             }
 
             // Check for string
             if(reference.Identifier.Text == "string" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
             {
-                return Types._string;
+                // Check for resolved
+                if(_string == null)
+                {
+                    report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "string");
+                }
+                return _string;
             }
 
             ITypeReferenceSymbol resolvedSymbol;

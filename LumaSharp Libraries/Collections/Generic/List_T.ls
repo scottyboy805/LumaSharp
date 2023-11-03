@@ -8,7 +8,7 @@ namespace Collections:Generic
 		hidden i32 capacity;
 		hidden i32 count;
 
-		export global i32 DefaultCapacity = 32;
+		export global i32 DefaultCapacity = 32 const;
 
 		// Accessors
 		export i32 Count => read: return count;

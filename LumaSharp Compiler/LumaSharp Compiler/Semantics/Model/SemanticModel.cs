@@ -173,6 +173,9 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
 
+            // Load runtime reference
+            ReferenceLibrary runtimeLibrary = new ReferenceLibrary("runtime");
+
             // Load all external references
             if(references != null)
             {
@@ -180,7 +183,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Create provider
-            symbolProvider = new ReferenceSymbolProvider(thisLibrary, report);
+            symbolProvider = new ReferenceSymbolProvider(runtimeLibrary, thisLibrary, report);
 
             // Build all external members
 

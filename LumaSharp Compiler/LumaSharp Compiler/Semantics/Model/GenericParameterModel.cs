@@ -160,7 +160,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve any
-            anyType = provider.ResolveTypeSymbol(PrimitiveType.Any);
+            anyType = provider.ResolveTypeSymbol(PrimitiveType.Any, syntax.StartToken.Source);
 
             // Resolve constraints
             if(syntax.HasConstraintTypes == true)
