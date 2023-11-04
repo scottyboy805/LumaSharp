@@ -1,6 +1,7 @@
 ﻿
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.AST
 {
@@ -240,21 +241,36 @@ namespace LumaSharp_Compiler.AST
 
                 // Get identifiers
                 ITerminalNode[] identifiers = typeRef.IDENTIFIER();
-                ITerminalNode[] parentIdentifiers = (parentTypeRef != null) ? parentTypeRef.IDENTIFIER() : null;
+                LumaSharpParser.ShortTypeReferenceContext[] parentTypes = (parentTypeRef != null) ? parentTypeRef.shortTypeReference() : null;
 
                 // Build namespace
-                if(identifiers.Length > 1)
+                if (identifiers.Length > 1)
                 {
                     // Create namespace
-                    this.namespaceName = new NamespaceName(tree, parent, parentTypeRef == null 
-                        ? identifiers.Take(identifiers.Length - 1).ToArray()
-                        : identifiers);
+                    this.namespaceName = new NamespaceName(tree, parent, identifiers.Take(identifiers.Length - 1).ToArray());
                 }
 
                 // Get parent
-                if(parentIdentifiers != null)
+                if (parentTypes != null)
                 {
-                    //this.parentTypes
+                    TypeReferenceSyntax current = null;
+                    //for(int i = parentTypes.Length - 1; i >= 0; i--)
+                    for(int i = 0; i < parentTypes.Length; i++)
+                    {
+                        // Create instance
+                        current = new TypeReferenceSyntax(tree, this, parentTypes[i], current);
+
+                        // Check for last
+                        if (i == parentTypes.Length - 1)
+                            this.parentType = current;
+                    }
+
+                    // Cannot have a namespace on this type since it is nested
+                    if (current != null)
+                    {
+                        current.namespaceName = this.namespaceName;
+                        this.namespaceName = null;
+                    }
                 }
 
                 // Get generics
@@ -263,16 +279,8 @@ namespace LumaSharp_Compiler.AST
                 if(generics != null)
                     this.genericArguments = new GenericArgumentsSyntax(tree, this, generics);
 
-                if (parentTypeRef == null)
-                {
-                    // Create identifier
-                    this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
-                }
-                else
-                {
-                    // Create identifier
-                    this.identifier = new SyntaxToken(parentIdentifiers[parentIdentifiers.Length - 1]);
-                }
+                // Create identifier
+                this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
             }
             
             // Check for array
@@ -280,6 +288,30 @@ namespace LumaSharp_Compiler.AST
             {
                 this.arrayParameters = new ArrayParametersSyntax(tree, this, array);
             }
+        }
+
+        internal TypeReferenceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ShortTypeReferenceContext typeRef, TypeReferenceSyntax parentType = null)
+            : base(tree, parent, typeRef)
+        {
+            // Create identifier
+            this.identifier = new SyntaxToken(typeRef.IDENTIFIER());
+
+            // Update parent
+            this.parentType = parentType;
+
+            // Get generics
+            LumaSharpParser.GenericArgumentsContext generics = typeRef.genericArguments();
+
+            // Check for generics
+            if (generics != null)
+                this.genericArguments = new GenericArgumentsSyntax(tree, this, generics);
+
+            // Get array
+            LumaSharpParser.ArrayParametersContext array = typeRef.arrayParameters();
+
+            // Check for array
+            if (array != null)
+                this.arrayParameters = new ArrayParametersSyntax(tree, this, array);
         }
 
         // Methods

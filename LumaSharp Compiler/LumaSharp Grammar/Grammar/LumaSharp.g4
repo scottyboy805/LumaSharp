@@ -182,8 +182,9 @@ inheritParameters: ':' typeReference (',' typeReference)*;
 
 
 // Type reference
-typeReference: (primitiveType | (IDENTIFIER (':' IDENTIFIER)* parentTypeReference? genericArguments?)) arrayParameters? '&'?;
-parentTypeReference: '.' IDENTIFIER ('.' IDENTIFIER)*;
+typeReference: (primitiveType | ((IDENTIFIER ':')* parentTypeReference? IDENTIFIER genericArguments?)) arrayParameters? '&'?;
+shortTypeReference: IDENTIFIER genericArguments? arrayParameters?;
+parentTypeReference: (shortTypeReference '.')*;
 primitiveType: ANY | BOOL | CHAR | I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
 
 
