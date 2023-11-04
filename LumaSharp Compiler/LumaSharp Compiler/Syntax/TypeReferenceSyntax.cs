@@ -227,7 +227,7 @@ namespace LumaSharp_Compiler.AST
             LumaSharpParser.PrimitiveTypeContext primitive = typeRef.primitiveType();            
             LumaSharpParser.ArrayParametersContext array = typeRef.arrayParameters();
 
-            if (primitive != null)
+            if(primitive != null)
             {
                 // Create primitive identifier
                 this.identifier = new SyntaxToken(primitive.Start);
@@ -241,7 +241,7 @@ namespace LumaSharp_Compiler.AST
                 if(identifiers.Length > 1)
                 {
                     // Create namespace
-                    this.namespaceName = new NamespaceName(tree, parent, identifiers);
+                    this.namespaceName = new NamespaceName(tree, parent, identifiers.Take(identifiers.Length - 1).ToArray());
                 }
 
                 // Get generics
@@ -249,7 +249,7 @@ namespace LumaSharp_Compiler.AST
 
                 if(generics != null)
                     this.genericArguments = new GenericArgumentsSyntax(tree, this, generics);
-
+                
                 // Create identifier
                 this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
             }

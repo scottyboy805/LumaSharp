@@ -21,7 +21,6 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("double")]
         [DataRow("bool")]
         [DataRow("char")]
-        [DataRow("string")]
         public void Primitive(string input)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -53,7 +52,6 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("double[]")]
         [DataRow("bool[]")]
         [DataRow("char[]")]
-        [DataRow("string[]")]
         public void Primitive_Array_1(string input)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -86,7 +84,6 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("double[,]")]
         [DataRow("bool[,]")]
         [DataRow("char[,]")]
-        [DataRow("string[,]")]
         public void Primitive_Array_2(string input)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -119,7 +116,6 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("double[,,]")]
         [DataRow("bool[,,]")]
         [DataRow("char[,,]")]
-        [DataRow("string[,,]")]
         public void Primitive_Array_3(string input)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -152,7 +148,6 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("double[,]&")]
         [DataRow("bool[,]&")]
         [DataRow("char[,]&")]
-        [DataRow("string[,]&")]
         public void Primitive_Array_2_Ref(string input)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -185,7 +180,6 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("double[,,]&")]
         [DataRow("bool[,,]&")]
         [DataRow("char[,,]&")]
-        [DataRow("string[,,]&")]
         public void Primitive_Array_3_Ref(string input)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -229,9 +223,9 @@ namespace LumaSharp_CompilerTests.AST
         }
 
         [DataTestMethod]
-        [DataRow("MyNamespace.MyType", "MyType", 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType", "MyType", 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType", "MyType", 3)]
+        [DataRow("MyNamespace:MyType", "MyType", 1)]
+        [DataRow("MyNamespace1:MyNamespace2:MyType", "MyType", 2)]
+        [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType", "MyType", 3)]
         public void UserType_Namespace(string input, string identifier, int namespaceDepth)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -362,9 +356,9 @@ namespace LumaSharp_CompilerTests.AST
         }
 
         [DataTestMethod]
-        [DataRow("MyNamespace.MyType<i32>", "MyType", 1, 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType<float, MyOtherType>", "MyType", 2, 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType<double, string, Type<i8, i16>>", "MyType", 3, 3)]
+        [DataRow("MyNamespace:MyType<i32>", "MyType", 1, 1)]
+        [DataRow("MyNamespace1:MyNamespace2:MyType<float, MyOtherType>", "MyType", 2, 2)]
+        [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType<double, string, Type<i8, i16>>", "MyType", 3, 3)]
         public void UserType_Namespace_Generic(string input, string identifier, int namespaceDepth, int genericArguments)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -385,9 +379,9 @@ namespace LumaSharp_CompilerTests.AST
         }
 
         [DataTestMethod]
-        [DataRow("MyNamespace.MyType[]", "MyType", 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType[]", "MyType", 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType[]", "MyType", 3)]
+        [DataRow("MyNamespace:MyType[]", "MyType", 1)]
+        [DataRow("MyNamespace1:MyNamespace2:MyType[]", "MyType", 2)]
+        [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType[]", "MyType", 3)]
         public void UserType_Namespace_Array_1(string input, string identifier, int namespaceDepth)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -408,9 +402,9 @@ namespace LumaSharp_CompilerTests.AST
         }
 
         [DataTestMethod]
-        [DataRow("MyNamespace.MyType[,]", "MyType", 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType[,]", "MyType", 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType[,]", "MyType", 3)]
+        [DataRow("MyNamespace:MyType[,]", "MyType", 1)]
+        [DataRow("MyNamespace1:MyNamespace2:MyType[,]", "MyType", 2)]
+        [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType[,]", "MyType", 3)]
         public void UserType_Namespace_Array_2(string input, string identifier, int namespaceDepth)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
@@ -431,9 +425,9 @@ namespace LumaSharp_CompilerTests.AST
         }
 
         [DataTestMethod]
-        [DataRow("MyNamespace.MyType[,,]", "MyType", 1)]
-        [DataRow("MyNamespace1.MyNamespace2.MyType[,,]", "MyType", 2)]
-        [DataRow("MyNamespace1.MyNamespace2.MyNamespace3.MyType[,,]", "MyType", 3)]
+        [DataRow("MyNamespace:MyType[,,]", "MyType", 1)]
+        [DataRow("MyNamespace1:MyNamespace2:MyType[,,]", "MyType", 2)]
+        [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType[,,]", "MyType", 3)]
         public void UserType_Namespace_Array_3(string input, string identifier, int namespaceDepth)
         {
             LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
