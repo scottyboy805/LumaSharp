@@ -26,7 +26,7 @@ namespace LumaSharp_Compiler.AST
         // Private
         private SyntaxToken identifier = null;
         private NamespaceName namespaceName = null;
-        private TypeReferenceSyntax[] parentTypes = null;
+        private TypeReferenceSyntax parentType = null;
         private GenericArgumentsSyntax genericArguments = null;
         private ArrayParametersSyntax arrayParameters = null;
         private SyntaxToken colon = null;
@@ -42,9 +42,9 @@ namespace LumaSharp_Compiler.AST
                     return namespaceName.StartToken;
                 }
 
-                if(HasParentTypeIdentifiers == true)
+                if(HasParentTypeIdentifier == true)
                 {
-                    return parentTypes[0].StartToken;
+                    return parentType.StartToken;
                 }
                 return base.StartToken;
             }
@@ -78,10 +78,10 @@ namespace LumaSharp_Compiler.AST
             internal set { namespaceName = value; }
         }
 
-        public TypeReferenceSyntax[] ParentTypeIdentifiers
+        public TypeReferenceSyntax ParentTypeIdentifier
         {
-            get { return parentTypes; }
-            internal set {  parentTypes = value; }
+            get { return parentType; }
+            internal set {  parentType = value; }
         }
 
         public GenericArgumentsSyntax GenericArguments
@@ -103,7 +103,7 @@ namespace LumaSharp_Compiler.AST
 
         public int NestedDepth
         {
-            get { return IsNested ? parentTypes.Length : 0; }
+            get { return IsNested ? parentType.NestedDepth + 1 : 0; }
         }
 
         public int GenericArgumentCount
@@ -121,14 +121,14 @@ namespace LumaSharp_Compiler.AST
             get { return namespaceName != null; }
         }
 
-        public bool HasParentTypeIdentifiers
+        public bool HasParentTypeIdentifier
         {
-            get { return parentTypes != null; }
+            get { return parentType != null; }
         }
 
         public bool IsNested
         {
-            get { return parentTypes != null; }
+            get { return parentType != null; }
         }
 
         public bool IsGenericType
@@ -159,11 +159,12 @@ namespace LumaSharp_Compiler.AST
             this.identifier = base.StartToken;
         }
 
-        internal TypeReferenceSyntax(string identifier)
+        internal TypeReferenceSyntax(string identifier, TypeReferenceSyntax parentType = null)
             : base(new SyntaxToken(identifier))
         {
             // Identifier
             this.identifier = base.StartToken;
+            this.parentType = parentType;
             this.colon = SyntaxToken.Colon();
             this.dot = SyntaxToken.Dot();
         }
@@ -234,14 +235,26 @@ namespace LumaSharp_Compiler.AST
             }
             else
             {
+                // Get parent type
+                LumaSharpParser.ParentTypeReferenceContext parentTypeRef = typeRef.parentTypeReference();
+
                 // Get identifiers
                 ITerminalNode[] identifiers = typeRef.IDENTIFIER();
+                ITerminalNode[] parentIdentifiers = (parentTypeRef != null) ? parentTypeRef.IDENTIFIER() : null;
 
                 // Build namespace
                 if(identifiers.Length > 1)
                 {
                     // Create namespace
-                    this.namespaceName = new NamespaceName(tree, parent, identifiers.Take(identifiers.Length - 1).ToArray());
+                    this.namespaceName = new NamespaceName(tree, parent, parentTypeRef == null 
+                        ? identifiers.Take(identifiers.Length - 1).ToArray()
+                        : identifiers);
+                }
+
+                // Get parent
+                if(parentIdentifiers != null)
+                {
+                    //this.parentTypes
                 }
 
                 // Get generics
@@ -249,9 +262,17 @@ namespace LumaSharp_Compiler.AST
 
                 if(generics != null)
                     this.genericArguments = new GenericArgumentsSyntax(tree, this, generics);
-                
-                // Create identifier
-                this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
+
+                if (parentTypeRef == null)
+                {
+                    // Create identifier
+                    this.identifier = new SyntaxToken(identifiers[identifiers.Length - 1]);
+                }
+                else
+                {
+                    // Create identifier
+                    this.identifier = new SyntaxToken(parentIdentifiers[parentIdentifiers.Length - 1]);
+                }
             }
             
             // Check for array
@@ -276,11 +297,8 @@ namespace LumaSharp_Compiler.AST
             // Write parent types
             if(IsNested == true)
             {
-                for(int i = 0; i < parentTypes.Length; i++)
-                {
-                    parentTypes[i].GetSourceText(writer);
-                    dot.GetSourceText(writer);
-                }
+                // Write parent type
+                parentType.GetSourceText(writer);
             }
 
             // Write identifier

@@ -21,7 +21,7 @@ namespace LumaSharp_Compiler.AST.Factory
 
         #region CommonUse
         public static TypeReferenceSyntax TypeReference(PrimitiveType primitive) => new TypeReferenceSyntax(primitive);
-        public static TypeReferenceSyntax TypeReference(string identifier) => new TypeReferenceSyntax(identifier);
+        public static TypeReferenceSyntax TypeReference(string identifier, TypeReferenceSyntax parentType = null) => new TypeReferenceSyntax(identifier, parentType);
         public static GenericParameterSyntax GenericParameter(string identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, constrainTypes);
         public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, string identifier, bool byReference = false, bool variableSizedList = false) => new ParameterSyntax(parameterType, identifier, byReference, variableSizedList);
         public static AttributeSyntax Attribute(TypeReferenceSyntax attributeType, params ExpressionSyntax[] expressions) => new AttributeSyntax(attributeType, expressions);
@@ -233,13 +233,10 @@ namespace LumaSharp_Compiler.AST.Factory
 
         public static TypeReferenceSyntax WithNamespaceQualifier(this TypeReferenceSyntax type, params string[] namespaceIdentifiers)
         {
-            type.Namespace = new NamespaceName(namespaceIdentifiers);
-            return type;
-        }
+            if (type.HasParentTypeIdentifier == true)
+                throw new InvalidOperationException("Nested type cannot have a namespace qualifier");
 
-        public static TypeReferenceSyntax WithParentTypeQualifiers(this TypeReferenceSyntax type, params TypeReferenceSyntax[] parentTypes)
-        {
-            type.ParentTypeIdentifiers = parentTypes;
+            type.Namespace = new NamespaceName(namespaceIdentifiers);
             return type;
         }
 

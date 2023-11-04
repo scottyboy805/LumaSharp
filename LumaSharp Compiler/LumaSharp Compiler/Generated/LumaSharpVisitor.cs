@@ -236,6 +236,12 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitTypeReference([NotNull] LumaSharpParser.TypeReferenceContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.parentTypeReference"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitParentTypeReference([NotNull] LumaSharpParser.ParentTypeReferenceContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.primitiveType"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

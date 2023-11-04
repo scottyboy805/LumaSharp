@@ -12,6 +12,9 @@ namespace LumaSharp_Compiler.AST
         private string leadingWhitespace = "";
         private string trailingWhitespace = "";
 
+        // Public
+        public static readonly SyntaxToken Empty = new SyntaxToken("");
+
         // Properties
         public string Text
         {

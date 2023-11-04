@@ -444,6 +444,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitTypeReference([NotNull] LumaSharpParser.TypeReferenceContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.parentTypeReference"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterParentTypeReference([NotNull] LumaSharpParser.ParentTypeReferenceContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.parentTypeReference"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitParentTypeReference([NotNull] LumaSharpParser.ParentTypeReferenceContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.primitiveType"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

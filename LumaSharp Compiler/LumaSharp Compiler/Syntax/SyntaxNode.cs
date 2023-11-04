@@ -55,8 +55,8 @@ namespace LumaSharp_Compiler.AST
 
             if (context != null)
             {
-                this.start = new SyntaxToken(context.Start);
-                this.end = new SyntaxToken(context.Stop);
+                this.start = context.Start != null ? new SyntaxToken(context.Start) : SyntaxToken.Empty;
+                this.end = context.Stop != null ? new SyntaxToken(context.Stop) : SyntaxToken.Empty;
             }
         }
 

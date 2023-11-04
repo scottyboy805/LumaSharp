@@ -192,7 +192,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         private bool IsReferenceTypeSymbolMatch(ITypeReferenceSymbol typeSymbol, TypeReferenceSyntax reference)
         {
             // Check for nested type
-            if (reference.HasParentTypeIdentifiers == true)
+            if (reference.HasParentTypeIdentifier == true)
             {
 
             }

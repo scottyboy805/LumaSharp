@@ -40,18 +40,16 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyNamespace", syntax3.StartToken.Text);
             Assert.AreEqual("MyType", syntax3.EndToken.Text);
 
-            SyntaxNode syntax4 = Syntax.TypeReference("MyType")
-                .WithNamespaceQualifier("MyNamespace")
-                .WithParentTypeQualifiers(Syntax.TypeReference("SomeType"));
+            SyntaxNode syntax4 = Syntax.TypeReference("MyType", Syntax.TypeReference("SomeType")
+                .WithNamespaceQualifier("MyNamespace"));
 
             // Get expression text
             Assert.AreEqual("MyNamespace:SomeType.MyType", syntax4.GetSourceText());
             Assert.AreEqual("MyNamespace", syntax4.StartToken.Text);
             Assert.AreEqual("MyType", syntax4.EndToken.Text);
 
-            SyntaxNode syntax5 = Syntax.TypeReference("MyType")
-                .WithNamespaceQualifier("MyNamespace")
-                .WithParentTypeQualifiers(Syntax.TypeReference("SomeType"))
+            SyntaxNode syntax5 = Syntax.TypeReference("MyType", Syntax.TypeReference("SomeType")
+                .WithNamespaceQualifier("MyNamespace"))
                 .WithArrayQualifier(1);
 
             // Get expression text
@@ -59,9 +57,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyNamespace", syntax5.StartToken.Text);
             Assert.AreEqual("]", syntax5.EndToken.Text);
 
-            SyntaxNode syntax6 = Syntax.TypeReference("MyType")
-                .WithNamespaceQualifier("MyNamespace")
-                .WithParentTypeQualifiers(Syntax.TypeReference("SomeType"))
+            SyntaxNode syntax6 = Syntax.TypeReference("MyType", Syntax.TypeReference("SomeType")
+                .WithNamespaceQualifier("MyNamespace"))
                 .WithArrayQualifier(2);
 
             // Get expression text
@@ -69,9 +66,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyNamespace", syntax6.StartToken.Text);
             Assert.AreEqual("]", syntax6.EndToken.Text);
 
-            SyntaxNode syntax7 = Syntax.TypeReference("MyType")
-                .WithNamespaceQualifier("MyNamespace")
-                .WithParentTypeQualifiers(Syntax.TypeReference("SomeType"))
+            SyntaxNode syntax7 = Syntax.TypeReference("MyType", Syntax.TypeReference("SomeType")
+                .WithNamespaceQualifier("MyNamespace"))
                 .WithGenericArguments(Syntax.TypeReference(PrimitiveType.I32))
                 .WithArrayQualifier(2);
 
@@ -80,9 +76,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyNamespace", syntax7.StartToken.Text);
             Assert.AreEqual("]", syntax7.EndToken.Text);
 
-            SyntaxNode syntax8 = Syntax.TypeReference("MyType")
-                .WithNamespaceQualifier("MyNamespace")
-                .WithParentTypeQualifiers(Syntax.TypeReference("SomeType"))
+            SyntaxNode syntax8 = Syntax.TypeReference("MyType", Syntax.TypeReference("SomeType")
+                .WithNamespaceQualifier("MyNamespace"))
                 .WithGenericArguments(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("OtherType")
                     .WithNamespaceQualifier("NS"))
                 .WithArrayQualifier(2);

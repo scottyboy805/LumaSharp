@@ -371,6 +371,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitTypeReference([NotNull] LumaSharpParser.TypeReferenceContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.parentTypeReference"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterParentTypeReference([NotNull] LumaSharpParser.ParentTypeReferenceContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.parentTypeReference"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitParentTypeReference([NotNull] LumaSharpParser.ParentTypeReferenceContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.primitiveType"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

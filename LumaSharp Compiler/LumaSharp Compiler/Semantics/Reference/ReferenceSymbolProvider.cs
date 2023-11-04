@@ -136,7 +136,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for void
-            if(reference.Identifier.Text == "void" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
+            if(reference.Identifier.Text == "void" && reference.HasNamespace == false && reference.HasParentTypeIdentifier == false)
             {
                 // Report errors if void type usage is not correct - used as generic/array for example
                 typeResolver.CheckVoidTypeUsage(reference);
@@ -150,7 +150,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for string
-            if(reference.Identifier.Text == "string" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
+            if(reference.Identifier.Text == "string" && reference.HasNamespace == false && reference.HasParentTypeIdentifier == false)
             {
                 // Check for resolved
                 if(_string == null)
@@ -161,7 +161,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for enum
-            if(reference.Identifier.Text == "enum" && reference.HasNamespace == false && reference.HasParentTypeIdentifiers == false)
+            if(reference.Identifier.Text == "enum" && reference.HasNamespace == false && reference.HasParentTypeIdentifier == false)
             {
                 // Check for resolved
                 if(_enum == null)
