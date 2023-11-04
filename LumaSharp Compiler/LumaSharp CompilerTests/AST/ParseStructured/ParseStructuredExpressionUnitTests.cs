@@ -50,7 +50,7 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
         [DataRow("(43 + 24).Final", typeof(BinaryExpressionSyntax))]
         [DataRow("new MyType().Field", typeof(NewExpressionSyntax))]
         [DataRow("ident.Final", typeof(VariableReferenceExpressionSyntax))]
-        [DataRow("MyUserType<i32, string>.Final", typeof(TypeReferenceSyntax))]
+        [DataRow("MyUserType<i32, string>.Final", typeof(TypeReferenceSyntax))]     // Not working
         [DataRow("this.Final", typeof(ThisExpressionSyntax))]
         [DataRow("base.Final", typeof(BaseExpressionSyntax))]
         public void StructuredExpression_Field(string input, Type expressionType)

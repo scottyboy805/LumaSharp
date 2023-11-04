@@ -86,7 +86,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             SyntaxNode syntax2 = Syntax.Literal("Hello");
 
             // Get expression text
-            Assert.AreEqual("Hello", syntax2.GetSourceText());
+            Assert.AreEqual(@"""Hello""", syntax2.GetSourceText());
 
             SyntaxNode syntax3 = Syntax.Literal(false);
 

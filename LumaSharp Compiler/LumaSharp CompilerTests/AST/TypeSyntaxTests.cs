@@ -102,7 +102,7 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("type _MyType{type A{} contract B{}}", "_MyType", 2)]
         [DataRow("type MyType123{type A{} contract B{} i32 field;}", "MyType123", 3)]
         [DataRow("type _MyType123{type A{} contract B{} i32 field; i32 accessor => 5;}", "_MyType123", 4)]
-        [DataRow("type _MyType123{type A{} contract B{} i32 field; i32 accessor => 5; i32 method() => return 5;}", "_MyType123", 5)]
+        [DataRow("type _MyType123{type A{} contract B{} i32 field; i32 accessor => 5; i32 method() { return 5;}}", "_MyType123", 5)]
         public void UserType_Member(string input, string identifier, int memberCount)
         {
             LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);

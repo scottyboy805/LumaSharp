@@ -169,7 +169,7 @@ accessModifier: EXPORT | INTERNAL | SPECIALHIDDEN | GLOBAL;
 // Generic parameters
 genericParameterList: '<' genericParameter (',' genericParameter)* '>';
 
-genericParameter: IDENTIFIER (':' typeReference (',' typeReference)*);
+genericParameter: IDENTIFIER (':' typeReference (',' typeReference)*)?;
 
 // Generic arguments
 genericArguments: lgen='<' typeReference (',' typeReference)* rgen='>';
@@ -182,7 +182,7 @@ inheritParameters: ':' typeReference (',' typeReference)*;
 
 
 // Type reference
-typeReference: (primitiveType | ((IDENTIFIER ':')* parentTypeReference? IDENTIFIER genericArguments?)) arrayParameters? '&'?;
+typeReference: (primitiveType | ((IDENTIFIER ':')* parentTypeReference? IDENTIFIER genericArguments?)) arrayParameters? ref='&'?;
 shortTypeReference: IDENTIFIER genericArguments? arrayParameters?;
 parentTypeReference: (shortTypeReference '.')*;
 primitiveType: ANY | BOOL | CHAR | I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;

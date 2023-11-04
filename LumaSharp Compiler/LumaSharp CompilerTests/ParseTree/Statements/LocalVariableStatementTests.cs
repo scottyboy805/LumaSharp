@@ -159,10 +159,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             LumaSharpParser.TypeReferenceContext type = context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild<LumaSharpParser.TypeReferenceContext>(0);
 
-            Assert.AreEqual("MyType", type.GetChild(0).GetText());
-            Assert.AreEqual("T0", type.GetChild(1).GetChild(1).GetText());
-            Assert.AreEqual("T1", type.GetChild(1).GetChild(3).GetText());
-            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
+            Assert.AreEqual("MyType", type.IDENTIFIER()[0].GetText());
+            Assert.AreEqual("T0", type.genericArguments().typeReference()[0].GetText());
+            Assert.AreEqual("T1", type.genericArguments().typeReference()[1].GetText());
+            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).IDENTIFIER()[0].GetText());
         }
 
         [TestMethod]
@@ -175,11 +175,11 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             LumaSharpParser.TypeReferenceContext type = context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild<LumaSharpParser.TypeReferenceContext>(0);
 
-            Assert.AreEqual("MyType", type.GetChild(0).GetText());
-            Assert.AreEqual("T0", type.GetChild(1).GetChild(1).GetText());
-            Assert.AreEqual("T1", type.GetChild(1).GetChild(3).GetText());
-            Assert.AreEqual("&", type.GetChild(2).GetText());
-            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
+            Assert.AreEqual("MyType", type.IDENTIFIER()[0].GetText());
+            Assert.AreEqual("T0", type.genericArguments().typeReference()[0].GetText());
+            Assert.AreEqual("T1", type.genericArguments().typeReference()[1].GetText());
+            Assert.AreEqual("&", type.@ref.Text);
+            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).IDENTIFIER()[0].GetText());
         }
 
         [TestMethod]
@@ -192,11 +192,11 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             LumaSharpParser.TypeReferenceContext type = context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild<LumaSharpParser.TypeReferenceContext>(0);
 
-            Assert.AreEqual("MyType", type.GetChild(0).GetText());
-            Assert.AreEqual("MySubType", type.GetChild(2).GetText());
-            Assert.AreEqual("T0", type.GetChild(3).GetChild(1).GetText());
-            Assert.AreEqual("T1", type.GetChild(3).GetChild(3).GetText());
-            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
+            Assert.AreEqual("MyType", type.parentTypeReference().shortTypeReference()[0].GetText());
+            Assert.AreEqual("MySubType", type.IDENTIFIER()[0].GetText());
+            Assert.AreEqual("T0", type.genericArguments().typeReference()[0].GetText());
+            Assert.AreEqual("T1", type.genericArguments().typeReference()[1].GetText());
+            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).IDENTIFIER()[0].GetText());
         }
 
         [TestMethod]
@@ -281,10 +281,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             LumaSharpParser.TypeReferenceContext type = context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild<LumaSharpParser.TypeReferenceContext>(0);
 
-            Assert.AreEqual("MyType", type.GetChild(0).GetText());
-            Assert.AreEqual("T0", type.GetChild(1).GetChild(1).GetText());
-            Assert.AreEqual("T1", type.GetChild(1).GetChild(3).GetText());
-            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
+            Assert.AreEqual("MyType", type.IDENTIFIER()[0].GetText());
+            Assert.AreEqual("T0", type.genericArguments().typeReference()[0].GetText());
+            Assert.AreEqual("T1", type.genericArguments().typeReference()[1].GetText());
+            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).IDENTIFIER()[0].GetText());
         }
 
         [TestMethod]
@@ -297,10 +297,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             LumaSharpParser.TypeReferenceContext type = context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild<LumaSharpParser.TypeReferenceContext>(0);
 
-            Assert.AreEqual("MyType", type.GetChild(0).GetText());
-            Assert.AreEqual("T0", type.GetChild(1).GetChild(1).GetText());
-            Assert.AreEqual("T1", type.GetChild(1).GetChild(3).GetText());
-            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
+            Assert.AreEqual("MyType", type.IDENTIFIER()[0].GetText());
+            Assert.AreEqual("T0", type.genericArguments().typeReference()[0].GetText());
+            Assert.AreEqual("T1", type.genericArguments().typeReference()[1].GetText());
+            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).IDENTIFIER()[0].GetText());
         }
 
         [TestMethod]
@@ -313,10 +313,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             LumaSharpParser.TypeReferenceContext type = context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild<LumaSharpParser.TypeReferenceContext>(0);
 
-            Assert.AreEqual("MyType", type.GetChild(0).GetText());
-            Assert.AreEqual("T0", type.GetChild(1).GetChild(1).GetText());
-            Assert.AreEqual("T1", type.GetChild(1).GetChild(3).GetText());
-            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
+            Assert.AreEqual("MyType", type.IDENTIFIER()[0].GetText());
+            Assert.AreEqual("T0", type.genericArguments().typeReference()[0].GetText());
+            Assert.AreEqual("T1", type.genericArguments().typeReference()[1].GetText());
+            Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).IDENTIFIER()[0].GetText());
         }
 
         [TestMethod]
@@ -329,7 +329,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             Assert.AreEqual("i8", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(0).GetText());
             Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
-            Assert.AreEqual("5", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(3).GetText());
+            Assert.AreEqual("5", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(2).GetChild(1).GetText());
         }
 
         [TestMethod]
@@ -342,7 +342,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             Assert.AreEqual("string", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(0).GetText());
             Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
-            Assert.AreEqual(@"""Hello""", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(3).GetText());
+            Assert.AreEqual(@"""Hello""", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(2).GetChild(1).GetText());
         }
 
         [TestMethod]
@@ -355,7 +355,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Statements
             Assert.IsNotNull(context);
             Assert.AreEqual("MyType", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(0).GetText());
             Assert.AreEqual("var1", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(1).GetText());
-            Assert.AreEqual("SomeVar", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(3).GetText());
+            Assert.AreEqual("SomeVar", context.GetChild<LumaSharpParser.LocalVariableStatementContext>(0).GetChild(2).GetChild(1).GetText());
         }
     }
 }

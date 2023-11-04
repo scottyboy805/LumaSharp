@@ -254,7 +254,6 @@ namespace LumaSharp_Compiler.AST
                 if (parentTypes != null)
                 {
                     TypeReferenceSyntax current = null;
-                    //for(int i = parentTypes.Length - 1; i >= 0; i--)
                     for(int i = 0; i < parentTypes.Length; i++)
                     {
                         // Create instance
@@ -331,6 +330,9 @@ namespace LumaSharp_Compiler.AST
             {
                 // Write parent type
                 parentType.GetSourceText(writer);
+
+                // Write dot separator
+                dot.GetSourceText(writer);
             }
 
             // Write identifier
