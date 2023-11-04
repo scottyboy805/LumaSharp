@@ -21,7 +21,7 @@ namespace LumaSharp_Compiler.AST
 
         public bool HasElements
         {
-            get { return elements != null; }
+            get { return elements != null && elements.Count > 0; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
