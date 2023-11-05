@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime
 {
-    public enum TypeCode
+    public enum TypeCode : byte
     {
         Any = 1,
         Bool,
@@ -16,6 +16,5 @@ namespace LumaSharp.Runtime
         U64,
         Float,
         Double,
-        String
     }
 }

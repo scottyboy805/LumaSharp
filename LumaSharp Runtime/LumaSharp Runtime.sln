@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LumaSharp Runtime", "LumaSharp Runtime\LumaSharp Runtime.csproj", "{06CD9F2A-32BC-4E48-83B2-174DA79FC72A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LumaSharp Runtime", "LumaSharp Runtime\LumaSharp Runtime.csproj", "{06CD9F2A-32BC-4E48-83B2-174DA79FC72A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LumaSharp RuntimeTests", "LumaSharp RuntimeTests\LumaSharp RuntimeTests.csproj", "{2AE800A5-2969-440C-9398-434D20F1C55F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{06CD9F2A-32BC-4E48-83B2-174DA79FC72A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{06CD9F2A-32BC-4E48-83B2-174DA79FC72A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06CD9F2A-32BC-4E48-83B2-174DA79FC72A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2AE800A5-2969-440C-9398-434D20F1C55F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AE800A5-2969-440C-9398-434D20F1C55F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AE800A5-2969-440C-9398-434D20F1C55F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AE800A5-2969-440C-9398-434D20F1C55F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
