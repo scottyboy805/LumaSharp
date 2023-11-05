@@ -159,10 +159,10 @@ namespace LumaSharp.Runtime
                 case OpCode.Ld_Str: return 4;          // 4 byte data - offset into string table
                 case OpCode.Ld_Null: return 0;         // No data
 
-                case OpCode.Ld_I4_0: return 4;         // 4 byte data - Load 32 bit int with value of '0'
-                case OpCode.Ld_I4_1: return 4;         // 4 byte data - Load 32 bit int with value of '1'
-                case OpCode.Ld_I4_M1: return 4;        // 4 byte data -  Load 32 bit int with value of '-1'
-                case OpCode.Ld_F4_0: return 4;         // 4 byte data - Load 32 bit float with value 0f '0'
+                case OpCode.Ld_I4_0: return 0;         // Load 32 bit int with value of '0'
+                case OpCode.Ld_I4_1: return 0;         // Load 32 bit int with value of '1'
+                case OpCode.Ld_I4_M1: return 0;        // Load 32 bit int with value of '-1'
+                case OpCode.Ld_F4_0: return 0;         // Load 32 bit float with value 0f '0'
 
                 // Locals
                 case OpCode.Ld_Loc_0: return 0;        // No data
