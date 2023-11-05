@@ -261,10 +261,10 @@ expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
 
 	  unary='-' expression										// Unary minus
 	| unary='!' expression										// not expression
-	//| unary='++' expression										// Unary prefix increment
-	//| unary='--' expression										// Unary prefix decrement
-	//| expression unary='++'										// Unary postfix increment
-	//| expression unary='--'										// Unary postfix decrement
+	| unary='++' expression										// Unary prefix increment
+	| unary='--' expression										// Unary prefix decrement
+	| expression unary='++'										// Unary postfix increment
+	| expression unary='--'										// Unary postfix decrement
 	| expression binary=('*' | '/' | '%') expression			// Multiply expression
 	| expression binary=('+' | '-') expression					// Add expression
 	| expression binary=('>=' | '<=' | '>' | '<') expression	// Compare expression

@@ -62,6 +62,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             if(syntax is AssignStatementSyntax)
                 return new AssignModel(model, parent, syntax as AssignStatementSyntax, statementIndex);
 
+            // Check for condition
+            if(syntax is ConditionStatementSyntax)
+                return new ConditionModel(model, parent, syntax as  ConditionStatementSyntax, statementIndex);
+
             throw new NotSupportedException("Specified syntax is not supported");
         }
     }

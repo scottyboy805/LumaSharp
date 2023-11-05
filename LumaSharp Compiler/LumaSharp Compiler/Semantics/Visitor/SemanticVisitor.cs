@@ -128,6 +128,22 @@ namespace LumaSharp_Compiler.Semantics.Visitor
                 VisitExpression(model.ReturnModelExpression);
         }
 
+        public virtual void VisitCondition(ConditionModel model)
+        {
+            if (model.Condition != null)
+                VisitExpression(model.Condition);
+
+            // Visit statements
+            if(model.Statements != null)
+            {
+                foreach(StatementModel statement in model.Statements)
+                    VisitStatement(statement);
+            }
+
+            if(model.Alternate != null)
+                VisitCondition(model.Alternate);
+        }
+
         public virtual void VisitStatement(StatementModel model)
         {
             // Check for assign
@@ -144,6 +160,11 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             else if (model is VariableModel)
             {
                 VisitVariable(model as VariableModel);
+            }
+            // Check for condition
+            else if(model is ConditionModel)
+            {
+                VisitCondition(model as ConditionModel);
             }
             else
             {

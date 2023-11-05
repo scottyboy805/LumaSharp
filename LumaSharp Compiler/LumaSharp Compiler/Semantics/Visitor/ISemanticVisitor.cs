@@ -27,6 +27,8 @@ namespace LumaSharp_Compiler.Semantics
         void VisitReturn(ReturnModel model);
 
         void VisitVariable(VariableModel model);
+
+        void VisitCondition(ConditionModel model);
         #endregion
 
         #region Expression
