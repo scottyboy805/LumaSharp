@@ -1,36 +1,44 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp_Compiler.Semantics;
+using System.Runtime.InteropServices;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
-    internal sealed class Instruction
+    internal struct Instruction
     {
         // Public
         public int index;
+        public int streamOffset;
         public OpCode opCode;
         public object data0;
         public object data1;
+        public int dataSize = 0;
 
         // Constructor
-        public Instruction(int index, OpCode opCode)
+        public Instruction(int index, int streamOffset, OpCode opCode)
         {
             this.index = index;
+            this.streamOffset = streamOffset;
             this.opCode = opCode;
         }
 
-        public Instruction(int index, OpCode opCode, object data)
+        public Instruction(int index, int streamOffset, OpCode opCode, object data)
         {
             this.index = index;
+            this.streamOffset = streamOffset;
             this.opCode = opCode;
             this.data0 = data;
+            this.dataSize = Marshal.SizeOf(data);
         }
 
-        public Instruction(int index, OpCode opCode, object data0, object data1)
+        public Instruction(int index, int streamOffset, OpCode opCode, object data0, object data1)
         {
             this.index = index;
+            this.streamOffset = streamOffset;
             this.opCode = opCode;
             this.data0 = data0;
             this.data1 = data1;
+            this.dataSize = Marshal.SizeOf(data0) + Marshal.SizeOf(data1);
         }
 
         // Methods
@@ -77,144 +85,194 @@ namespace LumaSharp_Compiler.Emit.Builder
         }
 
         // Methods
-        public void EmitOpCode(OpCode code)
+        public Instruction EmitOpCode(OpCode code)
         {
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code));
 
             writer.Write((byte)code);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, byte data)
+        public Instruction EmitOpCode(OpCode code, byte data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(byte))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, ushort data)
+        public Instruction EmitOpCode(OpCode code, ushort data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(ushort))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code,  int data)
+        public Instruction EmitOpCode(OpCode code,  int data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(int))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, uint data)
+        public Instruction EmitOpCode(OpCode code, uint data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(uint))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, long data)
+        public Instruction EmitOpCode(OpCode code, long data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(long))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, ulong data)
+        public Instruction EmitOpCode(OpCode code, ulong data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(ulong))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, float data)
+        public Instruction EmitOpCode(OpCode code, float data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(float))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, double data)
+        public Instruction EmitOpCode(OpCode code, double data)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(double))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, byte data0, int data1)
+        public Instruction EmitOpCode(OpCode code, byte data0, int data1)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(byte) + sizeof(int))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, data0, data1));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data0, data1));
 
             writer.Write((byte)code);
             writer.Write(data0);
             writer.Write(data1);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
         }
 
-        public void EmitOpCode(OpCode code, IReferenceSymbol symbol)
+        public Instruction EmitOpCode(OpCode code, IReferenceSymbol symbol)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(int))
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, code, symbol));
+            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, symbol));
 
             writer.Write((byte)code);
             writer.Write(symbol.SymbolToken);
             instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
+        }
+
+        public void ModifyOpCode(in Instruction instruction, int data)
+        {
+            // Check size
+            if (instruction.dataSize != sizeof(int))
+                throw new InvalidOperationException("invalid modification");
+
+            // Get current position
+            long position = writer.BaseStream.Position;
+
+            // Return to op code
+            writer.BaseStream.Seek(instruction.streamOffset + 1, SeekOrigin.Begin);
+            writer.Write(data);
+
+            // Return to last
+            writer.BaseStream.Seek(position, SeekOrigin.Begin);
         }
     }
 }

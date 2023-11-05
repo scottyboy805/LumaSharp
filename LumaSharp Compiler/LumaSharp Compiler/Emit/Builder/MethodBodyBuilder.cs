@@ -65,6 +65,51 @@ namespace LumaSharp_Compiler.Emit.Builder
             }
             referenceContextScope.Pop();
         }
+
+        public override void VisitCondition(ConditionModel model)
+        {
+            Instruction jmp = default;
+
+            // Visit condition
+            if (model.Condition != null)
+            {
+                referenceContextScope.Push(ReferenceContext.Read);
+                {
+                    // Generate condition
+                    VisitExpression(model.Condition);
+
+                    // Add jump instruction
+                    jmp = instructions.EmitOpCode(OpCode.Jmp_0, 0);
+                }
+                referenceContextScope.Pop();
+            }
+
+            // Visit body
+            if(model.Statements != null && model.Statements.Length > 0)
+            {
+                foreach (StatementModel statement in model.Statements)
+                    statement.Accept(this);
+            }
+
+            // Generate alternate
+            if(model.Alternate != null)
+            {
+                // Check for additional condition elif - jump to next conditional check
+                if(model.Alternate.Condition != null)
+                {
+                    instructions.ModifyOpCode(jmp, instructions.InstructionIndex);
+                }
+
+                // Generate condition
+                model.Alternate.Accept(this);
+            }
+
+            // Check for no else or else - Jump after else/single condition
+            if (model.Alternate == null || model.Alternate.Condition == null)
+            {
+                instructions.ModifyOpCode(jmp, instructions.InstructionIndex);
+            }
+        }
         #endregion
 
         #region Expression
