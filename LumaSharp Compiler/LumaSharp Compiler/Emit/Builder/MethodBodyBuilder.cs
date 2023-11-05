@@ -95,7 +95,7 @@ namespace LumaSharp_Compiler.Emit.Builder
             if(model.Alternate != null)
             {
                 // Check for additional condition elif - jump to next conditional check
-                if(model.Alternate.Condition != null)
+                if(model.Alternate.Condition != null && jmp.opCode != OpCode.Nop)
                 {
                     instructions.ModifyOpCode(jmp, instructions.InstructionIndex);
                 }
@@ -105,7 +105,7 @@ namespace LumaSharp_Compiler.Emit.Builder
             }
 
             // Check for no else or else - Jump after else/single condition
-            if (model.Alternate == null || model.Alternate.Condition == null)
+            if ((model.Alternate == null || model.Alternate.Condition == null) && jmp.opCode != OpCode.Nop)
             {
                 instructions.ModifyOpCode(jmp, instructions.InstructionIndex);
             }

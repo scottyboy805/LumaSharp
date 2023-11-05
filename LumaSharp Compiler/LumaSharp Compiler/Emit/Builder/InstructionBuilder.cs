@@ -258,7 +258,7 @@ namespace LumaSharp_Compiler.Emit.Builder
             return instructions[instructions.Count - 1];
         }
 
-        public void ModifyOpCode(in Instruction instruction, int data)
+        public void ModifyOpCode(Instruction instruction, int data)
         {
             // Check size
             if (instruction.dataSize != sizeof(int))
@@ -273,6 +273,12 @@ namespace LumaSharp_Compiler.Emit.Builder
 
             // Return to last
             writer.BaseStream.Seek(position, SeekOrigin.Begin);
+
+            // Update instruction
+            instruction.data0 = data;
+
+            // Update instruction
+            instructions[instruction.index] = instruction;
         }
     }
 }

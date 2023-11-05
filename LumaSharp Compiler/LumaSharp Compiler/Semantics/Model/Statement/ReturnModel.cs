@@ -36,7 +36,9 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             : base(model, parent, syntax, statementIndex)
         {
             this.syntax = syntax;
-            this.returnModel = ExpressionModel.Any(model, this, syntax.ReturnExpression);
+
+            if(syntax.ReturnExpression != null)
+                this.returnModel = ExpressionModel.Any(model, this, syntax.ReturnExpression);
         }
 
         // Methods

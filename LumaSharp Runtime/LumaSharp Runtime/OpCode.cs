@@ -256,8 +256,8 @@ namespace LumaSharp.Runtime
                 // Jump
                 case OpCode.Jmp_Eq: return 5;          // 1 byte type code, 4 byte instruction offset
                 case OpCode.Jmp_NEq: return 5;         // 1 byte type code, 4 byte instruction offset
-                case OpCode.Jmp_1: return 5;           // 1 byte type code, 4 byte instruction offset
-                case OpCode.Jmp_0: return 5;           // 1 byte type code, 4 byte instruction offset
+                case OpCode.Jmp_1: return 4;           // 4 byte instruction offset
+                case OpCode.Jmp_0: return 4;           // 4 byte instruction offset
                 case OpCode.Jmp_L: return 5;           // 1 byte type code, 4 byte instruction offset
                 case OpCode.Jmp_Le: return 5;          // 1 byte type code, 4 byte instruction offset
                 case OpCode.Jmp_G: return 5;           // 1 byte type code, 4 byte instruction offset
