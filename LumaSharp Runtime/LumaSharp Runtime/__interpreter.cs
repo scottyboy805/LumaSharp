@@ -33,21 +33,33 @@ namespace LumaSharp.Runtime
             fixed(byte* instructionPtr  = instructions)
             {
                 // Get stack ptr
-                byte* stackPtr = (byte*)__memory.stackBasePtr;
+                byte* stackBasePtr = (byte*)__memory.stackBasePtr;
 
-                // Get arg and local ptr
-                byte* argPtr = stackPtr + argOffset;
-                byte* localPtr = stackPtr + localOffset;
+                // Create method handle
+                _MethodHandle method = new _MethodHandle
+                {
+                    argPtrOffset = (ushort)argOffset,
+                    localPtrOffset = (ushort)localOffset,
+                    instructionPtr = instructionPtr,
+                };
 
                 // Run bytecode
-                ExecuteBytecode(new _MethodHandle { instructionPtr = instructionPtr}, argPtr, localPtr, stackPtr);
+                ExecuteBytecode(new _MethodHandle { instructionPtr = instructionPtr}, stackBasePtr);
             }
         }
 
-        internal static void ExecuteBytecode(in _MethodHandle method, byte* argPtr, byte* localPtr, byte* stackPtr)
+        internal static void ExecuteBytecode(in _MethodHandle method, byte* stackBasePtr)
         {
             // Get instruction ptr
             byte* instructionPtr = method.instructionPtr;
+
+            // Get arg and local ptr
+            byte* argPtr = stackBasePtr + method.argPtrOffset;
+            byte* localPtr = stackBasePtr + method.localPtrOffset;
+
+            // Get main stack ptr
+            byte* stackPtr = stackBasePtr + method.stackPtrOffset;
+
             bool halt = false;
 
             // Loop until halt command
@@ -180,6 +192,81 @@ namespace LumaSharp.Runtime
 
                             // Advance stack ptr
                             stackPtr += _I32.Size;
+                            break;
+                        }
+                    #endregion
+
+                    #region Local
+                    case OpCode.St_Loc_0:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + 0];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.St_Loc_1:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + 1];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.St_Loc_2:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + 2];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Loc_0:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + 0];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Loc_1:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + 1];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Loc_2:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + 2];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += locHandle.typeHandle.size;
                             break;
                         }
                     #endregion
