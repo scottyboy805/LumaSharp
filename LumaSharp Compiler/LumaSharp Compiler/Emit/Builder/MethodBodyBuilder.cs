@@ -71,6 +71,7 @@ namespace LumaSharp_Compiler.Emit.Builder
         public override void VisitCondition(ConditionModel model)
         {
             Instruction jmp = default;
+            bool didModifyJump = false;
 
             // Visit condition
             if (model.Condition != null)
@@ -100,9 +101,11 @@ namespace LumaSharp_Compiler.Emit.Builder
             if (model.Alternate != null)
             {
                 // Check for additional condition elif - jump to next conditional check
-                if(model.Alternate.Condition != null && jmp.opCode != OpCode.Nop)
+                if((model.Alternate != null || model.Alternate.Condition != null) && jmp.opCode != OpCode.Nop)
                 {
-                    instructions.ModifyOpCode(jmp, instructions.Last.offset - (conditionStart.offset + conditionStart.dataSize + 1));
+                    int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset);
+                    instructions.ModifyOpCode(jmp, finalOffset);
+                    didModifyJump = true;
                 }
 
                 // Generate condition
@@ -110,9 +113,9 @@ namespace LumaSharp_Compiler.Emit.Builder
             }
 
             // Check for no else or else - Jump after else/single condition
-            if ((model.Alternate == null || model.Alternate.Condition == null) && jmp.opCode != OpCode.Nop)
+            if (didModifyJump == false && (model.Alternate == null || model.Alternate.Condition == null) && jmp.opCode != OpCode.Nop)
             {
-                int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset + conditionStart.dataSize);
+                int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset);// - conditionStart.dataSize);
                 instructions.ModifyOpCode(jmp, finalOffset);
             }
         }

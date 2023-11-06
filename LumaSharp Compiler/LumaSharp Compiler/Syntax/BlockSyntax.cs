@@ -105,6 +105,9 @@ namespace LumaSharp_Compiler.AST
 
             if (members.Length > 0)
             {
+                // Add statements
+                this.elements.AddRange(members.Select(s => StatementSyntax.Any(tree, this, s) as T));
+
                 for (int i = 0; i < members.Length; i++)
                 {
                     //var typeMember = members[i].typeDeclaration();

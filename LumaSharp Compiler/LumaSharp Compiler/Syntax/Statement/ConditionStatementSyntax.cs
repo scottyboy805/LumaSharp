@@ -136,6 +136,14 @@ namespace LumaSharp_Compiler.AST.Statement
                 this.statementEnd = new SyntaxToken(condition.semi);
 
             // Get alternate
+            if(condition.elseifStatement() != null)
+            {
+
+            }
+            if(condition.elseStatement() != null)
+            {
+                alternate = new ConditionStatementSyntax(tree, this, condition.elseStatement());
+            }
         }
 
         internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ElseifStatementContext alternate)
@@ -165,6 +173,28 @@ namespace LumaSharp_Compiler.AST.Statement
 
 
             // Get alternate
+        }
+
+        internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ElseStatementContext alternate)
+            : base(tree, parent, alternate)
+        {
+            // Keyword
+            this.keyword = new SyntaxToken(alternate.ELSE());
+
+            // LR paren
+            //this.lparen = new SyntaxToken(alternate.lp)
+
+            // Statement inline
+            if(alternate.statement() != null)
+            {
+                this.inlineStatement = Any(tree, this, alternate.statement());
+            }
+
+            // Statement block
+            if(alternate.statementBlock() != null)
+            {
+                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, alternate.statementBlock());
+            }
         }
 
         // Methods

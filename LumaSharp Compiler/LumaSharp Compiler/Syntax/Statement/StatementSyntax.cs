@@ -1,5 +1,6 @@
 ﻿
 using Antlr4.Runtime;
+using LumaSharp_Compiler.AST.Statement;
 
 namespace LumaSharp_Compiler.AST
 {
@@ -35,7 +36,15 @@ namespace LumaSharp_Compiler.AST
         // Methods
         public static StatementSyntax Any(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
         {
-            return null;
+            // Check for condition
+            if (statement.ifStatement() != null)
+                return new ConditionStatementSyntax(tree, parent, statement.ifStatement());
+
+            // Check for return
+            if (statement.returnStatement() != null)
+                return new ReturnStatementSyntax(tree, parent, statement.returnStatement());
+
+            throw new NotSupportedException("Statement is not supported");
         }
     }
 }
