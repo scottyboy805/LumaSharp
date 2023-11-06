@@ -7,33 +7,33 @@ namespace LumaSharp.Runtime.Emit
     {
         // Public
         public int index;
-        public int streamOffset;
+        public int offset;
         public OpCode opCode;
         public object data0;
         public object data1;
         public int dataSize = 0;
 
         // Constructor
-        public Instruction(int index, int streamOffset, OpCode opCode)
+        public Instruction(int index, int offset, OpCode opCode)
         {
             this.index = index;
-            this.streamOffset = streamOffset;
+            this.offset = offset;
             this.opCode = opCode;
         }
 
-        public Instruction(int index, int streamOffset, OpCode opCode, object data)
+        public Instruction(int index, int offset, OpCode opCode, object data)
         {
             this.index = index;
-            this.streamOffset = streamOffset;
+            this.offset = offset;
             this.opCode = opCode;
             this.data0 = data;
             this.dataSize = Marshal.SizeOf(data);
         }
 
-        public Instruction(int index, int streamOffset, OpCode opCode, object data0, object data1)
+        public Instruction(int index, int offset, OpCode opCode, object data0, object data1)
         {
             this.index = index;
-            this.streamOffset = streamOffset;
+            this.offset = offset;
             this.opCode = opCode;
             this.data0 = data0;
             this.data1 = data1;
@@ -75,6 +75,17 @@ namespace LumaSharp.Runtime.Emit
         {
             get { return instructions[index]; }
         }        
+
+        public Instruction Last
+        {
+            get
+            {
+                if(instructions.Count > 0)
+                    return instructions[instructions.Count - 1];
+
+                return default;
+            }
+        }
 
         // Constructor
         public InstructionBuilder(BinaryWriter writer)
@@ -302,7 +313,7 @@ namespace LumaSharp.Runtime.Emit
             long position = writer.BaseStream.Position;
 
             // Return to op code
-            writer.BaseStream.Seek(instruction.streamOffset + 1, SeekOrigin.Begin);
+            writer.BaseStream.Seek(instruction.offset + 1, SeekOrigin.Begin);
             writer.Write(data);
 
             // Return to last

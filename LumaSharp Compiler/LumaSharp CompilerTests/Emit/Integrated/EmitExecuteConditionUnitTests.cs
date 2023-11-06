@@ -13,7 +13,7 @@ namespace LumaSharp_CompilerTests.Emit.Integrated
     public unsafe sealed class EmitExecuteConditionUnitTests
     {
         [TestMethod]
-        public void EmitExecuteCondition_Simple()
+        public void EmitExecuteCondition_Simple_True()
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
@@ -34,17 +34,72 @@ namespace LumaSharp_CompilerTests.Emit.Integrated
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
             new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex >= 2);
-            Assert.AreEqual(OpCode.Ld_I4_1, builder[0].opCode);
-            Assert.AreEqual(OpCode.Jmp_0, builder[1].opCode);
-
-
             // Execute code
             __memory.InitStack();
             __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Get value on top of stack
             Assert.AreEqual(5, __interpreter.FetchValue<int>());
+        }
+
+        [TestMethod]
+        public void EmitExecuteCondition_Simple_False()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("Test", Syntax.TypeReference(PrimitiveType.I32))
+                .WithStatements(Syntax.Condition(Syntax.Literal(false))
+                .WithInlineStatement(Syntax.Return(Syntax.Literal(5))))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            ConditionModel conditionModel = model.DescendantsOfType<ConditionModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(conditionModel);
+            Assert.AreEqual(0, model.Report.MessageCount);
+
+            // Build instructions
+            MemoryStream stream = new MemoryStream();
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+
+            // Execute code
+            __memory.InitStack();
+            __interpreter.ExecuteBytecode(stream.ToArray());
+
+            // Get value on top of stack
+            Assert.AreEqual(0, __interpreter.FetchValue<int>());
+        }
+
+        [TestMethod]
+        public void EmitExecuteCondition_Simple_Greater()
+        {
+            SyntaxTree tree = SyntaxTree.Create(
+                Syntax.Type("Test").WithMembers(
+                Syntax.Method("Test", Syntax.TypeReference(PrimitiveType.I32))
+                .WithStatements(Syntax.Condition(Syntax.Binary(Syntax.Literal(2), BinaryOperation.Greater, Syntax.Literal(1)))
+                .WithInlineStatement(Syntax.Return(Syntax.Literal(33))))));
+
+            // Create model
+            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+            ConditionModel conditionModel = model.DescendantsOfType<ConditionModel>(true).FirstOrDefault();
+
+            Assert.IsNotNull(model);
+            Assert.IsNotNull(conditionModel);
+            Assert.AreEqual(0, model.Report.MessageCount);
+
+            // Build instructions
+            MemoryStream stream = new MemoryStream();
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+
+            // Execute code
+            __memory.InitStack();
+            __interpreter.ExecuteBytecode(stream.ToArray());
+
+            // Get value on top of stack
+            Assert.AreEqual(33, __interpreter.FetchValue<int>());
         }
     }
 }

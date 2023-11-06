@@ -39,6 +39,7 @@ namespace LumaSharp_Compiler.Emit.Builder
             {
                 VisitStatement(statement);
             }
+            instructions.EmitOpCode(OpCode.Ret);
         }
 
         public override void VisitReturn(ReturnModel model)
@@ -85,6 +86,8 @@ namespace LumaSharp_Compiler.Emit.Builder
                 referenceContextScope.Pop();
             }
 
+            Instruction conditionStart = instructions.Last;
+
             // Visit body
             if(model.Statements != null && model.Statements.Length > 0)
             {
@@ -92,13 +95,14 @@ namespace LumaSharp_Compiler.Emit.Builder
                     statement.Accept(this);
             }
 
+
             // Generate alternate
-            if(model.Alternate != null)
+            if (model.Alternate != null)
             {
                 // Check for additional condition elif - jump to next conditional check
                 if(model.Alternate.Condition != null && jmp.opCode != OpCode.Nop)
                 {
-                    instructions.ModifyOpCode(jmp, instructions.InstructionIndex);
+                    instructions.ModifyOpCode(jmp, instructions.Last.offset - (conditionStart.offset + conditionStart.dataSize + 1));
                 }
 
                 // Generate condition
@@ -108,7 +112,8 @@ namespace LumaSharp_Compiler.Emit.Builder
             // Check for no else or else - Jump after else/single condition
             if ((model.Alternate == null || model.Alternate.Condition == null) && jmp.opCode != OpCode.Nop)
             {
-                instructions.ModifyOpCode(jmp, instructions.InstructionIndex);
+                int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset + conditionStart.dataSize);
+                instructions.ModifyOpCode(jmp, finalOffset);
             }
         }
         #endregion
@@ -225,16 +230,6 @@ namespace LumaSharp_Compiler.Emit.Builder
 
         public override void VisitBinary(BinaryModel model)
         {
-            // Emit right
-            model.Right.Accept(this);
-
-            // Check for right promotion required
-            if(model.IsRightPromotionRequired == true || model.Right.EvaluatedTypeSymbol != model.EvaluatedTypeSymbol)
-            {
-                // Emit conversion instruction
-                EmitConversion(model.Right.EvaluatedTypeSymbol, model.EvaluatedTypeSymbol);
-            }
-
             // Emit left
             model.Left.Accept(this);
 
@@ -244,6 +239,17 @@ namespace LumaSharp_Compiler.Emit.Builder
                 // Emit conversion instruction
                 EmitConversion(model.Left.EvaluatedTypeSymbol, model.EvaluatedTypeSymbol);
             }
+
+            // Emit right
+            model.Right.Accept(this);
+
+            // Check for right promotion required
+            if(model.IsRightPromotionRequired == true || model.Right.EvaluatedTypeSymbol != model.EvaluatedTypeSymbol)
+            {
+                // Emit conversion instruction
+                EmitConversion(model.Right.EvaluatedTypeSymbol, model.EvaluatedTypeSymbol);
+            }
+                        
 
             // Emit op code
             switch(model.Operation)

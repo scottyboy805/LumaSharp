@@ -550,6 +550,11 @@ namespace LumaSharp.Runtime
                                 // Jump to new instruction
                                 instructionPtr += *((int*)instructionPtr);
                             }
+                            else
+                            {
+                                // Advance instruction ptr
+                                instructionPtr += sizeof(int);
+                            }
                             // Pop from stack
                             stackPtr -= sizeof(int);
                             break;
@@ -561,6 +566,11 @@ namespace LumaSharp.Runtime
                             {
                                 // Jump to new instruction
                                 instructionPtr += *((int*)instructionPtr);
+                            }
+                            else
+                            {
+                                // Advance instruction ptr
+                                instructionPtr += sizeof(int);
                             }
                             // Pop from stack
                             stackPtr -= sizeof(int);
