@@ -233,8 +233,34 @@ namespace LumaSharp.Runtime
                             stackPtr -= locHandle.typeHandle.size;
                             break;
                         }
+                    case OpCode.St_Loc:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((byte*)instructionPtr++)];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.St_Loc_E:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((ushort*)instructionPtr)];
+                            instructionPtr += 2;
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= locHandle.typeHandle.size;
+                            break;
+                        }
                     case OpCode.Ld_Loc_0:
                         {
+                            // TODO - bounds checking here may be slow??
                             // Get local
                             _StackHandle locHandle = method.argLocals[method.localHandleOffset + 0];
 
@@ -267,6 +293,56 @@ namespace LumaSharp.Runtime
 
                             // Increment stack ptr
                             stackPtr += locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Loc:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((byte*)instructionPtr++)];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Loc_E:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((ushort*)instructionPtr)];
+                            instructionPtr += 2;
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += locHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Loc_A:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((byte*)instructionPtr++)];
+
+                            // Push address
+                            *((IntPtr*)stackPtr) = (IntPtr)(stackBasePtr + locHandle.offset);
+
+                            // Increment points
+                            stackPtr += sizeof(IntPtr);
+                            break;
+                        }
+                    case OpCode.Ld_Loc_EA:
+                        {
+                            // Get local
+                            _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((ushort*)instructionPtr)];
+                            instructionPtr++;
+
+                            // Push address
+                            *((IntPtr*)stackPtr) = (IntPtr)(stackBasePtr + locHandle.offset);
+
+                            // Increment points
+                            stackPtr += sizeof(IntPtr);
                             break;
                         }
                     #endregion
@@ -342,6 +418,117 @@ namespace LumaSharp.Runtime
 
                             // Increment stack ptr
                             stackPtr += argHandle.typeHandle.size;
+                            break;
+                        }
+                    #endregion
+
+                    #region Indirect
+                    case OpCode.Ld_Addr_I1:
+                        {
+                            // Dereference address and push as I32
+                            *((int*)(stackPtr - sizeof(IntPtr))) = *((byte*)*((IntPtr*)stackPtr - 1));
+
+                            // Decrement stack ptr
+                            stackPtr -= sizeof(IntPtr) - sizeof(int);
+                            break;
+                        }
+                    case OpCode.Ld_Addr_I2:
+                        {
+                            // Dereference address and push as I32
+                            *((int*)(stackPtr - sizeof(IntPtr))) = *((short*)*((IntPtr*)stackPtr - 1));
+
+                            // Decrement stack ptr
+                            stackPtr -= sizeof(IntPtr) - sizeof(int);
+                            break;
+                        }
+                    case OpCode.Ld_Addr_I4:
+                        {
+                            // Dereference address and push as I32
+                            *((int*)(stackPtr - sizeof(IntPtr))) = *((int*)*((IntPtr*)stackPtr - 1));
+
+                            // Decrement stack ptr
+                            stackPtr -= sizeof(IntPtr) - sizeof(int);
+                            break;
+                        }
+                    case OpCode.Ld_Addr_I8:
+                        {
+                            // Dereference address and push as I32
+                            *((long*)(stackPtr - sizeof(IntPtr))) = *((long*)*((IntPtr*)stackPtr - 1));
+
+                            // Increment stack ptr - in case of 32 bit pointer
+                            stackPtr += sizeof(IntPtr) - sizeof(long);
+                            break;
+                        }
+                    case OpCode.Ld_Addr_F4:
+                        {
+                            // Dereference address and push as I32
+                            *((float*)(stackPtr - sizeof(IntPtr))) = *((float*)*((IntPtr*)stackPtr - 1));
+
+                            // Decrement stack ptr
+                            stackPtr -= sizeof(IntPtr) - sizeof(float);
+                            break;
+                        }
+                    case OpCode.Ld_Addr_F8:
+                        {
+                            // Dereference address and push as I32
+                            *((double*)(stackPtr - sizeof(IntPtr))) = *((double*)*((IntPtr*)stackPtr - 1));
+
+                            // Increment stack ptr - in case of 32 bit pointer
+                            stackPtr += sizeof(IntPtr) - sizeof(double);
+                            break;
+                        }
+                    case OpCode.St_Addr_I1:
+                        {
+                            // Store as byte
+                            *((byte*)*((IntPtr*)stackPtr - 1)) = (byte)*((int*)(stackPtr - sizeof(IntPtr)) - 1);
+
+                            // Pop address and value
+                            stackPtr -= sizeof(IntPtr) + sizeof(int);
+                            break;
+                        }
+                    case OpCode.St_Addr_I2:
+                        {
+                            // Store as byte
+                            *((short*)*((IntPtr*)stackPtr - 1)) = (short)*((int*)(stackPtr - sizeof(IntPtr)) - 1);
+
+                            // Pop address and value
+                            stackPtr -= sizeof(IntPtr) + sizeof(int);
+                            break;
+                        }
+                    case OpCode.St_Addr_I4:
+                        {
+                            // Store as byte
+                            *((int*)*((IntPtr*)stackPtr - 1)) = (int)*((int*)(stackPtr - sizeof(IntPtr)) - 1);
+
+                            // Pop address and value
+                            stackPtr -= sizeof(IntPtr) + sizeof(int);
+                            break;
+                        }
+                    case OpCode.St_Addr_I8:
+                        {
+                            // Store as byte
+                            *((long*)*((IntPtr*)stackPtr - 1)) = (int)*((long*)(stackPtr - sizeof(IntPtr)) - 1);
+
+                            // Pop address and value
+                            stackPtr -= sizeof(IntPtr) + sizeof(long);
+                            break;
+                        }
+                    case OpCode.St_Addr_F4:
+                        {
+                            // Store as byte
+                            *((float*)*((IntPtr*)stackPtr - 1)) = *((float*)(stackPtr - sizeof(IntPtr)) - 1);
+
+                            // Pop address and value
+                            stackPtr -= sizeof(IntPtr) + sizeof(float);
+                            break;
+                        }
+                    case OpCode.St_Addr_F8:
+                        {
+                            // Store as byte
+                            *((double*)*((IntPtr*)stackPtr - 1)) = *((double*)(stackPtr - sizeof(IntPtr)) - 1);
+
+                            // Pop address and value
+                            stackPtr -= sizeof(IntPtr) + sizeof(double);
                             break;
                         }
                     #endregion
