@@ -1148,6 +1148,49 @@ namespace LumaSharp.Runtime
                     #endregion
 
                     #region Cast
+                    case OpCode.Cast_I1:
+                    case OpCode.Cast_I2:
+                    case OpCode.Cast_I4:
+                        {
+                            // Get type code
+                            TypeCode opType = *(TypeCode*)instructionPtr++;
+
+                            switch (opType)
+                            {
+                                case TypeCode.I64:
+                                    {
+                                        *((long*)(stackPtr - 4)) = *((int*)stackPtr - 1);
+
+                                        // Increment stack ptr by half
+                                        stackPtr += _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.U64:
+                                    {
+                                        *((ulong*)(stackPtr - 4)) = (ulong)*((int*)stackPtr - 1);
+
+                                        // Increment stack ptr by half
+                                        stackPtr += _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Float:
+                                    {
+                                        *((float*)stackPtr - 1) = *((int*)stackPtr - 1);
+                                        break;
+                                    }
+                                case TypeCode.Double:
+                                    {
+                                        *((double*)(stackPtr - 4)) = *((int*)stackPtr - 1);
+
+                                        // Increment stack ptr by half
+                                        stackPtr += _F32.Size;
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+
+
                     case OpCode.Cast_I8:
                         {
                             // Get type code
@@ -1161,6 +1204,96 @@ namespace LumaSharp.Runtime
                                         break;
                                     }
                             }    
+                            break;
+                        }
+                    case OpCode.Cast_F4:
+                        {
+                            // Get type code
+                            TypeCode opType = *(TypeCode*)instructionPtr++;
+
+                            switch (opType)
+                            {
+                                case TypeCode.I8:
+                                case TypeCode.U8:
+                                case TypeCode.I16:
+                                case TypeCode.U16:
+                                case TypeCode.I32:
+                                case TypeCode.U32:
+                                    {
+                                        *((int*)stackPtr - 1) = (int)*((float*)stackPtr - 1);
+                                        break;
+                                    }
+                                case TypeCode.I64:
+                                    {
+                                        *((long*)(stackPtr - 4)) = (long)*((float*)stackPtr - 1);
+
+                                        // Increment stack ptr by half
+                                        stackPtr += _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.U64:
+                                    {
+                                        *((ulong*)(stackPtr - 4)) = (ulong)*((float*)stackPtr - 1);
+
+                                        // Increment stack ptr by half
+                                        stackPtr += _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Double:
+                                    {
+                                        *((double*)(stackPtr - 4)) = *((float*)stackPtr - 1);
+
+                                        // Increment stack ptr by half
+                                        stackPtr += _F32.Size;
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+                    case OpCode.Cast_F8:
+                        {
+                            // Get type code
+                            TypeCode opType = *(TypeCode*)instructionPtr++;
+
+                            switch (opType)
+                            {
+                                case TypeCode.I8:
+                                case TypeCode.U8:
+                                case TypeCode.I16:
+                                case TypeCode.U16:
+                                case TypeCode.I32:
+                                case TypeCode.U32:
+                                    {
+                                        *((int*)stackPtr - 2) = (int)*((double*)stackPtr - 1);
+
+                                        // Decrement stack ptr by half
+                                        stackPtr -= _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.I64:
+                                    {
+                                        *((long*)stackPtr - 1) = (long)*((double*)stackPtr - 1);
+                                        break;
+                                    }
+                                case TypeCode.U64:
+                                    {
+                                        *((ulong*)stackPtr - 1) = (ulong)*((double*)stackPtr - 1);
+                                        break;
+                                    }
+                                case TypeCode.Float:
+                                    {
+                                        *((float*)stackPtr - 2) = (int)*((double*)stackPtr - 1);
+
+                                        // Decrement stack ptr by half
+                                        stackPtr -= _F32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Double:
+                                    {
+                                        *((double*)stackPtr - 1) = *((double*)stackPtr - 1);
+                                        break;
+                                    }
+                            }
                             break;
                         }
                     #endregion
