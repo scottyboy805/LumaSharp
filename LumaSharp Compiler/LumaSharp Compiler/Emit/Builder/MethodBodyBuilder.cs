@@ -5,6 +5,7 @@ using LumaSharp_Compiler.Semantics.Model;
 using LumaSharp_Compiler.AST;
 using LumaSharp.Runtime;
 using LumaSharp_Compiler.Semantics;
+using LumaSharp.Runtime.Emit;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
@@ -350,7 +351,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                     IFieldReferenceSymbol fieldSymbol = model.FieldAccessorIdentifier as IFieldReferenceSymbol;
 
                     // Load field instruction
-                    instructions.EmitOpCode(OpCode.Ld_Fld, fieldSymbol);
+                    instructions.EmitOpCode(OpCode.Ld_Fld, fieldSymbol.SymbolToken);
                 }
                 // Check for accessor
                 else if(model.IsAccessorReference == true)
@@ -368,7 +369,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                     IFieldReferenceSymbol fieldSymbol = model.FieldAccessorIdentifier as IFieldReferenceSymbol;
 
                     // Store field instruction
-                    instructions.EmitOpCode(OpCode.St_Fld, fieldSymbol);
+                    instructions.EmitOpCode(OpCode.St_Fld, fieldSymbol.SymbolToken);
                 }
                 // Check for accessor
                 else if(model.IsAccessorReference == true)
@@ -381,7 +382,7 @@ namespace LumaSharp_Compiler.Emit.Builder
         public override void VisitTypeReference(TypeReferenceModel model)
         {
             // Load type symbols
-            instructions.EmitOpCode(OpCode.Ld_Type, model.EvaluatedTypeSymbol);
+            instructions.EmitOpCode(OpCode.Ld_Type, model.EvaluatedTypeSymbol.SymbolToken);
         }
 
         private void EmitLoadLocal(ILocalIdentifierReferenceSymbol localSymbol)
@@ -498,7 +499,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 case PrimitiveType.Double: instructions.EmitOpCode(OpCode.Ld_Addr_F8); break;
                 default:
                     {
-                        instructions.EmitOpCode(OpCode.Ld_Addr_Any, typeSymbol);
+                        instructions.EmitOpCode(OpCode.Ld_Addr_Any, typeSymbol.SymbolToken);
                         break;
                     }
             }
@@ -520,7 +521,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                 case PrimitiveType.Double: instructions.EmitOpCode(OpCode.St_Addr_F8); break;
                 default:
                     {
-                        instructions.EmitOpCode(OpCode.St_Addr_Any, typeSymbol);
+                        instructions.EmitOpCode(OpCode.St_Addr_Any, typeSymbol.SymbolToken);
                         break;
                     }
             }
@@ -531,17 +532,17 @@ namespace LumaSharp_Compiler.Emit.Builder
             // Check for objects
             if (fromSymbol.PrimitiveType == PrimitiveType.Any && toSymbol.PrimitiveType == PrimitiveType.Any)
             {
-                instructions.EmitOpCode(OpCode.Cast_Any, toSymbol);
+                instructions.EmitOpCode(OpCode.Cast_Any, toSymbol.SymbolToken);
             }
             // Check for boxed conversion to primitive
             else if (fromSymbol.PrimitiveType == PrimitiveType.Any)
             {
-                instructions.EmitOpCode(OpCode.From_Any, toSymbol);
+                instructions.EmitOpCode(OpCode.From_Any, toSymbol.SymbolToken);
             }
             // Check for primitive conversion to boxed any
             else if (toSymbol.PrimitiveType == PrimitiveType.Any)
             {
-                instructions.EmitOpCode(OpCode.As_Any, toSymbol);
+                instructions.EmitOpCode(OpCode.As_Any, toSymbol.SymbolToken);
             }
             else
             {

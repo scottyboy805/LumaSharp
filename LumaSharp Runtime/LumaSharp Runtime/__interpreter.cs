@@ -2,7 +2,9 @@
 using LumaSharp.Runtime.Handle;
 using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("LumaSharp Compiler")]
 [assembly: InternalsVisibleTo("LumaSharp RuntimeTests")]
+[assembly: InternalsVisibleTo("LumaSharp CompilerTests")]
 
 namespace LumaSharp.Runtime
 {
@@ -529,6 +531,39 @@ namespace LumaSharp.Runtime
 
                             // Pop address and value
                             stackPtr -= sizeof(IntPtr) + sizeof(double);
+                            break;
+                        }
+                    #endregion
+
+                    #region Jump
+                    case OpCode.Jmp:
+                        {
+                            // Jump to new instruction
+                            instructionPtr += *((int*)instructionPtr);
+                            break;
+                        }
+                    case OpCode.Jmp_0:
+                        {
+                            // Check zero
+                            if (*((int*)stackPtr - 1) == 0)
+                            {
+                                // Jump to new instruction
+                                instructionPtr += *((int*)instructionPtr);
+                            }
+                            // Pop from stack
+                            stackPtr -= sizeof(int);
+                            break;
+                        }
+                    case OpCode.Jmp_1:
+                        {
+                            // Check zero
+                            if (*((int*)stackPtr - 1) == 1)
+                            {
+                                // Jump to new instruction
+                                instructionPtr += *((int*)instructionPtr);
+                            }
+                            // Pop from stack
+                            stackPtr -= sizeof(int);
                             break;
                         }
                     #endregion

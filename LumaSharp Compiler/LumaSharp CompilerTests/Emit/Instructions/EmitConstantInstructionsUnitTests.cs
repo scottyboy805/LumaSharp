@@ -5,6 +5,7 @@ using LumaSharp_Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp_Compiler.Emit.Builder;
 using LumaSharp.Runtime;
+using LumaSharp.Runtime.Emit;
 
 namespace LumaSharp_CompilerTests.Emit.Instructions
 {
