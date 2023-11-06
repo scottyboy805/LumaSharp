@@ -271,6 +271,81 @@ namespace LumaSharp.Runtime
                         }
                     #endregion
 
+                    #region Argument
+                    case OpCode.St_Arg_0:
+                        {
+                            // Get local
+                            _StackHandle argHandle = method.argLocals[0];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - argHandle.typeHandle.size, stackBasePtr + argHandle.offset, argHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= argHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.St_Arg_1:
+                        {
+                            // Get local
+                            _StackHandle argHandle = method.argLocals[1];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - argHandle.typeHandle.size, stackBasePtr + argHandle.offset, argHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= argHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.St_Arg_2:
+                        {
+                            // Get local
+                            _StackHandle argHandle = method.argLocals[2];
+
+                            // Move from stack
+                            __memory.Copy(stackPtr - argHandle.typeHandle.size, stackBasePtr + argHandle.offset, argHandle.typeHandle.size);
+
+                            // Decrement stack ptr
+                            stackPtr -= argHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Arg_0:
+                        {
+                            // Get local
+                            _StackHandle argHandle = method.argLocals[0];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + argHandle.offset, stackPtr - argHandle.typeHandle.size, argHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += argHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Arg_1:
+                        {
+                            // Get local
+                            _StackHandle argHandle = method.argLocals[1];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + argHandle.offset, stackPtr - argHandle.typeHandle.size, argHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += argHandle.typeHandle.size;
+                            break;
+                        }
+                    case OpCode.Ld_Arg_2:
+                        {
+                            // Get local
+                            _StackHandle argHandle = method.argLocals[2];
+
+                            // Move from stack
+                            __memory.Copy(stackBasePtr + argHandle.offset, stackPtr - argHandle.typeHandle.size, argHandle.typeHandle.size);
+
+                            // Increment stack ptr
+                            stackPtr += argHandle.typeHandle.size;
+                            break;
+                        }
+                    #endregion
+
                     #region Arithmetic
                     case OpCode.Add:
                         {
