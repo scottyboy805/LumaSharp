@@ -27,7 +27,7 @@ namespace LumaSharp.Runtime
             return *((T*)valPtr);
         }
 
-        internal static void ExecuteBytecode(byte[] instructions, int argOffset = 0, int localOffset = 0)
+        internal static IntPtr ExecuteBytecode(byte[] instructions, int argOffset = 0, int localOffset = 0)
         {
             // Get instruction mem
             fixed(byte* instructionPtr  = instructions)
@@ -44,11 +44,11 @@ namespace LumaSharp.Runtime
                 };
 
                 // Run bytecode
-                ExecuteBytecode(new _MethodHandle { instructionPtr = instructionPtr}, stackBasePtr);
+                return (IntPtr)ExecuteBytecode(new _MethodHandle { instructionPtr = instructionPtr}, stackBasePtr);
             }
         }
 
-        internal static void ExecuteBytecode(in _MethodHandle method, byte* stackBasePtr)
+        internal static byte* ExecuteBytecode(in _MethodHandle method, byte* stackBasePtr)
         {
             // Get instruction ptr
             byte* instructionPtr = method.instructionPtr;
@@ -322,7 +322,7 @@ namespace LumaSharp.Runtime
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) + *((double*)stackPtr - 1);
 
                                         // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        stackPtr -= _F64.Size;
                                         break;
                                     }
                             }
@@ -378,7 +378,7 @@ namespace LumaSharp.Runtime
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) - *((double*)stackPtr - 1);
 
                                         // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        stackPtr -= _F64.Size;
                                         break;
                                     }
                             }
@@ -434,7 +434,7 @@ namespace LumaSharp.Runtime
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) * *((double*)stackPtr - 1);
 
                                         // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        stackPtr -= _F64.Size;
                                         break;
                                     }
                             }
@@ -490,7 +490,122 @@ namespace LumaSharp.Runtime
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) / *((double*)stackPtr - 1);
 
                                         // Decrement stack ptr
+                                        stackPtr -= _F64.Size;
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+                    #endregion
+
+                    #region Compare
+                    case OpCode.Cmp_Eq:
+                        {
+                            // Get type code
+                            TypeCode opType = *(TypeCode*)instructionPtr++;
+
+                            // Select type
+                            switch (opType)
+                            {
+                                case TypeCode.I32:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) == *((int*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.I64:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) == *((long*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _I64.Size + _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.U64:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) == *((ulong*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _I64.Size + _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Float:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) == *((float*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
                                         stackPtr -= _F32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Double:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) == *((double*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _F64.Size + _F32.Size;
+                                        break;
+                                    }
+                            }
+                            break;
+                        }
+                    case OpCode.Cmp_NEq:
+                        {
+                            // Get type code
+                            TypeCode opType = *(TypeCode*)instructionPtr++;
+
+                            // Select type
+                            switch (opType)
+                            {
+                                case TypeCode.I32:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) != *((int*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.I64:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) != *((long*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _I64.Size + _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.U64:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) != *((ulong*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _I64.Size + _I32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Float:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) != *((float*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _F32.Size;
+                                        break;
+                                    }
+                                case TypeCode.Double:
+                                    {
+                                        // Perform add op
+                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) != *((double*)stackPtr - 1)) ? 1 : 0;
+
+                                        // Decrement stack ptr
+                                        stackPtr -= _F64.Size + _F32.Size;
                                         break;
                                     }
                             }
@@ -525,6 +640,7 @@ namespace LumaSharp.Runtime
                     #endregion
                 }
             }
+            return stackPtr;
         }
     }
 }

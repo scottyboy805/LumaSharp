@@ -23,10 +23,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(7, __interpreter.FetchValue<int>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -44,10 +45,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(7L, __interpreter.FetchValue<long>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -67,10 +69,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(7UL, __interpreter.FetchValue<ulong>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -88,10 +91,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(8f, __interpreter.FetchValue<float>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -109,10 +113,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(8d, __interpreter.FetchValue<double>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
 
@@ -132,10 +137,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3, __interpreter.FetchValue<int>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -153,10 +159,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3L, __interpreter.FetchValue<long>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -176,10 +183,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3UL, __interpreter.FetchValue<ulong>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -197,10 +205,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3f, __interpreter.FetchValue<float>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -218,10 +227,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3d, __interpreter.FetchValue<double>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
 
@@ -241,10 +251,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(10, __interpreter.FetchValue<int>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -262,10 +273,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(10L, __interpreter.FetchValue<long>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -285,10 +297,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(10UL, __interpreter.FetchValue<ulong>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -306,10 +319,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(13.75f, __interpreter.FetchValue<float>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -327,10 +341,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(13.75d, __interpreter.FetchValue<double>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
 
@@ -350,10 +365,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3, __interpreter.FetchValue<int>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -371,10 +387,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3L, __interpreter.FetchValue<long>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -394,10 +411,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(3UL, __interpreter.FetchValue<ulong>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
 
         [TestMethod()]
@@ -415,10 +433,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(5.5f, __interpreter.FetchValue<float>());
+            Assert.AreEqual(__memory.stackBasePtr + 4, stackPtr);
         }
 
         [TestMethod()]
@@ -436,10 +455,11 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Execute
             __memory.InitStack();
-            __interpreter.ExecuteBytecode(stream.ToArray());
+            IntPtr stackPtr = __interpreter.ExecuteBytecode(stream.ToArray());
 
             // Check for expected value
             Assert.AreEqual(5.5d, __interpreter.FetchValue<double>());
+            Assert.AreEqual(__memory.stackBasePtr + 8, stackPtr);
         }
     }
 }
