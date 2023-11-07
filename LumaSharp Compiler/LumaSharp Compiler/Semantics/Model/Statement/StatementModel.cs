@@ -66,6 +66,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             if(syntax is ConditionStatementSyntax)
                 return new ConditionModel(model, parent, syntax as  ConditionStatementSyntax, statementIndex);
 
+            // Check for for loop
+            if(syntax is ForStatementSyntax)
+                return new ForModel(model, parent, syntax as ForStatementSyntax, statementIndex);
+
             throw new NotSupportedException("Specified syntax is not supported");
         }
     }

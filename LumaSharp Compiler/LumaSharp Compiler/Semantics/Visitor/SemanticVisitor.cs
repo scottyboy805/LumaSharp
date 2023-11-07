@@ -144,6 +144,27 @@ namespace LumaSharp_Compiler.Semantics.Visitor
                 VisitCondition(model.Alternate);
         }
 
+        public virtual void VisitFor(ForModel model)
+        {
+            if(model.Variable != null)
+                VisitVariable(model.Variable);
+
+            if(model.Condition != null)
+                VisitExpression(model.Condition);
+
+            if(model.IncrementModels != null)
+            {
+                foreach(ExpressionModel expression in model.IncrementModels)
+                    VisitExpression(expression);
+            }
+
+            if(model.Statements != null)
+            {
+                foreach(StatementModel statement in model.Statements)
+                    VisitStatement(statement);
+            }
+        }
+
         public virtual void VisitStatement(StatementModel model)
         {
             // Check for assign
@@ -165,6 +186,11 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             else if(model is ConditionModel)
             {
                 VisitCondition(model as ConditionModel);
+            }
+            // Check for for
+            else if(model is ForModel)
+            {
+                VisitFor(model as ForModel);
             }
             else
             {

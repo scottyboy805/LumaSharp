@@ -5,19 +5,19 @@ using LumaSharp_Compiler.Semantics.Model.Expression;
 
 namespace LumaSharp_Compiler.Semantics.Model.Statement
 {
-    public sealed class ConditionModel : StatementModel, IScopeModel
+    public sealed class ForModel : StatementModel, IScopeModel
     {
         // Private
-        private ConditionStatementSyntax syntax = null;
-        private ConditionModel parentConditionModel = null;
+        private ForStatementSyntax syntax = null;
+        private VariableModel variableModel = null;
         private ExpressionModel conditionModel = null;
+        private ExpressionModel[] incrementModels = null;
         private StatementModel[] statements = null;
-        private ConditionModel alternateModel = null;
 
         // Properties
-        public ConditionModel ParentCondition
+        public VariableModel Variable
         {
-            get { return parentConditionModel; }
+            get { return variableModel; }
         }
 
         public ExpressionModel Condition
@@ -25,78 +25,89 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             get { return conditionModel; }
         }
 
+        public ExpressionModel[] IncrementModels
+        {
+            get { return incrementModels; }
+        }
+
         public StatementModel[] Statements
         {
             get { return statements; }
-        }
-
-        public ConditionModel Alternate
-        {
-            get { return alternateModel; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
         {
             get
             {
+                if (variableModel != null)
+                    yield return variableModel;
+
                 if (conditionModel != null)
                     yield return conditionModel;
 
-                foreach (StatementModel statement in statements)
-                    yield return statement;
+                if(incrementModels != null)
+                {
+                    foreach(ExpressionModel model in incrementModels)
+                        yield return model;
+                }
 
-                if (alternateModel != null)
-                    yield return alternateModel;
+                if(statements != null)
+                {
+                    foreach(StatementModel model in statements)
+                        yield return model;
+                }
             }
         }
 
         // Constructor
-        public ConditionModel(SemanticModel model, SymbolModel parent, ConditionStatementSyntax syntax, int index)
+        public ForModel(SemanticModel model, SymbolModel parent, ForStatementSyntax syntax, int index)
             : base(model, parent, syntax, index)
         {
             this.syntax = syntax;
 
+            // Variable
+            if(syntax.HasForVariables == true)
+                this.variableModel = StatementModel.Any(model, this, syntax.ForVariable, StatementIndex + 1) as VariableModel;
+
             // Condition
-            this.conditionModel = ExpressionModel.Any(model, this, syntax.ConditionExpression);
+            if (syntax.HasForCondition == true)
+                this.conditionModel = ExpressionModel.Any(model, this, syntax.ForCondition);
+
+            // Increment
+            if (syntax.HasForIncrements == true)
+                this.incrementModels = syntax.ForIncrements.Select(i => ExpressionModel.Any(model, this, i)).ToArray();
 
             // Statements
             BuildSyntaxBlock(syntax);
-
-            // Alternate
-            if (syntax.Alternate != null)
-                this.alternateModel = new ConditionModel(model, this, this, syntax.Alternate, StatementIndex + 1);
-        }
-
-        private ConditionModel(SemanticModel model, SymbolModel parent, ConditionModel parentCondition, ConditionStatementSyntax alternate, int index)
-            : base(model, parent, alternate, index)
-        {
-            this.syntax = alternate;
-            this.parentConditionModel = parentCondition;
-
-            // Condition
-            if(alternate.ConditionExpression != null)
-                this.conditionModel = ExpressionModel.Any(model, this, alternate.ConditionExpression);
-
-            // Statements
-            BuildSyntaxBlock(syntax);
-
-            // Alternate
-            if(syntax.Alternate != null)
-                this.alternateModel = new ConditionModel(model, this, this, alternate.Alternate, StatementIndex + 1);
         }
 
         // Methods
         public override void Accept(ISemanticVisitor visitor)
         {
-            visitor.VisitCondition(this);
+            visitor.VisitFor(this);
         }
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve variable symbols
+            if(variableModel != null)
+            {
+                variableModel.ResolveSymbols(provider, report);
+            }
+
             // Resolve condition symbols
             if(conditionModel != null)
             {
                 conditionModel.ResolveSymbols(provider, report);
+            }
+
+            // Resolve increments
+            if(incrementModels != null)
+            {
+                foreach(ExpressionModel model in incrementModels)
+                {
+                    model.ResolveSymbols(provider, report);
+                }
             }
 
             // Resolve statements
@@ -107,12 +118,6 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
                     statement.ResolveSymbols(provider, report);
                 }
             }
-
-            // Resolve alternate
-            if(alternateModel != null)
-            {
-                alternateModel.ResolveSymbols(provider, report);
-            }
         }
 
         public VariableModel DeclareScopedLocal(SemanticModel model, VariableDeclarationStatementSyntax syntax, int index)
@@ -120,15 +125,15 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             throw new NotImplementedException();
         }
 
-        private void BuildSyntaxBlock(ConditionStatementSyntax syntax)
+        private void BuildSyntaxBlock(ForStatementSyntax syntax)
         {
             // Check for inline
-            if(syntax.HasInlineStatement == true)
+            if (syntax.HasInlineStatement == true)
             {
                 this.statements = new StatementModel[] { StatementModel.Any(Model, this, syntax.InlineStatement, StatementIndex + 1, this) };
             }
             // Check for body
-            else if(syntax.HasBlockStatement == true)
+            else if (syntax.HasBlockStatement == true)
             {
                 this.statements = syntax.BlockStatement.Elements.Select((s, i) => StatementModel.Any(Model, this, s, StatementIndex + 1 + i, this)).ToArray();
             }
