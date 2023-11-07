@@ -648,17 +648,17 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context) { }
+	public virtual void EnterForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context) { }
+	public virtual void ExitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
 	/// <para>The default implementation does nothing.</para>

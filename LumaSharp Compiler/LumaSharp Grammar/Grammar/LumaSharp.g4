@@ -238,9 +238,9 @@ elseStatement: ELSE (statement | semi=';' | statementBlock);
 foreachStatement: FOREACH lparen='(' typeReference IDENTIFIER IN expression rparen=')' (statement? semi=';' | statementBlock);
 
 // For statement
-forStatement: FOR lparen='(' (forVariableStatement (',' forVariableStatement)*)? semi=';' expression? semi=';' (forIncrementStatement (',' forIncrementStatement)*)? rparen=')' (statement? semi=';' | statementBlock);
-forVariableStatement: typeReference IDENTIFIER ('=' expression)?;
-forIncrementStatement: expression;
+forStatement: FOR lparen='(' forVariableStatement? semiVar=';' expression? semiCond=';' (forIncrementExpression (',' forIncrementExpression)*)? rparen=')' (statement? semi=';' | statementBlock);
+forVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* localVariableAssignment?;
+forIncrementExpression: expression;
 
 // While statement
 whileStatement: WHILE '(' expression ')' (statement | ';' | '{' statement* '}');

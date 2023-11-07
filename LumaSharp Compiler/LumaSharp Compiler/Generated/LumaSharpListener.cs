@@ -541,15 +541,15 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context);
+	void EnterForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context);
+	void ExitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
 	/// </summary>

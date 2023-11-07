@@ -1,4 +1,6 @@
 ﻿
+using Antlr4.Runtime;
+
 namespace LumaSharp_Compiler.AST
 {
     public sealed class VariableDeclarationStatementSyntax : StatementSyntax
@@ -123,6 +125,38 @@ namespace LumaSharp_Compiler.AST
             
             // Semicolon
             this.statementEnd = new SyntaxToken(local.semi);
+        }
+
+        internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ForVariableStatementContext forVariable, IToken semi)
+            : base(tree, parent, forVariable)
+        {
+            // Variable type
+            this.variableType = new TypeReferenceSyntax(tree, this, forVariable.typeReference());
+
+            // Identifiers
+            this.identifiers = forVariable.IDENTIFIER().Select(i => new SyntaxToken(i)).ToArray();
+
+            // Get assignment
+            LumaSharpParser.LocalVariableAssignmentContext assignment = forVariable.localVariableAssignment();
+
+            if(assignment != null)
+            {
+                // Assign expressions
+                this.assignExpressions = assignment.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
+
+                // Assign
+                this.assign = new SyntaxToken(assignment.assign);
+
+                // Check for block
+                if(assignment.lblock != null)
+                    this.lblock= new SyntaxToken(assignment.lblock);
+
+                if(assignment.rblock != null)
+                    this.rblock= new SyntaxToken(assignment.rblock);
+            }
+
+            // Semicolon
+            this.statementEnd = new SyntaxToken(semi);
         }
 
         // Methods

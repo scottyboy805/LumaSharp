@@ -1,4 +1,6 @@
 ﻿
+using System.Diagnostics;
+
 namespace LumaSharp_Compiler.AST.Statement
 {
     public sealed class ForStatementSyntax : StatementSyntax
@@ -113,10 +115,47 @@ namespace LumaSharp_Compiler.AST.Statement
             semicolon = SyntaxToken.Semi();
         }
 
-        internal ForStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ForStatementContext statement)
-            : base(tree, parent, statement)
+        internal ForStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ForStatementContext forStatement)
+            : base(tree, parent, forStatement)
         {
+            // Keyword
+            this.keyword = new SyntaxToken(forStatement.FOR());
 
+            // LR paren
+            this.lparen = new SyntaxToken(forStatement.lparen);
+            this.rparen = new SyntaxToken(forStatement.rparen);
+
+            // Variables
+            if (forStatement.forVariableStatement() != null)
+                this.forVariable = new VariableDeclarationStatementSyntax(tree, this, forStatement.forVariableStatement(), forStatement.semiVar);
+
+            // Conditions
+            if (forStatement.expression() != null)
+                this.forCondition = ExpressionSyntax.Any(tree, this, forStatement.expression());
+
+            // Increments
+            LumaSharpParser.ForIncrementExpressionContext[] increments = forStatement.forIncrementExpression();
+
+            if(increments != null && increments.Length > 0)
+            {
+                this.forIncrements = increments.Select(e => ExpressionSyntax.Any(tree, this, e.expression())).ToArray();
+            }
+
+            // Statement inline
+            if(forStatement.statement() != null)
+            {
+                this.inlineStatement = Any(tree, this, forStatement.statement());
+            }
+
+            // Statement block
+            if(forStatement.statementBlock() != null)
+            {
+                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, forStatement.statementBlock());
+            }
+
+            // Semi
+            if (forStatement.semi != null)
+                this.statementEnd = new SyntaxToken(forStatement.semi);
         }
 
         // Methods

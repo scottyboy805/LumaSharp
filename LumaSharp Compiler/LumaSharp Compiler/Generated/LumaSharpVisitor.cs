@@ -338,11 +338,11 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.forIncrementStatement"/>.
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitForIncrementStatement([NotNull] LumaSharpParser.ForIncrementStatementContext context);
+	Result VisitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
 	/// </summary>
