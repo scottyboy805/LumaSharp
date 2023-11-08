@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using LumaSharp.Runtime.Handle;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace LumaSharp.Runtime
@@ -58,27 +59,51 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* Alloc(int size)
+        public static void* Alloc(in _TypeHandle type, uint count = 1)
         {
-            // Check for size
-            if (size < 0)
-                throw new ArgumentException("size must be 0 or greater");
-
             // Check for zero
-            if (size == 0)
+            if (type.size == 0)
                 return null;
 
-            // Size must include 4 bytes for reference counter
-            int fullSize = size + sizeof(int);
+            // Size must include 4 bytes for reference counter and 4 bytes for type code
+            uint fullSize = (type.size * count) + _MemoryHandle.Size;
 
             // Allocate
-            void* mem = NativeMemory.AllocZeroed((nuint)fullSize);
+            void* mem = NativeMemory.AllocZeroed(fullSize);
 
             // Register memory
             trackedMemory.Add((IntPtr)mem);
 
+            // Insert memory handle before data
+            (*((_MemoryHandle*)mem)).typeHandle = type;
+
             // Get data offset
-            mem = ((int*)mem) + sizeof(int);
+            mem = ((byte*)mem) + _MemoryHandle.Size;
+
+            return mem;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void* StackAlloc(ref byte* stackPtr, in _TypeHandle type, uint count = 1)
+        {
+            // Check for zero
+            if (type.size == 0)
+                return null;
+
+            // Size must include type info??
+            uint fullSize = (type.size * count) + _MemoryHandle.Size;
+
+            // Allocate memory
+            void* mem = stackPtr;
+
+            // Insert memory handle before data
+            (*((_MemoryHandle*)mem)).typeHandle = type;
+
+            // Advance offset
+            stackPtr += fullSize;
+
+            // Get data offset
+            mem = ((byte*)mem) + _MemoryHandle.Size;
 
             return mem;
         }
@@ -93,8 +118,8 @@ namespace LumaSharp.Runtime
             // Untrack memory
             trackedMemory.Remove((IntPtr)mem);
 
-            // Account for the reference memory also
-            mem = ((int*)mem) - sizeof(int);
+            // Account for the reference memory also and type token
+            mem = ((int*)mem) - (sizeof(int) * 2);
 
             // Free memory
             NativeMemory.Free(mem);

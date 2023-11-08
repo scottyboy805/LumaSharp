@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime;
+using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
@@ -9,6 +10,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
         private AST.PrimitiveType primitiveType = 0;
         private ReferenceLibrary library = null;
         private ITypeReferenceSymbol[] baseTypes = null;
+
+        private _TypeHandle typeHandle = default;
 
         // Properties
         public string TypeName => typeName;
@@ -49,6 +52,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         public string LibraryName => "runtime";
 
+        public _TypeHandle TypeHandle => typeHandle;
+
         // Constructor
         internal PrimitiveTypeSymbol(ReferenceLibrary runtimeLibrary, PrimitiveType primitiveType, ITypeReferenceSymbol baseType = null)
         {
@@ -58,6 +63,13 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
             if (baseType != null)
                 this.baseTypes = new ITypeReferenceSymbol[] { baseType };
+
+            // Create handle
+            this.typeHandle = new _TypeHandle
+            {
+                typeToken = (int)primitiveType,
+                size = __runtime.Size((int)primitiveType),
+            };
 
             // Load members from reference library
         }

@@ -35,7 +35,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public abstract void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report);
 
-        public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : SymbolModel
+        public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : class//SymbolModel
         {
             foreach (SymbolModel node in Descendants)
             {
@@ -45,7 +45,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Check for children
                 if (withChildren == true)
                 {
-                    foreach (SymbolModel child in node.DescendantsOfType<T>(withChildren))
+                    foreach (T child in node.DescendantsOfType<T>(withChildren))
                         if (child is T)
                             yield return child as T;
                 }

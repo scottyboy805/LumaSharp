@@ -50,7 +50,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Check if method has return
-            IMethodReferenceSymbol parentMethod = ParentSymbol as IMethodReferenceSymbol;
+            IMethodReferenceSymbol parentMethod = GetParentSymbol<IMethodReferenceSymbol>(); //ParentSymbol as IMethodReferenceSymbol;
 
             // Check for return
             if(HasReturnExpression == true)

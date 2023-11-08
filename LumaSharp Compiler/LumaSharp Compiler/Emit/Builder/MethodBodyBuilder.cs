@@ -6,6 +6,7 @@ using LumaSharp_Compiler.AST;
 using LumaSharp.Runtime;
 using LumaSharp_Compiler.Semantics;
 using LumaSharp.Runtime.Emit;
+using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
@@ -51,14 +52,45 @@ namespace LumaSharp_Compiler.Emit.Builder
         }
 
         #region Statement
+        public override void VisitVariable(VariableModel model)
+        {
+            // Visit all assign expressions
+            foreach(AssignModel assign in model.AssignModels)
+            {
+                assign.Accept(this);
+            }
+
+            //foreach (model.VariableModels[0].
+        }
+
         public override void VisitAssign(AssignModel model)
         {
             // Visit right
             referenceContextScope.Push(ReferenceContext.Read);
             {
-                VisitExpression(model.Right);
+                model.Right.Accept(this);
             }
             referenceContextScope.Pop();
+
+            // Check for operation assign
+            if(model.Operation != AssignOperation.Assign)
+            {
+                // Load the left value
+                referenceContextScope.Push(ReferenceContext.Read);
+                {
+                    model.Left.Accept(this);
+                }
+                referenceContextScope.Pop();
+
+                // Emit operation
+                switch(model.Operation)
+                {
+                    case AssignOperation.AddAssign: instructions.EmitOpCode(OpCode.Add, (byte)model.Left.EvaluatedTypeSymbol.PrimitiveType); break;
+                    case AssignOperation.SubtractAssign: instructions.EmitOpCode(OpCode.Sub, (byte)model.Left.EvaluatedTypeSymbol.PrimitiveType); break;
+                    case AssignOperation.MultiplyAssign: instructions.EmitOpCode(OpCode.Mul, (byte)model.Left.EvaluatedTypeSymbol.PrimitiveType); break;
+                    case AssignOperation.DivideAssign: instructions.EmitOpCode(OpCode.Div, (byte)model.Left.EvaluatedTypeSymbol.PrimitiveType); break;
+                }
+            }
 
             // Visit left
             referenceContextScope.Push(ReferenceContext.Write);
@@ -118,6 +150,60 @@ namespace LumaSharp_Compiler.Emit.Builder
                 int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset);// - conditionStart.dataSize);
                 instructions.ModifyOpCode(jmp, finalOffset);
             }
+        }
+
+        public override void VisitFor(ForModel model)
+        {
+            // Emit variables
+            if(model.Variable != null)
+                model.Variable.Accept(this);
+
+            Instruction conditionStart = instructions.Last;
+            Instruction jmp = default;
+
+            // Visit condition
+            if(model.Condition != null)
+            {
+                referenceContextScope.Push(ReferenceContext.Read);
+                {
+                    // Emit condition
+                    model.Condition.Accept(this);
+                }
+                referenceContextScope.Pop();
+
+                // Jump false
+                jmp = instructions.EmitOpCode(OpCode.Jmp_0, 0);
+            }
+            else
+            {
+                // Jmp always
+                jmp = instructions.EmitOpCode(OpCode.Jmp, 0);
+            }
+            
+
+            // Visit body
+            if (model.Statements != null && model.Statements.Length > 0)
+            {
+                foreach (StatementModel statement in model.Statements)
+                    statement.Accept(this);
+            }
+
+            // Visit increments
+            if(model.IncrementModels != null && model.IncrementModels.Length > 0)
+            {
+                foreach(ExpressionModel increment in model.IncrementModels)
+                    increment.Accept(this);
+            }
+
+            // Emit jump back to start
+            int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset);
+            finalOffset += 1;
+            instructions.EmitOpCode(OpCode.Jmp, -finalOffset);
+
+
+            // Modify exit jump offset
+            int exitOffset = (instructions.Last.offset + instructions.Last.dataSize) - (jmp.offset);
+            instructions.ModifyOpCode(jmp, exitOffset);// - 1);
         }
         #endregion
 

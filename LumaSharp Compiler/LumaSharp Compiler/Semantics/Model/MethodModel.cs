@@ -1,4 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime;
+using LumaSharp.Runtime.Handle;
+using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Statement;
 using System.Runtime.CompilerServices;
@@ -15,6 +17,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ILocalIdentifierReferenceSymbol[] parameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] localIdentifierSymbols = null;
         private StatementModel[] bodyStatements = null;
+
+        private _MethodHandle methodHandle = default;
 
         // Properties
         public MethodSyntax Syntax
@@ -95,6 +99,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public bool HasBody
         {
             get { return syntax.HasBody; }
+        }
+
+        public _MethodHandle MethodHandle
+        {
+            get { return methodHandle; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -285,6 +294,76 @@ namespace LumaSharp_Compiler.Semantics.Model
                     }
                 }
             }
+
+
+            // Build arg and locals
+            List<_StackHandle> argLocals = new List<_StackHandle>();
+            uint stackOffset = 0;
+            ushort localHandleOffset = 0;
+            ushort argPtrOffset = 0;
+            ushort localPtrOffset = 0;
+            uint stackPtrOffset = 0;
+
+            // Process parameters
+            for(int i = 0; i < parameterIdentifierSymbols.Length; i++)
+            {
+                // Add parameter
+                argLocals.Add(new _StackHandle
+                {
+                    typeHandle = parameterIdentifierSymbols[i].TypeSymbol.TypeHandle,
+                    offset = stackOffset,
+                });
+
+                // Advance offset
+                stackOffset += argLocals[argLocals.Count - 1].typeHandle.size;
+            }
+
+            // Update local offset - start of local variables
+            localHandleOffset = (ushort)argLocals.Count;
+            localPtrOffset = (ushort)stackOffset;
+
+            // Get all locals
+            List<ILocalIdentifierReferenceSymbol> locals = new List<ILocalIdentifierReferenceSymbol>();
+
+            // Add root locals
+            if (localIdentifierSymbols != null)
+                locals.AddRange(localIdentifierSymbols);
+
+            // Add scoped locals
+            foreach (IScopedReferenceSymbol scope in DescendantsOfType<IScopedReferenceSymbol>(true))
+            {
+                // Check for locals
+                if (scope.LocalsInScope != null)
+                    locals.AddRange(scope.LocalsInScope);
+            }
+
+                
+            // Build all locals
+            for(int i = 0; i < locals.Count; i++)
+            {
+                // Add local
+                argLocals.Add(new _StackHandle
+                {
+                    typeHandle = locals[i].TypeSymbol.TypeHandle,
+                    offset = stackOffset,
+                });
+
+                // Advance offset
+                stackOffset += argLocals[argLocals.Count - 1].typeHandle.size;
+            }
+
+            // Calculate start exestuation offset
+            stackPtrOffset = stackOffset;
+
+            // Build method
+            this.methodHandle = new _MethodHandle
+            {
+                localHandleOffset = localHandleOffset,
+                argPtrOffset = argPtrOffset,
+                localPtrOffset = localPtrOffset,
+                stackPtrOffset = stackPtrOffset,
+                argLocals = argLocals.ToArray(),
+            };
         }
 
         public override void StaticallyEvaluateMember(ISymbolProvider provider)

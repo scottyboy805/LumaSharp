@@ -1,10 +1,16 @@
 ﻿
 namespace LumaSharp.Runtime
 {
-    internal unsafe struct _StackHandle
+    public unsafe struct _StackHandle
     {
-        // Public
-        public _TypeHandle typeHandle;
-        public uint offset;
+        // Internal
+        internal _TypeHandle typeHandle;
+        internal uint offset;
+
+        // Methods
+        public override string ToString()
+        {
+            return string.Format("_StackHandle(type = {0}, offset = {1}, size = {2})", typeHandle.TypeCode, offset, typeHandle.size);
+        }
     }
 }

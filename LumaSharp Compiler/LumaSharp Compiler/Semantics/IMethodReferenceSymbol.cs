@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp_Compiler.Semantics
 {
     public interface IMethodReferenceSymbol : IIdentifierReferenceSymbol
@@ -17,5 +19,7 @@ namespace LumaSharp_Compiler.Semantics
         bool IsGlobal { get; }
 
         bool HasBody { get; }
+
+        _MethodHandle MethodHandle { get; }
     }
 }

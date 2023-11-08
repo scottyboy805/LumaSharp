@@ -138,7 +138,7 @@ namespace LumaSharp_Compiler.AST.Statement
             // Get alternate
             if(condition.elseifStatement() != null)
             {
-
+                //alternate = new ConditionStatementSyntax(tree, this, condition.elseifStatement());
             }
             if(condition.elseStatement() != null)
             {

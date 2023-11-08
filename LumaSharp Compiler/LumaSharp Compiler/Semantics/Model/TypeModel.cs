@@ -1,8 +1,8 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime;
+using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
 using LumaSharp_Compiler.Semantics.Reference;
-using System.Linq;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -23,6 +23,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         private AccessorModel[] memberAccessors = null;
         private MethodModel[] memberMethods = null;
         private MethodModel[] operatorMethods = null;
+
+        private _TypeHandle typeHandle = default;
 
         // Properties
         internal MemberSyntax Syntax
@@ -146,6 +148,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public bool IsEnum
         {
             get { return syntax is EnumSyntax; }
+        }
+
+        public _TypeHandle TypeHandle
+        {
+            get { return typeHandle; }
         }
 
         public override IEnumerable<SymbolModel> Descendants

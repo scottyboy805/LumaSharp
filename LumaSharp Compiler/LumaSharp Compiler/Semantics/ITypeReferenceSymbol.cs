@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime;
+using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics
 {
@@ -18,6 +19,8 @@ namespace LumaSharp_Compiler.Semantics
         bool IsContract { get; }
 
         bool IsEnum { get; }
+
+        _TypeHandle TypeHandle { get; }
 
         INamespaceReferenceSymbol NamespaceSymbol { get; }
 

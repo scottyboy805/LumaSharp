@@ -45,15 +45,15 @@ namespace LumaSharp.Runtime.Emit
         {
             if(data0 != null && data1 != null)
             {
-                return string.Format("{0}: {1}: {2}, {3}", index, data0, data1);
+                return string.Format("[{0}] {1}: {2}: {3}, {4}", offset, index, opCode, data0, data1);
             }
             else if(data0 != null)
             {
-                return string.Format("{0}: {1}: {2}", index, data0);
+                return string.Format("[{0}] {1}: {2}: {3}", offset, index, opCode, data0);
             }
             else
             {
-                return string.Format("{0}: {1}", index, opCode);
+                return string.Format("[{0}] {1}: {2}", offset, index, opCode);
             }    
         }
     }

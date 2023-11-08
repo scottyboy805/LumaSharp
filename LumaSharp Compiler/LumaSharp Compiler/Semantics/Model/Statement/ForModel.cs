@@ -5,7 +5,7 @@ using LumaSharp_Compiler.Semantics.Model.Expression;
 
 namespace LumaSharp_Compiler.Semantics.Model.Statement
 {
-    public sealed class ForModel : StatementModel, IScopeModel
+    public sealed class ForModel : StatementModel, IScopeModel, IScopedReferenceSymbol, IReferenceSymbol
     {
         // Private
         private ForStatementSyntax syntax = null;
@@ -13,8 +13,19 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         private ExpressionModel conditionModel = null;
         private ExpressionModel[] incrementModels = null;
         private StatementModel[] statements = null;
+        private ILocalIdentifierReferenceSymbol[] localsInScope = null;
 
         // Properties
+        public string ScopeName
+        {
+            get { return "For Statement"; }
+        }
+
+        public ILocalIdentifierReferenceSymbol[] LocalsInScope
+        {
+            get { return localsInScope; }
+        }
+
         public VariableModel Variable
         {
             get { return variableModel; }
@@ -59,6 +70,16 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             }
         }
 
+        public ILibraryReferenceSymbol LibrarySymbol
+        {
+            get { return null; }
+        }
+
+        public int SymbolToken
+        {
+            get { return -1; }
+        }
+
         // Constructor
         public ForModel(SemanticModel model, SymbolModel parent, ForStatementSyntax syntax, int index)
             : base(model, parent, syntax, index)
@@ -67,7 +88,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
 
             // Variable
             if(syntax.HasForVariables == true)
-                this.variableModel = StatementModel.Any(model, this, syntax.ForVariable, StatementIndex + 1) as VariableModel;
+                this.variableModel = StatementModel.Any(model, this, syntax.ForVariable, StatementIndex, this) as VariableModel;
 
             // Condition
             if (syntax.HasForCondition == true)
@@ -122,7 +143,31 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
 
         public VariableModel DeclareScopedLocal(SemanticModel model, VariableDeclarationStatementSyntax syntax, int index)
         {
-            throw new NotImplementedException();
+            // Create the variable
+            VariableModel variableModel = new VariableModel(model, this, syntax, index);
+
+            // Register locals
+            LocalOrParameterModel[] localModels = variableModel.VariableModels.Where(m => m != null).ToArray();
+
+            // Declare all
+            if (localModels.Length > 0)
+            {
+                // Make sure array is allocated
+                if (localsInScope == null)
+                    localsInScope = Array.Empty<LocalOrParameterModel>();
+
+                int startOffset = localsInScope.Length;
+
+                // Resize the array
+                Array.Resize(ref localsInScope, localsInScope.Length + localModels.Length);
+
+                // Append elements
+                for (int i = 0; i < localModels.Length; i++)
+                {
+                    localsInScope[startOffset + i] = localModels[i];
+                }
+            }
+            return variableModel;
         }
 
         private void BuildSyntaxBlock(ForStatementSyntax syntax)

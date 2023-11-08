@@ -50,6 +50,22 @@ namespace LumaSharp.Runtime
             }
         }
 
+        internal static IntPtr ExecuteBytecode(_MethodHandle method, byte[] instructions)
+        {
+            // Get instruction mem
+            fixed (byte* instructionPtr = instructions)
+            {
+                // Get stack ptr
+                byte* stackBasePtr = (byte*)__memory.stackBasePtr + method.stackPtrOffset;
+
+                // Setup instructions
+                method.instructionPtr = instructionPtr;
+
+                // Run bytecode
+                return (IntPtr)ExecuteBytecode(method, stackBasePtr);
+            }
+        }
+
         internal static byte* ExecuteBytecode(in _MethodHandle method, byte* stackBasePtr)
         {
             // Get instruction ptr
@@ -61,6 +77,9 @@ namespace LumaSharp.Runtime
 
             // Get main stack ptr
             byte* stackPtr = stackBasePtr + method.stackPtrOffset;
+
+            // Get stack ptr where dynamic stack allocations can be made - after this method frame
+            byte* stackAllocPtr = stackPtr + method.maxStack;
 
             bool halt = false;
 
@@ -207,6 +226,8 @@ namespace LumaSharp.Runtime
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Decrement stack ptr
                             stackPtr -= locHandle.typeHandle.size;
                             break;
@@ -219,6 +240,8 @@ namespace LumaSharp.Runtime
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Decrement stack ptr
                             stackPtr -= locHandle.typeHandle.size;
                             break;
@@ -230,6 +253,8 @@ namespace LumaSharp.Runtime
 
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.typeHandle.size, stackBasePtr + locHandle.offset, locHandle.typeHandle.size);
+
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
 
                             // Decrement stack ptr
                             stackPtr -= locHandle.typeHandle.size;
@@ -262,12 +287,15 @@ namespace LumaSharp.Runtime
                         }
                     case OpCode.Ld_Loc_0:
                         {
-                            // TODO - bounds checking here may be slow??
                             // Get local
                             _StackHandle locHandle = method.argLocals[method.localHandleOffset + 0];
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr, locHandle.typeHandle.size);
+
+                            int stackTop = *((int*)stackPtr - 1);
 
                             // Increment stack ptr
                             stackPtr += locHandle.typeHandle.size;
@@ -278,8 +306,12 @@ namespace LumaSharp.Runtime
                             // Get local
                             _StackHandle locHandle = method.argLocals[method.localHandleOffset + 1];
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr, locHandle.typeHandle.size);
+
+                            int stackTop = *((int*)stackPtr - 1);
 
                             // Increment stack ptr
                             stackPtr += locHandle.typeHandle.size;
@@ -290,8 +322,10 @@ namespace LumaSharp.Runtime
                             // Get local
                             _StackHandle locHandle = method.argLocals[method.localHandleOffset + 2];
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr, locHandle.typeHandle.size);
 
                             // Increment stack ptr
                             stackPtr += locHandle.typeHandle.size;
@@ -302,8 +336,10 @@ namespace LumaSharp.Runtime
                             // Get local
                             _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((byte*)instructionPtr++)];
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr, locHandle.typeHandle.size);
 
                             // Increment stack ptr
                             stackPtr += locHandle.typeHandle.size;
@@ -315,8 +351,10 @@ namespace LumaSharp.Runtime
                             _StackHandle locHandle = method.argLocals[method.localHandleOffset + *((ushort*)instructionPtr)];
                             instructionPtr += 2;
 
+                            int _32Val = *((int*)(stackBasePtr + locHandle.offset));
+
                             // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr - locHandle.typeHandle.size, locHandle.typeHandle.size);
+                            __memory.Copy(stackBasePtr + locHandle.offset, stackPtr, locHandle.typeHandle.size);
 
                             // Increment stack ptr
                             stackPtr += locHandle.typeHandle.size;
@@ -531,6 +569,34 @@ namespace LumaSharp.Runtime
 
                             // Pop address and value
                             stackPtr -= sizeof(IntPtr) + sizeof(double);
+                            break;
+                        }
+                    #endregion
+
+                    #region Field
+                    #endregion
+
+                    #region Array
+                    case OpCode.St_Elem:
+                        {
+                            // Get element size
+                            uint elemSize = *((uint*)(stackPtr - sizeof(IntPtr) + sizeof(int) + sizeof(uint)));
+
+                            // Get array ptr
+                            byte* arr = (byte*)*((IntPtr*)stackPtr - 1);
+
+                            // Get array ptr with element offset
+                            arr += (elemSize * *((uint*)(stackPtr - sizeof(IntPtr) + sizeof(int))));
+
+                            // Assign at index
+                            __memory.Copy(stackPtr - elemSize, arr, elemSize);
+
+                            // Pop stack
+                            stackPtr -= elemSize + sizeof(IntPtr) + sizeof(int);
+                            break;
+                        }
+                    case OpCode.Ld_Elem:
+                        {
                             break;
                         }
                     #endregion
@@ -1606,6 +1672,31 @@ namespace LumaSharp.Runtime
                     #endregion
 
                     #region Object
+                    case OpCode.NewArr:
+                        {
+                            // Get size
+                            bool stackAlloc = true; // is type token have by ref qualifier - allocate on heap
+
+                            // Get type handle
+                            _TypeHandle type = new _TypeHandle
+                            {
+                                typeToken = *((int*)instructionPtr),
+                                size = 4,
+                            };
+
+                            // Allocate memory - pop size from stack
+                            void* arr = __memory.StackAlloc(ref stackAllocPtr, type, *((uint*)stackPtr - 1));
+
+                            // Push array ptr to stack
+                            *((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
+
+                            // Increment instruction ptr
+                            instructionPtr += sizeof(int);
+
+                            // Increment stack ptr - in case of 64 bit ptr
+                            stackPtr += sizeof(IntPtr) - sizeof(uint);
+                            break;
+                        }
                     case OpCode.Ret:
                         {
                             halt = true;

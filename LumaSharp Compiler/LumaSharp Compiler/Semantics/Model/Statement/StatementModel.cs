@@ -17,7 +17,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
                 SymbolModel model = this;
 
                 // Move up the hierarchy
-                while ((model is IReferenceSymbol) == false && model.Parent != null)
+                while (model == this || ((model is IReferenceSymbol) == false && model.Parent != null))
                     model = model.Parent;
 
                 // Get symbol
@@ -40,6 +40,18 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
 
         // Methods
         public virtual void StaticallyEvaluateStatement(ISymbolProvider provider) { }
+
+        protected T GetParentSymbol<T>() where T : class, IReferenceSymbol
+        {
+            SymbolModel model = this;
+
+            // Move up the hierarchy
+            while (model == this || ((model is T) == false && model.Parent != null))
+                model = model.Parent;
+
+            // Get symbol
+            return model as T;
+        }
 
         internal static StatementModel Any(SemanticModel model, SymbolModel parent, StatementSyntax syntax, int statementIndex, IScopeModel scope = null)
         {

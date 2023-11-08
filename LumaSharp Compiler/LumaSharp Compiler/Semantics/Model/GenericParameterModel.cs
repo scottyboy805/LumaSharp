@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime;
+using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model
@@ -15,6 +16,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         private IAccessorReferenceSymbol[] accessorMembers = null;
         private IMethodReferenceSymbol[] methodMembers = null;
         private IMethodReferenceSymbol[] operatorMembers = null;
+
+        private _TypeHandle typeHandle = default;
 
         // Properties
         public string TypeName
@@ -142,6 +145,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public int SymbolToken
         {
             get { return -1; }
+        }
+
+        public _TypeHandle TypeHandle
+        {
+            get { return typeHandle; }
         }
 
         public string IdentifierName

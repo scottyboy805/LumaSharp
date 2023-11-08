@@ -40,9 +40,21 @@ namespace LumaSharp_Compiler.AST
             if (statement.ifStatement() != null)
                 return new ConditionStatementSyntax(tree, parent, statement.ifStatement());
 
+            // Check for for loop
+            if(statement.forStatement() != null)
+                return new ForStatementSyntax(tree, parent, statement.forStatement());
+
             // Check for return
             if (statement.returnStatement() != null)
                 return new ReturnStatementSyntax(tree, parent, statement.returnStatement());
+
+            // Check for variable
+            if (statement.localVariableStatement() != null)
+                return new VariableDeclarationStatementSyntax(tree, parent, statement.localVariableStatement());
+
+            // Check for assign
+            if(statement.assignStatement() != null)
+                return new AssignStatementSyntax(tree, parent, statement.assignStatement());
 
             throw new NotSupportedException("Statement is not supported");
         }

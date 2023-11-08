@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Runtime;
+using LumaSharp_Compiler.AST;
 
 namespace LumaSharp_Compiler.Semantics.Reference
 {
@@ -7,6 +8,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
         // Private
         private ReferenceLibrary library = null;
         private ITypeReferenceSymbol[] baseTypes = null;
+
+        private _TypeHandle typeHandle = default;
 
         // Properties
         public string TypeName => "enum";
@@ -42,6 +45,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
         public IMethodReferenceSymbol[] OperatorMemberSymbols => null;
 
         public ILibraryReferenceSymbol LibrarySymbol => library;
+
+        public _TypeHandle TypeHandle => typeHandle;
 
         public int SymbolToken => 15;
 

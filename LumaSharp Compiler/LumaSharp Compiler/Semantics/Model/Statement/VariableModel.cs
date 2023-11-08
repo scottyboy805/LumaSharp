@@ -1,5 +1,6 @@
 ﻿using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using LumaSharp_Compiler.Semantics.Model.Expression;
 
 namespace LumaSharp_Compiler.Semantics.Model.Statement
 {
@@ -9,6 +10,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         private VariableDeclarationStatementSyntax syntax = null;
         private ITypeReferenceSymbol variableTypeSymbol = null;
         private LocalOrParameterModel[] variableModels = null;
+        private AssignModel[] assignModels = null;
 
         // Properties
         public ITypeReferenceSymbol VariableTypeSymbol
@@ -19,6 +21,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         public LocalOrParameterModel[] VariableModels
         {
             get { return variableModels; }
+        }
+
+        public AssignModel[] AssignModels
+        {
+            get { return assignModels; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -40,6 +47,18 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             {
                 variableModels[i] = new LocalOrParameterModel(syntax, parent as IReferenceSymbol, index, i, index);
             }
+
+            if (syntax.HasAssignExpressions == true)
+            {
+                // Get assigns
+                this.assignModels = new AssignModel[syntax.AssignExpressionCount];
+
+                // Get assign models
+                for (int i = 0; i < syntax.AssignExpressionCount; i++)
+                {
+                    assignModels[i] = new AssignModel(model, this, syntax, new VariableReferenceModel(model, this, new VariableReferenceExpressionSyntax(syntax.Identifiers[i].Text)), ExpressionModel.Any(model, this, syntax.AssignExpressions[i]), index);                    
+                }
+            }
         }
 
         // Methods
@@ -53,12 +72,20 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             // Resolve type
             variableTypeSymbol = provider.ResolveTypeSymbol(ParentSymbol, syntax.VariableType);
 
-            // Resolve all assign models
+            // Resolve all variable models
             for(int i = 0; i <  variableModels.Length; i++)
             {
                 // Resolve symbols
                 if (variableModels[i] != null)
                     variableModels[i].ResolveSymbols(provider, report);
+            }
+
+            // Resolve all assign models
+            for(int i = 0; i < assignModels.Length; i++)
+            {
+                // Resolve symbols
+                if (assignModels[i] != null)
+                    assignModels[i].ResolveSymbols(provider, report);
             }
         }
     }
