@@ -583,10 +583,14 @@ namespace LumaSharp.Runtime
                             byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
 
                             // Get element size - from array type info just before ptr
-                            uint elemSize = *((uint*)(arr - sizeof(uint)));
+                            uint elemSize = *((uint*)arr - 1);
 
                             // Get array element offset taking into account size of element
                             uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
+
+                            // Check bounds
+                            if (offset >= (elemSize * (*((uint*)(arr - _ArrayHandle.Size)))))
+                                throw new IndexOutOfRangeException();
 
                             // Assign at index
                             __memory.Copy(stackPtr - (sizeof(IntPtr) + sizeof(int) + elemSize), arr + offset, elemSize);
@@ -598,6 +602,23 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Elem:
                         {
                             // Get array ptr
+                            byte* arr = (byte*)(*((IntPtr**)stackPtr - 1));
+
+                            // Get element size from array type info just before ptr
+                            uint elemSize = *((uint*)arr - 1);
+
+                            // Get array element offset taking into account size of element
+                            uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
+
+                            // Check bounds
+                            if (offset >= (elemSize * (*((uint*)(arr - _ArrayHandle.Size)))))
+                                throw new IndexOutOfRangeException();
+
+                            // Load at index
+                            __memory.Copy(arr + offset, stackPtr, elemSize);
+
+                            // Push stack value
+                            stackPtr += elemSize;
                             break;
                         }
                     #endregion

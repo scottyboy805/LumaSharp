@@ -39,6 +39,38 @@ namespace LumaSharp_RuntimeTests.Instructions
         }
 
         [TestMethod()]
+        public void Array_Store_I32_OutOfBounds()
+        {
+            // Create builder
+            MemoryStream stream = new MemoryStream();
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
+
+            // Emit instruction
+            builder.EmitOpCode(OpCode.Ld_I4, 123); // Value to store
+            builder.EmitOpCode(OpCode.Ld_I4, 5); // Array index
+            builder.EmitOpCode(OpCode.Ld_I4, 5);
+            builder.EmitOpCode(OpCode.NewArr_S, (int)TypeCode.I32);
+            builder.EmitOpCode(OpCode.St_Elem);
+            builder.EmitOpCode(OpCode.Ret);
+
+            // Execute
+            __memory.InitStack();
+            fixed (byte* instructionPtr = stream.ToArray())
+            {
+                _MethodHandle handle = new _MethodHandle
+                {
+                    instructionPtr = instructionPtr,
+                    maxStack = 16,
+                };
+
+                Assert.ThrowsException<IndexOutOfRangeException>(() =>
+                {
+                    __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
+                });
+            }
+        }
+
+        [TestMethod()]
         public void Array_Store_I32()
         {
             // Create builder
@@ -66,12 +98,12 @@ namespace LumaSharp_RuntimeTests.Instructions
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
             }
 
-            // Check for expected value (16 byte offset for maxstack, plus 12 byte offset for memory handle
+            // Check for expected value (16 byte offset for maxstack, plus 16 byte offset for memory handle
             Assert.AreEqual(123, __interpreter.FetchValue<int>(32));
         }
 
         [TestMethod()]
-        public void Array_Store_I32_Index2()
+        public void Array_Store_I32_Index()
         {
             // Create builder
             MemoryStream stream = new MemoryStream();
@@ -98,8 +130,88 @@ namespace LumaSharp_RuntimeTests.Instructions
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
             }
 
-            // Check for expected value (16 byte offset for maxstack, plus 12 byte offset for memory handle, plus 8 byte index 2 offset
+            // Check for expected value (16 byte offset for maxstack, plus 16 byte offset for memory handle, plus 8 byte index 2 offset
             Assert.AreEqual(123, __interpreter.FetchValue<int>(40));
+        }
+
+        [TestMethod()]
+        public void Array_Load_I32()
+        {
+            // Create builder
+            MemoryStream stream = new MemoryStream();
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
+
+            // Emit instruction
+            builder.EmitOpCode(OpCode.Ld_I4, 123); // Value to store
+            builder.EmitOpCode(OpCode.Ld_I4, 0); // Array index
+            builder.EmitOpCode(OpCode.Ld_I4, 5);
+            builder.EmitOpCode(OpCode.NewArr_S, (int)TypeCode.I32);
+            builder.EmitOpCode(OpCode.St_Loc_0);
+            builder.EmitOpCode(OpCode.Ld_Loc_0);
+            builder.EmitOpCode(OpCode.St_Elem);
+
+            builder.EmitOpCode(OpCode.Ld_I4, 0);
+            builder.EmitOpCode(OpCode.Ld_Loc_0);
+            builder.EmitOpCode(OpCode.Ld_Elem);
+            builder.EmitOpCode(OpCode.Ret);
+
+            // Execute
+            __memory.InitStack();
+            fixed (byte* instructionPtr = stream.ToArray())
+            {
+                _MethodHandle handle = new _MethodHandle
+                {
+                    instructionPtr = instructionPtr,
+                    maxStack = 16,
+                    stackPtrOffset = 8,
+                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 8 } } },
+                };
+
+                __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
+            }
+
+            // Check for expected value (16 byte offset for maxstack, 8 byte offset for locals, plus 16 byte offset for array handle
+            Assert.AreEqual(123, __interpreter.FetchValue<int>(40));
+        }
+
+        [TestMethod()]
+        public void Array_Load_I32_Index()
+        {
+            // Create builder
+            MemoryStream stream = new MemoryStream();
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
+
+            // Emit instruction
+            builder.EmitOpCode(OpCode.Ld_I4, 123); // Value to store
+            builder.EmitOpCode(OpCode.Ld_I4, 2); // Array index
+            builder.EmitOpCode(OpCode.Ld_I4, 5);
+            builder.EmitOpCode(OpCode.NewArr_S, (int)TypeCode.I32);
+            builder.EmitOpCode(OpCode.St_Loc_0);
+            builder.EmitOpCode(OpCode.Ld_Loc_0);
+            builder.EmitOpCode(OpCode.St_Elem);
+
+            builder.EmitOpCode(OpCode.Ld_I4, 2);
+            builder.EmitOpCode(OpCode.Ld_Loc_0);
+            builder.EmitOpCode(OpCode.Ld_Elem);
+            builder.EmitOpCode(OpCode.Ret);
+
+            // Execute
+            __memory.InitStack();
+            fixed (byte* instructionPtr = stream.ToArray())
+            {
+                _MethodHandle handle = new _MethodHandle
+                {
+                    instructionPtr = instructionPtr,
+                    maxStack = 16,
+                    stackPtrOffset = 8,
+                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 8 } } },
+                };
+
+                __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
+            }
+
+            // Check for expected value (16 byte offset for maxstack, 8 byte offset for locals, plus 16 byte offset for array handle, plus 8 byte index 2 offset
+            Assert.AreEqual(123, __interpreter.FetchValue<int>(48));
         }
     }
 }
