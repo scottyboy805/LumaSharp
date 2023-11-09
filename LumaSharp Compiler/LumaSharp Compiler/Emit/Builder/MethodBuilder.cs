@@ -54,9 +54,9 @@ namespace LumaSharp_Compiler.Emit.Builder
             // Emit instructions
             bodyBuilder.BuildEmitObject(builder);
 
-            // Get size
+            // Get size required for this method image
             writer.Flush();
-            return (int)executableStream.Length;
+            return (int)executableStream.Position;
         }
 
         public void WriteToStream(Stream stream)
