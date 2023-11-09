@@ -208,7 +208,14 @@ namespace LumaSharp_Compiler.Semantics.Model
                 }
             }
 
-            //// Check for body
+            // Check for body
+            if(syntax.HasBody == true)
+            {
+                foreach(StatementModel statement in bodyStatements)
+                {
+                    statement.ResolveSymbols(provider, report);
+                }
+            }
             //if(syntax.HasBody == true)
             //{ 
             //// Resolve locals
@@ -300,8 +307,6 @@ namespace LumaSharp_Compiler.Semantics.Model
             List<_StackHandle> argLocals = new List<_StackHandle>();
             uint stackOffset = 0;
             ushort localHandleOffset = 0;
-            ushort argPtrOffset = 0;
-            ushort localPtrOffset = 0;
             uint stackPtrOffset = 0;
 
             // Process parameters
@@ -320,7 +325,6 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Update local offset - start of local variables
             localHandleOffset = (ushort)argLocals.Count;
-            localPtrOffset = (ushort)stackOffset;
 
             // Get all locals
             List<ILocalIdentifierReferenceSymbol> locals = new List<ILocalIdentifierReferenceSymbol>();
@@ -341,6 +345,10 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Build all locals
             for(int i = 0; i < locals.Count; i++)
             {
+                // Check for not resolved
+                if (locals[i].TypeSymbol == null)
+                    continue;
+
                 // Add local
                 argLocals.Add(new _StackHandle
                 {
@@ -359,8 +367,6 @@ namespace LumaSharp_Compiler.Semantics.Model
             this.methodHandle = new _MethodHandle
             {
                 localHandleOffset = localHandleOffset,
-                argPtrOffset = argPtrOffset,
-                localPtrOffset = localPtrOffset,
                 stackPtrOffset = stackPtrOffset,
                 argLocals = argLocals.ToArray(),
             };

@@ -1,13 +1,15 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public sealed class Library
+    public unsafe sealed class Library
     {
         // Private
         private int token = 0;
         private LibraryName libraryName = null;
         private LibraryName[] referenceNames = null;
         private Type[] types = null;
+
+        private void* libraryExecutable = null;
 
         // Properties
         public int Token
@@ -49,6 +51,11 @@ namespace LumaSharp.Runtime.Reflection
                 if (type.IsExport == true)
                     yield return type;
             }
+        }
+
+        private void LoadMetadata(BinaryReader reader)
+        {
+
         }
     }
 }

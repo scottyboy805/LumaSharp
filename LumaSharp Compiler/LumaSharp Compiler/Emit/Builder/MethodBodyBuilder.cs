@@ -196,7 +196,7 @@ namespace LumaSharp_Compiler.Emit.Builder
             }
 
             // Emit jump back to start
-            int finalOffset = (instructions.Last.offset + instructions.Last.dataSize) - (conditionStart.offset);
+            int finalOffset = (instructions.Last.offset) - (conditionStart.offset);
             finalOffset += 1;
             instructions.EmitOpCode(OpCode.Jmp, -finalOffset);
 

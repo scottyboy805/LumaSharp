@@ -32,7 +32,7 @@ namespace LumaSharp.Runtime
         internal static IntPtr ExecuteBytecode(byte[] instructions, int argOffset = 0, int localOffset = 0)
         {
             // Get instruction mem
-            fixed(byte* instructionPtr  = instructions)
+            fixed(byte* instructionPtr = instructions)
             {
                 // Get stack ptr
                 byte* stackBasePtr = (byte*)__memory.stackBasePtr;
@@ -40,8 +40,6 @@ namespace LumaSharp.Runtime
                 // Create method handle
                 _MethodHandle method = new _MethodHandle
                 {
-                    argPtrOffset = (ushort)argOffset,
-                    localPtrOffset = (ushort)localOffset,
                     instructionPtr = instructionPtr,
                 };
 
@@ -70,10 +68,6 @@ namespace LumaSharp.Runtime
         {
             // Get instruction ptr
             byte* instructionPtr = method.instructionPtr;
-
-            // Get arg and local ptr
-            byte* argPtr = stackBasePtr + method.argPtrOffset;
-            byte* localPtr = stackBasePtr + method.localPtrOffset;
 
             // Get main stack ptr
             byte* stackPtr = stackBasePtr + method.stackPtrOffset;
@@ -602,7 +596,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Elem:
                         {
                             // Get array ptr
-                            byte* arr = (byte*)(*((IntPtr**)stackPtr - 1));
+                            byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
 
                             // Get element size from array type info just before ptr
                             uint elemSize = *((uint*)arr - 1);
@@ -619,6 +613,28 @@ namespace LumaSharp.Runtime
 
                             // Push stack value
                             stackPtr += elemSize;
+                            break;
+                        }
+                    case OpCode.Ld_Elem_A:
+                        {
+                            // Get array ptr
+                            byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
+
+                            // Get element size from array type info just before ptr
+                            uint elemSize = *((uint*)arr - 1);
+
+                            // Get array element offset taking into account size of element
+                            uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
+
+                            // Check bounds
+                            if (offset >= (elemSize * (*((uint*)(arr - _ArrayHandle.Size)))))
+                                throw new IndexOutOfRangeException();
+
+                            // Push address onto stack
+                            *((IntPtr*)stackPtr) = (IntPtr)arr;
+
+                            // Push stack
+                            stackPtr += sizeof(IntPtr);
                             break;
                         }
                     #endregion

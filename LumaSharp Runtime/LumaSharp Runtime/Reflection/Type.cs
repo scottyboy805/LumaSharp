@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public class Type : Member
+    public unsafe class Type : Member
     {
         // Type
         protected internal enum TypeFlags
@@ -18,6 +18,8 @@ namespace LumaSharp.Runtime.Reflection
         private TypeCode typeCode = 0;
         private Type elementType = null;
         private Member[] members = null;
+
+        private _TypeHandle* typeExecutable = null;
 
         // Properties
         public bool IsBuiltInType

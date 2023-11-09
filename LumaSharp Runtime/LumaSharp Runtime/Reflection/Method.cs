@@ -1,7 +1,9 @@
 ﻿
+using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
-    public class Method : Member
+    public unsafe class Method : Member
     {
         // Type
         protected internal enum MethodFlags
@@ -16,6 +18,8 @@ namespace LumaSharp.Runtime.Reflection
         private MethodFlags methodFlags = 0;
         private Type returnType = null;
         private Parameter[] parameters = null;
+
+        private _MethodHandle* methodExecutable = null;
 
         // Properties
         public bool IsInitializer
