@@ -39,8 +39,7 @@ Small structure describing arguments, locals and instructions of a method:
 - MethodToken - point to the metadata method
 - MaxStack - the max stack size needed to invoke this method
 - LocalOffset - the offset where local variable handles are stored
-- LocalPtrOffset - the offset where local variables are stored on the stack
-- StackPtrOffset - the offset where the evaluation stack should start
+- StackPtrOffset - the offset where the evaluation stack starts for this method
 - ArgLocalPtr - a pointer to all argument and local handles for this method
 - InstructionPtr - a pointer to bytecode instructions for this method
 
