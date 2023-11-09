@@ -18,7 +18,7 @@ namespace LumaSharp_RuntimeTests.Instructions
 
             // Emit instruction
             builder.EmitOpCode(OpCode.Ld_I4, 5);
-            builder.EmitOpCode(OpCode.NewArr, (int)TypeCode.I32);
+            builder.EmitOpCode(OpCode.NewArr_S, (int)TypeCode.I32);
             builder.EmitOpCode(OpCode.Ret);
 
             // Execute
@@ -49,7 +49,7 @@ namespace LumaSharp_RuntimeTests.Instructions
             builder.EmitOpCode(OpCode.Ld_I4, 123); // Value to store
             builder.EmitOpCode(OpCode.Ld_I4, 0); // Array index
             builder.EmitOpCode(OpCode.Ld_I4, 5);
-            builder.EmitOpCode(OpCode.NewArr, (int)TypeCode.I32);
+            builder.EmitOpCode(OpCode.NewArr_S, (int)TypeCode.I32);
             builder.EmitOpCode(OpCode.St_Elem);
             builder.EmitOpCode(OpCode.Ret);
 
@@ -60,14 +60,14 @@ namespace LumaSharp_RuntimeTests.Instructions
                 _MethodHandle handle = new _MethodHandle
                 {
                     instructionPtr = instructionPtr,
-                    maxStack = 8,
+                    maxStack = 16,
                 };
 
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
             }
 
             // Check for expected value (8 byte offset for maxstack, p[lus 12 byte offset for memory handle
-            Assert.AreEqual(123, __interpreter.FetchValue<int>(20));
+            Assert.AreEqual(123, __interpreter.FetchValue<int>(28));
         }
     }
 }

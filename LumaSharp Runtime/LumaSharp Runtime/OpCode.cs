@@ -126,17 +126,19 @@ namespace LumaSharp.Runtime
 
         // Obj
         New = 0xF1,             // 4 byte data - type token
-        NewArr = 0xF2,          // 4 byte data - type token
-        Call = 0xF3,            // 4 byte data - method token
-        Call_Addr = 0xF4,
-        Is_Any = 0xF5,          // 4 byte data - type token - Is obj of specified type
-        As_Any = 0xF6,          // 4 byte data - type token - Convert object or primitive to object of type
-        From_Any = 0xF7,        // 4 byte data - type token - Convert primitive boxed value to primitive
-        Ld_Size = 0xF8,         // No data
-		Ld_Type = 0xF9,			// No data
-        Ld_Func = 0xFA,         // 4 byte data - type token
-        Ret = 0xFB,             // No data
-        Throw = 0xFC,           // No data
+        New_S = 0xF2,           // 4 byte data - type token
+        NewArr = 0xF3,          // 4 byte data - type token
+        NewArr_S = 0xF4,        // 4 byte data - type token
+        Call = 0xF5,            // 4 byte data - method token
+        Call_Addr = 0xF6,
+        Is_Any = 0xF7,          // 4 byte data - type token - Is obj of specified type
+        As_Any = 0xF8,          // 4 byte data - type token - Convert object or primitive to object of type
+        From_Any = 0xF9,        // 4 byte data - type token - Convert primitive boxed value to primitive
+        Ld_Size = 0xFA,         // No data
+		Ld_Type = 0xFB,			// No data
+        Ld_Func = 0xFC,         // 4 byte data - type token
+        Ret = 0xFD,             // No data
+        Throw = 0xFE,           // No data
     }
 
     public static class OpCodeCheck
@@ -267,7 +269,9 @@ namespace LumaSharp.Runtime
 
                 // Obj
                 case OpCode.New: return 4;             // 4 byte data - type token
+                case OpCode.New_S: return 4;           // 4 byte data - type token
                 case OpCode.NewArr: return 4;          // 4 byte data - type token
+                case OpCode.NewArr_S: return 4;        // 4 byte data - type token
                 case OpCode.Call: return 4;            // 4 byte data - method token
                 case OpCode.Call_Addr: return 4;
                 case OpCode.Is_Any: return 4;          // 4 byte data - type token - Is obj of specified type

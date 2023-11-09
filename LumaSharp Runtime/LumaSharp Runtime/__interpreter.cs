@@ -579,15 +579,18 @@ namespace LumaSharp.Runtime
                     #region Array
                     case OpCode.St_Elem:
                         {
-                            // Get element size
-                            uint elemSize = *((uint*)(stackPtr - sizeof(IntPtr) + sizeof(int) + sizeof(uint)));
+                            
 
                             // Get array ptr
                             byte* arr = (byte*)*((IntPtr*)stackPtr - 1);
 
-                            // Get array ptr with element offset
-                            arr += (elemSize * *((uint*)(stackPtr - sizeof(IntPtr) + sizeof(int))));
+                            // Get element size
+                            uint elemSize = *((uint*)(arr - sizeof(uint)));
 
+                            // Get array ptr with element offset
+                            uint offset = (elemSize * (uint)*((int*)(stackPtr - sizeof(IntPtr) + sizeof(int))));
+
+                            arr += offset;
                             // Assign at index
                             __memory.Copy(stackPtr - elemSize, arr, elemSize);
 
@@ -1672,10 +1675,11 @@ namespace LumaSharp.Runtime
                     #endregion
 
                     #region Object
-                    case OpCode.NewArr:
+                    case OpCode.New:
+                    case OpCode.New_S:
                         {
-                            // Get size
-                            bool stackAlloc = true; // is type token have by ref qualifier - allocate on heap
+                            // Check for stack alloc
+                            bool stackAlloc = code == OpCode.New_S;
 
                             // Get type handle
                             _TypeHandle type = new _TypeHandle
@@ -1684,8 +1688,38 @@ namespace LumaSharp.Runtime
                                 size = 4,
                             };
 
-                            // Allocate memory - pop size from stack
-                            void* arr = __memory.StackAlloc(ref stackAllocPtr, type, *((uint*)stackPtr - 1));
+                            // Allocate memory - pop array length from stack
+                            void* arr = stackAlloc
+                                ? __memory.StackAlloc(ref stackAllocPtr, type)
+                                : __memory.Alloc(type);
+
+                            // Push array ptr to stack
+                            *((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
+
+                            // Increment instruction ptr
+                            instructionPtr += sizeof(int);
+
+                            // Increment stack ptr - in case of 64 bit ptr
+                            stackPtr += sizeof(IntPtr) - sizeof(uint);
+                            break;
+                        }
+                    case OpCode.NewArr:
+                    case OpCode.NewArr_S:
+                        {
+                            // Check for stack alloc
+                            bool stackAlloc = code == OpCode.NewArr_S;
+
+                            // Get type handle
+                            _TypeHandle type = new _TypeHandle
+                            {
+                                typeToken = *((int*)instructionPtr),
+                                size = 4,
+                            };
+
+                            // Allocate memory - pop array length from stack
+                            void* arr = stackAlloc 
+                                ? __memory.StackAlloc(ref stackAllocPtr, type, *((uint*)stackPtr - 1))
+                                : __memory.Alloc(type, *((uint*)stackPtr - 1));
 
                             // Push array ptr to stack
                             *((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
