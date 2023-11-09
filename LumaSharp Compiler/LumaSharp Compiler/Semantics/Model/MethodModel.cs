@@ -315,12 +315,12 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Add parameter
                 argLocals.Add(new _StackHandle
                 {
-                    typeHandle = parameterIdentifierSymbols[i].TypeSymbol.TypeHandle,
-                    offset = stackOffset,
+                    TypeHandle = parameterIdentifierSymbols[i].TypeSymbol.TypeHandle,
+                    StackOffset = stackOffset,
                 });
 
                 // Advance offset
-                stackOffset += argLocals[argLocals.Count - 1].typeHandle.size;
+                stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
             }
 
             // Update local offset - start of local variables
@@ -352,12 +352,12 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Add local
                 argLocals.Add(new _StackHandle
                 {
-                    typeHandle = locals[i].TypeSymbol.TypeHandle,
-                    offset = stackOffset,
+                    TypeHandle = locals[i].TypeSymbol.TypeHandle,
+                    StackOffset = stackOffset,
                 });
 
                 // Advance offset
-                stackOffset += argLocals[argLocals.Count - 1].typeHandle.size;
+                stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
             }
 
             // Calculate start exestuation offset
@@ -366,9 +366,9 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Build method
             this.methodHandle = new _MethodHandle
             {
-                localHandleOffset = localHandleOffset,
-                stackPtrOffset = stackPtrOffset,
-                argLocals = argLocals.ToArray(),
+                LocalHandleOffset = localHandleOffset,
+                StackPtrOffset = stackPtrOffset,
+                ArgLocals = argLocals.ToArray(),
             };
         }
 

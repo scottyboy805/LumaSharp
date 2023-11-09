@@ -27,8 +27,8 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    maxStack = 8,
+                    InstructionPtr = instructionPtr,
+                    MaxStack = 8,
                 };
 
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -59,8 +59,8 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    maxStack = 16,
+                    InstructionPtr = instructionPtr,
+                    MaxStack = 16,
                 };
 
                 Assert.ThrowsException<IndexOutOfRangeException>(() =>
@@ -91,8 +91,8 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    maxStack = 16,
+                    InstructionPtr = instructionPtr,
+                    MaxStack = 16,
                 };
 
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -123,8 +123,8 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    maxStack = 16,
+                    InstructionPtr = instructionPtr,
+                    MaxStack = 16,
                 };
 
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -161,10 +161,10 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    maxStack = 16,
-                    stackPtrOffset = 8,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 8 } } },
+                    InstructionPtr = instructionPtr,
+                    MaxStack = 16,
+                    StackPtrOffset = 8,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 8 } } },
                 };
 
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -201,10 +201,10 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    maxStack = 16,
-                    stackPtrOffset = 8,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 8 } } },
+                    InstructionPtr = instructionPtr,
+                    MaxStack = 16,
+                    StackPtrOffset = 8,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 8 } } },
                 };
 
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);

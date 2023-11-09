@@ -62,11 +62,11 @@ namespace LumaSharp.Runtime
         public static void* Alloc(ref byte* stackPtr, in _TypeHandle type, bool stackAlloc = false)
         {
             // Check for zero
-            if (type.size == 0)
+            if (type.TypeSize == 0)
                 return null;
 
             // Size must include 4 bytes for reference counter and 4 bytes for type code
-            uint fullSize = type.size + _MemoryHandle.Size;
+            uint fullSize = type.TypeSize + _MemoryHandle.Size;
 
             // Allocate
             void* mem;
@@ -93,7 +93,7 @@ namespace LumaSharp.Runtime
             }
 
             // Insert memory handle before data
-            (*((_MemoryHandle*)mem)).typeHandle = type;
+            (*((_MemoryHandle*)mem)).TypeHandle = type;
 
             // Get data offset
             mem = ((byte*)mem) + _MemoryHandle.Size;
@@ -105,11 +105,11 @@ namespace LumaSharp.Runtime
         public static void* AllocArray(ref byte* stackPtr, in _TypeHandle type, uint elementCount, bool stackAlloc = false)
         {
             // Check for zero
-            if (type.size == 0)
+            if (type.TypeSize == 0)
                 return null;
 
             // Size must include type info??
-            uint fullSize = (type.size * elementCount) + _ArrayHandle.Size;
+            uint fullSize = (type.TypeSize * elementCount) + _ArrayHandle.Size;
 
             void* mem;
 
@@ -135,8 +135,8 @@ namespace LumaSharp.Runtime
             }
 
             // Insert memory handle before data
-            (*((_ArrayHandle*)mem)).elementCount = elementCount;
-            (*((_ArrayHandle*)mem)).handle.typeHandle = type;
+            (*((_ArrayHandle*)mem)).ElementCount = elementCount;
+            (*((_ArrayHandle*)mem)).MemoryHandle.TypeHandle = type;
 
             // Get data offset
             mem = ((byte*)mem) + _ArrayHandle.Size;

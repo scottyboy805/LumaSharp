@@ -155,6 +155,26 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return typeHandle; }
         }
 
+        public IReadOnlyList<TypeModel> MemberTypes
+        {
+            get { return memberTypes; }
+        }
+
+        public IReadOnlyList<FieldModel> MemberFields
+        {
+            get { return memberFields; }
+        }
+
+        public IReadOnlyList<AccessorModel> MemberAccessors
+        {
+            get { return memberAccessors; }
+        }
+
+        public IReadOnlyList<MethodModel> MemberMethods
+        {
+            get { return memberMethods; }
+        }
+
         public override IEnumerable<SymbolModel> Descendants
         {
             get

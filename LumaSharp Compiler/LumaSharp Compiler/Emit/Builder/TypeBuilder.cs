@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp_Compiler.Semantics.Model;
+using System.Linq;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
@@ -7,14 +8,36 @@ namespace LumaSharp_Compiler.Emit.Builder
     {
         // Private
         private TypeModel typeModel = null;
+        private List<FieldBuilder> fieldBuilders = new List<FieldBuilder>();
         private List<MethodBuilder> methodBuilders = new List<MethodBuilder>();
 
         private MemoryStream executableStream = null;
+
+        // Properties
+        public Stream ExecutableStream
+        {
+            get
+            {
+                // Return to read position
+                if (executableStream != null)
+                    executableStream.Position = 0;
+
+                return executableStream;
+            }
+        }
 
         // Constructor
         public TypeBuilder(TypeModel typeModel)
         {
             this.typeModel = typeModel;
+
+            // Add fields
+            if (typeModel.MemberFields != null)
+                fieldBuilders.AddRange(typeModel.MemberFields.Select(f => new FieldBuilder(f)));
+
+            // Add methods
+            if (typeModel.MemberMethods != null)
+                methodBuilders.AddRange(typeModel.MemberMethods.Select(m => new MethodBuilder(m)));
         }
 
         // Methods
@@ -34,6 +57,10 @@ namespace LumaSharp_Compiler.Emit.Builder
 
 
             // Write all fields
+            foreach(FieldBuilder fieldBuilder in fieldBuilders)
+            {
+                fieldBuilder.BuildEmitModel(writer);
+            }
 
 
             // Write all methods
@@ -44,8 +71,7 @@ namespace LumaSharp_Compiler.Emit.Builder
 
             // Get size required for this type image
             writer.Flush();
-            return (int)executableStream.Position;
+            return (int)writer.BaseStream.Position;
         }
-
     }
 }

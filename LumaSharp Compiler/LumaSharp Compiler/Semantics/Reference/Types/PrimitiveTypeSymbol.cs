@@ -67,8 +67,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Create handle
             this.typeHandle = new _TypeHandle
             {
-                typeToken = (int)primitiveType,
-                size = __runtime.Size((int)primitiveType),
+                TypeToken = (int)primitiveType,
+                TypeSize = __runtime.Size((int)primitiveType),
             };
 
             // Load members from reference library

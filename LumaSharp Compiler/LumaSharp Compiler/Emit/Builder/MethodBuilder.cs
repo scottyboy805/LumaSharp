@@ -14,6 +14,19 @@ namespace LumaSharp_Compiler.Emit.Builder
 
         private MemoryStream executableStream = null;
 
+        // Properties
+        public Stream ExecutableStream
+        {
+            get
+            {
+                // Return to read position
+                if (executableStream != null)
+                    executableStream.Position = 0;
+
+                return executableStream;
+            }
+        }
+
         // Constructor
         public MethodBuilder(MethodModel methodModel)
         {
@@ -40,8 +53,8 @@ namespace LumaSharp_Compiler.Emit.Builder
             // Get method handle
             _MethodHandle handle = methodModel.MethodHandle;
 
-            _StackHandle[] argLocalHandles = handle.argLocals;
-            handle.instructionPtr = null;
+            _StackHandle[] argLocalHandles = handle.ArgLocals;
+            handle.InstructionPtr = null;
 
             // Write method handle
             EmitUtil.WriteStruct(writer, handle);
@@ -56,14 +69,7 @@ namespace LumaSharp_Compiler.Emit.Builder
 
             // Get size required for this method image
             writer.Flush();
-            return (int)executableStream.Position;
-        }
-
-        public void WriteToStream(Stream stream)
-        {
-            // Copy to target stream
-            if(executableStream != null)
-                executableStream.CopyTo(stream);
+            return (int)writer.BaseStream.Position;
         }
     }
 }

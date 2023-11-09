@@ -29,9 +29,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -63,9 +63,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -97,9 +97,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -131,9 +131,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -165,9 +165,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -199,9 +199,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -234,9 +234,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -267,9 +267,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -300,9 +300,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -333,9 +333,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -366,9 +366,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
@@ -399,9 +399,9 @@ namespace LumaSharp_RuntimeTests.Instructions
             {
                 _MethodHandle handle = new _MethodHandle
                 {
-                    instructionPtr = instructionPtr,
-                    stackPtrOffset = 4,
-                    argLocals = new _StackHandle[] { new _StackHandle { typeHandle = new _TypeHandle { size = 4 } } },
+                    InstructionPtr = instructionPtr,
+                    StackPtrOffset = 4,
+                    ArgLocals = new _StackHandle[] { new _StackHandle { TypeHandle = new _TypeHandle { TypeSize = 4 } } },
                 };
 
                 stackPtr = __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);

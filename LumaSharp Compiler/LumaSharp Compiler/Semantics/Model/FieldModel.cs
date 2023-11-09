@@ -1,4 +1,4 @@
-﻿
+﻿using LumaSharp.Runtime.Handle;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
@@ -14,6 +14,8 @@ namespace LumaSharp_Compiler.Semantics.Model
         private TypeModel declaringType = null;
         private ExpressionModel assignModel = null;
         private ITypeReferenceSymbol fieldTypeSymbol = null;
+
+        private _FieldHandle fieldHandle = default;
 
         // Properties
         public string FieldName
@@ -49,6 +51,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public ITypeReferenceSymbol FieldTypeSymbol
         {
             get { return fieldTypeSymbol; }
+        }
+
+        public _FieldHandle FieldHandle
+        {
+            get { return fieldHandle; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
