@@ -59,20 +59,38 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* Alloc(in _TypeHandle type, uint count = 1)
+        public static void* Alloc(ref byte* stackPtr, in _TypeHandle type, bool stackAlloc = false)
         {
             // Check for zero
             if (type.size == 0)
                 return null;
 
             // Size must include 4 bytes for reference counter and 4 bytes for type code
-            uint fullSize = (type.size * count) + _MemoryHandle.Size;
+            uint fullSize = type.size + _MemoryHandle.Size;
 
             // Allocate
-            void* mem = NativeMemory.AllocZeroed(fullSize);
+            void* mem;
 
-            // Register memory
-            trackedMemory.Add((IntPtr)mem);
+            // Check for stack alloc
+            if(stackAlloc == true)
+            {
+                // Allocate memory on stack
+                mem = stackPtr;
+
+                // Zero memory
+                __memory.Zero(mem, fullSize);
+
+                // Advance offset
+                stackPtr += fullSize;
+            }
+            else
+            {
+                // Allocate memory on the heap
+                mem = NativeMemory.AllocZeroed(fullSize);
+
+                // Register memory
+                trackedMemory.Add((IntPtr)mem);
+            }
 
             // Insert memory handle before data
             (*((_MemoryHandle*)mem)).typeHandle = type;
@@ -84,26 +102,44 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* StackAlloc(ref byte* stackPtr, in _TypeHandle type, uint count = 1)
+        public static void* AllocArray(ref byte* stackPtr, in _TypeHandle type, uint elementCount, bool stackAlloc = false)
         {
             // Check for zero
             if (type.size == 0)
                 return null;
 
             // Size must include type info??
-            uint fullSize = (type.size * count) + _MemoryHandle.Size;
+            uint fullSize = (type.size * elementCount) + _ArrayHandle.Size;
 
-            // Allocate memory
-            void* mem = stackPtr;
+            void* mem;
+
+            // Check for stack alloc
+            if (stackAlloc == true)
+            {
+                // Allocate memory on stack
+                mem = stackPtr;
+
+                // Zero memory
+                __memory.Zero(mem, fullSize);
+
+                // Advance offset
+                stackPtr += fullSize;
+            }
+            else
+            {
+                // Allocate memory on heap
+                mem = NativeMemory.AllocZeroed(fullSize);
+
+                // Register memory
+                trackedMemory.Add((IntPtr)mem);
+            }
 
             // Insert memory handle before data
-            (*((_MemoryHandle*)mem)).typeHandle = type;
-
-            // Advance offset
-            stackPtr += fullSize;
+            (*((_ArrayHandle*)mem)).elementCount = elementCount;
+            (*((_ArrayHandle*)mem)).handle.typeHandle = type;
 
             // Get data offset
-            mem = ((byte*)mem) + _MemoryHandle.Size;
+            mem = ((byte*)mem) + _ArrayHandle.Size;
 
             return mem;
         }
@@ -159,6 +195,12 @@ namespace LumaSharp.Runtime
             //            break;
             //        }
             //}            
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Zero(void* mem, uint size)
+        {
+            NativeMemory.Clear(mem, size);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

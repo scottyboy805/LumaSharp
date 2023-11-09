@@ -35,7 +35,7 @@ namespace LumaSharp_RuntimeTests.Instructions
             }
 
             // Check for expected value (8 byte offset for maxstack, p[lus 12 byte offset for memory handle
-            Assert.AreEqual(__memory.stackBasePtr + 20, __interpreter.FetchValue<IntPtr>());
+            Assert.AreEqual(__memory.stackBasePtr + 24, __interpreter.FetchValue<IntPtr>());
         }
 
         [TestMethod()]
@@ -66,8 +66,40 @@ namespace LumaSharp_RuntimeTests.Instructions
                 __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
             }
 
-            // Check for expected value (8 byte offset for maxstack, p[lus 12 byte offset for memory handle
-            Assert.AreEqual(123, __interpreter.FetchValue<int>(28));
+            // Check for expected value (16 byte offset for maxstack, plus 12 byte offset for memory handle
+            Assert.AreEqual(123, __interpreter.FetchValue<int>(32));
+        }
+
+        [TestMethod()]
+        public void Array_Store_I32_Index2()
+        {
+            // Create builder
+            MemoryStream stream = new MemoryStream();
+            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
+
+            // Emit instruction
+            builder.EmitOpCode(OpCode.Ld_I4, 123); // Value to store
+            builder.EmitOpCode(OpCode.Ld_I4, 2); // Array index
+            builder.EmitOpCode(OpCode.Ld_I4, 5);
+            builder.EmitOpCode(OpCode.NewArr_S, (int)TypeCode.I32);
+            builder.EmitOpCode(OpCode.St_Elem);
+            builder.EmitOpCode(OpCode.Ret);
+
+            // Execute
+            __memory.InitStack();
+            fixed (byte* instructionPtr = stream.ToArray())
+            {
+                _MethodHandle handle = new _MethodHandle
+                {
+                    instructionPtr = instructionPtr,
+                    maxStack = 16,
+                };
+
+                __interpreter.ExecuteBytecode(handle, (byte*)__memory.stackBasePtr);
+            }
+
+            // Check for expected value (16 byte offset for maxstack, plus 12 byte offset for memory handle, plus 8 byte index 2 offset
+            Assert.AreEqual(123, __interpreter.FetchValue<int>(40));
         }
     }
 }

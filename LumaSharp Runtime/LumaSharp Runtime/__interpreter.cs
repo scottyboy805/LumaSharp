@@ -597,6 +597,7 @@ namespace LumaSharp.Runtime
                         }
                     case OpCode.Ld_Elem:
                         {
+                            // Get array ptr
                             break;
                         }
                     #endregion
@@ -1703,9 +1704,6 @@ namespace LumaSharp.Runtime
                     case OpCode.NewArr:
                     case OpCode.NewArr_S:
                         {
-                            // Check for stack alloc
-                            bool stackAlloc = code == OpCode.NewArr_S;
-
                             // Get type handle
                             _TypeHandle type = new _TypeHandle
                             {
@@ -1714,9 +1712,7 @@ namespace LumaSharp.Runtime
                             };
 
                             // Allocate memory - pop array length from stack
-                            void* arr = stackAlloc 
-                                ? __memory.StackAlloc(ref stackAllocPtr, type, *((uint*)stackPtr - 1))
-                                : __memory.Alloc(type, *((uint*)stackPtr - 1));
+                            void* arr = __memory.AllocArray(ref stackAllocPtr, type, *((uint*)stackPtr - 1), code == OpCode.NewArr_S);
 
                             // Push array ptr to stack
                             *((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
