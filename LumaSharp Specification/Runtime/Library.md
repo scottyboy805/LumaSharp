@@ -7,11 +7,41 @@ The runtime will use the following structure/memory layout when loading librarie
 
 ## Executable
 
-Type Address -> Points to start of type handle  
+###### Type Address -> Points to start of type handle  
 [TypeHandle]  
-Small structure descibing type allocation size and also stores the type token pointing to the metadata type
+Small structure descibing type allocation size and also stores the type token pointing to the metadata type:  
+- TypeToken - point to the metadata type
+- TypeSize - the size of memory required to store an instance of this type
 
-Field Handles address -> Points to start of field handles (if any available)
-[FieldHandles]
+###### Field Table address -> Points to start of field handles (if any available)
+[FieldHandles (Many)]  
+Stores one or more field handles describing an individual field defined on the type:  
+
+###### Field Address -> Points to start of specific field handle  
+[Field Handle]  
+Small structure describing field memory size and also stores the field token pointing to the metadata field:  
+- FieldToken - point to the metadata field
+- FieldOffset - the offset into memory of this field (instancePtr + offset)
+- FieldSize - the size of memory required to store this field type (i32 = 4 for example)
+
+###### Global Address -> Points to global field memory for this type  
+[Raw memory]  
+Raw memory space allocated to store all global fields declared on the type taking into account each field size.  
+
+###### Method Table address -> Points to start of method handles (if any available)  
+[MethodHandles (Many)]  
+Stores one or more method handles describing an individual method defined on the type:  
+
+###### Method Address -> Points to start of a specific method handle  
+[Method Handle]  
+Small structure describing arguments, locals and instructions of a method:  
+- MethodToken - point to the metadata method
+- MaxStack - the max stack size needed to invoke this method
+- LocalOffset - the offset where local variable handles are stored
+- LocalPtrOffset - the offset where local variables are stored on the stack
+- StackPtrOffset - the offset where the evaluation stack should start
+- ArgLocalPtr - a pointer to all argument and local handles for this method
+- InstructionPtr - a pointer to bytecode instructions for this method
+
 
       
