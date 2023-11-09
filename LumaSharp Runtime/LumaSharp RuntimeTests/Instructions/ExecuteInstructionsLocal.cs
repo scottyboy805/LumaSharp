@@ -232,7 +232,7 @@ namespace LumaSharp_RuntimeTests.Instructions
             // Emit instruction
             builder.EmitOpCode(OpCode.Ld_I4, 5);
             builder.EmitOpCode(OpCode.St_Loc_1);
-            builder.EmitOpCode(OpCode.Ld_Loc_0);
+            builder.EmitOpCode(OpCode.Ld_Loc_1);
             builder.EmitOpCode(OpCode.Ret);
 
             // Execute
@@ -269,7 +269,7 @@ namespace LumaSharp_RuntimeTests.Instructions
             // Emit instruction
             builder.EmitOpCode(OpCode.Ld_I4, 5);
             builder.EmitOpCode(OpCode.St_Loc_2);
-            builder.EmitOpCode(OpCode.Ld_Loc_0);
+            builder.EmitOpCode(OpCode.Ld_Loc_2);
             builder.EmitOpCode(OpCode.Ret);
 
             // Execute

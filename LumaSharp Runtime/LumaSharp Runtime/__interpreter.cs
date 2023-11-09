@@ -579,23 +579,20 @@ namespace LumaSharp.Runtime
                     #region Array
                     case OpCode.St_Elem:
                         {
-                            
-
                             // Get array ptr
-                            byte* arr = (byte*)*((IntPtr*)stackPtr - 1);
+                            byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
 
-                            // Get element size
+                            // Get element size - from array type info just before ptr
                             uint elemSize = *((uint*)(arr - sizeof(uint)));
 
-                            // Get array ptr with element offset
-                            uint offset = (elemSize * (uint)*((int*)(stackPtr - sizeof(IntPtr) + sizeof(int))));
+                            // Get array element offset taking into account size of element
+                            uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
 
-                            arr += offset;
                             // Assign at index
-                            __memory.Copy(stackPtr - elemSize, arr, elemSize);
+                            __memory.Copy(stackPtr - (sizeof(IntPtr) + sizeof(int) + elemSize), arr + offset, elemSize);
 
-                            // Pop stack
-                            stackPtr -= elemSize + sizeof(IntPtr) + sizeof(int);
+                            // Pop stack - arr ptr, index, element value
+                            stackPtr -= (sizeof(IntPtr) + sizeof(int) + elemSize);
                             break;
                         }
                     case OpCode.Ld_Elem:
@@ -1678,29 +1675,29 @@ namespace LumaSharp.Runtime
                     case OpCode.New:
                     case OpCode.New_S:
                         {
-                            // Check for stack alloc
-                            bool stackAlloc = code == OpCode.New_S;
+                            //// Check for stack alloc
+                            //bool stackAlloc = code == OpCode.New_S;
 
-                            // Get type handle
-                            _TypeHandle type = new _TypeHandle
-                            {
-                                typeToken = *((int*)instructionPtr),
-                                size = 4,
-                            };
+                            //// Get type handle
+                            //_TypeHandle type = new _TypeHandle
+                            //{
+                            //    typeToken = *((int*)instructionPtr),
+                            //    size = 4,
+                            //};
 
-                            // Allocate memory - pop array length from stack
-                            void* arr = stackAlloc
-                                ? __memory.StackAlloc(ref stackAllocPtr, type)
-                                : __memory.Alloc(type);
+                            //// Allocate memory - pop array length from stack
+                            //void* arr = stackAlloc
+                            //    ? __memory.StackAlloc(ref stackAllocPtr, type)
+                            //    : __memory.Alloc(type);
 
-                            // Push array ptr to stack
-                            *((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
+                            //// Push array ptr to stack
+                            //*((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
 
-                            // Increment instruction ptr
-                            instructionPtr += sizeof(int);
+                            //// Increment instruction ptr
+                            //instructionPtr += sizeof(int);
 
-                            // Increment stack ptr - in case of 64 bit ptr
-                            stackPtr += sizeof(IntPtr) - sizeof(uint);
+                            //// Increment stack ptr - in case of 64 bit ptr
+                            //stackPtr += sizeof(IntPtr) - sizeof(uint);
                             break;
                         }
                     case OpCode.NewArr:
