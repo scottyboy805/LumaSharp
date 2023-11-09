@@ -4,6 +4,7 @@ The runtime will use the following structure/memory layout when loading librarie
 2. Executable - The actual memory structures and instructions that can be executed by the runtime.
 
 ## Metadata
+TODO
 
 ## Executable
 
@@ -25,7 +26,7 @@ Small structure describing field memory size and also stores the field token poi
 - FieldSize - the size of memory required to store this field type (i32 = 4 for example)
 
 ###### Global Address -> Points to global field memory for this type  
-[Raw memory]  
+[Raw memory - fields]  
 Raw memory space allocated to store all global fields declared on the type taking into account each field size.  
 
 ###### Method Table address -> Points to start of method handles (if any available)  
@@ -43,5 +44,15 @@ Small structure describing arguments, locals and instructions of a method:
 - ArgLocalPtr - a pointer to all argument and local handles for this method
 - InstructionPtr - a pointer to bytecode instructions for this method
 
+###### ArgLocals Address -> Points to start of arg/local stack handles
+[Stack Handles (Many)]  
+Stores one or more stack handles describing all arguments and locals for this method
 
+[Stack Handle]  
+Small structure describing a method argument or local stored on the stack
+- TypeHandle - the type handle for arg/local type
+- Offset - the offset from the start of the call stack pointer where the arg/local is stored
+
+###### Execution Address -> Points to start of bytecode for this method  
+[Raw Memory - bytecode instructions]  
       
