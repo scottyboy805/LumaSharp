@@ -317,6 +317,35 @@ namespace LumaSharp_Compiler.Emit.Builder
                         instructions.EmitOpCode(OpCode.Cast_I8, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
+
+                case PrimitiveType.Float:
+                    {
+                        // Get float value
+                        float value = model.GetConstantValueAs<float>();
+
+                        // Check for 0 optimized instruction
+                        if (value == 0f)
+                        {
+                            // Write optimized instruction
+                            instructions.EmitOpCode(OpCode.Ld_F4_0);
+                        }
+                        else
+                        {
+                            // Write instruction
+                            instructions.EmitOpCode(OpCode.Ld_F4, value);
+                        }
+                        break;
+                    }
+
+                case PrimitiveType.Double:
+                    {
+                        // Get double value
+                        double value = model.GetConstantValueAs<double>();
+
+                        // Write instruction
+                        instructions.EmitOpCode(OpCode.Ld_F8, value);
+                        break;
+                    }
             }
         }
 
