@@ -54,10 +54,13 @@ namespace LumaSharp_Compiler.Emit.Builder
         #region Statement
         public override void VisitVariable(VariableModel model)
         {
-            // Visit all assign expressions
-            foreach(AssignModel assign in model.AssignModels)
+            if (model.AssignModels != null)
             {
-                assign.Accept(this);
+                // Visit all assign expressions
+                foreach (AssignModel assign in model.AssignModels)
+                {
+                    assign.Accept(this);
+                }
             }
 
             //foreach (model.VariableModels[0].

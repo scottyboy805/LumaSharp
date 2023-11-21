@@ -117,11 +117,11 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex >= 3);
-            Assert.AreEqual(OpCode.Ld_I8, builder[0].opCode);
-            Assert.AreEqual(OpCode.Ld_I4, builder[1].opCode);
-            Assert.AreEqual(OpCode.Cast_I4, builder[2].opCode);
-            Assert.AreEqual((byte)PrimitiveType.I64, builder[2].data0);
+            Assert.IsTrue(builder.InstructionIndex >= 3);            
+            Assert.AreEqual(OpCode.Ld_I4, builder[0].opCode);
+            Assert.AreEqual(OpCode.Cast_I4, builder[1].opCode);
+            Assert.AreEqual(OpCode.Ld_I8, builder[2].opCode);
+            Assert.AreEqual((byte)PrimitiveType.I64, builder[1].data0);
             Assert.AreEqual(OpCode.Add, builder[3].opCode);
         }
 

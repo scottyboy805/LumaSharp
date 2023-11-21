@@ -80,12 +80,15 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
                     variableModels[i].ResolveSymbols(provider, report);
             }
 
-            // Resolve all assign models
-            for(int i = 0; i < assignModels.Length; i++)
+            if (assignModels != null)
             {
-                // Resolve symbols
-                if (assignModels[i] != null)
-                    assignModels[i].ResolveSymbols(provider, report);
+                // Resolve all assign models
+                for (int i = 0; i < assignModels.Length; i++)
+                {
+                    // Resolve symbols
+                    if (assignModels[i] != null)
+                        assignModels[i].ResolveSymbols(provider, report);
+                }
             }
         }
     }
