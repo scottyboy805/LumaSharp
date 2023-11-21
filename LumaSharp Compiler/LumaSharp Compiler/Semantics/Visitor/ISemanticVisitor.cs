@@ -31,6 +31,8 @@ namespace LumaSharp_Compiler.Semantics
         void VisitCondition(ConditionModel model);
 
         void VisitFor(ForModel model);
+
+        void VisitMethodInvoke(MethodInlineInvokeModel model);
         #endregion
 
         #region Expression

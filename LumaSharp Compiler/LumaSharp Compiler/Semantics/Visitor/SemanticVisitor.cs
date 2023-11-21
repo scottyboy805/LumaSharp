@@ -165,6 +165,11 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             }
         }
 
+        public virtual void VisitMethodInvoke(MethodInlineInvokeModel model)
+        {
+            VisitMethodInvoke(model.InvokeModel);
+        }
+
         public virtual void VisitStatement(StatementModel model)
         {
             // Check for assign
@@ -191,6 +196,11 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             else if(model is ForModel)
             {
                 VisitFor(model as ForModel);
+            }
+            // Check for method invoke
+            else if(model is MethodInlineInvokeModel)
+            {
+                VisitMethodInvoke(model as MethodInlineInvokeModel);
             }
             else
             {

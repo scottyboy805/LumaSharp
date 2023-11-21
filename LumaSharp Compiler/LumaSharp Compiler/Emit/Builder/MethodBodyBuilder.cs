@@ -399,6 +399,24 @@ namespace LumaSharp_Compiler.Emit.Builder
             }
         }
 
+        public override void VisitMethodInvoke(MethodInvokeModel model)
+        {
+            // Visit access expression
+            model.AccessModelExpression.Accept(this);
+
+            // Visit arguments
+            if(model.ArgumentModelExpressions != null)
+            {
+                for(int i = 0; i < model.ArgumentModelExpressions.Length; i++)
+                {
+                    model.ArgumentModelExpressions[i].Accept(this);
+                }
+            }
+
+            // Emit call instruction
+            instructions.EmitOpCode(OpCode.Call, model.MethodIdentifier.SymbolToken);
+        }
+
         public override void VisitVariableReference(VariableReferenceModel model)
         {
             // Get symbol

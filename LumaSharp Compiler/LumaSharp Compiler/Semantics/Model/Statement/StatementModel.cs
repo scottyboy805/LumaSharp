@@ -82,6 +82,10 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             if(syntax is ForStatementSyntax)
                 return new ForModel(model, parent, syntax as ForStatementSyntax, statementIndex);
 
+            // Check for method invoke
+            if(syntax is MethodInvokeStatementSyntax)
+                return new MethodInlineInvokeModel(model, parent, syntax as  MethodInvokeStatementSyntax, statementIndex);
+
             throw new NotSupportedException("Specified syntax is not supported");
         }
     }
