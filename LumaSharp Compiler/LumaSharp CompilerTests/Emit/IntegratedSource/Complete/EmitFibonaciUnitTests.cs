@@ -54,7 +54,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
             __interpreter.ExecuteBytecode(methodModel.MethodHandle, stream.ToArray());
 
             // Get value on top of stack
-            Assert.AreEqual(21, __interpreter.FetchValue<int>(16));
+            Assert.AreEqual(13, __interpreter.FetchValue<int>(20));
         }
     }
 }
