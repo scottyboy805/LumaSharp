@@ -1,6 +1,7 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
+using LumaSharp_Compiler.Semantics.Model.Expression;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -129,7 +130,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             get
             {
-                if(genericConstraints != null && genericConstraints.Length == 1)
+                if (genericConstraints != null && genericConstraints.Length == 1)
                     return genericConstraints[0];
 
                 // Type cannot be inferred
@@ -171,22 +172,43 @@ namespace LumaSharp_Compiler.Semantics.Model
             anyType = provider.ResolveTypeSymbol(PrimitiveType.Any, syntax.StartToken.Source);
 
             // Resolve constraints
-            if(syntax.HasConstraintTypes == true)
+            if (syntax.HasConstraintTypes == true)
             {
                 // Get generic constraints
                 genericConstraints = new ITypeReferenceSymbol[syntax.ConstraintTypeCount];
 
                 // Resolve all
-                for(int i = 0; i < genericConstraints.Length; i++)
+                for (int i = 0; i < genericConstraints.Length; i++)
                 {
                     genericConstraints[i] = provider.ResolveTypeSymbol(parent, syntax.ConstraintTypes[i]);
                 }
+
+                // Check constrains type usage
+                CheckConstraintTypes(genericConstraints, report);
 
                 // Update members
                 fieldMembers = genericConstraints.SelectMany(c => c.FieldMemberSymbols).ToArray();
                 accessorMembers = genericConstraints.SelectMany(c => c.AccessorMemberSymbols).ToArray();
                 methodMembers = genericConstraints.SelectMany(c => c.MethodMemberSymbols).ToArray();
                 operatorMembers = genericConstraints.SelectMany(c => c.OperatorMemberSymbols).ToArray();
+            }
+        }
+
+        private void CheckConstraintTypes(ITypeReferenceSymbol[] genericConstraints, ICompileReportProvider report)
+        {
+            // Check all constraint types
+            for(int i = 0; i < genericConstraints.Length; i++)
+            {
+                CheckConstraintType(genericConstraints[i], i, report);
+            }
+        }
+
+        private void CheckConstraintType(ITypeReferenceSymbol genericConstraint, int index, ICompileReportProvider report)
+        {
+            // Check for primitive
+            if(genericConstraint.IsPrimitive == true)
+            {
+                report.ReportMessage(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.ConstraintTypes[index].StartToken.Source, genericConstraint);
             }
         }
     }

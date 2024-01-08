@@ -64,6 +64,8 @@ namespace LumaSharp_Compiler.Reporting
         InvalidTypeBaseContract = 1605,
         MultipleBaseTypes = 1606,
         FirstBaseType = 1607,
+
+        InvalidPrimitiveGenericConstraint = 1701,
     }
 
     internal static class CompilerErrors
@@ -141,6 +143,8 @@ namespace LumaSharp_Compiler.Reporting
             { Code.InvalidTypeBaseContract, "Type `{0}` cannot be used as a base contract" },
             { Code.MultipleBaseTypes, "Cannot have multiple base types `{0}` and `{1}`" },
             { Code.FirstBaseType, "Base type `{0}` must come before any contract declarations" },
+
+            { Code.InvalidPrimitiveGenericConstraint, "Primitive type `{0}` cannot be used as a generic constraint" },
 
             // Logical
         };
