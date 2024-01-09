@@ -2,7 +2,6 @@
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Model.Statement;
 using LumaSharp_Compiler.Semantics.Reference;
 
 namespace LumaSharp_Compiler.Semantics.Model
@@ -13,7 +12,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private FieldSyntax syntax = null;
         private TypeModel declaringType = null;
         private ExpressionModel assignModel = null;
-        private ITypeReferenceSymbol fieldTypeSymbol = null;
+        private TypeReferenceModel fieldTypeModel = null;
 
         private _FieldHandle fieldHandle = default;
 
@@ -45,12 +44,12 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public ITypeReferenceSymbol TypeSymbol
         {
-            get { return fieldTypeSymbol; }
+            get { return fieldTypeModel.EvaluatedTypeSymbol; }
         }
 
         public ITypeReferenceSymbol FieldTypeSymbol
         {
-            get { return fieldTypeSymbol; }
+            get { return fieldTypeModel.EvaluatedTypeSymbol; }
         }
 
         public _FieldHandle FieldHandle
@@ -69,6 +68,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             this.syntax = syntax;
             this.declaringType = parent;
+            this.fieldTypeModel = new TypeReferenceModel(model, this, syntax.FieldType);
             this.assignModel = syntax.HasFieldAssignment == true
                 ? ExpressionModel.Any(model, this, syntax.FieldAssignment)
                 : null;
@@ -86,7 +86,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             base.ResolveSymbols(provider, report);
 
             // Resolve field symbol
-            fieldTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.FieldType);
+            fieldTypeModel.ResolveSymbols(provider, report);
 
             // Check for assignment
             if(assignModel != null)
@@ -95,12 +95,12 @@ namespace LumaSharp_Compiler.Semantics.Model
                 assignModel.ResolveSymbols(provider, report);
 
                 // Check for assigned and valid conversion
-                if(fieldTypeSymbol != null && assignModel.EvaluatedTypeSymbol != null)
+                if(fieldTypeModel.EvaluatedTypeSymbol != null && assignModel.EvaluatedTypeSymbol != null)
                 {
                     // Check for return type conversion
-                    if (TypeChecker.IsTypeAssignable(assignModel.EvaluatedTypeSymbol, fieldTypeSymbol) == false)
+                    if (TypeChecker.IsTypeAssignable(assignModel.EvaluatedTypeSymbol, fieldTypeModel.EvaluatedTypeSymbol) == false)
                     {
-                        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, fieldTypeSymbol, assignModel.EvaluatedTypeSymbol);
+                        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
                     }
                 }
             }

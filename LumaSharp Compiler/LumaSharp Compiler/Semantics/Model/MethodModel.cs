@@ -272,14 +272,6 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Check for body provided
                 if (HasBody == true)
                 {
-                    // Resolve all body statements
-                    foreach (StatementModel statement in bodyStatements)
-                    {
-                        // Resolve the statement
-                        statement.ResolveSymbols(provider, report);
-                    }
-
-
                     // Check for any locals
                     if (localIdentifierSymbols != null)
                     {
