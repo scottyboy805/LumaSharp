@@ -3,6 +3,7 @@ using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
 using LumaSharp_Compiler.Semantics.Reference;
+using System.Text;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -283,6 +284,26 @@ namespace LumaSharp_Compiler.Semantics.Model
         }
 
         // Methods
+        public override string ToString()
+        {
+            using (StringWriter writer = new StringWriter())
+            {
+                // Get namespace
+                if (namespaceName != null)
+                    namespaceName.GetSourceText(writer);
+
+                // Get type name
+                syntax.Identifier.GetSourceText(writer);
+
+                // Get generic arguments
+                if (HasGenericParameters == true)
+                    ((TypeSyntax)syntax).GenericParameters.GetSourceText(writer);
+
+                // Get string
+                return writer.ToString();
+            }
+        }
+
         public override void Accept(ISemanticVisitor visitor)
         {
             visitor.VisitType(this);

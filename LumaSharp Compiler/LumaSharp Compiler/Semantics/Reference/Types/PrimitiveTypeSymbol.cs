@@ -85,5 +85,11 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
             // Load members from reference library
         }
+
+        // Methods
+        public override string ToString()
+        {
+            return TypeName;
+        }
     }
 }

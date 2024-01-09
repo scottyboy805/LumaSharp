@@ -66,6 +66,10 @@ namespace LumaSharp_Compiler.Reporting
         FirstBaseType = 1607,
 
         InvalidPrimitiveGenericConstraint = 1701,
+
+        InvalidNoGenericArgument = 1801,
+        InvalidCountGenericArgument = 1802,
+        InvalidConstraintGenericArgument = 1803,
     }
 
     internal static class CompilerErrors
@@ -145,6 +149,10 @@ namespace LumaSharp_Compiler.Reporting
             { Code.FirstBaseType, "Base type `{0}` must come before any contract declarations" },
 
             { Code.InvalidPrimitiveGenericConstraint, "Primitive type `{0}` cannot be used as a generic constraint" },
+
+            { Code.InvalidNoGenericArgument, "Type `{0}` does not accept any generic arguments" },
+            { Code.InvalidCountGenericArgument, "Type `{0}` does not accept `{1}` generic arguments" },
+            { Code.InvalidConstraintGenericArgument, "Generic argument `{0}` cannot be implicitly converted to constraint type `{1}`" },
 
             // Logical
         };
