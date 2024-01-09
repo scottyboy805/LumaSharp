@@ -187,10 +187,10 @@ namespace LumaSharp_Compiler.Semantics.Model
                 CheckConstraintTypes(genericConstraints, report);
 
                 // Update members
-                fieldMembers = genericConstraints.SelectMany(c => c.FieldMemberSymbols).ToArray();
-                accessorMembers = genericConstraints.SelectMany(c => c.AccessorMemberSymbols).ToArray();
-                methodMembers = genericConstraints.SelectMany(c => c.MethodMemberSymbols).ToArray();
-                operatorMembers = genericConstraints.SelectMany(c => c.OperatorMemberSymbols).ToArray();
+                fieldMembers = genericConstraints.Where(c => c.FieldMemberSymbols != null).SelectMany(c => c.FieldMemberSymbols).ToArray();
+                accessorMembers = genericConstraints.Where(c => c.AccessorMemberSymbols != null).SelectMany(c => c.AccessorMemberSymbols).ToArray();
+                methodMembers = genericConstraints.Where(c => c.MethodMemberSymbols != null).SelectMany(c => c.MethodMemberSymbols).ToArray();
+                operatorMembers = genericConstraints.Where(c => c.OperatorMemberSymbols != null).SelectMany(c => c.OperatorMemberSymbols).ToArray();
             }
         }
 
