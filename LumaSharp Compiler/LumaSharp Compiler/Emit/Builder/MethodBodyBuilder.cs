@@ -7,6 +7,7 @@ using LumaSharp.Runtime;
 using LumaSharp_Compiler.Semantics;
 using LumaSharp.Runtime.Emit;
 using LumaSharp.Runtime.Handle;
+using System.Diagnostics;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
@@ -40,7 +41,9 @@ namespace LumaSharp_Compiler.Emit.Builder
             {
                 VisitStatement(statement);
             }
-            instructions.EmitOpCode(OpCode.Ret);
+
+            if(statements.Length == 0 || (statements[statements.Length - 1] is ReturnModel) == false)
+                instructions.EmitOpCode(OpCode.Ret);
         }
 
         public override void VisitReturn(ReturnModel model)
@@ -161,8 +164,29 @@ namespace LumaSharp_Compiler.Emit.Builder
             if(model.Variable != null)
                 model.Variable.Accept(this);
 
-            Instruction conditionStart = instructions.Last;
-            Instruction jmp = default;
+            // Jump unconditionally to loop condition checks
+            Instruction jmpToCondition = instructions.EmitOpCode(OpCode.Jmp, 0);
+
+            // Visit body
+            if (model.Statements != null && model.Statements.Length > 0)
+            {
+                foreach (StatementModel statement in model.Statements)
+                    statement.Accept(this);
+            }
+
+            // Visit increments
+            if (model.IncrementModels != null && model.IncrementModels.Length > 0)
+            {
+                foreach (ExpressionModel increment in model.IncrementModels)
+                    increment.Accept(this);
+            }
+
+
+            // Get the jump offset
+            int jumpOffset = instructions.Last.EndOffset - jmpToCondition.offset;
+            jumpOffset += 2;
+
+            int conditionStartOffset = instructions.Last.EndOffset;
 
             // Visit condition
             if(model.Condition != null)
@@ -174,39 +198,19 @@ namespace LumaSharp_Compiler.Emit.Builder
                 }
                 referenceContextScope.Pop();
 
-                // Jump false
-                jmp = instructions.EmitOpCode(OpCode.Jmp_0, 0);
+                // Jump true
+                instructions.EmitOpCode(OpCode.Jmp_1, -jumpOffset);
             }
             else
             {
                 // Jmp always
-                jmp = instructions.EmitOpCode(OpCode.Jmp, 0);
-            }
-            
-
-            // Visit body
-            if (model.Statements != null && model.Statements.Length > 0)
-            {
-                foreach (StatementModel statement in model.Statements)
-                    statement.Accept(this);
+                instructions.EmitOpCode(OpCode.Jmp, -jumpOffset);
             }
 
-            // Visit increments
-            if(model.IncrementModels != null && model.IncrementModels.Length > 0)
-            {
-                foreach(ExpressionModel increment in model.IncrementModels)
-                    increment.Accept(this);
-            }
+            // Get condition offset
+            int conditionOffset = conditionStartOffset - jmpToCondition.offset;
 
-            // Emit jump back to start
-            int finalOffset = (instructions.Last.offset) - (conditionStart.offset);
-            finalOffset += 1;
-            instructions.EmitOpCode(OpCode.Jmp, -finalOffset);
-
-
-            // Modify exit jump offset
-            int exitOffset = (instructions.Last.offset + instructions.Last.dataSize) - (jmp.offset);
-            instructions.ModifyOpCode(jmp, exitOffset);// - 1);
+            instructions.ModifyOpCode(jmpToCondition, conditionOffset - 0);
         }
         #endregion
 
@@ -586,19 +590,41 @@ namespace LumaSharp_Compiler.Emit.Builder
             {
                 switch (localSymbol.Index)
                 {
-                    case 0: instructions.EmitOpCode(OpCode.St_Arg_0); break;
-                    case 1: instructions.EmitOpCode(OpCode.St_Arg_1); break;
-                    case 2: instructions.EmitOpCode(OpCode.St_Arg_2); break;
-                    case 3: instructions.EmitOpCode(OpCode.St_Arg_3); break;
+                    case 0:
+                        {
+                            instructions.EmitOpCode(OpCode.Ld_Arg_0);
+                            EmitStoreAddress(localSymbol.TypeSymbol);
+                            break;
+                        }
+                    case 1:
+                        {
+                            instructions.EmitOpCode(OpCode.Ld_Arg_1);
+                            EmitStoreAddress(localSymbol.TypeSymbol);
+                            break;
+                        }
+                    case 2:
+                        {
+                            instructions.EmitOpCode(OpCode.Ld_Arg_2);
+                            EmitStoreAddress(localSymbol.TypeSymbol);
+                            break;
+                        }
+                    case 3:
+                        {
+                            instructions.EmitOpCode(OpCode.Ld_Arg_3);
+                            EmitStoreAddress(localSymbol.TypeSymbol);
+                            break;
+                        }
                     default:
                         {
                             if (localSymbol.Index < byte.MaxValue)
                             {
-                                instructions.EmitOpCode(OpCode.St_Arg, (byte)localSymbol.Index);
+                                instructions.EmitOpCode(OpCode.Ld_Arg, (byte)localSymbol.Index);
+                                EmitStoreAddress(localSymbol.TypeSymbol);
                             }
                             else
                             {
-                                instructions.EmitOpCode(OpCode.St_Arg_E, (ushort)localSymbol.Index);
+                                instructions.EmitOpCode(OpCode.Ld_Arg_E, (ushort)localSymbol.Index);
+                                EmitStoreAddress(localSymbol.TypeSymbol);
                             }
                             break;
                         }

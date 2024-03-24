@@ -1,8 +1,4 @@
 ﻿
-using System.Data;
-using System;
-using LumaSharp.Runtime.Emit;
-
 namespace LumaSharp.Runtime
 {
     public enum OpCode : byte
@@ -38,7 +34,7 @@ namespace LumaSharp.Runtime
         St_Loc = 0x2A,          // 1 byte data
         St_Loc_E = 0x2B,        // 2 byte data
 
-        // Arguments
+        // Arguments - Only support for loading - arguments are read only by default unless passed by reference in which case St_Addr_ can be used
         Ld_Arg_0 = 0x30,        // No data
         Ld_Arg_1 = 0x31,        // No data
         Ld_Arg_2 = 0x32,        // No data
@@ -47,12 +43,6 @@ namespace LumaSharp.Runtime
         Ld_Arg_E = 0x35,        // 2 byte data
         Ld_Arg_A = 0x36,        // 1 byte data
         Ld_Arg_EA = 0x37,       // 2 byte data
-        St_Arg_0 = 0x38,        // No data
-        St_Arg_1 = 0x39,        // No data
-        St_Arg_2 = 0x3A,        // No data
-        St_Arg_3 = 0x3B,        // No data
-        St_Arg = 0x3C,          // 1 byte data
-        St_Arg_E = 0x3D,        // 2 byte data
 
         // Fields
         Ld_Fld = 0x40,          // 4 byte data - field token
@@ -144,6 +134,24 @@ namespace LumaSharp.Runtime
     public static class OpCodeCheck
     {
         // Methods
+        public static bool IsOpCodeJump(OpCode code)
+        {
+            switch(code)
+            {
+                case OpCode.Jmp:
+                case OpCode.Jmp_0:
+                case OpCode.Jmp_1:
+                case OpCode.Jmp_Eq:
+                case OpCode.Jmp_NEq:
+                case OpCode.Jmp_L:
+                case OpCode.Jmp_Le:
+                case OpCode.Jmp_G:
+                case OpCode.Jmp_Ge:
+                    return true;
+            }
+            return false;
+        }
+
         public static int GetOpCodeDataSize(OpCode code)
         {
             switch (code)
@@ -190,12 +198,6 @@ namespace LumaSharp.Runtime
                 case OpCode.Ld_Arg_E: return 2;        // 2 byte data
                 case OpCode.Ld_Arg_A: return 1;        // 1 byte data
                 case OpCode.Ld_Arg_EA: return 2;       // 2 byte data
-                case OpCode.St_Arg_0: return 0;        // No data
-                case OpCode.St_Arg_1: return 0;        // No data
-                case OpCode.St_Arg_2: return 0;        // No data
-                case OpCode.St_Arg_3: return 0;        // No data
-                case OpCode.St_Arg: return 1;          // 1 byte data
-                case OpCode.St_Arg_E: return 2;        // 2 byte data
 
                 // Fields
                 case OpCode.Ld_Fld: return 4;          // 4 byte data - field token

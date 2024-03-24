@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Runtime;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace LumaSharp.Runtime.Emit
 {
@@ -12,6 +13,12 @@ namespace LumaSharp.Runtime.Emit
         public object data0;
         public object data1;
         public int dataSize = 0;
+
+        // Properties
+        public int EndOffset
+        {
+            get { return offset + dataSize; }
+        }
 
         // Constructor
         public Instruction(int index, int offset, OpCode opCode)
@@ -95,6 +102,44 @@ namespace LumaSharp.Runtime.Emit
         }
 
         // Methods
+        public void ToDebugFile(string fileName)
+        {
+            using(StreamWriter stream = File.CreateText(fileName))
+            {
+                stream.Write(ToDebugString());
+            }
+        }
+
+        public string ToDebugString()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            // Write all instructions
+            for(int i = 0; i < instructions.Count; i++)
+            {
+                builder.AppendLine(instructions[i].ToString());
+            }
+
+            return builder.ToString();
+        }
+
+        public void DebugCheckJumpLocations()
+        {
+            for(int i = 0; i < instructions.Count; i++)
+            {
+                // Check for jump instructions
+                if (OpCodeCheck.IsOpCodeJump(instructions[i].opCode) == true)
+                {
+                    // Get target jump offset
+                    int jumpLocation = (instructions[i].offset + (int)instructions[i].data0) - 1;
+
+                    // Check for location marker as start of instruction
+                    if (instructions.Exists(e => e.offset == jumpLocation) == false)
+                        throw new InvalidOperationException("Invalid jump location emitted: " + jumpLocation);
+                }
+            }
+        }
+
         public Instruction EmitOpCode(OpCode code)
         {
             if (OpCodeCheck.GetOpCodeDataSize(code) != 0)

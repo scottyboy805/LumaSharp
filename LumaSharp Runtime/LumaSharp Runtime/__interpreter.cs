@@ -327,6 +327,8 @@ namespace LumaSharp.Runtime
                         }
                     case OpCode.Ld_Loc:
                         {
+                            byte index = *((byte*)instructionPtr);
+
                             // Get local
                             _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((byte*)instructionPtr++)];
 
@@ -381,43 +383,7 @@ namespace LumaSharp.Runtime
                         }
                     #endregion
 
-                    #region Argument
-                    case OpCode.St_Arg_0:
-                        {
-                            // Get local
-                            _StackHandle argHandle = method.ArgLocals[0];
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - argHandle.TypeHandle.TypeSize, stackBasePtr + argHandle.StackOffset, argHandle.TypeHandle.TypeSize);
-
-                            // Decrement stack ptr
-                            stackPtr -= argHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.St_Arg_1:
-                        {
-                            // Get local
-                            _StackHandle argHandle = method.ArgLocals[1];
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - argHandle.TypeHandle.TypeSize, stackBasePtr + argHandle.StackOffset, argHandle.TypeHandle.TypeSize);
-
-                            // Decrement stack ptr
-                            stackPtr -= argHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.St_Arg_2:
-                        {
-                            // Get local
-                            _StackHandle argHandle = method.ArgLocals[2];
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - argHandle.TypeHandle.TypeSize, stackBasePtr + argHandle.StackOffset, argHandle.TypeHandle.TypeSize);
-
-                            // Decrement stack ptr
-                            stackPtr -= argHandle.TypeHandle.TypeSize;
-                            break;
-                        }
+                    #region Argument                    
                     case OpCode.Ld_Arg_0:
                         {
                             // Get local
@@ -1769,6 +1735,10 @@ namespace LumaSharp.Runtime
                     #endregion
                 }
             }
+
+            // Output result
+            int valueOnStack = __memory.ReadAs<int>(stackPtr - sizeof(int));
+
             return stackPtr;
         }
     }

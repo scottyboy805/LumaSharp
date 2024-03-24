@@ -204,6 +204,16 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T ReadAs<T>(void* mem, int offset = 0) where T : unmanaged
+        {
+            // Get offset
+            byte* ptr = (byte*)mem + offset;
+
+            // Get as T
+            return *(T*)ptr;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsReferenced(void* mem)
         {
             // Get start of object

@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
 {
     [TestClass]
-    public sealed class EmitFibonaciUnitTests
+    public sealed class EmitFibonacciUnitTests
     {
         [TestMethod]
         public void EmitExecuteFibonacci_Iterative()
@@ -19,7 +19,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
             {
                 i32 Method()
                 {
-                    i32 count = 8;
+                    i32 count = 10;
 
                     i32 a = 0;
                     i32 b = 1;
@@ -49,12 +49,15 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(stream));
             new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
 
+            builder.ToDebugFile("fib.instructions");
+            //builder.DebugCheckJumpLocations();
+
             // Execute code
             __memory.InitStack();
             __interpreter.ExecuteBytecode(methodModel.MethodHandle, stream.ToArray());
 
             // Get value on top of stack
-            Assert.AreEqual(13, __interpreter.FetchValue<int>(20));
+            Assert.AreEqual(21, __interpreter.FetchValue<int>(16));
         }
     }
 }
