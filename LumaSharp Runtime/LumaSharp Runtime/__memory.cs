@@ -20,23 +20,21 @@ namespace LumaSharp.Runtime
         // Private
         private static readonly MemoryTracker tracker = new MemoryTracker();
         private static HashSet<IntPtr> trackedMemory = new HashSet<IntPtr>();
-
-        private static int stackSize = 0;
-
-        // Internal
-        internal static IntPtr stackBasePtr = IntPtr.Zero;
+        private static HashSet<IntPtr> trackedStackMemory = new HashSet<IntPtr>();
 
         // Methods
-        public static void InitStack(int size = 4096)// * 1024)    // 4mb by default
+        public static byte* InitStack(uint size = 4096)// * 1024)    // 4mb by default
         {
-            // Get stack size
-            stackSize = size;
-
             // Allocate stack memory
-            stackBasePtr = (IntPtr)NativeMemory.AllocZeroed((nuint)stackSize);
+            IntPtr stackMemory = (IntPtr)NativeMemory.AllocZeroed(size);
+
+            // Track the memory
+            trackedStackMemory.Add(stackMemory);
+
+            return (byte*)stackMemory;
         }
 
-        public static void CheckStack(void* addr)
+        public static void CheckStack(void* addr, void* stackBasePtr, uint stackSize)
         {
             if (addr > (byte*)stackBasePtr + stackSize)
                 throw new StackOverflowException();
@@ -50,12 +48,15 @@ namespace LumaSharp.Runtime
                 NativeMemory.Free(ptr);
             }
 
+            // Release stack memory in use
+            foreach(void* ptr in trackedStackMemory)
+            {
+                NativeMemory.Free(ptr);
+            }
+
             // Clear tracked memory
             trackedMemory.Clear();
-
-            // Release stack
-            NativeMemory.Free((void*)stackBasePtr);
-            stackBasePtr = IntPtr.Zero;
+            trackedStackMemory.Clear();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -211,6 +212,30 @@ namespace LumaSharp.Runtime
 
             // Get as T
             return *(T*)ptr;
+        }
+
+        public static object ReadAs(_TypeHandle type, void* mem, int offset = 0)
+        {
+            // Get offset
+            byte* ptr = (byte*)mem + offset;
+
+            // Select type
+            switch(type.TypeCode)
+            {
+                case TypeCode.I8: return *(sbyte*)ptr;
+                case TypeCode.U8: return *(byte*)ptr;
+                case TypeCode.I16: return *(short*)ptr;
+                case TypeCode.U16: return *(ushort*)ptr;
+                case TypeCode.I32: return *(int*)ptr;
+                case TypeCode.U32: return *(uint*)ptr;
+                case TypeCode.I64: return *(long*)ptr;
+                case TypeCode.U64: return *(ulong*)ptr;
+                case TypeCode.Float: return *(float*)ptr;
+                case TypeCode.Double: return *(double*)ptr;
+
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

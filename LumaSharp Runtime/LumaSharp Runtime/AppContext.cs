@@ -6,6 +6,7 @@ namespace LumaSharp.Runtime
     public sealed class AppContext : IDisposable
     {
         // Private
+        private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
         private Dictionary<int, Library> loadedLibraries = new Dictionary<int, Library>();
         private Dictionary<int, Type> loadedTypes = new Dictionary<int, Type>();
         private Dictionary<int, Member> loadedMembers = new Dictionary<int, Member>();
@@ -16,7 +17,7 @@ namespace LumaSharp.Runtime
 
         }
 
-        public Library GetLibrary(int token)
+        public Library ResolveLibrary(int token)
         {
             // Try to get the member
             Library library;
@@ -26,17 +27,17 @@ namespace LumaSharp.Runtime
             return library;
         }
 
-        public Library GetLibrary(string name)
+        public Library ResolveLibrary(string name)
         {
             return null;
         }
 
-        public Library GetLibrary(string name, Version version)
+        public Library ResolveLibrary(string name, Version version)
         {
             return null;
         }
 
-        public Member GetMember(int token)
+        public Member ResolveMember(int token)
         {
             // Try to get the member
             Member member;
@@ -46,7 +47,17 @@ namespace LumaSharp.Runtime
             return member;
         }
 
-        public Field GetField(int token)
+        public T ResolveMember<T>(int token) where T : Member
+        {
+            return ResolveMember<T>(token) as T;
+        }
+
+        public Type ResolveType(int token)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Field ResolveField(int token)
         {
             // Try to get the member
             Member member;
@@ -56,7 +67,7 @@ namespace LumaSharp.Runtime
             return member as Field;
         }
 
-        public Accessor GetAccessor(int token)
+        public Accessor ResolveAccessor(int token)
         {
             // Try to get the member
             Member member;
@@ -66,7 +77,7 @@ namespace LumaSharp.Runtime
             return member as Accessor;
         }
 
-        public Method GetMethod(int token)
+        public Method ResolveMethod(int token)
         {
             // Try to get the member
             Member member;
@@ -95,6 +106,30 @@ namespace LumaSharp.Runtime
         {
         }
 
+        internal ThreadContext GetCurrentThreadContext()
+        {
+            // Get the current thread
+            return GetThreadContext(Thread.CurrentThread.ManagedThreadId);
+        }
 
+        internal unsafe ThreadContext GetThreadContext(int threadID, uint stackSize = 4096)
+        {
+            // Try to get
+            ThreadContext context;
+            if (threadContexts.TryGetValue(threadID, out context) == true)
+                return context;
+
+            // Initialize context
+            context.ThreadID = Thread.CurrentThread.ManagedThreadId;
+            context.ThreadStackSize = stackSize;
+            context.ThreadStackPtr = __memory.InitStack(stackSize);
+            context.CallSite = null;
+
+            // Register context
+            threadContexts[threadID] = context;
+
+            // Get new context
+            return context;
+        }
     }
 }

@@ -31,5 +31,12 @@ namespace LumaSharp.Runtime.Reflection
             this.name = Path.GetFileName(path);
             this.version = new Version();
         }
+
+        public LibraryName(string name, Version version, string hintPath = null)
+        {
+            this.name = name;
+            this.version = version;
+            this.hintPath = hintPath;
+        }
     }
 }

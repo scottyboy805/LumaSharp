@@ -1,4 +1,5 @@
 ﻿using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reflection;
 using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.Emit.Builder
@@ -30,7 +31,32 @@ namespace LumaSharp_Compiler.Emit.Builder
         }
 
         // Methods
-        public int BuildEmitModel(BinaryWriter writer = null)
+        public int EmitMetaModel(BinaryWriter writer = null)
+        {
+            // Check for writer
+            if (writer == null)
+            {
+                // Create memory
+                Stream executableStream = new MemoryStream();
+
+                // Create writer
+                writer = new BinaryWriter(executableStream);
+            }
+
+            // Get field flags
+            FieldFlags fieldFlags = fieldModel.FieldFlags;
+
+            // Write metadata
+            writer.Write(fieldModel.SymbolToken);
+            writer.Write(fieldModel.FieldName);
+            writer.Write((uint)fieldFlags);
+
+            // Get size required for this field metadata
+            writer.Flush();
+            return (int)writer.BaseStream.Position;
+        }
+
+        public int EmitExecutableModel(BinaryWriter writer = null)
         {
             // Check for writer
             if (writer == null)
@@ -44,9 +70,7 @@ namespace LumaSharp_Compiler.Emit.Builder
 
             // Get field handle
             _FieldHandle handle = fieldModel.FieldHandle;
-
-            // Write field handle
-            EmitUtil.WriteStruct(writer, handle);
+            handle.Write(writer);
 
             // Get size required for this method image
             writer.Flush();

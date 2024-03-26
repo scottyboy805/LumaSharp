@@ -11,69 +11,110 @@ namespace LumaSharp.Runtime
     internal static unsafe class __interpreter
     {
         // Methods
-        internal static T FetchValue<T>(int offset = 0) where T : struct
-        {
-            // Get address
-            byte* valPtr = (byte*)__memory.stackBasePtr + offset;
+        //internal static T FetchValue<T>(int offset = 0) where T : struct
+        //{
+        //    // Get address
+        //    byte* valPtr = (byte*)__memory.stackBasePtr + offset;
 
-            // Get as T
-            return *((T*)valPtr);
-        }
+        //    // Get as T
+        //    return *((T*)valPtr);
+        //}
 
-        internal static T FetchValue<T>(byte* stackPtr, int offset = 0) where T : struct
-        {
-            // Get address
-            byte* valPtr = stackPtr + offset;
+        //internal static T FetchValue<T>(byte* stackPtr, int offset = 0) where T : struct
+        //{
+        //    // Get address
+        //    byte* valPtr = stackPtr + offset;
 
-            // Get as T
-            return *((T*)valPtr);
-        }
+        //    // Get as T
+        //    return *((T*)valPtr);
+        //}
 
-        internal static IntPtr ExecuteBytecode(byte[] instructions, int argOffset = 0, int localOffset = 0)
+        internal static IntPtr ExecuteBytecode(AppContext context, ThreadContext threadContext, byte[] instructions)
         {
             // Get instruction mem
             fixed(byte* instructionPtr = instructions)
             {
-                // Get stack ptr
-                byte* stackBasePtr = (byte*)__memory.stackBasePtr;
+                //// Get stack ptr
+                //byte* stackBasePtr = (byte*)__memory.stackBasePtr;
 
                 // Create method handle
                 _MethodHandle method = new _MethodHandle
                 {
-                    InstructionPtr = instructionPtr,
+                    ArgCount = (ushort)0,
+                    LocalCount = (ushort)0,
                 };
 
+                //if (argLocals == null)
+                //    argLocals = new _StackHandle[0];
+
+                //fixed (_StackHandle* argLocalsPtr = argLocals)
+                //{
                 // Run bytecode
-                return (IntPtr)ExecuteBytecode(new _MethodHandle { InstructionPtr = instructionPtr}, stackBasePtr);
+                return (IntPtr)ExecuteBytecode(context, threadContext, &method);
+                //}
             }
         }
 
-        internal static IntPtr ExecuteBytecode(_MethodHandle method, byte[] instructions)
+        internal static IntPtr ExecuteBytecode(AppContext context, _MethodHandle method, byte[] instructions)
         {
             // Get instruction mem
             fixed (byte* instructionPtr = instructions)
             {
-                // Get stack ptr
-                byte* stackBasePtr = (byte*)__memory.stackBasePtr + method.StackPtrOffset;
-
-                // Setup instructions
-                method.InstructionPtr = instructionPtr;
+                // Get thread context
+                ThreadContext threadContext = context.GetCurrentThreadContext();
 
                 // Run bytecode
-                return (IntPtr)ExecuteBytecode(method, stackBasePtr);
+                return (IntPtr)ExecuteBytecode(context, threadContext, &method);
             }
         }
 
-        internal static byte* ExecuteBytecode(in _MethodHandle method, byte* stackBasePtr)
-        {
-            // Get instruction ptr
-            byte* instructionPtr = method.InstructionPtr;
+        //internal static IntPtr ExecuteBytecode(AppContext context, ThreadContext threadContext, byte[] instructions)
+        //{
+        //    // Get instruction mem
+        //    fixed (byte* instructionPtr = instructions)
+        //    {
+        //        // Run bytecode
+        //        return (IntPtr)ExecuteBytecode(context, threadContext, &method);
+        //    }
+        //}
 
-            // Get main stack ptr
-            byte* stackPtr = stackBasePtr + method.StackPtrOffset;
+        internal static byte* ExecuteBytecode(AppContext context, void* methodPtr)
+        {
+            // Get thread context
+            ThreadContext threadContext = context.GetCurrentThreadContext();
+
+            // Run bytecode
+            return ExecuteBytecode(context, threadContext, methodPtr);
+        }
+
+        internal static byte* ExecuteBytecode(AppContext context, ThreadContext threadContext, void* methodPtr)
+        {
+            // Get method handle
+            _MethodHandle method = *(_MethodHandle*)methodPtr;
+
+            // Enter call size
+            CallSite callSite = new CallSite((_MethodHandle*)methodPtr, threadContext.ThreadStackPtr);
+
+            // Enter method call
+            threadContext.CallSite = &callSite;
+
+            
+
+            // Zero memory for locals
+            __memory.Zero(callSite.StackPtr, method.StackPtrOffset);
+
+            // Get start of arg locals
+            _StackHandle* argLocals = (_StackHandle*)((_MethodHandle*)methodPtr + 1);
+
+            // Get instruction ptr
+            byte* instructionPtr = (byte*)(argLocals + (method.ArgCount + method.LocalCount));
+
+            // Get stack ptrs
+            byte* stackBasePtr = callSite.StackBasePtr;
+            byte* stackPtr = callSite.StackPtr;
 
             // Get stack ptr where dynamic stack allocations can be made - after this method frame
-            byte* stackAllocPtr = stackPtr + method.MaxStack;
+            byte* stackAllocPtr = callSite.StackAllocPtr;
 
             bool halt = false;
 
@@ -215,7 +256,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Loc_0:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + 0];
+                            _StackHandle locHandle = argLocals[method.ArgCount + 0];
 
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
@@ -229,7 +270,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Loc_1:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + 1];
+                            _StackHandle locHandle = argLocals[method.ArgCount + 1];
 
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
@@ -243,7 +284,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Loc_2:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + 2];
+                            _StackHandle locHandle = argLocals[method.ArgCount + 2];
 
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
@@ -257,7 +298,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Loc:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((byte*)instructionPtr++)];
+                            _StackHandle locHandle = argLocals[method.ArgCount + *((byte*)instructionPtr++)];
 
                             // Move from stack
                             __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
@@ -269,7 +310,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Loc_E:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((ushort*)instructionPtr)];
+                            _StackHandle locHandle = argLocals[method.ArgCount + *((ushort*)instructionPtr)];
                             instructionPtr += 2;
 
                             // Move from stack
@@ -282,7 +323,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Loc_0:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + 0];
+                            _StackHandle locHandle = argLocals[method.ArgCount + 0];
 
                             int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
 
@@ -298,7 +339,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Loc_1:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + 1];
+                            _StackHandle locHandle = argLocals[method.ArgCount + 1];
 
                             int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
 
@@ -314,7 +355,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Loc_2:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + 2];
+                            _StackHandle locHandle = argLocals[method.ArgCount + 2];
 
                             int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
 
@@ -330,7 +371,7 @@ namespace LumaSharp.Runtime
                             byte index = *((byte*)instructionPtr);
 
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((byte*)instructionPtr++)];
+                            _StackHandle locHandle = argLocals[method.ArgCount + *((byte*)instructionPtr++)];
 
                             int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
 
@@ -344,7 +385,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Loc_E:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((ushort*)instructionPtr)];
+                            _StackHandle locHandle = argLocals[method.ArgCount + *((ushort*)instructionPtr)];
                             instructionPtr += 2;
 
                             int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
@@ -359,7 +400,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Loc_A:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((byte*)instructionPtr++)];
+                            _StackHandle locHandle = argLocals[method.ArgCount + *((byte*)instructionPtr++)];
 
                             // Push address
                             *((IntPtr*)stackPtr) = (IntPtr)(stackBasePtr + locHandle.StackOffset);
@@ -371,7 +412,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Loc_EA:
                         {
                             // Get local
-                            _StackHandle locHandle = method.ArgLocals[method.LocalHandleOffset + *((ushort*)instructionPtr)];
+                            _StackHandle locHandle = argLocals[method.ArgCount + *((ushort*)instructionPtr)];
                             instructionPtr++;
 
                             // Push address
@@ -387,7 +428,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Arg_0:
                         {
                             // Get local
-                            _StackHandle argHandle = method.ArgLocals[0];
+                            _StackHandle argHandle = argLocals[0];
 
                             // Move from stack
                             __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr - argHandle.TypeHandle.TypeSize, argHandle.TypeHandle.TypeSize);
@@ -399,7 +440,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Arg_1:
                         {
                             // Get local
-                            _StackHandle argHandle = method.ArgLocals[1];
+                            _StackHandle argHandle = argLocals[1];
 
                             // Move from stack
                             __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr - argHandle.TypeHandle.TypeSize, argHandle.TypeHandle.TypeSize);
@@ -411,7 +452,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Arg_2:
                         {
                             // Get local
-                            _StackHandle argHandle = method.ArgLocals[2];
+                            _StackHandle argHandle = argLocals[2];
 
                             // Move from stack
                             __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr - argHandle.TypeHandle.TypeSize, argHandle.TypeHandle.TypeSize);
@@ -1738,6 +1779,8 @@ namespace LumaSharp.Runtime
 
             // Output result
             int valueOnStack = __memory.ReadAs<int>(stackPtr - sizeof(int));
+
+            int ptrOffset = (int)(stackPtr - sizeof(int) - stackBasePtr);
 
             return stackPtr;
         }

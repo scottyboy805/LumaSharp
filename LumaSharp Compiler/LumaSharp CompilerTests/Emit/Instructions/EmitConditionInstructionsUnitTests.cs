@@ -30,7 +30,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 2);
             Assert.AreEqual(OpCode.Ld_I4_1, builder[0].opCode);
@@ -56,7 +56,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 2);
             Assert.AreEqual(OpCode.Ld_I4_0, builder[0].opCode);
@@ -82,7 +82,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 2);
             Assert.AreEqual(OpCode.Ld_I4_1, builder[0].opCode);
@@ -108,7 +108,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 4);
             Assert.AreEqual(OpCode.Ld_I4, builder[0].opCode);
@@ -136,7 +136,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 4);
             Assert.AreEqual(OpCode.Ld_I4, builder[0].opCode);
@@ -165,7 +165,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 2);
             Assert.AreEqual(OpCode.Ld_I4_1, builder[0].opCode);
@@ -194,7 +194,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 2);
             Assert.AreEqual(OpCode.Ld_I4_1, builder[0].opCode);
@@ -227,7 +227,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(new StatementModel[] { conditionModel }).BuildEmitObject(builder);
+            new MethodBodyBuilder(new StatementModel[] { conditionModel }).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex >= 2);
             Assert.AreEqual(OpCode.Ld_I4_1, builder[0].opCode);

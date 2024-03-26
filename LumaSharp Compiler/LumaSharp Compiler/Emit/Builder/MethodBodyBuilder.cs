@@ -33,7 +33,7 @@ namespace LumaSharp_Compiler.Emit.Builder
         }
 
         // Methods
-        public void BuildEmitObject(InstructionBuilder instructions)
+        public void EmitExecutionObject(InstructionBuilder instructions)
         {
             this.instructions = instructions;
 

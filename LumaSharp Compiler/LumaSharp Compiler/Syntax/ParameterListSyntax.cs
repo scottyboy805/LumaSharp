@@ -22,7 +22,7 @@ namespace LumaSharp_Compiler.AST
 
         public bool HasParameters
         {
-            get { return parameters != null; }
+            get { return parameters != null && parameters.Length > 0; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants

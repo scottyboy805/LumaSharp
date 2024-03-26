@@ -1,25 +1,34 @@
 ﻿
+using System.Runtime.InteropServices;
+
 namespace LumaSharp.Runtime.Reflection
 {
+    [Flags]
+    public enum TypeFlags : uint
+    {
+        Export = 1,
+        Internal = 2,
+        Hidden = 4,
+        Global = 8,
+        Type = 16,
+        Contract = 32,
+        Enum = 64,
+        Array = 128,
+        Abstract = 256,
+        Override = 512,
+        Generic = 1024,
+    }
+
     public unsafe class Type : Member
     {
-        // Type
-        protected internal enum TypeFlags
-        {
-            Type = 1,
-            Contract = 2,
-            Enum = 4,
-            Array = 8,
-            Generic = 16,
-        }
-
         // Private
         private TypeFlags typeFlags = 0;
         private TypeCode typeCode = 0;
         private Type elementType = null;
         private Member[] members = null;
 
-        private _TypeHandle* typeExecutable = null;
+        // Internal
+        internal _TypeHandle* typeExecutable = null;
 
         // Properties
         public bool IsBuiltInType
@@ -63,8 +72,13 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        protected Type(string name, TypeCode code, TypeFlags typeFlags, MemberFlags memberFlags)
-            : base(name, memberFlags)
+        internal Type(AppContext context)
+            : base(context)
+        { 
+        }
+
+        protected Type(AppContext context, string name, TypeCode code, TypeFlags typeFlags)
+            : base(context, name, (MemberFlags)typeFlags)
         {
             this.typeCode = code;
             this.typeFlags = typeFlags;
@@ -128,6 +142,69 @@ namespace LumaSharp.Runtime.Reflection
                 // Check for method with flags and not initializer
                 if(member is Method && member.HasMemberFlags(flags) == true && ((Method)member).IsInitializer == false)
                     yield return (Method)member;
+            }
+        }
+
+        internal void LoadTypeMetadata(BinaryReader reader)
+        {
+            // Read member metadata
+            LoadMemberMetadata(reader);
+
+            // Get type flags
+            typeFlags = (TypeFlags)MemberFlags;
+
+            List<Member> members = new List<Member>();
+
+            // Read fields
+            int fieldCount = reader.ReadInt32();
+
+            // Read all fields
+            for(int i = 0; i < fieldCount; i++)
+            {
+                // Create field
+                Field field = new Field(context);
+
+                // Read field
+                field.LoadFieldMetadata(reader);
+
+                // Register field
+                members.Add(field);
+            }
+
+            // Read methods
+            int methodCount = reader.ReadInt32();
+
+            // Read all methods
+            for(int i = 0; i < methodCount; i++)
+            {
+                // Create method
+                Method method = new Method(context);
+
+                // Read method
+                method.LoadMethodMetadata(reader);
+
+                // Register method
+                members.Add(method);
+            }
+
+            // Store members
+            this.members = members.ToArray();
+        }
+
+        internal void LoadTypeExecutable(BinaryReader reader)
+        {
+            // Create executable
+            typeExecutable = (_TypeHandle*)NativeMemory.AllocZeroed((nuint)sizeof(_TypeHandle));
+
+            // Read handle
+            typeExecutable->Read(reader);
+
+
+            // Read all fields
+            foreach(Field field in members.OfType<Field>())
+            {
+                // Read executable
+                field.LoadFieldExecutable(reader);
             }
         }
     }

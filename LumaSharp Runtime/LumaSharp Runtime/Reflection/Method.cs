@@ -1,25 +1,34 @@
 ﻿
 using LumaSharp.Runtime.Handle;
+using System.Runtime.InteropServices;
 
 namespace LumaSharp.Runtime.Reflection
 {
+    [Flags]
+    public enum MethodFlags : uint
+    {
+        Export = 1,
+        Internal = 2,
+        Hidden = 4,
+        Global = 8,
+        ReturnValue = 16,
+        ParamValues = 32,
+        Initializer = 64,
+        Abstract = 128,
+        Override = 256,
+        Generic = 512,
+    }
+
     public unsafe class Method : Member
     {
-        // Type
-        protected internal enum MethodFlags
-        {
-            Initializer = 1,
-            Abstract = 2,
-            Override = 4,
-            Generic = 8,
-        }
-
         // Private
         private MethodFlags methodFlags = 0;
-        private Type returnType = null;
+        private MemberReference<Type> returnTypeReference = null;
         private Parameter[] parameters = null;
 
-        private _MethodHandle* methodExecutable = null;
+        // Internal
+        internal _MethodHandle* methodExecutable = null;
+        internal _StackHandle* methodArgLocals = null;
 
         // Properties
         public bool IsInitializer
@@ -44,7 +53,7 @@ namespace LumaSharp.Runtime.Reflection
 
         public Type ReturnType
         {
-            get { return returnType; }
+            get { return returnTypeReference.Member; }
         }
 
         public Parameter[] Parameters
@@ -69,10 +78,148 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal Method(string name, MethodFlags methodFlags, MemberFlags memberFlags) 
-            : base(name, memberFlags)
+        internal Method(AppContext context)
+            : base(context)
+        { 
+        }
+
+        internal Method(AppContext context, string name, MethodFlags methodFlags) 
+            : base(context, name, (MemberFlags)methodFlags)
         {
             this.methodFlags = methodFlags;
+        }
+
+        // Methods
+        public object Invoke(object[] args, IntPtr instance = default)
+        {
+            // Invoke the method
+            nint stackPtr = InvokeMethodHandle();
+
+            // Check for return value
+            if ((methodFlags & MethodFlags.ReturnValue) != 0)
+            {
+                // Get type handle
+                _TypeHandle returnTypeHandle = *ReturnType.typeExecutable;
+
+                // Get return value
+                return __memory.ReadAs(returnTypeHandle, (void*)stackPtr, -(int)returnTypeHandle.TypeSize);
+            }
+            return null;
+        }
+
+        public T Invoke<T>(object[] args, IntPtr instance = default) where T : unmanaged
+        {
+            // Invoke the method
+            nint stackPtr = InvokeMethodHandle();
+
+            // Check for return value
+            if((methodFlags & MethodFlags.ReturnValue) != 0)
+            {
+                // Get return value
+                return __memory.ReadAs<T>((void*)stackPtr, -sizeof(T));
+            }
+            return default;
+        }
+
+        private nint InvokeMethodHandle()
+        {
+            // Check for no handle available
+            if (methodExecutable == null)
+                throw new InvalidOperationException("Cannot invoke a method which has no handle");
+
+            // Get thread context
+            ThreadContext threadContext = context.GetCurrentThreadContext();
+
+            // Invoke the method
+            return (nint)__interpreter.ExecuteBytecode(context, threadContext, methodExecutable);            
+        }
+
+        internal void LoadMethodMetadata(BinaryReader reader)
+        {
+            // Load member metadata
+            LoadMemberMetadata(reader);
+
+            // Get method flags
+            methodFlags = (MethodFlags)MemberFlags;
+
+
+            // Check for return type
+            if ((methodFlags & MethodFlags.ReturnValue) != 0)
+            {
+                // Load return type
+                this.returnTypeReference = new MemberReference<Type>(
+                    context, reader.ReadInt32());
+            }
+            else
+            {
+                // Use void return type
+                this.returnTypeReference = new MemberReference<Type>(
+                    context.ResolveType(0));
+            }
+
+            // Check for parameters
+            if ((methodFlags & MethodFlags.ParamValues) != 0)
+            {
+                // Get parameter count
+                int parameterCount = reader.ReadInt32();
+
+                // Initialize array
+                this.parameters = new Parameter[parameterCount];
+
+                // Load parameters
+                for (int i = 0; i < parameterCount; i++)
+                {
+                    // Create parameter
+                    Parameter parameter = new Parameter(context, i);
+
+                    // Read parameter
+                    parameter.LoadParameterMetadata(reader);
+
+                    // Register parameter
+                    parameters[i] = parameter;
+                }
+            }
+            else
+            {
+                // Use empty parameters
+                this.parameters = new Parameter[0];
+            }
+        }
+
+        internal void LoadMethodExecutable(BinaryReader reader)
+        {
+            // Read size of method
+            uint methodSize = reader.ReadUInt32();
+
+            // Create handle
+            methodExecutable = (_MethodHandle*)NativeMemory.AllocZeroed(methodSize);
+
+            // Read the handle
+            methodExecutable->Read(reader);
+
+
+            // Create arg locals handle
+            methodArgLocals = (_StackHandle*)(methodExecutable + 1);
+            int argLocalCount = methodExecutable->ArgCount + methodExecutable->LocalCount;
+
+            // Read arg locals
+            for(int i = 0; i < argLocalCount; i++)
+            {
+                // Read the arg local handle
+                methodArgLocals[i].Read(reader);
+            }
+
+            // Create the instruction ptr
+            byte* instructionPtr = (byte*)(methodArgLocals + argLocalCount);
+            int instructionsSize = (int)(methodSize - (instructionPtr - (byte*)methodExecutable));
+
+            // Read bytecode instructions into existing allocated memory
+            reader.Read(new Span<byte>(instructionPtr, instructionsSize));
+
+            // TODO
+            //store method handle followed immediately by instructions
+
+            // Method pointer starts at instructions but methodptr - sizeof(methodhandle) will access the method handle
         }
     }
 }

@@ -31,7 +31,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex > 0);
             Assert.AreEqual(OpCode.Ld_Loc_0, builder[0].opCode);
@@ -60,7 +60,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             Assert.IsTrue(builder.InstructionIndex > 0);
             Assert.AreEqual(OpCode.Ld_Loc_0, builder[0].opCode);

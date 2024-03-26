@@ -1,7 +1,8 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public enum MemberFlags
+    [Flags]
+    public enum MemberFlags : uint
     {
         Export = 1,
         Internal = 2,
@@ -11,6 +12,9 @@ namespace LumaSharp.Runtime.Reflection
 
     public abstract class Member
     {
+        // Internal
+        internal AppContext context = null;
+
         // Private
         private int token = 0;
         private string name = "";
@@ -47,9 +51,20 @@ namespace LumaSharp.Runtime.Reflection
             get { return (memberFlags & MemberFlags.Global) != 0; }
         }
 
-        // Constructor
-        protected Member(string name, MemberFlags flags)
+        internal MemberFlags MemberFlags
         {
+            get { return memberFlags; }
+        }
+
+        // Constructor
+        internal Member(AppContext context) 
+        {
+            this.context = context;
+        }
+
+        protected Member(AppContext context, string name, MemberFlags flags)
+        {
+            this.context =context;
             this.name = name;
             this.memberFlags = flags;
         }
@@ -58,6 +73,13 @@ namespace LumaSharp.Runtime.Reflection
         public bool HasMemberFlags(MemberFlags flags)
         {
             return (memberFlags & flags) == flags;
+        }
+
+        internal void LoadMemberMetadata(BinaryReader reader)
+        {
+            token = reader.ReadInt32();
+            name = reader.ReadString();
+            memberFlags = (MemberFlags)reader.ReadUInt32();
         }
     }
 }

@@ -30,7 +30,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
@@ -57,7 +57,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
@@ -85,7 +85,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
@@ -114,7 +114,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
@@ -149,7 +149,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
@@ -176,7 +176,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);
@@ -211,7 +211,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             // Build instructions
             InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).BuildEmitObject(builder);
+            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
             Assert.IsTrue(builder.InstructionIndex > 1);

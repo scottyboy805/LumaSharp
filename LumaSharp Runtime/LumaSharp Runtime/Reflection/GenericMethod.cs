@@ -18,8 +18,8 @@ namespace LumaSharp.Runtime.Reflection
         }
         
         // Constructor
-        internal GenericMethod(string name, MethodFlags methodFlags, MemberFlags memberFlags) 
-            : base(name, methodFlags, memberFlags)
+        internal GenericMethod(AppContext context, string name, MethodFlags methodFlags) 
+            : base(context, name, methodFlags)
         {
         }
     }

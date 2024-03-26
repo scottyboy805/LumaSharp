@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reflection;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Statement;
@@ -18,7 +19,9 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ILocalIdentifierReferenceSymbol[] localIdentifierSymbols = null;
         private StatementModel[] bodyStatements = null;
 
+        private MethodFlags methodFlags = default;
         private _MethodHandle methodHandle = default;
+        private _StackHandle[] argLocalHandles = default;
 
         // Properties
         public MethodSyntax Syntax
@@ -39,6 +42,21 @@ namespace LumaSharp_Compiler.Semantics.Model
         public string IdentifierName
         {
             get { return syntax.Identifier.Text; }
+        }
+
+        public bool IsExport
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "export") != null; }
+        }
+
+        public bool IsInternal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "internal") != null; }
+        }
+
+        public bool IsHidden
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "hidden") != null; }
         }
 
         public bool IsGlobal
@@ -91,6 +109,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax.ReturnType.Identifier.Text != "void"; }
         }
 
+        public bool HasParameters
+        {
+            get { return syntax.HasParameters; }
+        }
+
         public bool HasGenericParameters
         {
             get { return syntax.HasGenericParameters; }
@@ -101,9 +124,19 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return syntax.HasBody; }
         }
 
+        public MethodFlags MethodFlags
+        {
+            get { return methodFlags; }
+        }
+
         public _MethodHandle MethodHandle
         {
             get { return methodHandle; }
+        }
+
+        public _StackHandle[] MethodArgLocals
+        {
+            get { return argLocalHandles; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -145,6 +178,9 @@ namespace LumaSharp_Compiler.Semantics.Model
                 this.bodyStatements = syntax.Body.Elements
                     .Select((s, i) => StatementModel.Any(model, this, s, i, this)).ToArray();
             }
+
+            // Create flags
+            this.methodFlags = BuildMethodFlags();
         }
 
         // Methods
@@ -206,6 +242,11 @@ namespace LumaSharp_Compiler.Semantics.Model
                     // Resolve symbols
                     parameterModel.ResolveSymbols(provider, report);
                 }
+            }
+            else
+            {
+                // Create empty parameters
+                parameterIdentifierSymbols = new ILocalIdentifierReferenceSymbol[0];
             }
 
             // Check for body
@@ -298,7 +339,8 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Build arg and locals
             List<_StackHandle> argLocals = new List<_StackHandle>();
             uint stackOffset = 0;
-            ushort localHandleOffset = 0;
+            ushort argCount = 0;
+            ushort localCount = 0;
             uint stackPtrOffset = 0;
 
             // Process parameters
@@ -313,10 +355,10 @@ namespace LumaSharp_Compiler.Semantics.Model
 
                 // Advance offset
                 stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
-            }
 
-            // Update local offset - start of local variables
-            localHandleOffset = (ushort)argLocals.Count;
+                // Increment args
+                argCount++;
+            }
 
             // Get all locals
             List<ILocalIdentifierReferenceSymbol> locals = new List<ILocalIdentifierReferenceSymbol>();
@@ -350,6 +392,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
                 // Advance offset
                 stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
+
+                // Increment locals
+                localCount++;
             }
 
             // Calculate start exestuation offset
@@ -358,10 +403,14 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Build method
             this.methodHandle = new _MethodHandle
             {
-                LocalHandleOffset = localHandleOffset,
+                MethodToken = SymbolToken,
+                ArgCount = argCount,
+                LocalCount = localCount,
                 StackPtrOffset = stackPtrOffset,
-                ArgLocals = argLocals.ToArray(),
             };
+
+            // Store arg locals
+            argLocalHandles = argLocals.ToArray();
         }
 
         public override void StaticallyEvaluateMember(ISymbolProvider provider)
@@ -404,6 +453,41 @@ namespace LumaSharp_Compiler.Semantics.Model
                 }
             }
             return variableModel;
+        }
+
+        private MethodFlags BuildMethodFlags()
+        {
+            MethodFlags flags = 0;
+
+            // Check for export
+            if(IsExport == true) flags |= MethodFlags.Export;
+
+            // Check for internal
+            if (IsInternal == true) flags |= MethodFlags.Internal;
+
+            // Check for hidden
+            if (IsHidden == true) flags |= MethodFlags.Hidden;
+
+            // Check for global
+            if(IsGlobal == true) flags |= MethodFlags.Global;
+
+            // Check for return value
+            if (HasReturnType == true) flags |= MethodFlags.ReturnValue;
+
+            // Check for parameters
+            if (HasParameters == true) flags |= MethodFlags.ParamValues;
+
+            // Check for initializer
+
+            // Check for abstract
+            if (HasBody == false) flags |= MethodFlags.Abstract;
+
+            // Check for override
+
+            // Check for generic
+            if (HasGenericParameters == true) flags |= MethodFlags.Generic;
+
+            return flags;
         }
     }
 }

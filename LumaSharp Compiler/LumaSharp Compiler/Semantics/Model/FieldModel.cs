@@ -1,4 +1,5 @@
 ﻿using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reflection;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
@@ -14,6 +15,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private ExpressionModel assignModel = null;
         private TypeReferenceModel fieldTypeModel = null;
 
+        private FieldFlags fieldFlags = default;
         private _FieldHandle fieldHandle = default;
 
         // Properties
@@ -25,6 +27,21 @@ namespace LumaSharp_Compiler.Semantics.Model
         public string IdentifierName
         {
             get { return syntax.Identifier.Text; }
+        }
+
+        public bool IsExport
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "export") != null; }
+        }
+
+        public bool IsInternal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "internal") != null; }
+        }
+
+        public bool IsHidden
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "hidden") != null; }
         }
 
         public bool IsGlobal
@@ -52,6 +69,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return fieldTypeModel.EvaluatedTypeSymbol; }
         }
 
+        public FieldFlags FieldFlags
+        {
+            get { return fieldFlags; }
+        }
+
         public _FieldHandle FieldHandle
         {
             get { return fieldHandle; }
@@ -72,6 +94,9 @@ namespace LumaSharp_Compiler.Semantics.Model
             this.assignModel = syntax.HasFieldAssignment == true
                 ? ExpressionModel.Any(model, this, syntax.FieldAssignment)
                 : null;
+
+            // Create flags
+            this.fieldFlags = BuildFieldFlags();
         }
 
         // Methods
@@ -114,6 +139,25 @@ namespace LumaSharp_Compiler.Semantics.Model
                 // Evaluate the expression
                 assignModel = assignModel.StaticallyEvaluateExpression(provider);
             }
+        }
+
+        private FieldFlags BuildFieldFlags()
+        {
+            FieldFlags flags = 0;
+
+            // Check for export
+            if (IsExport == true) flags |= FieldFlags.Export;
+
+            // Check for internal
+            if (IsInternal == true) flags |= FieldFlags.Internal;
+
+            // Check for hidden
+            if (IsHidden == true) flags |= FieldFlags.Hidden;
+
+            // Check for global
+            if (IsGlobal == true) flags |= FieldFlags.Global;
+
+            return flags;
         }
     }
 }

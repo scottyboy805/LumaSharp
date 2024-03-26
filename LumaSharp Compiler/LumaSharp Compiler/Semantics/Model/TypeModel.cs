@@ -1,4 +1,5 @@
 ﻿using LumaSharp.Runtime;
+using LumaSharp.Runtime.Reflection;
 using LumaSharp_Compiler.AST;
 using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
@@ -25,6 +26,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private MethodModel[] memberMethods = null;
         private MethodModel[] operatorMethods = null;
 
+        private TypeFlags typeFlags = default;
         private _TypeHandle typeHandle = default;
 
         // Properties
@@ -126,6 +128,26 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
         }
 
+        public bool IsExport
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "export") != null; }
+        }
+
+        public bool IsInternal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "internal") != null; }
+        }
+
+        public bool IsHidden
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "hidden") != null; }
+        }
+
+        public bool IsGlobal
+        {
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
+        }
+
         public PrimitiveType PrimitiveType
         {
             get { return PrimitiveType.Any; }
@@ -149,6 +171,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         public bool IsEnum
         {
             get { return syntax is EnumSyntax; }
+        }
+
+        public TypeFlags TypeFlags
+        {
+            get { return typeFlags; }
         }
 
         public _TypeHandle TypeHandle
@@ -232,6 +259,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Build model
             BuildMembersModel(model, syntax.Members);
+
+            // Create flags
+            this.typeFlags = BuildTypeFlags(); 
         }
 
         internal TypeModel(SemanticModel model, SymbolModel parent, ContractSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
@@ -266,6 +296,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Build model
             BuildMembersModel(model, syntax.Members);
+
+            // Create flags
+            this.typeFlags = BuildTypeFlags();
         }
 
         internal TypeModel(SemanticModel model, SymbolModel parent, EnumSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
@@ -281,6 +314,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Build model
             BuildMembersModel(model, syntax.Fields);
+
+            // Create flags
+            this.typeFlags = BuildTypeFlags();
         }
 
         // Methods
@@ -497,6 +533,37 @@ namespace LumaSharp_Compiler.Semantics.Model
                 Code reportCode = (IsType == true) ? Code.InvalidEnumBaseType : Code.InvalidEnumBaseContract;
                 report.ReportMessage(reportCode, MessageSeverity.Error, baseModel.Syntax.StartToken.Source, baseType);
             }
+        }
+
+        private TypeFlags BuildTypeFlags()
+        {
+            TypeFlags flags = 0;
+
+            // Check for export
+            if (IsExport == true) flags |= TypeFlags.Export;
+
+            // Check for internal
+            if (IsInternal == true) flags |= TypeFlags.Internal;
+
+            // Check for hidden
+            if (IsHidden == true) flags |= TypeFlags.Hidden;
+
+            // Check for global
+            if (IsGlobal == true) flags |= TypeFlags.Global;
+
+            // Check for type
+            if (IsType == true) flags |= TypeFlags.Type;
+
+            // Check for contract
+            if (IsContract == true) flags |= TypeFlags.Contract;
+
+            // Check for enum
+            if (IsEnum == true) flags |= TypeFlags.Enum;
+
+            // Check for array
+            if (HasGenericParameters == true) flags |= TypeFlags.Generic;
+
+            return flags;
         }
     }
 }

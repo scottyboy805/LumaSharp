@@ -4,18 +4,22 @@ namespace LumaSharp.Runtime.Reflection
     public sealed class Parameter
     {
         // Type
-        internal enum ParameterFlags
+        [Flags]
+        internal enum ParameterFlags : uint
         {
             Reference = 1,
             DefaultValue = 2,
             VariableLength = 4,
         }
 
+        // Internal
+        internal AppContext context = null;
+
         // Private
         private ParameterFlags parameterFlags = 0;
         private string name = "";
         private int index = 0;
-        private Type parameterType = null;
+        private MemberReference<Type> parameterType = null;
 
         // Properties
         public string Name
@@ -30,7 +34,7 @@ namespace LumaSharp.Runtime.Reflection
 
         public Type ParameterType
         {
-            get { return parameterType; }
+            get { return parameterType.Member; }
         }
 
         public bool IsReference
@@ -49,12 +53,30 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal Parameter(string name, int index, Type parameterType, ParameterFlags parameterFlags)
+        internal Parameter(AppContext context, int index)
         {
+            this.context = context;
+            this.index = index;
+        }
+
+        internal Parameter(AppContext context, string name, int index, Type parameterType, ParameterFlags parameterFlags)
+        {
+            this.context = context;
             this.name = name;
             this.index = index;
-            this.parameterType = parameterType;
+            this.parameterType = new MemberReference<Type>(parameterType);
             this.parameterFlags = parameterFlags;
+        }
+
+        // Methods
+        internal void LoadParameterMetadata(BinaryReader reader)
+        {
+            // Read parameter type
+            this.parameterType = new MemberReference<Type>(
+                context, reader.ReadInt32());
+
+            // Read flags
+            this.parameterFlags = (ParameterFlags)reader.ReadUInt32();
         }
     }
 }

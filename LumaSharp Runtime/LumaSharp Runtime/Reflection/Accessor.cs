@@ -61,8 +61,8 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal Accessor(string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
-            : base(name, memberFlags)
+        internal Accessor(AppContext context, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
+            : base(context, name, memberFlags)
         {
             this.accessorFlags = accessorFlags;
         }

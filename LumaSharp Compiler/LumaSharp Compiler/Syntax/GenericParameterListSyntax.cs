@@ -22,7 +22,7 @@ namespace LumaSharp_Compiler.AST
 
         public bool HasGenericParameters
         {
-            get { return genericParameters != null; }
+            get { return genericParameters != null && genericParameters.Length > 0; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
