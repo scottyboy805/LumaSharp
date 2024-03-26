@@ -4,7 +4,7 @@ namespace LumaSharp.Runtime
     internal unsafe sealed class __runtime
     {
         // Public
-        public const int maxTypeCode = (int)TypeCode.Double + 1;
+        public const int maxTypeCode = (int)TypeCode.F64 + 1;
 
         // Methods
         public static uint Size(int typeCode)
@@ -27,8 +27,8 @@ namespace LumaSharp.Runtime
                 case TypeCode.U32: return sizeof(uint);
                 case TypeCode.I64: return sizeof(long);
                 case TypeCode.U64: return sizeof(ulong);
-                case TypeCode.Float: return sizeof(float);
-                case TypeCode.Double: return sizeof(double);
+                case TypeCode.F32: return sizeof(float);
+                case TypeCode.F64: return sizeof(double);
                 case TypeCode.Char: return sizeof(char);
                 case TypeCode.Bool: return sizeof(bool);
                 case TypeCode.Any: return (uint)sizeof(IntPtr);

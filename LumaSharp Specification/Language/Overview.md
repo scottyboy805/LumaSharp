@@ -1,7 +1,7 @@
 ### Primitive types:
 ```cs
 // Primitive integer types include the size/unsigned information in the name to easily understand how it is represented in memory
-i8, u8, i16, u16, i32, u32, i64, u64, single, double, bool, string, char
+i8, u8, i16, u16, i32, u32, i64, u64, f32, f64, bool, string, char
 
 // Any is a special type that can represent any built in or user type as a common base - Similar to C# object keyword - Leads to allocation on the heap same as c#
 any = 123;
@@ -12,7 +12,7 @@ any = 123;
 // Import seems like a better fit rather than using
 import Collections;
 import Collections:Generic;
-import MyList as Collections:Generic:List<i8>;  // Aliasing is supported
+import MyList as Collections:Generic.List<i8>;  // Aliasing is supported
 ```
 
 ### Namespaces:

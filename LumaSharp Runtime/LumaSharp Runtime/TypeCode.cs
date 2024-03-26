@@ -14,7 +14,7 @@ namespace LumaSharp.Runtime
         U32,
         I64,
         U64,
-        Float,
-        Double,
+        F32,
+        F64,
     }
 }

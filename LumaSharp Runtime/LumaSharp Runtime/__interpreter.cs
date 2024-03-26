@@ -725,7 +725,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((float*)stackPtr - 2) = *((float*)stackPtr - 2) + *((float*)stackPtr - 1);
@@ -734,7 +734,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) + *((double*)stackPtr - 1);
@@ -781,7 +781,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((float*)stackPtr - 2) = *((float*)stackPtr - 2) - *((float*)stackPtr - 1);
@@ -790,7 +790,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) - *((double*)stackPtr - 1);
@@ -837,7 +837,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((float*)stackPtr - 2) = *((float*)stackPtr - 2) * *((float*)stackPtr - 1);
@@ -846,7 +846,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) * *((double*)stackPtr - 1);
@@ -893,7 +893,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((float*)stackPtr - 2) = *((float*)stackPtr - 2) / *((float*)stackPtr - 1);
@@ -902,7 +902,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) / *((double*)stackPtr - 1);
@@ -934,13 +934,13 @@ namespace LumaSharp.Runtime
                                         *((long*)stackPtr - 1) = -*((long*)stackPtr - 1);
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((float*)stackPtr - 1) = -*((float*)stackPtr - 1);
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((double*)stackPtr - 1) = -*((double*)stackPtr - 1);
@@ -984,7 +984,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((float*)stackPtr - 2) = *((float*)stackPtr - 2) % *((float*)stackPtr - 1);
@@ -993,7 +993,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((double*)stackPtr - 2) = *((double*)stackPtr - 2) % *((double*)stackPtr - 1);
@@ -1262,7 +1262,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size + _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) == *((float*)stackPtr - 1)) ? 1 : 0;
@@ -1271,7 +1271,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) == *((double*)stackPtr - 1)) ? 1 : 0;
@@ -1318,7 +1318,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size + _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) != *((float*)stackPtr - 1)) ? 1 : 0;
@@ -1327,7 +1327,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) != *((double*)stackPtr - 1)) ? 1 : 0;
@@ -1374,7 +1374,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size + _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) < *((float*)stackPtr - 1)) ? 1 : 0;
@@ -1383,7 +1383,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) < *((double*)stackPtr - 1)) ? 1 : 0;
@@ -1430,7 +1430,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size + _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) <= *((float*)stackPtr - 1)) ? 1 : 0;
@@ -1439,7 +1439,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) <= *((double*)stackPtr - 1)) ? 1 : 0;
@@ -1486,7 +1486,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size + _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) > *((float*)stackPtr - 1)) ? 1 : 0;
@@ -1495,7 +1495,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) > *((double*)stackPtr - 1)) ? 1 : 0;
@@ -1542,7 +1542,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _I64.Size + _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) >= *((float*)stackPtr - 1)) ? 1 : 0;
@@ -1551,7 +1551,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         // Perform add op
                                         *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) >= *((double*)stackPtr - 1)) ? 1 : 0;
@@ -1591,12 +1591,12 @@ namespace LumaSharp.Runtime
                                         stackPtr += _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         *((float*)stackPtr - 1) = *((int*)stackPtr - 1);
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         *((double*)(stackPtr - 4)) = *((int*)stackPtr - 1);
 
@@ -1657,7 +1657,7 @@ namespace LumaSharp.Runtime
                                         stackPtr += _I32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         *((double*)(stackPtr - 4)) = *((float*)stackPtr - 1);
 
@@ -1698,7 +1698,7 @@ namespace LumaSharp.Runtime
                                         *((ulong*)stackPtr - 1) = (ulong)*((double*)stackPtr - 1);
                                         break;
                                     }
-                                case TypeCode.Float:
+                                case TypeCode.F32:
                                     {
                                         *((float*)stackPtr - 2) = (int)*((double*)stackPtr - 1);
 
@@ -1706,7 +1706,7 @@ namespace LumaSharp.Runtime
                                         stackPtr -= _F32.Size;
                                         break;
                                     }
-                                case TypeCode.Double:
+                                case TypeCode.F64:
                                     {
                                         *((double*)stackPtr - 1) = *((double*)stackPtr - 1);
                                         break;

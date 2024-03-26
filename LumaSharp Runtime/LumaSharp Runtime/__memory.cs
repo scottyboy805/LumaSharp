@@ -230,8 +230,8 @@ namespace LumaSharp.Runtime
                 case TypeCode.U32: return *(uint*)ptr;
                 case TypeCode.I64: return *(long*)ptr;
                 case TypeCode.U64: return *(ulong*)ptr;
-                case TypeCode.Float: return *(float*)ptr;
-                case TypeCode.Double: return *(double*)ptr;
+                case TypeCode.F32: return *(float*)ptr;
+                case TypeCode.F64: return *(double*)ptr;
 
                 default:
                     throw new NotSupportedException();
