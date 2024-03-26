@@ -191,6 +191,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Get symbol token
+            memberToken = provider.GetDeclaredSymbolToken(this);
+
             // Get return type
             returnTypeSymbol = provider.ResolveTypeSymbol(this, syntax.ReturnType);
 

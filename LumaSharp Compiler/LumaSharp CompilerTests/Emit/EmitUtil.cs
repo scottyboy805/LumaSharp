@@ -19,12 +19,16 @@ namespace LumaSharp_CompilerTests.Emit
 
             // Create method builder
             MethodBuilder builder = new MethodBuilder(context, model);
-
+            
             // Emit to stream
             BinaryWriter writer = new BinaryWriter(stream);
             builder.EmitMetaModel(writer);
-            builder.EmitExecutableModel(writer);
+            builder.EmitExecutableModel(writer, "current.instructions");
 
+
+            stream.Seek(0, SeekOrigin.Begin);
+            using (Stream fs = File.Create("current.bytecode"))
+                stream.CopyTo(fs);
 
             // Return to start
             stream.Seek(0, SeekOrigin.Begin);
@@ -34,6 +38,9 @@ namespace LumaSharp_CompilerTests.Emit
             Method method = new Method(context);
             method.LoadMethodMetadata(reader);
             method.LoadMethodExecutable(reader);
+
+            // Define the method
+            context.DefineMember(method);
 
             return method;
         }

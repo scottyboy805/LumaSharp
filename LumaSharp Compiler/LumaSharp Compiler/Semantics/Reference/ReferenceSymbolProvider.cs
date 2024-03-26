@@ -30,6 +30,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         private ReferenceLibrary runtimeLibrary = null;
         private ReferenceLibrary thisLibrary = null;
         private ReferenceLibrary[] referenceLibraries = null;
+        private Dictionary<int, IReferenceSymbol> declaredSymbols = new Dictionary<int, IReferenceSymbol>();
 
         private ICompileReportProvider report = null;
         private ReferenceNamespaceResolver namespaceResolver = null;
@@ -64,14 +65,41 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 _u32 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U32, _any);
                 _i64 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I64, _any);
                 _u64 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U64, _any);
-                _float = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Float, _any);
-                _double = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Double, _any);
+                _float = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.F32, _any);
+                _double = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.F64, _any);
 
                 _enum = new EnumTypeSymbol(runtimeLibrary, _any);
             }
         }
 
         // Methods
+        public int GetDeclaredSymbolToken(IReferenceSymbol symbol)
+        {
+            // Check for null
+            if (symbol == null)
+                throw new ArgumentNullException(nameof(symbol));
+
+            // Check for already declared
+            if (declaredSymbols.ContainsKey(symbol.SymbolToken) == true)
+                return symbol.SymbolToken;
+
+            // Generate new token
+            int token = 0;
+
+            // Get random
+            Random rand = new Random();
+            do
+            {
+                // Get next id
+                token = rand.Next();
+            }
+            while (declaredSymbols.ContainsKey(token) == true);
+
+            // Declare symbol
+            declaredSymbols[token] = symbol;
+            return token;
+        }
+
         public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource source)
         {
             ITypeReferenceSymbol primitive = null;
@@ -99,8 +127,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
                     PrimitiveType.I64 => _i64,
                     PrimitiveType.U64 => _u64,
 
-                    PrimitiveType.Float => _float,
-                    PrimitiveType.Double => _double,
+                    PrimitiveType.F32 => _float,
+                    PrimitiveType.F64 => _double,
                 };
             }
 

@@ -34,7 +34,7 @@ namespace LumaSharp.Runtime.Emit
             this.offset = offset;
             this.opCode = opCode;
             this.data0 = data;
-            this.dataSize = Marshal.SizeOf(data);
+            this.dataSize = DataSize(data);
         }
 
         public Instruction(int index, int offset, OpCode opCode, object data0, object data1)
@@ -44,7 +44,7 @@ namespace LumaSharp.Runtime.Emit
             this.opCode = opCode;
             this.data0 = data0;
             this.data1 = data1;
-            this.dataSize = Marshal.SizeOf(data0) + Marshal.SizeOf(data1);
+            this.dataSize = DataSize(data0) + DataSize(data1);
         }
 
         // Methods
@@ -63,6 +63,15 @@ namespace LumaSharp.Runtime.Emit
                 return string.Format("[{0}] {1}: {2}", offset, index, opCode);
             }    
         }
+
+        private static int DataSize(object data)
+        {
+            // Get size of enum type
+            if (data is Enum)
+                return Marshal.SizeOf(data.GetType().GetEnumUnderlyingType());
+
+            return Marshal.SizeOf(data);
+        }
     }
 
     internal class InstructionBuilder
@@ -70,6 +79,7 @@ namespace LumaSharp.Runtime.Emit
         // Private
         private BinaryWriter writer = null;
         private List<Instruction> instructions = null;
+        private int baseOffset = 0;
         private int instructionIndex = 0;
 
         // Properties
@@ -94,11 +104,17 @@ namespace LumaSharp.Runtime.Emit
             }
         }
 
+        private int CurrentOffset
+        {
+            get { return (int)writer.BaseStream.Position/* - baseOffset*/; }
+        }
+
         // Constructor
         public InstructionBuilder(BinaryWriter writer)
         {
             this.writer = writer;
             this.instructions = new List<Instruction>();
+            this.baseOffset = (int)writer.BaseStream.Position;
         }
 
         // Methods
@@ -146,9 +162,25 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code));
 
             writer.Write((byte)code);
+            instructionIndex++;
+
+            // Get last instruction
+            return instructions[instructions.Count - 1];
+        }
+
+        public Instruction EmitOpCode(OpCode code, TypeCode data)
+        {
+            if (OpCodeCheck.GetOpCodeDataSize(code) != sizeof(byte))
+                throw new InvalidOperationException("Invalid instruction");
+
+            // Add op code
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
+
+            writer.Write((byte)code);
+            writer.Write((byte)data);
             instructionIndex++;
 
             // Get last instruction
@@ -161,7 +193,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -177,7 +209,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -193,7 +225,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -209,7 +241,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -225,7 +257,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -241,7 +273,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -273,7 +305,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -289,7 +321,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -305,7 +337,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data));
 
             writer.Write((byte)code);
             writer.Write(data);
@@ -321,7 +353,7 @@ namespace LumaSharp.Runtime.Emit
                 throw new InvalidOperationException("Invalid instruction");
 
             // Add op code
-            instructions.Add(new Instruction(instructionIndex, (int)writer.BaseStream.Position, code, data0, data1));
+            instructions.Add(new Instruction(instructionIndex, CurrentOffset, code, data0, data1));
 
             writer.Write((byte)code);
             writer.Write(data0);

@@ -64,12 +64,27 @@ namespace LumaSharp_Compiler.Emit.Builder
             // Write parameters types
             if((methodFlags & MethodFlags.ParamValues) != 0)
             {
+                // Get parameter count
+                ushort paramCount = (ushort)methodModel.ParameterSymbols.Length;
+                ushort paramOffset = 0;
+
+                // Check for global
+                if ((methodFlags & MethodFlags.Global) == 0)
+                {
+                    paramCount -= 1;
+                    paramOffset++;
+                }
+
                 // Number of parameters
-                writer.Write((ushort)methodModel.ParameterSymbols.Length);
+                writer.Write(paramCount);
 
                 // Write all parameters
-                foreach(ILocalIdentifierReferenceSymbol parameter in methodModel.ParameterSymbols)
+                //foreach(ILocalIdentifierReferenceSymbol parameter in methodModel.ParameterSymbols)
+                for(int i = paramOffset; i < paramOffset + paramCount; i++)
                 {
+                    // Get parameter
+                    ILocalIdentifierReferenceSymbol parameter = methodModel.ParameterSymbols[i];
+
                     // Build parameter flags
                     Parameter.ParameterFlags flags = 0;
 
@@ -83,7 +98,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                     //if(parameter.va)
 
                     // Parameter type
-                    writer.Write(parameter.SymbolToken);
+                    writer.Write(parameter.TypeSymbol.SymbolToken);
                     writer.Write((uint)flags);
                 }
             }
@@ -99,7 +114,7 @@ namespace LumaSharp_Compiler.Emit.Builder
             return (int)writer.BaseStream.Position;
         }
 
-        public int EmitExecutableModel(BinaryWriter writer = null)
+        public int EmitExecutableModel(BinaryWriter writer = null, string debugInstructionsOutput = null)
         {
             // Check for writer
             if (writer == null)
@@ -135,6 +150,9 @@ namespace LumaSharp_Compiler.Emit.Builder
 
             // Emit instructions
             bodyBuilder.EmitExecutionObject(builder);
+
+            if (debugInstructionsOutput != null)
+                builder.ToDebugFile(debugInstructionsOutput);
 
 
             // Get size

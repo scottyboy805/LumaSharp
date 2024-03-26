@@ -107,6 +107,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Get symbol token
+            memberToken = provider.GetDeclaredSymbolToken(this);
+
             // Resolve base symbols
             base.ResolveSymbols(provider, report);
 

@@ -96,14 +96,28 @@ namespace LumaSharp_Compiler.AST.Expression
         internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(tree, parent, expression)
         {
+            // Create access expression
+            if (expression.typeReference() != null)
+            {
+                this.accessExpression = new TypeReferenceSyntax(tree, this, expression.typeReference());
+            }
+            else if(expression.expression(0) != null)
+            {
+                this.accessExpression = Any(tree, this, expression.expression(0));
+            }
+
             // Get the method
             LumaSharpParser.MethodInvokeExpressionContext method = expression.methodInvokeExpression();
 
             // Identifier
             this.identifier = new SyntaxToken(method.IDENTIFIER());
 
-            dot = new SyntaxToken(method.dot);
-
+            // Get dot token
+            if (accessExpression != null)
+            {
+                dot = new SyntaxToken(method.dot);
+            }
+            
             // Generic arguments
             LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
 
@@ -118,14 +132,14 @@ namespace LumaSharp_Compiler.AST.Expression
             lparen = new SyntaxToken(method.lparen);
             rparen = new SyntaxToken(method.rparen);
 
-            // Create access expression
-            if (expression.typeReference() != null)
+
+            // Method arguments
+            LumaSharpParser.MethodArgumentsContext argumentList = method.methodArguments();
+
+            if(argumentList != null)
             {
-                this.accessExpression = new TypeReferenceSyntax(tree, this, expression.typeReference());
-            }
-            else
-            {
-                this.accessExpression = Any(tree, this, expression.expression(0));
+                // Get arguments
+                this.arguments = argumentList.methodArgument().Select(a => ExpressionSyntax.Any(tree, this, a.expression())).ToArray();
             }
         }
 

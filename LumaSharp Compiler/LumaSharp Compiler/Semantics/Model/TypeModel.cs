@@ -5,6 +5,7 @@ using LumaSharp_Compiler.Reporting;
 using LumaSharp_Compiler.Semantics.Model.Expression;
 using LumaSharp_Compiler.Semantics.Reference;
 using System.Text;
+using PrimitiveType = LumaSharp_Compiler.AST.PrimitiveType;
 
 namespace LumaSharp_Compiler.Semantics.Model
 {
@@ -347,6 +348,9 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Get symbol token
+            memberToken = provider.GetDeclaredSymbolToken(this);
+
             // Resolve namespace
             if(namespaceName != null)
             {

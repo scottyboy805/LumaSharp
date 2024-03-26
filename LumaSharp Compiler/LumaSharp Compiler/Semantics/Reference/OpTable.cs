@@ -35,8 +35,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { (PrimitiveType.I32, PrimitiveType.U32), PrimitiveType.I64 },
             { (PrimitiveType.I32, PrimitiveType.I64), PrimitiveType.I64 },
             { (PrimitiveType.I32, PrimitiveType.U64), PrimitiveType.U64 },
-            { (PrimitiveType.I32, PrimitiveType.Float), PrimitiveType.Float },
-            { (PrimitiveType.I32, PrimitiveType.Double), PrimitiveType.Double },
+            { (PrimitiveType.I32, PrimitiveType.F32), PrimitiveType.F32 },
+            { (PrimitiveType.I32, PrimitiveType.F64), PrimitiveType.F64 },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> equalOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -44,8 +44,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a == (int)b },
             { PrimitiveType.I64, (a, b) => (long)a == (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a == (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a == (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a == (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a == (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a == (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> notEqualOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -53,8 +53,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a != (int)b },
             { PrimitiveType.I64, (a, b) => (long)a != (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a != (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a != (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a != (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a != (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a != (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> addOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -62,8 +62,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a + (int)b },
             { PrimitiveType.I64, (a, b) => (long)a + (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a + (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a + (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a + (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a + (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a + (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> subtractOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -71,8 +71,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a - (int)b },
             { PrimitiveType.I64, (a, b) => (long)a - (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a - (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a - (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a - (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a - (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a - (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> multiplyOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -80,8 +80,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a * (int)b },
             { PrimitiveType.I64, (a, b) => (long) a * (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a * (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a * (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a * (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a * (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a * (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> divideOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -89,8 +89,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a / (int)b },
             { PrimitiveType.I64, (a, b) => (long)a / (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a / (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a / (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a / (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a / (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a / (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, UnaryOp> negateOperationTable = new Dictionary<PrimitiveType, UnaryOp>
@@ -98,8 +98,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (val) => -(int)val },
             { PrimitiveType.I64, (val) => -(long)val },
             //{ PrimitiveType.U64, (val) => -(ulong)val },
-            { PrimitiveType.Float, (val) => -(float)val },
-            { PrimitiveType.Double, (val) => -(double)val },
+            { PrimitiveType.F32, (val) => -(float)val },
+            { PrimitiveType.F64, (val) => -(double)val },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> greaterOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -107,8 +107,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a > (int)b },
             { PrimitiveType.I64, (a, b) => (long)a > (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a > (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a > (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a > (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a > (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a > (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> greaterEqualOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -116,8 +116,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a >= (int)b },
             { PrimitiveType.I64, (a, b) => (long)a >= (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a >= (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a >= (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a >= (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a >= (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a >= (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> lessOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -125,8 +125,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a < (int)b },
             { PrimitiveType.I64, (a, b) => (long)a < (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a < (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a < (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a < (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a < (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a < (double)b },
         };
 
         private readonly static Dictionary<PrimitiveType, BinaryOp> lessEqualOperationTable = new Dictionary<PrimitiveType, BinaryOp>
@@ -134,8 +134,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
             { PrimitiveType.I32, (a, b) => (int)a < (int)b },
             { PrimitiveType.I64, (a, b) => (long)a < (long)b },
             { PrimitiveType.U64, (a, b) => (ulong)a < (ulong)b },
-            { PrimitiveType.Float, (a, b) => (float)a < (float)b },
-            { PrimitiveType.Double, (a, b) => (double)a < (double)b },
+            { PrimitiveType.F32, (a, b) => (float)a < (float)b },
+            { PrimitiveType.F64, (a, b) => (double)a < (double)b },
         };
 
 

@@ -22,7 +22,7 @@ namespace LumaSharp.Runtime
         }
     }
 
-    internal unsafe struct ThreadContext
+    internal unsafe class ThreadContext
     {
         // Public
         public int ThreadID;                // Id of the executing thread

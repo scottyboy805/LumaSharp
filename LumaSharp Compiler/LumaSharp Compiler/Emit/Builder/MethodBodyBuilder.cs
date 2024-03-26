@@ -8,6 +8,7 @@ using LumaSharp_Compiler.Semantics;
 using LumaSharp.Runtime.Emit;
 using LumaSharp.Runtime.Handle;
 using System.Diagnostics;
+using TypeCode = LumaSharp.Runtime.TypeCode;
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
@@ -322,7 +323,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                         break;
                     }
 
-                case PrimitiveType.Float:
+                case PrimitiveType.F32:
                     {
                         // Get float value
                         float value = model.GetConstantValueAs<float>();
@@ -341,7 +342,7 @@ namespace LumaSharp_Compiler.Emit.Builder
                         break;
                     }
 
-                case PrimitiveType.Double:
+                case PrimitiveType.F64:
                     {
                         // Get double value
                         double value = model.GetConstantValueAs<double>();
@@ -381,52 +382,52 @@ namespace LumaSharp_Compiler.Emit.Builder
             {
                 case BinaryOperation.Equal:
                     {
-                        instructions.EmitOpCode(OpCode.Cmp_Eq, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cmp_Eq, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.NotEqual:
                     {
-                        instructions.EmitOpCode(OpCode.Cmp_NEq, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cmp_NEq, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.Add:
                     {
-                        instructions.EmitOpCode(OpCode.Add, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Add, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.Subtract:
                     {
-                        instructions.EmitOpCode(OpCode.Sub, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Sub, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.Multiply:
                     {
-                        instructions.EmitOpCode(OpCode.Mul, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Mul, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.Divide:
                     {
-                        instructions.EmitOpCode(OpCode.Div, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Div, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.Greater:
                     {
-                        instructions.EmitOpCode(OpCode.Cmp_G, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cmp_G, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.GreaterEqual:
                     {
-                        instructions.EmitOpCode(OpCode.Cmp_Ge, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cmp_Ge, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.Less:
                     {
-                        instructions.EmitOpCode(OpCode.Cmp_L, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cmp_L, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
                 case BinaryOperation.LessEqual:
                     {
-                        instructions.EmitOpCode(OpCode.Cmp_Le, (byte)model.EvaluatedTypeSymbol.PrimitiveType);
+                        instructions.EmitOpCode(OpCode.Cmp_Le, (TypeCode)model.EvaluatedTypeSymbol.PrimitiveType);
                         break;
                     }
             }
@@ -666,8 +667,8 @@ namespace LumaSharp_Compiler.Emit.Builder
                 case PrimitiveType.U32: instructions.EmitOpCode(OpCode.Ld_Addr_I4); break;
                 case PrimitiveType.I64:
                 case PrimitiveType.U64: instructions.EmitOpCode (OpCode.Ld_Addr_I8); break;
-                case PrimitiveType.Float: instructions.EmitOpCode(OpCode.Ld_Addr_F4); break;
-                case PrimitiveType.Double: instructions.EmitOpCode(OpCode.Ld_Addr_F8); break;
+                case PrimitiveType.F32: instructions.EmitOpCode(OpCode.Ld_Addr_F4); break;
+                case PrimitiveType.F64: instructions.EmitOpCode(OpCode.Ld_Addr_F8); break;
                 default:
                     {
                         instructions.EmitOpCode(OpCode.Ld_Addr_Any, typeSymbol.SymbolToken);
@@ -688,8 +689,8 @@ namespace LumaSharp_Compiler.Emit.Builder
                 case PrimitiveType.U32: instructions.EmitOpCode(OpCode.St_Addr_I4); break;
                 case PrimitiveType.I64:
                 case PrimitiveType.U64: instructions.EmitOpCode(OpCode.St_Addr_I8); break;
-                case PrimitiveType.Float: instructions.EmitOpCode(OpCode.St_Addr_F4); break;
-                case PrimitiveType.Double: instructions.EmitOpCode(OpCode.St_Addr_F8); break;
+                case PrimitiveType.F32: instructions.EmitOpCode(OpCode.St_Addr_F4); break;
+                case PrimitiveType.F64: instructions.EmitOpCode(OpCode.St_Addr_F8); break;
                 default:
                     {
                         instructions.EmitOpCode(OpCode.St_Addr_Any, typeSymbol.SymbolToken);
@@ -759,12 +760,12 @@ namespace LumaSharp_Compiler.Emit.Builder
                             instructions.EmitOpCode(OpCode.Cast_UI8, (byte)toSymbol.PrimitiveType);
                             break;
                         }
-                    case PrimitiveType.Float:
+                    case PrimitiveType.F32:
                         {
                             instructions.EmitOpCode(OpCode.Cast_F4, (byte)toSymbol.PrimitiveType);
                             break;
                         }
-                    case PrimitiveType.Double:
+                    case PrimitiveType.F64:
                         {
                             instructions.EmitOpCode(OpCode.Cast_F8, (byte)toSymbol.PrimitiveType);
                             break;

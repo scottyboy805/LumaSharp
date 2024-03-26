@@ -238,6 +238,98 @@ namespace LumaSharp.Runtime
             }
         }
 
+        public static void WriteAs<T>(T value, ref byte* mem, int offset = 0, bool incrementPtr = true) where T : unmanaged
+        {
+            // Get offset
+            byte* ptr = (byte*)mem + offset;
+
+            // Store value
+            *(T*)ptr = value;
+
+            // Increment ptr
+            if (incrementPtr == true)
+                mem = (byte*)mem + sizeof(T);
+        }
+
+        public static void WriteAs(object value, _TypeHandle* type, ref byte* mem, int offset = 0, bool incrementPtr = true)
+        {
+            // Get offset
+            byte* ptr = (byte*)mem + offset;
+            int size = 0;
+
+            // Select type
+            switch(type->TypeCode)
+            {
+                case TypeCode.I8:
+                    {
+                        *(sbyte*)ptr = (sbyte)value;
+                        size = sizeof(sbyte);
+                        break;
+                    }
+                case TypeCode.U8:
+                    {
+                        *(byte*)ptr = (byte)value;
+                        size = sizeof(byte);
+                        break;
+                    }
+                case TypeCode.I16:
+                    {
+                        *(short*)ptr = (short)value;
+                        size = sizeof(short);
+                        break;
+                    }
+                case TypeCode.U16:
+                    {
+                        *(ushort*)ptr = (ushort)value;
+                        size = sizeof(ushort);
+                        break;
+                    }
+                case TypeCode.I32:
+                    {
+                        *(int*)ptr = (int)value;
+                        size = sizeof(int);
+                        break;
+                    }
+                case TypeCode.U32:
+                    {
+                        *(uint*)ptr = (uint)value;
+                        size = sizeof(uint);
+                        break;
+                    }
+                case TypeCode.I64:
+                    {
+                        *(long*)ptr = (long)value;
+                        size = sizeof(long);
+                        break;
+                    }
+                case TypeCode.U64:
+                    {
+                        *(ulong*)ptr = (ulong)value;
+                        size = sizeof(ulong);
+                        break;
+                    }
+                case TypeCode.F32:
+                    {
+                        *(float*)ptr = (float)value;
+                        size = sizeof(float);
+                        break;
+                    }
+                case TypeCode.F64:
+                    {
+                        *(double*)ptr = (double)value;
+                        size = sizeof(double);
+                        break;
+                    }
+
+                default:
+                    throw new NotSupportedException();
+            }
+
+            // Increment ptr
+            if (incrementPtr == true)
+                mem = (byte*)mem + size;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsReferenced(void* mem)
         {

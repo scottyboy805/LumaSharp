@@ -10,7 +10,7 @@ namespace LumaSharp.Runtime.Reflection
 
         // Internal
         internal T resolvedMember = null;
-        internal bool didResolveMember = true;
+        internal bool didResolveMember = false;
 
         // Properties
         public int SymbolToken

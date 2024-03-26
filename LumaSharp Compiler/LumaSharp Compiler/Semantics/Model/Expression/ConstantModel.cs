@@ -141,8 +141,8 @@ namespace LumaSharp_Compiler.Semantics.Model
                     ConstantType.Integer_Unsigned => PrimitiveType.U32,
                     ConstantType.Integer_Long => PrimitiveType.I64,
                     ConstantType.Integer_UnsignedLong => PrimitiveType.U64,
-                    ConstantType.Decimal_Single => PrimitiveType.Float,
-                    ConstantType.Decimal_Double => PrimitiveType.Double,
+                    ConstantType.Decimal_Single => PrimitiveType.F32,
+                    ConstantType.Decimal_Double => PrimitiveType.F64,
                     ConstantType.True => PrimitiveType.Bool,
                     ConstantType.False => PrimitiveType.Bool,
                 };

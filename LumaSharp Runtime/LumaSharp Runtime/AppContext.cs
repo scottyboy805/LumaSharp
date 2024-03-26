@@ -1,15 +1,125 @@
 ﻿using LumaSharp.Runtime.Reflection;
+using System.Runtime.InteropServices;
 using Type = LumaSharp.Runtime.Reflection.Type;
 
 namespace LumaSharp.Runtime
 {
-    public sealed class AppContext : IDisposable
+    public unsafe sealed class AppContext : IDisposable
     {
         // Private
+        private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
         private Dictionary<int, Library> loadedLibraries = new Dictionary<int, Library>();
         private Dictionary<int, Type> loadedTypes = new Dictionary<int, Type>();
         private Dictionary<int, Member> loadedMembers = new Dictionary<int, Member>();
+
+        // Constructor
+        public AppContext()
+        {
+            // Allocate memory
+            primitivePtr = (_TypeHandle*)NativeMemory.AllocZeroed((uint)sizeof(_TypeHandle) * 13);
+            _TypeHandle* _any = primitivePtr;
+            _TypeHandle* _bool = primitivePtr + 1;
+            _TypeHandle* _char = primitivePtr + 2;
+            _TypeHandle* _i8 = primitivePtr + 3;
+            _TypeHandle* _u8 = primitivePtr + 4;
+            _TypeHandle* _i16 = primitivePtr + 5;
+            _TypeHandle* _u16 = primitivePtr + 6;
+            _TypeHandle* _i32 = primitivePtr + 7;
+            _TypeHandle* _u32 = primitivePtr + 8;
+            _TypeHandle* _i64 = primitivePtr + 9;
+            _TypeHandle* _u64 = primitivePtr + 10;
+            _TypeHandle* _f32 = primitivePtr + 11;
+            _TypeHandle* _f64 = primitivePtr + 12;
+
+
+            // Create handles
+            *_any = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.Any,
+                TypeSize = (uint)sizeof(IntPtr),
+            };
+            *_bool = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.Bool,
+                TypeSize = sizeof(bool),
+            };
+            *_char = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.Char,
+                TypeSize = sizeof(char),
+            };
+            *_i8 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.I8,
+                TypeSize = sizeof(sbyte),
+            };
+            *_u8 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.I8,
+                TypeSize = sizeof(byte),
+            };
+            *_i16 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.I16,
+                TypeSize = sizeof(short),
+            };
+            *_u16 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.U16,
+                TypeSize = sizeof(ushort),
+            };
+            *_i32 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.I32,
+                TypeSize = sizeof(int),
+            };
+            *_u32 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.U32,
+                TypeSize = sizeof(uint),
+            };
+            *_i64 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.I64,
+                TypeSize = sizeof(long),
+            };
+            *_u64 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.U64,
+                TypeSize = sizeof(ulong),
+            };
+            *_f32 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.F32,
+                TypeSize = sizeof(float),
+            };
+            *_f64 = new _TypeHandle
+            {
+                TypeToken = (int)TypeCode.F64,
+                TypeSize = sizeof(double),
+            };
+
+            // Register primitives
+            loadedTypes[(int)TypeCode.Any] = new PrimitiveType(this, TypeCode.Any, _any);
+            loadedTypes[(int)TypeCode.Bool] = new PrimitiveType(this, TypeCode.Bool, _bool);
+            loadedTypes[(int)TypeCode.Char] = new PrimitiveType(this, TypeCode.Char, _char);
+            loadedTypes[(int)TypeCode.I8] = new PrimitiveType(this, TypeCode.I8, _i8);
+            loadedTypes[(int)TypeCode.U8] = new PrimitiveType(this, TypeCode.U8, _u8);
+            loadedTypes[(int)TypeCode.I16] = new PrimitiveType(this, TypeCode.I16, _i16);
+            loadedTypes[(int)TypeCode.U16] = new PrimitiveType(this, TypeCode.U16, _u16);
+            loadedTypes[(int)TypeCode.I32] = new PrimitiveType(this, TypeCode.I32, _i32);
+            loadedTypes[(int)TypeCode.U32] = new PrimitiveType(this, TypeCode.U32, _u32);
+            loadedTypes[(int)TypeCode.I64] = new PrimitiveType(this, TypeCode.I64, _i64);
+            loadedTypes[(int)TypeCode.U64] = new PrimitiveType(this, TypeCode.U64, _u64);
+            loadedTypes[(int)TypeCode.F32] = new PrimitiveType(this, TypeCode.F32, _f32);
+            loadedTypes[(int)TypeCode.F64] = new PrimitiveType(this, TypeCode.F64, _f64);
+        }
+
+        ~AppContext()
+        {
+            NativeMemory.Free(primitivePtr);
+        }
 
         // Methods
         public void LoadLibrary(Stream stream)
@@ -41,10 +151,16 @@ namespace LumaSharp.Runtime
         {
             // Try to get the member
             Member member;
-            if (loadedMembers.TryGetValue(token, out member) == false)
-                throw new MissingMemberException("Token: " + token);
+            if (loadedMembers.TryGetValue(token, out member) == true)
+                return member;
 
-            return member;
+            // Check for type
+            Type type;
+            if (loadedTypes.TryGetValue(token, out type) == true)
+                return type;
+
+            // Not found
+            throw new MissingMemberException("Token: " + token);
         }
 
         public T ResolveMember<T>(int token) where T : Member
@@ -106,6 +222,16 @@ namespace LumaSharp.Runtime
         {
         }
 
+        internal void DefineMember(Member member)
+        {
+            // Check for already added
+            if (loadedMembers.ContainsKey(member.Token) == true)
+                throw new InvalidOperationException("Member with token already exists: " + member.Token);
+
+            // Store member
+            loadedMembers[member.Token] = member;
+        }
+
         internal ThreadContext GetCurrentThreadContext()
         {
             // Get the current thread
@@ -118,6 +244,9 @@ namespace LumaSharp.Runtime
             ThreadContext context;
             if (threadContexts.TryGetValue(threadID, out context) == true)
                 return context;
+
+            // Create context
+            context = new ThreadContext();
 
             // Initialize context
             context.ThreadID = Thread.CurrentThread.ManagedThreadId;

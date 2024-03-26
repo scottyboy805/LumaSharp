@@ -10,7 +10,7 @@ namespace LumaSharp.Runtime
         internal int signed;
         [FieldOffset(0)]
         internal uint unsigned;
-        
+
         // Public
         public const int Size = sizeof(int);
     }

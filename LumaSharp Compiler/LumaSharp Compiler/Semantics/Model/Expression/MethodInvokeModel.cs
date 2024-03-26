@@ -1,4 +1,5 @@
-﻿using LumaSharp_Compiler.AST.Expression;
+﻿using LumaSharp_Compiler.AST;
+using LumaSharp_Compiler.AST.Expression;
 using LumaSharp_Compiler.Reporting;
 
 namespace LumaSharp_Compiler.Semantics.Model.Expression
@@ -54,7 +55,9 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             : base(model, parent, syntax)
         {
             this.syntax = syntax;
-            this.accessModel = ExpressionModel.Any(model, this, syntax.AccessExpression);
+            this.accessModel = syntax.AccessExpression != null
+                ? ExpressionModel.Any(model, this, syntax.AccessExpression)
+                : new ThisModel(model, this, new ThisExpressionSyntax());
             this.argumentModels = (syntax.ArgumentCount > 0)
                 ? syntax.Arguments.Select(a => ExpressionModel.Any(model, this, a)).ToArray()
                 : null;
@@ -69,7 +72,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve accessor
-            accessModel.ResolveSymbols(provider, report);
+            if(accessModel != null)
+                accessModel.ResolveSymbols(provider, report);
 
             bool argumentsResolved = true;
 
@@ -94,9 +98,9 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                 ITypeReferenceSymbol[] argumentTypes = (argumentModels != null && argumentModels.Length > 0)
                     ? argumentModels.Select(a => a.EvaluatedTypeSymbol).ToArray()
                     : null;
-
+                
                 // Try to resolve the method with arguments
-                methodIdentifierSymbol = provider.ResolveMethodIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax, argumentTypes) as IMethodReferenceSymbol;
+                methodIdentifierSymbol = provider.ResolveMethodIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax, argumentTypes) as IMethodReferenceSymbol;                
             }
         }
     }

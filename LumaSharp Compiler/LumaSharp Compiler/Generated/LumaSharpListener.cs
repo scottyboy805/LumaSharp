@@ -701,6 +701,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitMethodInvokeExpression([NotNull] LumaSharpParser.MethodInvokeExpressionContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArguments"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMethodArguments([NotNull] LumaSharpParser.MethodArgumentsContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodArguments"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMethodArguments([NotNull] LumaSharpParser.MethodArgumentsContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArgument"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

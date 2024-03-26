@@ -274,6 +274,7 @@ expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
 	| expression ternary='?' expression alternate=':' expression			// Ternary expression
 	| IDENTIFIER indexExpression*
 	| endExpression indexExpression*							// Primitives and literals
+	| methodInvokeExpression indexExpression*					// Empty method expression
 	| expression methodInvokeExpression indexExpression*		// Method expression
 	| typeReference methodInvokeExpression indexExpression*		// Global method
 	| expression fieldAccessExpression indexExpression*			// Field expression
@@ -312,7 +313,10 @@ indexExpression: larray='[' expression (',' expression)* rarray=']';
 fieldAccessExpression: dot='.' IDENTIFIER;
 
 // Method invoke
-methodInvokeExpression: dot='.'? IDENTIFIER genericArguments? lparen='(' methodArgument? (',' methodArgument)* rparen=')';
+methodInvokeExpression: dot='.'? IDENTIFIER genericArguments? lparen='(' methodArguments? rparen=')';
+
+// Method arguments
+methodArguments: methodArgument (',' methodArgument)*;
 methodArgument: '&'? expression;
 
 // Initializer 

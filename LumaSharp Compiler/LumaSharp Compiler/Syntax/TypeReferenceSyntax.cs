@@ -5,7 +5,7 @@ using LumaSharp_Compiler.Semantics.Model;
 
 namespace LumaSharp_Compiler.AST
 {
-    public enum PrimitiveType
+    public enum PrimitiveType : byte
     {
         Any = 1,
         Bool,
@@ -18,8 +18,8 @@ namespace LumaSharp_Compiler.AST
         U32,
         I64,
         U64,
-        Float,
-        Double,
+        F32,
+        F64,
     }
 
     public class TypeReferenceSyntax : ExpressionSyntax

@@ -840,6 +840,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitMethodInvokeExpression([NotNull] LumaSharpParser.MethodInvokeExpressionContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArguments"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterMethodArguments([NotNull] LumaSharpParser.MethodArgumentsContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodArguments"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitMethodArguments([NotNull] LumaSharpParser.MethodArgumentsContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArgument"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

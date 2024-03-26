@@ -1,5 +1,6 @@
 ﻿
 using LumaSharp.Runtime.Handle;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace LumaSharp.Runtime.Reflection
@@ -93,7 +94,7 @@ namespace LumaSharp.Runtime.Reflection
         public object Invoke(object[] args, IntPtr instance = default)
         {
             // Invoke the method
-            nint stackPtr = InvokeMethodHandle();
+            nint stackPtr = InvokeMethodHandle(instance, args);
 
             // Check for return value
             if ((methodFlags & MethodFlags.ReturnValue) != 0)
@@ -110,7 +111,7 @@ namespace LumaSharp.Runtime.Reflection
         public T Invoke<T>(object[] args, IntPtr instance = default) where T : unmanaged
         {
             // Invoke the method
-            nint stackPtr = InvokeMethodHandle();
+            nint stackPtr = InvokeMethodHandle(instance, args);
 
             // Check for return value
             if((methodFlags & MethodFlags.ReturnValue) != 0)
@@ -121,7 +122,7 @@ namespace LumaSharp.Runtime.Reflection
             return default;
         }
 
-        private nint InvokeMethodHandle()
+        private nint InvokeMethodHandle(IntPtr instance, object[] args)
         {
             // Check for no handle available
             if (methodExecutable == null)
@@ -130,8 +131,32 @@ namespace LumaSharp.Runtime.Reflection
             // Get thread context
             ThreadContext threadContext = context.GetCurrentThreadContext();
 
+
+            // Load instance
+            if(IsGlobal == false)
+            {
+                // Push instance
+                //__memory.WriteAs()
+            }
+
+            // Load arguments
+            if (args != null)
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    // Push argument
+                    __memory.WriteAs(args[i], parameters[i].ParameterType.typeExecutable, ref threadContext.ThreadStackPtr);
+                }
+            }
+
+
+            Stopwatch timer = Stopwatch.StartNew();
+
             // Invoke the method
-            return (nint)__interpreter.ExecuteBytecode(context, threadContext, methodExecutable);            
+            nint result = (nint)__interpreter.ExecuteBytecode(context, threadContext, methodExecutable);
+
+            Console.WriteLine("Execution took: " + timer.Elapsed.TotalMilliseconds + "ms");
+            return result;
         }
 
         internal void LoadMethodMetadata(BinaryReader reader)
@@ -161,7 +186,7 @@ namespace LumaSharp.Runtime.Reflection
             if ((methodFlags & MethodFlags.ParamValues) != 0)
             {
                 // Get parameter count
-                int parameterCount = reader.ReadInt32();
+                int parameterCount = reader.ReadUInt16();
 
                 // Initialize array
                 this.parameters = new Parameter[parameterCount];
