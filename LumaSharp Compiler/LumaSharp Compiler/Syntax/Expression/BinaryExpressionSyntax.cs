@@ -62,6 +62,8 @@ namespace LumaSharp_Compiler.AST
                     "!=" => BinaryOperation.NotEqual,
                     "&&" => BinaryOperation.And,
                     "||" => BinaryOperation.Or,
+
+                    _ => throw new NotImplementedException(),
                 };
                 throw new NotSupportedException("Invalid binary operation");
             }
@@ -129,6 +131,8 @@ namespace LumaSharp_Compiler.AST
                 BinaryOperation.NotEqual => "!=",
                 BinaryOperation.And => "&&",
                 BinaryOperation.Or => "||",
+
+                _ => throw new NotImplementedException(),
             });
         }
     }

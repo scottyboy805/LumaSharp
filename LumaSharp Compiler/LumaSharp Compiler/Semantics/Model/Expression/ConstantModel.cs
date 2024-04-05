@@ -135,6 +135,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                 PrimitiveType primitiveType = constantType switch
                 {
                     ConstantType.Null => PrimitiveType.Any,
+                    ConstantType.LiteralString => PrimitiveType.Any,
                     ConstantType.Hexadecimal => PrimitiveType.I32,
                     ConstantType.Hexadecimal_Long => PrimitiveType.I64,
                     ConstantType.Integer => PrimitiveType.I32,
@@ -145,6 +146,8 @@ namespace LumaSharp_Compiler.Semantics.Model
                     ConstantType.Decimal_Double => PrimitiveType.F64,
                     ConstantType.True => PrimitiveType.Bool,
                     ConstantType.False => PrimitiveType.Bool,
+
+                    _ => throw new NotImplementedException(),
                 };
 
                 // Resolve symbol

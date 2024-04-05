@@ -38,6 +38,8 @@ namespace LumaSharp_Compiler.Reporting
                 MessageSeverity.Message => CompilerErrors.messages,
                 MessageSeverity.Warning => CompilerErrors.warnings,
                 MessageSeverity.Error => CompilerErrors.errors,
+
+                _ => throw new NotImplementedException(),
             };
 
             // Check for error

@@ -43,9 +43,6 @@ namespace LumaSharp.Runtime.Reflection
 
         public MemberReference(Type fromType)
         {
-            if ((typeof(T) is Type) == false)
-                throw new InvalidOperationException("Only type is supported");
-
             this.context = fromType.context;
             this.symbolToken = fromType.Token;
             this.resolvedMember = fromType as T;

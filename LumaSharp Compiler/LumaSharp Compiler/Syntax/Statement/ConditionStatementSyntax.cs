@@ -11,7 +11,6 @@ namespace LumaSharp_Compiler.AST.Statement
         private StatementSyntax inlineStatement = null;
         private BlockSyntax<StatementSyntax> blockStatement = null;
 
-        private bool isAlternate = false;
         private ConditionStatementSyntax alternate = null;
 
         // Properties
@@ -241,7 +240,6 @@ namespace LumaSharp_Compiler.AST.Statement
 
         internal void MakeAlternate()
         {
-            isAlternate = true;
             keyword = conditionExpression != null
                 ? SyntaxToken.Elif()
                 : SyntaxToken.Else()

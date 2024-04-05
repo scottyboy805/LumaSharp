@@ -125,11 +125,11 @@ namespace LumaSharp.Runtime.Reflection
                 // Create module name
                 moduleName = new ModuleName(reader, hintPath);
             }
-            catch(Exception e)
+            catch
             {
                 // Check for throw
                 if(throwOnError == true)
-                    throw e;
+                    throw;
 
                 moduleName = null;
                 return false;

@@ -129,6 +129,8 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
                     PrimitiveType.F32 => _float,
                     PrimitiveType.F64 => _double,
+
+                    _ => throw new NotImplementedException(),
                 };
             }
 
