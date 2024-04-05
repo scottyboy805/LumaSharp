@@ -6,10 +6,13 @@ namespace LumaSharp.Runtime
 {
     public unsafe sealed class AppContext : IDisposable
     {
+        // Internal
+        internal _TypeHandle* _anyType = null;
+
         // Private
         private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
-        private Dictionary<int, Library> loadedLibraries = new Dictionary<int, Library>();
+        private Dictionary<int, Module> loadedModules = new Dictionary<int, Module>();
         private Dictionary<int, Type> loadedTypes = new Dictionary<int, Type>();
         private Dictionary<int, Member> loadedMembers = new Dictionary<int, Member>();
 
@@ -18,7 +21,7 @@ namespace LumaSharp.Runtime
         {
             // Allocate memory
             primitivePtr = (_TypeHandle*)NativeMemory.AllocZeroed((uint)sizeof(_TypeHandle) * 13);
-            _TypeHandle* _any = primitivePtr;
+            _TypeHandle* _any = _anyType = primitivePtr;
             _TypeHandle* _bool = primitivePtr + 1;
             _TypeHandle* _char = primitivePtr + 2;
             _TypeHandle* _i8 = primitivePtr + 3;
@@ -122,29 +125,75 @@ namespace LumaSharp.Runtime
         }
 
         // Methods
-        public void LoadLibrary(Stream stream)
+        public Module LoadModule(string modulePath, bool metadataOnly = false)
         {
+            // Check for null or empty
+            if (string.IsNullOrEmpty(modulePath) == true)
+                throw new ArgumentNullException(nameof(modulePath));
 
+            // Check for not found 
+            if (File.Exists(modulePath) == false)
+                throw new ArgumentException("Could not find module path: " + modulePath);
+
+            // Load the module
+            return LoadModule(File.OpenRead(modulePath), metadataOnly);
         }
 
-        public Library ResolveLibrary(int token)
+        public Module LoadModule(Stream stream, bool metadataOnly = false)
+        {
+            // Check for null
+            if(stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            // Read the module header
+            ModuleName moduleName;
+            Module.ReadModuleHeader(stream, out moduleName);
+
+            // Check for already loaded
+            Module loadedModule = ResolveModule(moduleName.Name, moduleName.Version);
+
+            // Get loaded module
+            if (loadedModule != null)
+                return loadedModule;
+
+
+            // Create the module and reader
+            Module module = new Module(stream, moduleName);
+            BinaryReader reader = new BinaryReader(stream);
+
+            // Read module
+            module.LoadMetadata(this, reader);
+
+            // Check for executable
+            if(metadataOnly == false)
+                module.LoadExecutable(this, reader);
+
+            // Register the module
+            loadedModules[module.Token] = module;
+            return module;
+        }
+
+        public Module ResolveModule(int token)
         {
             // Try to get the member
-            Library library;
-            if (loadedLibraries.TryGetValue(token, out library) == false)
+            Module module;
+            if (loadedModules.TryGetValue(token, out module) == false)
                 throw new DllNotFoundException("Token: " + token);
 
-            return library;
+            return module;
         }
 
-        public Library ResolveLibrary(string name)
+        public Module ResolveModule(string name)
         {
-            return null;
+            return loadedModules.Values
+                .FirstOrDefault(m => m.ModuleName.Name == name);
         }
 
-        public Library ResolveLibrary(string name, Version version)
+        public Module ResolveModule(string name, Version version)
         {
-            return null;
+            return loadedModules.Values
+                .FirstOrDefault(m => m.ModuleName.Name == name 
+                && m.ModuleName.Version.Equals(version));
         }
 
         public Member ResolveMember(int token)
@@ -165,7 +214,7 @@ namespace LumaSharp.Runtime
 
         public T ResolveMember<T>(int token) where T : Member
         {
-            return ResolveMember<T>(token) as T;
+            return ResolveMember(token) as T;
         }
 
         public Type ResolveType(int token)
@@ -203,9 +252,9 @@ namespace LumaSharp.Runtime
             return member as Method;
         }
 
-        public IEnumerable<Library> GetLibraries()
+        public IEnumerable<Module> GetLibraries()
         {
-            return loadedLibraries.Values;
+            return loadedModules.Values;
         }
 
         public IEnumerable<Type> GetTypes(MemberFlags flags)

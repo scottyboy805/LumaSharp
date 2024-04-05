@@ -2,10 +2,10 @@
 
 namespace LumaSharp_Compiler.Emit.Builder
 {
-    internal sealed class LibraryBuilder
+    internal sealed class ModuleBuilder
     {
         // Private
-        private string libraryName = "";
+        private string moduleName = "";
         private List<TypeBuilder> typeBuilders = new List<TypeBuilder>();
 
         // Methods
@@ -23,10 +23,10 @@ namespace LumaSharp_Compiler.Emit.Builder
             using(BinaryWriter writer = new BinaryWriter(writeStream))
             {
                 // Write magic
-                writer.Write(Library.magic);
+                writer.Write(Module.magic);
 
                 // Write library meta
-                writer.Write(libraryName);
+                writer.Write(moduleName);
 
                 // Write all type metas
                 EmitMetaTypes(writer);

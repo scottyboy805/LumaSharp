@@ -349,10 +349,15 @@ namespace LumaSharp_Compiler.Semantics.Model
             // Process parameters
             for(int i = 0; i < parameterIdentifierSymbols.Length; i++)
             {
+                // Get type symbol - pass user types by reference via `any` type
+                ITypeReferenceSymbol parameterTypeSymbol = (parameterIdentifierSymbols[i].TypeSymbol.IsPrimitive == false)
+                    ? provider.ResolveTypeSymbol(AST.PrimitiveType.Any, null)
+                    : parameterIdentifierSymbols[i].TypeSymbol;
+
                 // Add parameter
                 argLocals.Add(new _StackHandle
                 {
-                    TypeHandle = parameterIdentifierSymbols[i].TypeSymbol.TypeHandle,
+                    TypeHandle = parameterTypeSymbol.TypeHandle,
                     StackOffset = stackOffset,
                 });
 

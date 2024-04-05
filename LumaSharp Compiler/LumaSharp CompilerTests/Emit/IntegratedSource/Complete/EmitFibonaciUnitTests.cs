@@ -82,7 +82,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
 
             Stopwatch timer = Stopwatch.StartNew();
             // Execute the method
-            int result = method.Invoke<int>(new object[] { 0 });
+            int result = method.Invoke<int>(new object[] { 2 });
 
             Console.WriteLine("Method invoke took: " + timer.Elapsed.TotalMilliseconds + "ms");
             Assert.AreEqual(6765, result);

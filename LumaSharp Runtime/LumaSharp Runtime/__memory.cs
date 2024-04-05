@@ -255,7 +255,6 @@ namespace LumaSharp.Runtime
         {
             // Get offset
             byte* ptr = (byte*)mem + offset;
-            int size = 0;
 
             // Select type
             switch(type->TypeCode)
@@ -263,61 +262,56 @@ namespace LumaSharp.Runtime
                 case TypeCode.I8:
                     {
                         *(sbyte*)ptr = (sbyte)value;
-                        size = sizeof(sbyte);
                         break;
                     }
                 case TypeCode.U8:
                     {
                         *(byte*)ptr = (byte)value;
-                        size = sizeof(byte);
                         break;
                     }
                 case TypeCode.I16:
                     {
                         *(short*)ptr = (short)value;
-                        size = sizeof(short);
                         break;
                     }
                 case TypeCode.U16:
                     {
                         *(ushort*)ptr = (ushort)value;
-                        size = sizeof(ushort);
                         break;
                     }
                 case TypeCode.I32:
                     {
                         *(int*)ptr = (int)value;
-                        size = sizeof(int);
                         break;
                     }
                 case TypeCode.U32:
                     {
                         *(uint*)ptr = (uint)value;
-                        size = sizeof(uint);
                         break;
                     }
                 case TypeCode.I64:
                     {
                         *(long*)ptr = (long)value;
-                        size = sizeof(long);
                         break;
                     }
                 case TypeCode.U64:
                     {
                         *(ulong*)ptr = (ulong)value;
-                        size = sizeof(ulong);
                         break;
                     }
                 case TypeCode.F32:
                     {
                         *(float*)ptr = (float)value;
-                        size = sizeof(float);
                         break;
                     }
                 case TypeCode.F64:
                     {
                         *(double*)ptr = (double)value;
-                        size = sizeof(double);
+                        break;
+                    }
+                case TypeCode.Any:
+                    {
+                        *(IntPtr*)ptr = (IntPtr)value;
                         break;
                     }
 
@@ -327,7 +321,7 @@ namespace LumaSharp.Runtime
 
             // Increment ptr
             if (incrementPtr == true)
-                mem = (byte*)mem + size;
+                mem = (byte*)mem + type->TypeSize;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

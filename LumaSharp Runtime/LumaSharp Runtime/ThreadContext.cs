@@ -7,6 +7,7 @@ namespace LumaSharp.Runtime
         // Public
         public CallSite* Parent;
         public _MethodHandle* Method;
+        public byte* InstructionPtr;
         public byte* StackBasePtr;
         public byte* StackPtr;
         public byte* StackAllocPtr;

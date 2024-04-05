@@ -413,7 +413,9 @@ namespace LumaSharp.Runtime
                             _StackHandle argHandle = argLocals[0];
 
                             // Move from stack
-                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr - argHandle.TypeHandle.TypeSize, argHandle.TypeHandle.TypeSize);
+                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr, argHandle.TypeHandle.TypeSize);
+
+                            int val = *(int*)(stackPtr);
 
                             // Increment stack ptr
                             stackPtr += argHandle.TypeHandle.TypeSize;
@@ -425,7 +427,9 @@ namespace LumaSharp.Runtime
                             _StackHandle argHandle = argLocals[1];
 
                             // Move from stack
-                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr - argHandle.TypeHandle.TypeSize, argHandle.TypeHandle.TypeSize);
+                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr, argHandle.TypeHandle.TypeSize);
+
+                            int val = *(int*)(stackPtr);
 
                             // Increment stack ptr
                             stackPtr += argHandle.TypeHandle.TypeSize;
@@ -437,7 +441,7 @@ namespace LumaSharp.Runtime
                             _StackHandle argHandle = argLocals[2];
 
                             // Move from stack
-                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr - argHandle.TypeHandle.TypeSize, argHandle.TypeHandle.TypeSize);
+                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr, argHandle.TypeHandle.TypeSize);
 
                             // Increment stack ptr
                             stackPtr += argHandle.TypeHandle.TypeSize;
@@ -1750,9 +1754,113 @@ namespace LumaSharp.Runtime
                             stackPtr += sizeof(IntPtr) - sizeof(uint);
                             break;
                         }
+                    case OpCode.Call:
+                        {
+                            // Get method address
+                            void* callMethodAddr = null;
+
+                            switch(code)
+                            {
+                                case OpCode.Call:
+                                    {
+                                        // Get token
+                                        int callMethodToken = *(int*)instructionPtr;
+                                        instructionPtr += sizeof(int);
+
+                                        // Resolve method
+                                        callMethodAddr = context.ResolveMethod(callMethodToken).methodExecutable;
+                                        break;
+                                    }
+                                case OpCode.Call_Addr:
+                                    {
+                                        // Pop method address from stack
+                                        callMethodAddr = (void*)(stackPtr - sizeof(IntPtr));
+                                        stackPtr -= sizeof(IntPtr);
+                                        break;
+                                    }
+                            }
+
+                            // Check for null method
+                            if (callMethodAddr == null)
+                                throw new NotSupportedException("Attempted to call null method address");
+
+                            // Store current call site
+                            threadContext.CallSite->InstructionPtr = instructionPtr;
+                            threadContext.CallSite->StackBasePtr = stackBasePtr;
+                            threadContext.CallSite->StackPtr = stackPtr;
+                            threadContext.CallSite->StackAllocPtr = stackAllocPtr;
+
+                            // Get method handle                            
+                            _MethodHandle targetMethod = *(_MethodHandle*)callMethodAddr;
+
+                            // Get start of arg locals
+                            argLocals = (_StackHandle*)((_MethodHandle*)callMethodAddr + 1);
+
+                            byte* callStackStartPtr = stackPtr; //stackAllocPtr;
+
+                            // Negative offset for arguments - args are already loaded onto the stack at this point, so current stack ptr is the start of locals
+                            for (int i = 0; i < targetMethod.ArgCount; i++)
+                                callStackStartPtr -= argLocals[i].TypeHandle.TypeSize;
+
+                            // Create new call site
+                            CallSite targetCallSite = new CallSite((_MethodHandle*)methodPtr, callStackStartPtr);
+
+                            // Enter method
+                            targetCallSite.Parent = threadContext.CallSite;
+                            threadContext.CallSite = &targetCallSite;
+
+                            // Zero memory for locals
+                            __memory.Zero(targetCallSite.StackPtr, targetMethod.StackPtrOffset);
+
+                            // Get instruction ptr
+                            instructionPtr = (byte*)(argLocals + (method.ArgCount + method.LocalCount));
+
+                            int arg = *(int*)stackBasePtr;
+
+                            // Get stack ptrs
+                            stackBasePtr = targetCallSite.StackBasePtr;
+                            stackPtr = targetCallSite.StackPtr;
+
+                            int arg2 = *(int*)stackBasePtr;
+
+                            // Get stack ptr where dynamic stack allocations can be made - after this method frame
+                            stackAllocPtr = callSite.StackAllocPtr;
+                            break;
+                        }
                     case OpCode.Ret:
                         {
-                            halt = true;
+                            // Check for parent call
+                            if (threadContext.CallSite->Parent != null)
+                            {
+                                // Jump to previous call site
+                                threadContext.CallSite = threadContext.CallSite->Parent;
+
+                                // Get return value ptr
+                                byte* stackReturnPtr = stackPtr;
+
+                                // Jump back to previous call site
+                                method = *threadContext.CallSite->Method;
+                                argLocals = (_StackHandle*)(threadContext.CallSite->Method + 1);
+
+                                instructionPtr = threadContext.CallSite->InstructionPtr;
+                                stackBasePtr = threadContext.CallSite->StackBasePtr;
+                                stackPtr = threadContext.CallSite->StackPtr;
+                                stackAllocPtr = threadContext.CallSite->StackAllocPtr;
+
+                                
+
+                                // Check for return value
+                                int returnSize = sizeof(int);
+                                __memory.Copy(stackReturnPtr - returnSize, stackPtr, returnSize);
+                                stackPtr += sizeof(int);
+
+                                int val = *(int*)(stackReturnPtr - returnSize);
+                            }
+                            else
+                            {
+                                // Execution can finish
+                                halt = true;
+                            }
                             break;
                         }
                     #endregion

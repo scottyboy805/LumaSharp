@@ -131,12 +131,14 @@ namespace LumaSharp.Runtime.Reflection
             // Get thread context
             ThreadContext threadContext = context.GetCurrentThreadContext();
 
+            // Ptr where arguments should be loaded
+            byte* stackArgPtr = threadContext.ThreadStackPtr;
 
             // Load instance
-            if(IsGlobal == false)
+            if (IsGlobal == false)
             {
                 // Push instance
-                //__memory.WriteAs()
+                //__memory.WriteAs(instance, ref stackArgPtr);
             }
 
             // Load arguments
@@ -145,7 +147,7 @@ namespace LumaSharp.Runtime.Reflection
                 for (int i = 0; i < args.Length; i++)
                 {
                     // Push argument
-                    __memory.WriteAs(args[i], parameters[i].ParameterType.typeExecutable, ref threadContext.ThreadStackPtr);
+                    __memory.WriteAs(args[i], parameters[i].ParameterType.typeExecutable, ref stackArgPtr);
                 }
             }
 

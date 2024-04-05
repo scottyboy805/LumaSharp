@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public sealed class LibraryName
+    public sealed class ModuleName
     {
         // Private
         private string name = "";
@@ -25,17 +25,26 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        public LibraryName(string path)
+        public ModuleName(string path)
         {
             this.hintPath = path;
             this.name = Path.GetFileName(path);
             this.version = new Version();
         }
 
-        public LibraryName(string name, Version version, string hintPath = null)
+        public ModuleName(string name, Version version, string hintPath = null)
         {
             this.name = name;
             this.version = version;
+            this.hintPath = hintPath;
+        }
+
+        internal ModuleName(BinaryReader reader, string hintPath = null)
+        {
+            this.name = reader.ReadString();
+            this.version = new Version(
+                reader.ReadInt32(),
+                reader.ReadInt32());
             this.hintPath = hintPath;
         }
     }
