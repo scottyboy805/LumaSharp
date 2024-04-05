@@ -143,20 +143,20 @@ type MyType{
 }
 ```
 
-### Tasks
+### Actions
 ```cs
-// A task is essentially just a C# delegate - a way to store a method as a variable to be invoked at a later time
+// An action is essentially just a C# delegate - a way to store a method as a variable to be invoked at a later time
 type MyType{
-  task i32 MyTask(i32 a, i32 b);
+  action i32 MyAction(i32 a, i32 b);
 
   void MyMethod()
   {
     // Create and call standard
-    MyTask callA = (i32 a, i32 b) => return a + b;
+    MyAction callA = (i32 a, i32 b) => return a + b;
     i32 result = callA(3, 5);
 
     // Unlike C# we can cast to common base and dynamic invoke
-    task callB = callA;
+    action callB = callA;
     i32 result = (i32)callB(4, 6);
   }
 }
@@ -198,7 +198,7 @@ namespace BubbleSort:Example
   global type Program
   {
     // List of values to sort
-    hidden List<i32>& unsortedValues = new { 800, 11, 50, 771, 649 };
+    hidden List<i32> unsortedValues = new { 800, 11, 50, 771, 649 };
   
     // Main entry point to the program
     export global void Main()
@@ -207,7 +207,7 @@ namespace BubbleSort:Example
     }
   
     // Algorithm method
-    global void BubbleSort(List<i32>& values)
+    global void BubbleSort(List<i32> values)
     {
       i32 temp = 0;
   
