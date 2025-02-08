@@ -511,16 +511,6 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitElseStatement([NotNull] LumaSharpParser.ElseStatementContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context);
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.forStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -551,15 +541,15 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterWhileStatement([NotNull] LumaSharpParser.WhileStatementContext context);
+	void EnterForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitWhileStatement([NotNull] LumaSharpParser.WhileStatementContext context);
+	void ExitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.selectStatement"/>.
 	/// </summary>
@@ -730,4 +720,14 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterRangeExpression([NotNull] LumaSharpParser.RangeExpressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitRangeExpression([NotNull] LumaSharpParser.RangeExpressionContext context);
 }

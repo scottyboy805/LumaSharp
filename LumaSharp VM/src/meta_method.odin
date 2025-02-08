@@ -32,6 +32,7 @@ LumaMetaMethodFlags :: distinct bit_set[LumaMetaMethodOption; u32]
 LumaMetaMethod :: struct
 {
     token: u32,
+    address: rawptr,
     name: string,
     flags: LumaMetaMethodFlags,
     returnTypes: []LumaMetaType,

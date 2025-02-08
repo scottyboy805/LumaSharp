@@ -320,12 +320,6 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitElseStatement([NotNull] LumaSharpParser.ElseStatementContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context);
-	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.forStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -344,11 +338,11 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitWhileStatement([NotNull] LumaSharpParser.WhileStatementContext context);
+	Result VisitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.selectStatement"/>.
 	/// </summary>
@@ -451,4 +445,10 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitRangeExpression([NotNull] LumaSharpParser.RangeExpressionContext context);
 }

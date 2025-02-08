@@ -515,16 +515,6 @@ public partial class LumaSharpBaseVisitor<Result> : AbstractParseTreeVisitor<Res
 	/// <return>The visitor result.</return>
 	public virtual Result VisitElseStatement([NotNull] LumaSharpParser.ElseStatementContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
-	/// <para>
-	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
-	/// on <paramref name="context"/>.
-	/// </para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	public virtual Result VisitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context) { return VisitChildren(context); }
-	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.forStatement"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
@@ -555,7 +545,7 @@ public partial class LumaSharpBaseVisitor<Result> : AbstractParseTreeVisitor<Res
 	/// <return>The visitor result.</return>
 	public virtual Result VisitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -563,7 +553,7 @@ public partial class LumaSharpBaseVisitor<Result> : AbstractParseTreeVisitor<Res
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitWhileStatement([NotNull] LumaSharpParser.WhileStatementContext context) { return VisitChildren(context); }
+	public virtual Result VisitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.selectStatement"/>.
 	/// <para>
@@ -734,4 +724,14 @@ public partial class LumaSharpBaseVisitor<Result> : AbstractParseTreeVisitor<Res
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	public virtual Result VisitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context) { return VisitChildren(context); }
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitRangeExpression([NotNull] LumaSharpParser.RangeExpressionContext context) { return VisitChildren(context); }
 }

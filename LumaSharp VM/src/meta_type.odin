@@ -2,6 +2,7 @@ package LumaVM
 
 LumaMetaTypeCode :: enum u32
 {
+    Void = 0,
     Any = 1,
     Bool,
     Char,
@@ -13,8 +14,9 @@ LumaMetaTypeCode :: enum u32
     U32,
     I64,
     U64,
-    Float,
-    Double,
+    F32,
+    F64,
+    Max,
 }
 
 LumaMetaTypeOption :: enum u32

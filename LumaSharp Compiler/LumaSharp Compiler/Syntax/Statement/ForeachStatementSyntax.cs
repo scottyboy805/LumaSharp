@@ -112,7 +112,7 @@ namespace LumaSharp_Compiler.AST.Statement
             : base(tree, parent, statement)
         {
             // Keyword
-            this.keyword = new SyntaxToken(statement.FOREACH());
+            this.keyword = new SyntaxToken(statement.FOR());
 
             // LR paren
             this.lparen = new SyntaxToken(statement.lparen);

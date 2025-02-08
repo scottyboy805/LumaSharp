@@ -23,7 +23,6 @@ ELSE: 'else';
 ELSEIF: 'elseif';
 TRUE: 'true';
 FALSE: 'false';
-FOREACH: 'foreach';
 IN: 'in';
 FOR: 'for';
 WHILE: 'while';
@@ -200,9 +199,9 @@ statement:
 	| localVariableStatement
 	| assignStatement
 	| ifStatement
-	| foreachStatement
+	//| foreachStatement
 	| forStatement
-	| whileStatement
+	//| whileStatement
 	| selectStatement
 	| tryStatement
 	| BREAK ';'
@@ -235,15 +234,18 @@ elseifStatement: ELSEIF lparen='(' expression rparen=')' (statement | semi=';' |
 elseStatement: ELSE (statement | semi=';' | statementBlock);
 
 // Foreach statement
-foreachStatement: FOREACH lparen='(' typeReference IDENTIFIER IN expression rparen=')' (statement? semi=';' | statementBlock);
+//foreachStatement: FOREACH lparen='(' typeReference IDENTIFIER IN expression rparen=')' (statement? semi=';' | statementBlock);
 
 // For statement
 forStatement: FOR lparen='(' forVariableStatement? semiVar=';' expression? semiCond=';' (forIncrementExpression (',' forIncrementExpression)*)? rparen=')' (statement? semi=';' | statementBlock);
 forVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* localVariableAssignment?;
 forIncrementExpression: expression;
 
+// Foreach statement
+foreachStatement: FOR lparen='(' typeReference IDENTIFIER IN (rangeExpression | expression) rparen=')' (statement? semi=';' | statementBlock);
+
 // While statement
-whileStatement: WHILE '(' expression ')' (statement | ';' | '{' statement* '}');
+//whileStatement: WHILE '(' expression ')' (statement | ';' | '{' statement* '}');
 
 // Select statement
 selectStatement: SELECT '(' expression ')' '{' (defaultStatement | matchStatement)* '}';
@@ -321,3 +323,6 @@ methodArgument: '&'? expression;
 
 // Initializer 
 initializerInvokeExpression: typeReference lparen='(' (expression (',' expression)*)? rparen=')';
+
+
+rangeExpression: expression (rInclusive='..=' | rExclusive='..<') expression;

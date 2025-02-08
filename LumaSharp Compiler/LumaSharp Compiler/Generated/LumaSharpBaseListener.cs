@@ -612,18 +612,6 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitElseStatement([NotNull] LumaSharpParser.ElseStatementContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.forStatement"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -660,17 +648,17 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterWhileStatement([NotNull] LumaSharpParser.WhileStatementContext context) { }
+	public virtual void EnterForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.whileStatement"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitWhileStatement([NotNull] LumaSharpParser.WhileStatementContext context) { }
+	public virtual void ExitForeachStatement([NotNull] LumaSharpParser.ForeachStatementContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.selectStatement"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -875,6 +863,18 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterRangeExpression([NotNull] LumaSharpParser.RangeExpressionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitRangeExpression([NotNull] LumaSharpParser.RangeExpressionContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>

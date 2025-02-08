@@ -2,16 +2,24 @@ package LumaVM
 
 LumaMethodSignature :: struct
 {
-    returnCount: u32,
-    returnTypes: []LumaTypeHandle,
-    parameterCount: u32,
-    parameterTypes: []LumaTypeHandle,
+    returnCount: u16,
+    returnTypes: []LumaMethodLocalHandle,
+    parameterCount: u16,
+    parameterTypes: []LumaMethodLocalHandle,
+    localsCount: u16,
+    localTypes: []LumaMethodLocalHandle,
+}
+
+LumaMethodLocalHandle :: struct
+{
+    offset: u16,
+    size: u16,
 }
 
 LumaMethodHandle :: struct
 {
     meta: ^LumaMetaMethod,
-    signature: ^LumaMethodSignature,
+    signature: LumaMethodSignature,
     maxStack: u16,
     localPtrOffset: u16,
     stackPtrOffset: u16,

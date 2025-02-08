@@ -1,6 +1,6 @@
 package LumaVM
 
-LumaOpCode :: enum //u8
+LumaOpCode :: enum u8
 {
     Nop = 0,
 
@@ -108,30 +108,30 @@ LumaOpCode :: enum //u8
     // Cast_UI8 = 0xAA,        // 1 byte data - primitive type token
     // Cast_Any = 0xAB,        // 4 byte data - type token
 
-    // // Jump
+    // Jump
     // Jmp_Eq = 0xB1,          // 1 byte type code, 4 byte instruction offset
     // Jmp_NEq = 0xB2,         // 1 byte type code, 4 byte instruction offset
-    // Jmp_1 = 0xB3,           // 4 byte instruction offset
-    // Jmp_0 = 0xB4,           // 4 byte instruction offset
+    Jmp_1 = 0xB3,           // 4 byte instruction offset
+    Jmp_0 = 0xB4,           // 4 byte instruction offset
     // Jmp_L = 0xB5,           // 1 byte type code, 4 byte instruction offset
     // Jmp_Le = 0xB6,          // 1 byte type code, 4 byte instruction offset
     // Jmp_G = 0xB7,           // 1 byte type code, 4 byte instruction offset
     // Jmp_Ge = 0xB8,          // 1 byte type code, 4 byte instruction offset
-    // Jmp = 0xB9,             // 4 byte instruction offset
+    Jmp = 0xB9,             // 4 byte instruction offset
 
-    // // Obj
-    // New = 0xF1,             // 4 byte data - type token
-    // New_S = 0xF2,           // 4 byte data - type token
-    // NewArr = 0xF3,          // 4 byte data - type token
-    // NewArr_S = 0xF4,        // 4 byte data - type token
-    // Call = 0xF5,            // 4 byte data - method token
-    // Call_Addr = 0xF6,
-    // Is_Any = 0xF7,          // 4 byte data - type token - Is obj of specified type
-    // As_Any = 0xF8,          // 4 byte data - type token - Convert object or primitive to object of type
-    // From_Any = 0xF9,        // 4 byte data - type token - Convert primitive boxed value to primitive
-    // Ld_Size = 0xFA,         // No data
-    // Ld_Type = 0xFB,			// No data
-    // Ld_Func = 0xFC,         // 4 byte data - type token
-    // Ret = 0xFD,             // No data
-    // Throw = 0xFE,           // No data
+    // Obj
+    New = 0xF1,             // 4 byte data - type token
+    New_S = 0xF2,           // 4 byte data - type token
+    NewArr = 0xF3,          // 4 byte data - type token
+    NewArr_S = 0xF4,        // 4 byte data - type token
+    Call = 0xF5,            // 4 byte data - method token
+    Call_Addr = 0xF6,
+    Is_Any = 0xF7,          // 4 byte data - type token - Is obj of specified type
+    As_Any = 0xF8,          // 4 byte data - type token - Convert object or primitive to object of type
+    From_Any = 0xF9,        // 4 byte data - type token - Convert primitive boxed value to primitive
+    Ld_Size = 0xFA,         // No data
+    Ld_Type = 0xFB,			// No data
+    Ld_Func = 0xFC,         // 4 byte data - type token
+    Ret = 0xFD,             // No data
+    Throw = 0xFE,           // No data
 }
