@@ -76,24 +76,24 @@ LumaOpCode :: enum u8
     St_Addr_Any = 0x6E,     // No data
 
     // Arithmetic
-    Add = 0x71,             // 1 byte type code
-    Sub = 0x75,
-    Mul= 0x79,
-    Div = 0x7D,
-    Neg = 0x81,
-    And = 0x85,
-    Or = 0x87,
-    XOr = 0x89,
-    Not = 0x8B,
-    Bit_Shl = 0x8D,
-    Bit_Shr = 0x8F,
+    Add = 0x71,             // 1 byte data - LumaOpCodeFlags
+    Sub = 0x75,             // 1 byte data - LumaOpCodeFlags
+    Mul = 0x79,             // 1 byte data - LumaOpCodeFlags
+    Div = 0x7D,             // 1 byte data - LumaOpCodeFlags
+    Neg = 0x81,             // 1 byte data - LumaOpCodeFlags
+    Bit_And = 0x85,
+    Bit_Or = 0x87,
+    Bit_XOr = 0x89,
+    Bit_Not = 0x8B,
+    Bit_Shl = 0x8C,         // 1 byte data - LumaOpCodeFlags
+    Bit_Shr = 0x8E,         // 1 byte data - LumaOpCodeFlags
     Mod = 0x91,
-    Cmp_L = 0x95,           // 1 byte type code
-    Cmp_Le = 0x96,          // 1 byte type code
-    Cmp_G = 0x97,           // 1 byte type code
-    Cmp_Ge = 0x98,          // 1 byte type code
-    Cmp_Eq = 0x99,          // 1 byte type code
-    Cmp_NEq = 0x9A,         // 1 byte type code
+    Cmp_L = 0x95,           // 1 byte data - LumaOpCodeFlags
+    Cmp_Le = 0x96,          // 1 byte data - LumaOpCodeFlags
+    Cmp_G = 0x97,           // 1 byte data - LumaOpCodeFlags
+    Cmp_Ge = 0x98,          // 1 byte data - LumaOpCodeFlags
+    Cmp_Eq = 0x99,          // 1 byte data - LumaOpCodeFlags
+    Cmp_NEq = 0x9A,         // 1 byte data - LumaOpCodeFlags
 
     // Convert
     Cast_I1 = 0xA1,         // 1 byte data - primitive type token - cast 8 bit integer on top of stack to type specified by token
@@ -135,3 +135,12 @@ LumaOpCode :: enum u8
     Ret = 0xFD,             // No data
     Throw = 0xFE,           // No data
 }
+
+LumaOpCodeOption :: enum u8
+{
+    None = 0,
+    Unsigned = 1 << 0,
+    Overflow = 1 << 1,
+}
+
+LumaOpCodeFlags :: distinct bit_set[LumaOpCodeOption; u8];

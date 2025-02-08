@@ -114,91 +114,91 @@ luma_mem_ptr_sub :: proc(addr: ^rawptr, offset: uint)
 }
 
 
-// Read / Write proc
-luma_fetchi_8 :: proc(addr: ^rawptr) -> u8
-{
-    // Fetch val at ptr
-    val := (cast(^u8)addr^)^;
+// // Read / Write proc
+// luma_fetchi_8 :: proc(addr: ^rawptr) -> u8
+// {
+//     // Fetch val at ptr
+//     val := (cast(^u8)addr^)^;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 1)
-    return val;
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 1)
+//     return val;
+// }
 
-luma_fetchi_16 :: proc(addr: ^rawptr) -> u16
-{
-    // Fetch val at ptr
-    val := (cast(^u16)addr^)^;
+// luma_fetchi_16 :: proc(addr: ^rawptr) -> u16
+// {
+//     // Fetch val at ptr
+//     val := (cast(^u16)addr^)^;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 2)
-    return val;
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 2)
+//     return val;
+// }
 
-luma_fetchi_32 :: proc(addr: ^rawptr) -> u32
-{
-    // Fetch val at ptr
-    val := (cast(^u32)addr^)^;
+// luma_fetchi_32 :: proc(addr: ^rawptr) -> u32
+// {
+//     // Fetch val at ptr
+//     val := (cast(^u32)addr^)^;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 4)
-    return val;
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 4)
+//     return val;
+// }
 
-luma_fetchi_64 :: proc(addr: ^rawptr) -> u64
-{
-    // Fetch val at ptr
-    val := (cast(^u64)addr^)^;
+// luma_fetchi_64 :: proc(addr: ^rawptr) -> u64
+// {
+//     // Fetch val at ptr
+//     val := (cast(^u64)addr^)^;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 8)
-    return val;
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 8)
+//     return val;
+// }
 
-luma_fetchd_8 :: proc(addr: ^rawptr) -> u8
-{
-    // Decrement addr
-    addr^ = cast(rawptr)(uintptr(addr^) - 1)
+// luma_fetchd_8 :: proc(addr: ^rawptr) -> u8
+// {
+//     // Decrement addr
+//     addr^ = cast(rawptr)(uintptr(addr^) - 1)
 
-    // Fetch val at ptr
-    return (cast(^u8)addr^)^;
-}
+//     // Fetch val at ptr
+//     return (cast(^u8)addr^)^;
+// }
 
-luma_fetchd_16 :: proc(addr: ^rawptr) -> u16
-{
-    // Decrement addr
-    addr^ = cast(rawptr)(uintptr(addr^) - 2)
+// luma_fetchd_16 :: proc(addr: ^rawptr) -> u16
+// {
+//     // Decrement addr
+//     addr^ = cast(rawptr)(uintptr(addr^) - 2)
 
-    // Fetch val at ptr
-    return (cast(^u16)addr^)^;
-}
+//     // Fetch val at ptr
+//     return (cast(^u16)addr^)^;
+// }
 
-luma_fetchd_32 :: proc(addr: ^rawptr) -> u32
-{
-    // Decrement addr
-    addr^ = cast(rawptr)(uintptr(addr^) - 4)
+// luma_fetchd_32 :: proc(addr: ^rawptr) -> u32
+// {
+//     // Decrement addr
+//     addr^ = cast(rawptr)(uintptr(addr^) - 4)
 
-    // Fetch val at ptr
-    return (cast(^u32)addr^)^;
-}
+//     // Fetch val at ptr
+//     return (cast(^u32)addr^)^;
+// }
 
-luma_fetchd_64 :: proc(addr: ^rawptr) -> u64
-{
-    // Decrement addr
-    addr^ = cast(rawptr)(uintptr(addr^) - 8)
+// luma_fetchd_64 :: proc(addr: ^rawptr) -> u64
+// {
+//     // Decrement addr
+//     addr^ = cast(rawptr)(uintptr(addr^) - 8)
 
-    // Fetch val at ptr
-    return (cast(^u64)addr^)^;
-}
+//     // Fetch val at ptr
+//     return (cast(^u64)addr^)^;
+// }
 
-luma_fetchd_ptr :: proc(addr: ^rawptr) -> rawptr
-{
-    // Decrement addr
-    addr^ = cast(rawptr)(uintptr(addr^) - uintptr(size_of(rawptr)))
+// luma_fetchd_ptr :: proc(addr: ^rawptr) -> rawptr
+// {
+//     // Decrement addr
+//     addr^ = cast(rawptr)(uintptr(addr^) - uintptr(size_of(rawptr)))
 
-    // Fetch val at ptr
-    return (cast(^rawptr)addr^)^;
-}
+//     // Fetch val at ptr
+//     return (cast(^rawptr)addr^)^;
+// }
 
 luma_fetch_8 :: proc(addr: rawptr) -> u8
 {
@@ -230,95 +230,95 @@ luma_fetch_ptr :: proc(addr: rawptr) -> rawptr
     return (cast(^rawptr)addr)^;
 }
 
-luma_writei_8 :: proc(addr: ^rawptr, val: u8)
-{
-    // Write to addr
-    (cast(^u8)addr^)^ = val;
+// luma_writei_8 :: proc(addr: ^rawptr, val: u8)
+// {
+//     // Write to addr
+//     (cast(^u8)addr^)^ = val;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 1);    
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 1);    
+// }
 
-luma_writei_16 :: proc(addr: ^rawptr, val: u16)
-{
-    // Write to addr
-    (cast(^u16)addr^)^ = val;
+// luma_writei_16 :: proc(addr: ^rawptr, val: u16)
+// {
+//     // Write to addr
+//     (cast(^u16)addr^)^ = val;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 2);   
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 2);   
+// }
 
-luma_writei_32 :: proc(addr: ^rawptr, val: u32)
-{
-    // Write to addr
-    (cast(^u32)addr^)^ = val;
+// luma_writei_32 :: proc(addr: ^rawptr, val: u32)
+// {
+//     // Write to addr
+//     (cast(^u32)addr^)^ = val;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 4);   
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 4);   
+// }
 
-luma_writei_64 :: proc(addr: ^rawptr, val: u64)
-{
-    // Write to addr
-    (cast(^u64)addr^)^ = val;
+// luma_writei_64 :: proc(addr: ^rawptr, val: u64)
+// {
+//     // Write to addr
+//     (cast(^u64)addr^)^ = val;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + 8);   
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + 8);   
+// }
 
-luma_writei_ptr :: proc(addr: ^rawptr, val: rawptr)
-{
-    // Write to addr
-    (cast(^rawptr)addr^)^ = val;
+// luma_writei_ptr :: proc(addr: ^rawptr, val: rawptr)
+// {
+//     // Write to addr
+//     (cast(^rawptr)addr^)^ = val;
 
-    // Increment addr
-    addr^ = cast(rawptr)(uintptr(addr^) + uintptr(size_of(rawptr)));   
-}
+//     // Increment addr
+//     addr^ = cast(rawptr)(uintptr(addr^) + uintptr(size_of(rawptr)));   
+// }
 
-luma_write_8 :: proc(addr: rawptr, val: u8)
-{
-    // Write to addr
-    (cast(^u8)addr)^ = val; 
-}
+// luma_write_8 :: proc(addr: rawptr, val: u8)
+// {
+//     // Write to addr
+//     (cast(^u8)addr)^ = val; 
+// }
 
-luma_write_16 :: proc(addr: rawptr, val: u16)
-{
-    // Write to addr
-    (cast(^u16)addr)^ = val; 
-}
+// luma_write_16 :: proc(addr: rawptr, val: u16)
+// {
+//     // Write to addr
+//     (cast(^u16)addr)^ = val; 
+// }
 
-luma_write_32 :: proc(addr: rawptr, val: u32)
-{
-    // Write to addr
-    (cast(^u32)addr)^ = val;
-}
+// luma_write_32 :: proc(addr: rawptr, val: u32)
+// {
+//     // Write to addr
+//     (cast(^u32)addr)^ = val;
+// }
 
-luma_write_64 :: proc(addr: rawptr, val: u64)
-{
-    // Write to addr
-    (cast(^u64)addr)^ = val;
-}
+// luma_write_64 :: proc(addr: rawptr, val: u64)
+// {
+//     // Write to addr
+//     (cast(^u64)addr)^ = val;
+// }
 
-luma_copyi_x :: proc(src: rawptr, dest: ^rawptr, size: u32)
-{
-    // Copy memory
-    mem.copy(dest^, src, int(size));
+// luma_copyi_x :: proc(src: rawptr, dest: ^rawptr, size: u32)
+// {
+//     // Copy memory
+//     mem.copy(dest^, src, int(size));
 
-    // Increment dest
-    dest^ = cast(rawptr)(uintptr(dest^) + uintptr(size));  
-}
+//     // Increment dest
+//     dest^ = cast(rawptr)(uintptr(dest^) + uintptr(size));  
+// }
 
-luma_copyd_x :: proc(src: ^rawptr, dest: rawptr, size: u32)
-{
-    // Decrement dest
-    src^ = cast(rawptr)(uintptr(src^) - uintptr(size)); 
+// luma_copyd_x :: proc(src: ^rawptr, dest: rawptr, size: u32)
+// {
+//     // Decrement dest
+//     src^ = cast(rawptr)(uintptr(src^) - uintptr(size)); 
 
-    // Copy memory
-    mem.copy(dest, src^, int(size));
-}
+//     // Copy memory
+//     mem.copy(dest, src^, int(size));
+// }
 
-luma_copy_x :: proc(src: rawptr, dest: rawptr, size: u32)
-{
-    // Copy memory
-    mem.copy(dest, src, int(size));
-}
+// luma_copy_x :: proc(src: rawptr, dest: rawptr, size: u32)
+// {
+//     // Copy memory
+//     mem.copy(dest, src, int(size));
+// }

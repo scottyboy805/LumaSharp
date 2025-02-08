@@ -3,17 +3,11 @@ package LumaVM
 LumaMethodSignature :: struct
 {
     returnCount: u16,
-    returnTypes: []LumaMethodLocalHandle,
+    returnTypes: []LumaStackHandle,
     parameterCount: u16,
-    parameterTypes: []LumaMethodLocalHandle,
+    parameterTypes: []LumaStackHandle,
     localsCount: u16,
-    localTypes: []LumaMethodLocalHandle,
-}
-
-LumaMethodLocalHandle :: struct
-{
-    offset: u16,
-    size: u16,
+    localTypes: []LumaStackHandle,
 }
 
 LumaMethodHandle :: struct
