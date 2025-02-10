@@ -6,8 +6,22 @@ import "core:mem"
 import "core:math"
 
 @private
-luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []u8, stackOffset: u32)
+luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instructions: []u8, stack: []u8, stackOffset: u32)
 {
+    // Set current call
+    luma.pc = callAddr;
+
+    // Create base call
+    callBase := LumaStackCall {
+        callAddr = callAddr,
+        pcAddr = callAddr,
+        sp0Addr = luma.sp,
+        spAddr = luma_mem_ptr_offset(&luma.sp, int(size_of(LumaStackCall))),
+    };
+
+    // Push call to stack
+    luma_stack_write_call(&luma.sp, callBase);
+
     // Execution loop
     for //i := 0; i < 50; i += 1
     {
@@ -124,7 +138,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
             case .Ld_Loc_0:
                 {
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[0];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[0];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -144,7 +158,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
             case .Ld_Loc_1:
                 {
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[1];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[1];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -167,7 +181,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
             case .Ld_Loc_2:
                 {
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[2];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[2];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -193,7 +207,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
                     index := luma_fetchdecode_16(&luma.pc);
 
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[index];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[index];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -217,7 +231,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
             case .St_Loc_0:
                 {
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[0];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[0];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -234,7 +248,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
             case .St_Loc_1:
                 {
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[1];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[1];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -254,7 +268,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
             case .St_Loc_2:
                 {
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[2];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[2];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -277,7 +291,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
                     index := luma_fetchdecode_16(&luma.pc);
 
                     // Get method signature
-                    local := (cast(^LumaMethodHandle)luma.call).signature.localTypes[index];
+                    local := (cast(^LumaMethodHandle)luma.call).localTypes[index];
 
                     // Get local size
                     size := u32(local.type.size);
@@ -349,7 +363,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
                             // Debug exec
                             when ODIN_DEBUG == true
                             {
-                                luma_debug_32("Execute Add", luma.sp, -5);
+                                luma_debug_32("Execute Add [U32]", luma.sp, -5);
                             }
                         }
                     }
@@ -387,7 +401,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
                             // Debug exec
                             when ODIN_DEBUG == true
                             {
-                                luma_debug_32("Execute Sub", luma.sp, -5);
+                                luma_debug_32("Execute Sub [U32]", luma.sp, -5);
                             }
                         }
                     }
@@ -399,7 +413,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
 
                     // Fetch stack token
                     token := luma_stacktoken_peek(luma.sp);
-                    fmt.println("Cmp_L token: ", token);
+
                     #partial switch token
                     {
                         // I32
@@ -424,7 +438,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
                                 // Debug exec
                                 when ODIN_DEBUG == true
                                 {
-                                    luma_debug_32("Execute Cmp_L [I32]", luma.sp, -5);
+                                    luma_debug_32("Execute Cmp_L [U32]", luma.sp, -5);
                                 }
                             }
                     }
@@ -461,7 +475,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState) // instructions: []u8, stack: []
                                 // Debug exec
                                 when ODIN_DEBUG == true
                                 {
-                                    luma_debug_32("Execute Cmp_Eq [I32]", luma.sp, -5);
+                                    luma_debug_32("Execute Cmp_Eq [U32]", luma.sp, -5);
                                 }
                             }
                     }

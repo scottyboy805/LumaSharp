@@ -6,8 +6,6 @@ LumaMethodSignature :: struct
     returnTypes: []LumaStackHandle,
     parameterCount: u16,
     parameterTypes: []LumaStackHandle,
-    localsCount: u16,
-    localTypes: []LumaStackHandle,
 }
 
 LumaMethodHandle :: struct
@@ -15,12 +13,12 @@ LumaMethodHandle :: struct
     meta: ^LumaMetaMethod,
     signature: LumaMethodSignature,
     maxStack: u16,
-    localPtrOffset: u16,
-    stackPtrOffset: u16,
-    instructions: ^u8,
+    localsCount: u16,
+    localsSize: u32,
+    localTypes: []LumaStackHandle,
 }
 
-luma_method_invoke :: proc(method: LumaMethodHandle)
+luma_method_invoke :: proc(method: ^LumaMethodHandle)
 {
 
 }

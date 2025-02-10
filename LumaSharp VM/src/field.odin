@@ -3,8 +3,7 @@ package LumaVM
 LumaFieldHandle :: struct
 {
     meta: ^LumaMetaField,
-    offset: u32,
-    size: u32,
+    type: LumaTypeHandle,
 }
 
 luma_field_read :: proc(field: LumaFieldHandle)

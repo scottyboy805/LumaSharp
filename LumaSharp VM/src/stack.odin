@@ -11,7 +11,15 @@ LumaStackToken :: enum u8
     F32,
     F64,
     Addr,
-    CallHead,
+    Call,
+}
+
+LumaStackCall :: struct
+{
+    callAddr: rawptr,
+    pcAddr: rawptr,
+    sp0Addr: rawptr,
+    spAddr: rawptr,
 }
 
 
@@ -100,6 +108,18 @@ luma_stack_write_ptr :: proc(sp: ^rawptr, value: rawptr)
     sp^ = cast(rawptr)(uintptr(sp^) + size_of(rawptr) + 1);   
 }
 
+luma_stack_write_call :: proc(sp: ^rawptr, call: LumaStackCall)
+{
+    // Write call
+    (cast(^LumaStackCall)sp^)^ = call;
+
+    // Append stack token
+    (cast(^LumaStackToken)(uintptr(sp^) + size_of(LumaStackCall)))^ = .Call;
+
+    // Increment sp
+    sp^ = cast(rawptr)(uintptr(sp^) + size_of(LumaStackToken) + 1);  
+}
+
 
 // Fetch
 luma_stack_fetch_U8 :: proc(sp: ^rawptr) -> u8
@@ -185,6 +205,19 @@ luma_stack_fetch_ptr :: proc(sp: ^rawptr) -> rawptr
     // Fetch value with demote
     return (cast(^rawptr)sp^)^;
 }
+
+luma_stack_fetch_call :: proc(sp: ^rawptr) -> LumaStackCall
+{
+    // Check stack token
+    assert((cast(^LumaStackToken)(uintptr(sp^) - size_of(LumaStackToken)))^ == .Call);
+
+    // Decrement sp
+    sp^ = cast(rawptr)(uintptr(sp^) - size_of(LumaStackCall) - 1);
+
+    // Fetch value with demote
+    return (cast(^LumaStackCall)sp^)^;
+}
+
 
 // Copy
 /// Copy a value of specified size from the stack to the target address.

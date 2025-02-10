@@ -9,11 +9,11 @@ main :: proc() {
     defer luma_cleanup(state);
 
     callHandle := LumaMethodHandle{};
-    callHandle.signature.localsCount = 2;
-    callHandle.signature.localTypes = make([]LumaStackHandle, 2);
-    callHandle.signature.localTypes[0].type.size = 4;
-    callHandle.signature.localTypes[1].offset = 1;
-    callHandle.signature.localTypes[1].type.size = 4;
+    callHandle.localsCount = 2;
+    callHandle.localTypes = make([]LumaStackHandle, 2);
+    callHandle.localTypes[0].type.size = 4;
+    callHandle.localTypes[1].offset = 1;
+    callHandle.localTypes[1].type.size = 4;
 
     bytecode: []u8 = 
     {
@@ -42,25 +42,25 @@ main :: proc() {
     fibCall.signature.parameterTypes[0].offset = 4;
 
     // Loc
-    fibCall.signature.localTypes = make([]LumaStackHandle, 6);
-    fibCall.signature.localsCount = 6;
-    fibCall.signature.localTypes[0].type.code = .I32;
-    fibCall.signature.localTypes[0].type.size = 4;
-    fibCall.signature.localTypes[1].offset = 4;
-    fibCall.signature.localTypes[1].type.code = .I32;
-    fibCall.signature.localTypes[1].type.size = 4;
-    fibCall.signature.localTypes[2].offset = 8;
-    fibCall.signature.localTypes[2].type.code = .I32;
-    fibCall.signature.localTypes[2].type.size = 4;
-    fibCall.signature.localTypes[3].offset = 12;
-    fibCall.signature.localTypes[3].type.code = .I32;
-    fibCall.signature.localTypes[3].type.size = 4;
-    fibCall.signature.localTypes[4].offset = 16;
-    fibCall.signature.localTypes[4].type.code = .I32;
-    fibCall.signature.localTypes[4].type.size = 4;
-    fibCall.signature.localTypes[5].offset = 20;
-    fibCall.signature.localTypes[5].type.code = .I32;
-    fibCall.signature.localTypes[5].type.size = 4;
+    fibCall.localTypes = make([]LumaStackHandle, 6);
+    fibCall.localsCount = 6;
+    fibCall.localTypes[0].type.code = .I32;
+    fibCall.localTypes[0].type.size = 4;
+    fibCall.localTypes[1].offset = 4;
+    fibCall.localTypes[1].type.code = .I32;
+    fibCall.localTypes[1].type.size = 4;
+    fibCall.localTypes[2].offset = 8;
+    fibCall.localTypes[2].type.code = .I32;
+    fibCall.localTypes[2].type.size = 4;
+    fibCall.localTypes[3].offset = 12;
+    fibCall.localTypes[3].type.code = .I32;
+    fibCall.localTypes[3].type.size = 4;
+    fibCall.localTypes[4].offset = 16;
+    fibCall.localTypes[4].type.code = .I32;
+    fibCall.localTypes[4].type.size = 4;
+    fibCall.localTypes[5].offset = 20;
+    fibCall.localTypes[5].type.code = .I32;
+    fibCall.localTypes[5].type.size = 4;
 
 
     off: i8 = -33;
@@ -146,14 +146,14 @@ main :: proc() {
     }
 
     // Pass arg
-    state.stack[96] = 6;
+    state.stack[96] = 9;
 
     state.call = &fibCall;
-    state.pc = &fibBytecode[0]; //&fibRecursiveBytecode[0]; //&fibBytecode[0];
-    state.callAddr = &fibRecursiveBytecode[0];
+    // state.pc = &fibBytecode[0]; //&fibRecursiveBytecode[0]; //&fibBytecode[0];
+    // state.callAddr = &fibRecursiveBytecode[0];
 
     fmt.println("__Start__");
-    luma_execute_bytecode(state);
+    luma_execute_bytecode(state, &fibBytecode[0]);
 
 
     fmt.println("Stack size: ", len(state.stack));
