@@ -9,7 +9,8 @@ LumaState :: struct
     call: rawptr,               // Address of the method being called
     pc: rawptr,                 // Program counter
     sp: rawptr,                 // Stack pointer
-    sp0: rawptr,                // Stack pointer base for method call
+    spa: rawptr,                // Stack pointer args
+    spl: rawptr,                // Stack pointer locals
 
     stack: []u8,                // Stack    
 
@@ -45,14 +46,17 @@ luma_init :: proc(stackSize: u32 = 4096) -> ^LumaState
     state.stack = make([]u8, stackSize);
 
     // Init stack pointer
-    state.sp = &state.stack[0];
-    state.sp0 = &state.stack[100];
+    
+    //state.spa = &state.stack[100];
+    state.sp = &state.stack[100];
 
     return state;
 }
 
 luma_cleanup :: proc(luma: ^LumaState)
 {
+    // Free stack
+
     // Free the memory
-    mem.free(luma);
+    //mem.free(luma);
 }

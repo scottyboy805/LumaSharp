@@ -16,10 +16,11 @@ LumaStackToken :: enum u8
 
 LumaStackCall :: struct
 {
-    callAddr: rawptr,
-    pcAddr: rawptr,
-    sp0Addr: rawptr,
-    spAddr: rawptr,
+    callAddr: rawptr,       // Method call handle pointer
+    pcAddr: rawptr,         // instruction pointer
+    spaAddr: rawptr,        // Stack pointer to args
+    splAddr: rawptr,        // Stack pointer to locals
+    spAddr: rawptr,         // Stack current pointer
 }
 
 

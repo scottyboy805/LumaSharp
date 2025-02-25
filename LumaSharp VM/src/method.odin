@@ -12,7 +12,7 @@ LumaMethodHandle :: struct
 {
     meta: ^LumaMetaMethod,
     signature: LumaMethodSignature,
-    maxStack: u16,
+    maxStack: u16, 
     localsCount: u16,
     localsSize: u32,
     localTypes: []LumaStackHandle,

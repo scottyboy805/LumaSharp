@@ -7,21 +7,32 @@ import "core:math"
 
 @private
 luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instructions: []u8, stack: []u8, stackOffset: u32)
-{
-    // Set current call
-    luma.pc = callAddr;
+{    
+    // Set instruction pointer - instructions start immediatley after method handle
+    luma.pc = luma_mem_ptr_offset(callAddr, size_of(LumaMethodHandle));
+    //luma.call = callAddr;
 
     // Create base call
     callBase := LumaStackCall {
         callAddr = callAddr,
-        pcAddr = callAddr,
-        sp0Addr = luma.sp,
-        spAddr = luma_mem_ptr_offset(&luma.sp, int(size_of(LumaStackCall))),
+        pcAddr = luma.pc,
+        spaAddr = luma.spa,
+        splAddr = luma.spl,
+        spAddr = luma.sp,
     };
+
+    // Set arg stack pointer before pushing the call
+    luma.spa = luma.sp;
 
     // Push call to stack
     luma_stack_write_call(&luma.sp, callBase);
 
+    fmt.println("Locals size: ", (cast(^LumaMethodHandle)luma.call).localsSize);
+    
+    luma.spl = luma_mem_ptr_offset(&luma.sp, int(size_of(LumaStackCall)));
+    luma.sp = luma_mem_ptr_offset(&luma.sp, int(size_of(LumaStackCall) + (cast(^LumaMethodHandle)luma.call).localsSize));
+
+    
     // Execution loop
     for //i := 0; i < 50; i += 1
     {
@@ -146,8 +157,11 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     // Get local stack token
                     token := luma_stacktoken_from_typecode(local.type.code);
 
+                    // Get local offset ptr
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
+
                     // Copy to stack ptr
-                    luma_stack_copy_from(&luma.sp, luma.sp0, size, token);                    
+                    luma_stack_copy_from(&luma.sp, localPtr, size, token);                    
 
                     // Debug exec
                     when ODIN_DEBUG == true
@@ -167,7 +181,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     token := luma_stacktoken_from_typecode(local.type.code);
 
                     // Get local offset ptr
-                    localPtr := luma_mem_ptr_offset(luma.sp0, int(local.offset));
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
 
                     // Copy to stack ptr
                     luma_stack_copy_from(&luma.sp, localPtr, size, token);
@@ -190,7 +204,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     token := luma_stacktoken_from_typecode(local.type.code);
 
                     // Get local offset ptr
-                    localPtr := luma_mem_ptr_offset(luma.sp0, int(local.offset));
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
 
                     // Copy to stack ptr
                     luma_stack_copy_from(&luma.sp, localPtr, size, token);
@@ -216,7 +230,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     token := luma_stacktoken_from_typecode(local.type.code);
 
                     // Get local offset ptr
-                    localPtr := luma_mem_ptr_offset(luma.sp0, int(local.offset));
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
 
                     // Copy to stack ptr
                     luma_stack_copy_from(&luma.sp, localPtr, size, token);
@@ -236,13 +250,16 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     // Get local size
                     size := u32(local.type.size);
 
+                    // Get local offset ptr
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
+
                     // Copy from stack ptr
-                    luma_stack_copy_to(&luma.sp, luma.sp0, size);
+                    luma_stack_copy_to(&luma.sp, localPtr, size);
 
                     // Debug exec
                     when ODIN_DEBUG == true
                     {
-                        luma_debug_x("Execute St_Loc_0", luma.sp0, size, 0);
+                        luma_debug_x("Execute St_Loc_0", localPtr, size, 0);
                     }
                 }
             case .St_Loc_1:
@@ -254,7 +271,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     size := u32(local.type.size);
 
                     // Get local offset ptr
-                    localPtr := luma_mem_ptr_offset(luma.sp0, int(local.offset));
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
 
                     // Copy from stack ptr
                     luma_stack_copy_to(&luma.sp, localPtr, size);
@@ -274,7 +291,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     size := u32(local.type.size);
 
                     // Get local offset ptr
-                    localPtr := luma_mem_ptr_offset(luma.sp0, int(local.offset));
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
 
                     // Copy from stack ptr
                     luma_stack_copy_to(&luma.sp, localPtr, size);
@@ -297,7 +314,7 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     size := u32(local.type.size);
 
                     // Get local offset ptr
-                    localPtr := luma_mem_ptr_offset(luma.sp0, int(local.offset));
+                    localPtr := luma_mem_ptr_offset(luma.spl, int(local.offset));
 
                     // Copy from stack ptr
                     luma_stack_copy_to(&luma.sp, localPtr, size);
@@ -323,11 +340,11 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
                     token := luma_stacktoken_from_typecode(param.type.code);
 
                     // Get local offset ptr
-                    localPtr := luma.sp0;
-                    luma_mem_ptr_sub(&localPtr, uint(param.offset));
+                    argPtr := luma.spa;
+                    luma_mem_ptr_sub(&argPtr, uint(param.offset));
 
                     // Copy to stack ptr
-                    luma_stack_copy_from(&luma.sp, localPtr, size, token);
+                    luma_stack_copy_from(&luma.sp, argPtr, size, token);
 
                     // Debug exec
                     when ODIN_DEBUG == true
@@ -594,14 +611,29 @@ luma_execute_bytecode :: proc(luma: ^LumaState, callAddr: rawptr) // instruction
 
                     // Get method address
                     callAddr := luma.callAddr;
+           
 
-                    // Push stack base and pc
-                    luma_stack_write_ptr(&luma.sp, luma.sp0);
-                    luma_stack_write_ptr(&luma.sp, callAddr);
+                    // Create base call
+                    callBase := LumaStackCall {
+                        callAddr = callAddr,
+                        pcAddr = luma.pc,
+                        spaAddr = luma.spa,
+                        splAddr = luma.spl,
+                        spAddr = luma.sp,
+                    };
 
-                    // Update stack pointer and pc
-                    luma.sp0 = luma.sp;
-                    luma.pc = callAddr;
+                    // Push call to stack
+                    luma_stack_write_call(&luma.sp, callBase);
+                    
+                    // Set instruction pointer - instructions start immediatley after method handle
+                    luma.pc = luma_mem_ptr_offset(callAddr, size_of(LumaMethodHandle));
+                    luma.call = callAddr;
+
+                    // Setup stack pointers    
+                    luma.spa = luma.sp;
+                    luma.spl = luma_mem_ptr_offset(&luma.sp, int(size_of(LumaStackCall)));
+                    luma.sp = luma_mem_ptr_offset(&luma.sp, int(size_of(LumaStackCall) + (cast(^LumaMethodHandle)callAddr).localsSize));
+
 
                     // Debug exec
                     when ODIN_DEBUG == true

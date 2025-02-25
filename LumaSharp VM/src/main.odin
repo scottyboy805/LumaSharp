@@ -44,6 +44,8 @@ main :: proc() {
     // Loc
     fibCall.localTypes = make([]LumaStackHandle, 6);
     fibCall.localsCount = 6;
+    fibCall.localsSize = 24;
+    fibCall.localTypes[0].offset = 0;
     fibCall.localTypes[0].type.code = .I32;
     fibCall.localTypes[0].type.size = 4;
     fibCall.localTypes[1].offset = 4;
@@ -153,7 +155,9 @@ main :: proc() {
     // state.callAddr = &fibRecursiveBytecode[0];
 
     fmt.println("__Start__");
-    luma_execute_bytecode(state, &fibBytecode[0]);
+    addr := cast(rawptr)&fibBytecode[0];
+    luma_mem_ptr_sub(&addr, size_of(LumaMethodHandle));
+    luma_execute_bytecode(state, addr);
 
 
     fmt.println("Stack size: ", len(state.stack));
