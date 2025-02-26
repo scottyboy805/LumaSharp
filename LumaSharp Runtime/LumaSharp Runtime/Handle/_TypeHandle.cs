@@ -1,16 +1,25 @@
 ﻿
+using System.Runtime.InteropServices;
+
 namespace LumaSharp.Runtime
 {
-    public unsafe struct _TypeHandle
+    public unsafe readonly struct _TypeHandle
     {
-        // Internal
-        internal int TypeToken;
-        internal uint TypeSize;
+        // Public
+        public readonly int TypeToken;
+        public readonly uint TypeSize;
 
         // Properties
-        public TypeCode TypeCode
+        public RuntimeTypeCode TypeCode
         {
-            get { return TypeToken < __runtime.maxTypeCode ? (TypeCode)TypeToken : 0; }
+            get { return TypeToken < RuntimeType.RuntimeTypeCodeSize ? (RuntimeTypeCode)TypeToken : 0; }
+        }
+
+        // Constructor
+        public _TypeHandle(RuntimeTypeCode typeCode)
+        {
+            this.TypeToken = (int)typeCode;
+            this.TypeSize = RuntimeType.GetTypeSize(typeCode);
         }
 
         // Methods
@@ -27,8 +36,8 @@ namespace LumaSharp.Runtime
 
         internal void Read(BinaryReader reader)
         {
-            TypeToken = reader.ReadInt32();
-            TypeSize = reader.ReadUInt32();
+            //TypeToken = reader.ReadInt32();
+            //TypeSize = reader.ReadUInt32();
         }
     }
 }

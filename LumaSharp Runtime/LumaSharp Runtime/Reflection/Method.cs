@@ -29,7 +29,7 @@ namespace LumaSharp.Runtime.Reflection
 
         // Internal
         internal _MethodHandle* methodExecutable = null;
-        internal _StackHandle* methodArgLocals = null;
+        internal _VariableHandle* methodArgLocals = null;
 
         // Properties
         public bool IsInitializer
@@ -155,7 +155,7 @@ namespace LumaSharp.Runtime.Reflection
             Stopwatch timer = Stopwatch.StartNew();
 
             // Invoke the method
-            nint result = (nint)__interpreter.ExecuteBytecode(context, threadContext, methodExecutable);
+            nint result = default;// (nint)__interpreter.ExecuteBytecode(context, threadContext, methodExecutable);
 
             Console.WriteLine("Execution took: " + timer.Elapsed.TotalMilliseconds + "ms");
             return result;
@@ -226,8 +226,8 @@ namespace LumaSharp.Runtime.Reflection
 
 
             // Create arg locals handle
-            methodArgLocals = (_StackHandle*)(methodExecutable + 1);
-            int argLocalCount = methodExecutable->ArgCount + methodExecutable->LocalCount;
+            methodArgLocals = (_VariableHandle*)(methodExecutable + 1);
+            int argLocalCount = methodExecutable->Signature.ParameterCount + methodExecutable->Body.VariableCount;
 
             // Read arg locals
             for(int i = 0; i < argLocalCount; i++)

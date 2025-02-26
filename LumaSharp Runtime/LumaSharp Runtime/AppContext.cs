@@ -1,4 +1,6 @@
-﻿using LumaSharp.Runtime.Reflection;
+﻿using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reflection;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using Type = LumaSharp.Runtime.Reflection.Type;
 
@@ -8,13 +10,17 @@ namespace LumaSharp.Runtime
     {
         // Internal
         internal _TypeHandle* _anyType = null;
+        internal readonly ConcurrentDictionary<int, _TypeHandle> typeHandles = new();
+        internal readonly ConcurrentDictionary<int, _FieldHandle> fieldHandles = new();
+        internal readonly ConcurrentDictionary<int, _MethodHandle> methodHandles = new();
 
         // Private
         private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
         private Dictionary<int, Module> loadedModules = new Dictionary<int, Module>();
         private Dictionary<int, Type> loadedTypes = new Dictionary<int, Type>();
-        private Dictionary<int, Member> loadedMembers = new Dictionary<int, Member>();
+        private Dictionary<int, Member> loadedMembers = new Dictionary<int, Member>();       
+
 
         // Constructor
         public AppContext()
@@ -37,86 +43,34 @@ namespace LumaSharp.Runtime
 
 
             // Create handles
-            *_any = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.Any,
-                TypeSize = (uint)sizeof(IntPtr),
-            };
-            *_bool = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.Bool,
-                TypeSize = sizeof(bool),
-            };
-            *_char = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.Char,
-                TypeSize = sizeof(char),
-            };
-            *_i8 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.I8,
-                TypeSize = sizeof(sbyte),
-            };
-            *_u8 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.I8,
-                TypeSize = sizeof(byte),
-            };
-            *_i16 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.I16,
-                TypeSize = sizeof(short),
-            };
-            *_u16 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.U16,
-                TypeSize = sizeof(ushort),
-            };
-            *_i32 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.I32,
-                TypeSize = sizeof(int),
-            };
-            *_u32 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.U32,
-                TypeSize = sizeof(uint),
-            };
-            *_i64 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.I64,
-                TypeSize = sizeof(long),
-            };
-            *_u64 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.U64,
-                TypeSize = sizeof(ulong),
-            };
-            *_f32 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.F32,
-                TypeSize = sizeof(float),
-            };
-            *_f64 = new _TypeHandle
-            {
-                TypeToken = (int)TypeCode.F64,
-                TypeSize = sizeof(double),
-            };
+            *_any = new _TypeHandle(RuntimeTypeCode.Any);
+            *_bool = new _TypeHandle(RuntimeTypeCode.Bool);
+            *_char = new _TypeHandle(RuntimeTypeCode.Char);
+            *_i8 = new _TypeHandle(RuntimeTypeCode.I1);
+            *_u8 = new _TypeHandle(RuntimeTypeCode.U1);
+            *_i16 = new _TypeHandle(RuntimeTypeCode.I2);
+            *_u16 = new _TypeHandle(RuntimeTypeCode.U2);
+            *_i32 = new _TypeHandle(RuntimeTypeCode.I4);
+            *_u32 = new _TypeHandle(RuntimeTypeCode.U4);
+            *_i64 = new _TypeHandle(RuntimeTypeCode.I8);
+            *_u64 = new _TypeHandle(RuntimeTypeCode.U8);
+            *_f32 = new _TypeHandle(RuntimeTypeCode.F4);
+            *_f64 = new _TypeHandle(RuntimeTypeCode.F8);
 
             // Register primitives
-            loadedTypes[(int)TypeCode.Any] = new PrimitiveType(this, TypeCode.Any, _any);
-            loadedTypes[(int)TypeCode.Bool] = new PrimitiveType(this, TypeCode.Bool, _bool);
-            loadedTypes[(int)TypeCode.Char] = new PrimitiveType(this, TypeCode.Char, _char);
-            loadedTypes[(int)TypeCode.I8] = new PrimitiveType(this, TypeCode.I8, _i8);
-            loadedTypes[(int)TypeCode.U8] = new PrimitiveType(this, TypeCode.U8, _u8);
-            loadedTypes[(int)TypeCode.I16] = new PrimitiveType(this, TypeCode.I16, _i16);
-            loadedTypes[(int)TypeCode.U16] = new PrimitiveType(this, TypeCode.U16, _u16);
-            loadedTypes[(int)TypeCode.I32] = new PrimitiveType(this, TypeCode.I32, _i32);
-            loadedTypes[(int)TypeCode.U32] = new PrimitiveType(this, TypeCode.U32, _u32);
-            loadedTypes[(int)TypeCode.I64] = new PrimitiveType(this, TypeCode.I64, _i64);
-            loadedTypes[(int)TypeCode.U64] = new PrimitiveType(this, TypeCode.U64, _u64);
-            loadedTypes[(int)TypeCode.F32] = new PrimitiveType(this, TypeCode.F32, _f32);
-            loadedTypes[(int)TypeCode.F64] = new PrimitiveType(this, TypeCode.F64, _f64);
+            loadedTypes[(int)RuntimeTypeCode.Any] = new PrimitiveType(this, RuntimeTypeCode.Any, _any);
+            loadedTypes[(int)RuntimeTypeCode.Bool] = new PrimitiveType(this, RuntimeTypeCode.Bool, _bool);
+            loadedTypes[(int)RuntimeTypeCode.Char] = new PrimitiveType(this, RuntimeTypeCode.Char, _char);
+            loadedTypes[(int)RuntimeTypeCode.I1] = new PrimitiveType(this, RuntimeTypeCode.I1, _i8);
+            loadedTypes[(int)RuntimeTypeCode.U1] = new PrimitiveType(this, RuntimeTypeCode.U1, _u8);
+            loadedTypes[(int)RuntimeTypeCode.I2] = new PrimitiveType(this, RuntimeTypeCode.I2, _i16);
+            loadedTypes[(int)RuntimeTypeCode.U2] = new PrimitiveType(this, RuntimeTypeCode.U2, _u16);
+            loadedTypes[(int)RuntimeTypeCode.I4] = new PrimitiveType(this, RuntimeTypeCode.I4, _i32);
+            loadedTypes[(int)RuntimeTypeCode.U4] = new PrimitiveType(this, RuntimeTypeCode.U4, _u32);
+            loadedTypes[(int)RuntimeTypeCode.I8] = new PrimitiveType(this, RuntimeTypeCode.I8, _i64);
+            loadedTypes[(int)RuntimeTypeCode.U8] = new PrimitiveType(this, RuntimeTypeCode.U8, _u64);
+            loadedTypes[(int)RuntimeTypeCode.F4] = new PrimitiveType(this, RuntimeTypeCode.F4, _f32);
+            loadedTypes[(int)RuntimeTypeCode.F8] = new PrimitiveType(this, RuntimeTypeCode.F8, _f64);
         }
 
         ~AppContext()
@@ -295,13 +249,7 @@ namespace LumaSharp.Runtime
                 return context;
 
             // Create context
-            context = new ThreadContext();
-
-            // Initialize context
-            context.ThreadID = Thread.CurrentThread.ManagedThreadId;
-            context.ThreadStackSize = stackSize;
-            context.ThreadStackPtr = __memory.InitStack(stackSize);
-            context.CallSite = null;
+            context = new ThreadContext(this, stackSize);
 
             // Register context
             threadContexts[threadID] = context;

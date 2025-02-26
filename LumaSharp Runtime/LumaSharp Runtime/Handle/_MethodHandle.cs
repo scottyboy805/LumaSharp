@@ -1,37 +1,78 @@
 ﻿
 namespace LumaSharp.Runtime.Handle
 {
-    public unsafe struct _MethodHandle
+    [Flags]
+    public enum _MethodSignatureFlags : uint
+    {
+        HasArguments = 1 << 0,
+        HasReturn = 1 << 1,
+        VoidCall = 1 << 2,
+    }
+
+    public unsafe readonly struct _MethodSignature
+    {
+        // Public
+        public readonly _MethodSignatureFlags Flags;        
+        public readonly _VariableHandle* Parameters;
+        public readonly _VariableHandle* ReturnParameter;
+        public readonly ushort ParameterCount;
+
+        // Constructor
+        public _MethodSignature(ushort parameterCount, _VariableHandle* parameters, _VariableHandle* returnParameter)
+        {
+            this.Flags = 0;
+            this.Parameters = parameters;
+            this.ReturnParameter = returnParameter;
+            this.ParameterCount = parameterCount;
+        }
+    }
+
+    public unsafe readonly struct _MethodBodyHandle
+    {
+        // Public
+        public readonly ushort MaxStack;        
+        public readonly _VariableHandle* Variables; 
+        public readonly ushort VariableCount;
+
+        // Constructor
+        public _MethodBodyHandle(ushort maxStack, _VariableHandle* variables, ushort variableCount)
+        {
+            this.MaxStack = maxStack;
+            this.Variables = variables;
+            this.VariableCount = variableCount;
+        }
+    }
+
+    public unsafe readonly struct _MethodHandle
     {
         // Internal
-        internal int MethodToken;
-        internal ushort MaxStack;             // Maximum size of the stack required for evaluation of the bytecode
-        //internal ushort LocalHandleOffset;    // Offset into argLocals where local vars begin (after args)
-        internal ushort ArgCount;
-        internal ushort LocalCount;
-        internal uint StackPtrOffset;           // Pointer offset from stack start where evaluation space starts (after args and locals)
-        //internal _StackHandle[] ArgLocals;    // Contains argument followed by local type info
-        //internal byte* InstructionPtr;        // Pointer to bytecode instruction set
+        public readonly int MethodToken;
+        public readonly _MethodSignature Signature;
+        public readonly _MethodBodyHandle Body;        
 
-        // Methods
-        
+        // Constructor
+        public _MethodHandle(int token, _MethodSignature signature, _MethodBodyHandle body)
+        {
+            this.MethodToken = token;
+            this.Signature = signature;
+            this.Body = body;
+        }
 
+        // Methods       
         internal void Write(BinaryWriter writer)
         {
-            writer.Write(MethodToken);
-            writer.Write(MaxStack);
-            writer.Write(ArgCount);
-            writer.Write(LocalCount);
-            writer.Write(StackPtrOffset);
+            //writer.Write(MethodToken);
+            //writer.Write(MaxStack);
+            //writer.Write(ArgCount);
+            //writer.Write(LocalCount);
         }
 
         internal void Read(BinaryReader reader)
         {
-            MethodToken = reader.ReadInt32();
-            MaxStack = reader.ReadUInt16();
-            ArgCount = reader.ReadUInt16();
-            LocalCount = reader.ReadUInt16();
-            StackPtrOffset = reader.ReadUInt32();
+            //MethodToken = reader.ReadInt32();
+            //MaxStack = reader.ReadUInt16();
+            //ArgCount = reader.ReadUInt16();
+            //LocalCount = reader.ReadUInt16();
         }
     }
 }

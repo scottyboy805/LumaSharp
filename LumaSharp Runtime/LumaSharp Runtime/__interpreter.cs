@@ -11,92 +11,22 @@ namespace LumaSharp.Runtime
     internal static unsafe class __interpreter
     {
         // Methods
-        internal static IntPtr ExecuteBytecode(AppContext context, ThreadContext threadContext, byte[] instructions)
+        internal static StackData* ExecuteBytecode(ThreadContext context, in _MethodHandle method, byte* instructionPtr)
         {
-            // Get instruction mem
-            fixed(byte* instructionPtr = instructions)
-            {
-                //// Get stack ptr
-                //byte* stackBasePtr = (byte*)__memory.stackBasePtr;
+            // Set instruction ptr
+            context.SetInstructionPtr(instructionPtr);
 
-                // Create method handle
-                _MethodHandle method = new _MethodHandle
-                {
-                    ArgCount = (ushort)0,
-                    LocalCount = (ushort)0,
-                };
+            // Get sp max
+            byte* spMax = context.ThreadStackPtr + context.ThreadStackSize;
 
-                //if (argLocals == null)
-                //    argLocals = new _StackHandle[0];
+            // Get pointers
+            byte* pc = instructionPtr;
+            StackData* spVar = (StackData*)context.ThreadStackPtr;
+            StackData* sp = spVar + (method.Signature.ParameterCount + method.Body.VariableCount);
 
-                //fixed (_StackHandle* argLocalsPtr = argLocals)
-                //{
-                // Run bytecode
-                return (IntPtr)ExecuteBytecode(context, threadContext, &method);
-                //}
-            }
-        }
-
-        internal static IntPtr ExecuteBytecode(AppContext context, _MethodHandle method, byte[] instructions)
-        {
-            // Get instruction mem
-            fixed (byte* instructionPtr = instructions)
-            {
-                // Get thread context
-                ThreadContext threadContext = context.GetCurrentThreadContext();
-
-                // Run bytecode
-                return (IntPtr)ExecuteBytecode(context, threadContext, &method);
-            }
-        }
-
-        //internal static IntPtr ExecuteBytecode(AppContext context, ThreadContext threadContext, byte[] instructions)
-        //{
-        //    // Get instruction mem
-        //    fixed (byte* instructionPtr = instructions)
-        //    {
-        //        // Run bytecode
-        //        return (IntPtr)ExecuteBytecode(context, threadContext, &method);
-        //    }
-        //}
-
-        internal static byte* ExecuteBytecode(AppContext context, void* methodPtr)
-        {
-            // Get thread context
-            ThreadContext threadContext = context.GetCurrentThreadContext();
-
-            // Run bytecode
-            return ExecuteBytecode(context, threadContext, methodPtr);
-        }
-
-        internal static byte* ExecuteBytecode(AppContext context, ThreadContext threadContext, void* methodPtr)
-        {
-            // Get method handle
-            _MethodHandle method = *(_MethodHandle*)methodPtr;
-
-            // Enter call size
-            CallSite callSite = new CallSite((_MethodHandle*)methodPtr, threadContext.ThreadStackPtr);
-
-            // Enter method call
-            threadContext.CallSite = &callSite;
-
-            
-
-            // Zero memory for locals
-            __memory.Zero(callSite.StackPtr, method.StackPtrOffset);
-
-            // Get start of arg locals
-            _StackHandle* argLocals = (_StackHandle*)((_MethodHandle*)methodPtr + 1);
-
-            // Get instruction ptr
-            byte* instructionPtr = (byte*)(argLocals + (method.ArgCount + method.LocalCount));
-
-            // Get stack ptrs
-            byte* stackBasePtr = callSite.StackBasePtr;
-            byte* stackPtr = callSite.StackPtr;
-
-            // Get stack ptr where dynamic stack allocations can be made - after this method frame
-            byte* stackAllocPtr = callSite.StackAllocPtr;
+            // Check overflow
+            if (sp + method.Body.MaxStack >= spMax)
+                context.Throw<StackOverflowException>();
 
             bool halt = false;
 
@@ -104,7 +34,7 @@ namespace LumaSharp.Runtime
             while(halt == false)
             {
                 // Get code
-                OpCode code = *(OpCode*)instructionPtr++;
+                OpCode code = *(OpCode*)pc++;
 
                 // Evaluate code
                 switch(code)
@@ -112,1767 +42,1836 @@ namespace LumaSharp.Runtime
                     default: throw new NotImplementedException("Instruction is not implemented: " + code);
 
                     // Nop
-                    case OpCode.Nop: break;
+                    case OpCode.Nop:
+                        {
+                            context.DebugInstruction(code, pc - 1);
+                            break;
+                        }
 
-                    #region LoadConstant
+                    // Constants
+                    #region Constant
                     case OpCode.Ld_I1:
                         {
-                            // Move 8 bit and push as 32 bit onto stack
-                            *((int*)stackPtr) = *((byte*)instructionPtr);
+                            // Push I32 to stack
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = *(sbyte*)pc++;
+                            sp++;
 
-                            // Advance instruction ptr
-                            instructionPtr += _I8.Size;
-
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 2, sp - 1);
                             break;
                         }
                     case OpCode.Ld_I2:
                         {
-                            // Move 16 bit and push as 32 bit onto stack
-                            *((int*)stackPtr) = *((short*)instructionPtr);
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = *(short*)pc;
+                            pc += sizeof(short);
+                            sp++;
 
-                            // Advance instruction ptr
-                            instructionPtr += _I16.Size;
-
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 3, sp - 1);
                             break;
                         }
                     case OpCode.Ld_I4:
                         {
-                            // Move 32 bit
-                            *((int*)stackPtr) = *((int*)instructionPtr);
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = *(int*)pc;
+                            pc += sizeof(int);
+                            sp++;
 
-                            // Advance instruction ptr
-                            instructionPtr += _I32.Size;
-
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
                             break;
                         }
                     case OpCode.Ld_I8:
                         {
-                            // Move 64 bit
-                            *((long*)stackPtr) = *((long*)instructionPtr);
+                            sp->Type = StackTypeCode.I64;
+                            sp->I64 = *(long*)pc;
+                            pc += sizeof(long);
+                            sp++;
 
-                            // Advance instruction ptr
-                            instructionPtr += _I64.Size;
-
-                            // Advance stack ptr
-                            stackPtr += _I64.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 9, sp - 1);
                             break;
                         }
                     case OpCode.Ld_F4:
                         {
-                            // Move 32 bit float
-                            *((float*)stackPtr) = *((float*)instructionPtr);
+                            sp->Type = StackTypeCode.F32;
+                            sp->F32 = *(float*)pc;
+                            pc += sizeof(float);
+                            sp++;
 
-                            // Advance instruction ptr
-                            instructionPtr += _F32.Size;
-
-                            // Advance stack ptr
-                            stackPtr += _F32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
                             break;
                         }
                     case OpCode.Ld_F8:
                         {
-                            // Move 64 bit float
-                            *((double*)stackPtr) = *((double*)instructionPtr);
+                            sp->Type = StackTypeCode.F64;
+                            sp->F64 = *(double*)pc;
+                            pc += sizeof(double);
+                            sp++;
 
-                            // Advance instruction ptr
-                            instructionPtr += _F64.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 9, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Str:
+                        {
+                            // Get the string token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
 
-                            // Advance stack ptr
-                            stackPtr += _F64.Size;
+                            // Lookup the string
+                            sp->Type = StackTypeCode.Address;
+                            sp->Ptr = default; // String address from token
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_Null:
                         {
-                            // Move null ptr
-                            *((IntPtr*)stackPtr) = *((IntPtr*)instructionPtr);
+                            // Push null address to stack
+                            sp->Type = StackTypeCode.Address;
+                            sp->Ptr = IntPtr.Zero;
+                            sp++;
 
-                            // Advance stack ptr
-                            stackPtr += IntPtr.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_I4_0:
                         {
-                            // Move 32 bit with value: 0
-                            *((int*)stackPtr) = 0;
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = 0;
+                            sp++;
 
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_I4_1:
                         {
-                            // Move 32 bit with value: 1
-                            *((int*)stackPtr) = 1;
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = 1;
+                            sp++;
 
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_I4_M1:
                         {
-                            // Move 32 bit with value: 0
-                            *((int*)stackPtr) = -1;
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = -1;
+                            sp++;
 
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_F4_0:
                         {
-                            // Move 32 bit float with value: 0
-                            *((float*)stackPtr) = 0;
+                            sp->Type = StackTypeCode.F32;
+                            sp->F32 = 0f;
+                            sp++;
 
-                            // Advance stack ptr
-                            stackPtr += _I32.Size;
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    #endregion
+                        
+                    // Variables
+                    #region Variable
+                    case OpCode.Ld_Var_0:
+                        {
+                            // Copy from variable to stack
+                            *sp = *spVar;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var_1:
+                        {
+                            // Copy from variable to stack
+                            *sp = *(spVar + 1);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var_2:
+                        {
+                            // Copy variable to stack
+                            *sp = *(spVar + 2);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var_3:
+                        {
+                            // Copy variable to stack
+                            *sp = *(spVar + 3);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var:
+                        {
+                            // Get offset I1
+                            byte offset = *(byte*)pc++;
+
+                            // Copy variable to stack
+                            *sp = *(spVar + offset);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 2, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var_E:
+                        {
+                            // Get offset I2
+                            ushort offset = *(ushort*)pc;
+                            pc += sizeof(ushort);
+
+                            // Copy variable to stack
+                            *sp = *(spVar + offset);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 3, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var_A:
+                        {
+                            // Get offset I1
+                            byte offset = *(byte*)pc++;
+
+                            // Push address of variable
+                            sp->Type = StackTypeCode.Address;
+                            sp->TypeCode = method.Body.Variables[offset].TypeHandle.TypeCode;
+                            sp->Ptr = (IntPtr)(spVar + offset);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 2, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Var_EA:
+                        {
+                            // Get offset I2
+                            ushort offset = *(ushort*)pc;
+                            pc += sizeof(ushort);
+
+                            // Push address of variable
+                            sp->Type = StackTypeCode.Address;
+                            sp->TypeCode = method.Body.Variables[offset].TypeHandle.TypeCode;
+                            sp->Ptr = (IntPtr)(spVar + offset);                            
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 3, sp - 1);
+                            break;
+                        }
+                    case OpCode.St_Var_0:
+                        {
+                            // Pop and copy to variable
+                            sp--;
+                            *spVar = *sp;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, spVar);
+                            break;
+                        }
+                    case OpCode.St_Var_1:
+                        {
+                            // Pop and copy to variable
+                            sp--;
+                            *(spVar + 1) = *sp;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, spVar + 1);
+                            break;
+                        }
+                    case OpCode.St_Var_2:
+                        {
+                            // Pop and copy to variable
+                            sp--;
+                            *(spVar + 2) = *sp;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, spVar + 2);
+                            break;
+                        }
+                    case OpCode.St_Var_3:
+                        {
+                            // Pop and copy to variable
+                            sp--;
+                            *(spVar + 3) = *sp;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, spVar + 3);
+                            break;
+                        }
+                    case OpCode.St_Var:
+                        {
+                            // Get offset I1
+                            byte offset = *(byte*)pc++;
+
+                            // Pop and copy to variable
+                            sp--;
+                            *(spVar + offset) = *sp;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 2, spVar + offset);
+                            break;
+                        }
+                    case OpCode.St_Var_E:
+                        {
+                            // Get offset I2
+                            ushort offset = *(ushort*)pc;
+                            pc += sizeof(ushort);
+
+                            // Pop and copy to variable
+                            sp--;
+                            *(spVar + offset) = *sp;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 3, spVar + offset);
                             break;
                         }
                     #endregion
 
-                    #region Local
-                    case OpCode.St_Loc_0:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + 0];
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Decrement stack ptr
-                            stackPtr -= locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.St_Loc_1:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + 1];
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Decrement stack ptr
-                            stackPtr -= locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.St_Loc_2:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + 2];
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Decrement stack ptr
-                            stackPtr -= locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.St_Loc:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + *((byte*)instructionPtr++)];
-                            
-                            // Move from stack
-                            __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
-
-                            // Decrement stack ptr
-                            stackPtr -= locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.St_Loc_E:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + *((ushort*)instructionPtr)];
-                            instructionPtr += 2;
-
-                            // Move from stack
-                            __memory.Copy(stackPtr - locHandle.TypeHandle.TypeSize, stackBasePtr + locHandle.StackOffset, locHandle.TypeHandle.TypeSize);
-
-                            // Decrement stack ptr
-                            stackPtr -= locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Loc_0:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + 0];
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.StackOffset, stackPtr, locHandle.TypeHandle.TypeSize);
-
-                            //int stackTop = *((int*)stackPtr - 1);
-
-                            // Increment stack ptr
-                            stackPtr += locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Loc_1:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + 1];
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.StackOffset, stackPtr, locHandle.TypeHandle.TypeSize);
-
-                            //int stackTop = *((int*)stackPtr - 1);
-
-                            // Increment stack ptr
-                            stackPtr += locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Loc_2:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + 2];
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.StackOffset, stackPtr, locHandle.TypeHandle.TypeSize);
-
-                            // Increment stack ptr
-                            stackPtr += locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Loc:
-                        {
-                            byte index = *((byte*)instructionPtr);
-
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + *((byte*)instructionPtr++)];
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.StackOffset, stackPtr, locHandle.TypeHandle.TypeSize);
-
-                            // Increment stack ptr
-                            stackPtr += locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Loc_E:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + *((ushort*)instructionPtr)];
-                            instructionPtr += 2;
-
-                            //int _32Val = *((int*)(stackBasePtr + locHandle.StackOffset));
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + locHandle.StackOffset, stackPtr, locHandle.TypeHandle.TypeSize);
-
-                            // Increment stack ptr
-                            stackPtr += locHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Loc_A:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + *((byte*)instructionPtr++)];
-
-                            // Push address
-                            *((IntPtr*)stackPtr) = (IntPtr)(stackBasePtr + locHandle.StackOffset);
-
-                            // Increment points
-                            stackPtr += sizeof(IntPtr);
-                            break;
-                        }
-                    case OpCode.Ld_Loc_EA:
-                        {
-                            // Get local
-                            _StackHandle locHandle = argLocals[method.ArgCount + *((ushort*)instructionPtr)];
-                            instructionPtr++;
-
-                            // Push address
-                            *((IntPtr*)stackPtr) = (IntPtr)(stackBasePtr + locHandle.StackOffset);
-
-                            // Increment points
-                            stackPtr += sizeof(IntPtr);
-                            break;
-                        }
-                    #endregion
-
-                    #region Argument                    
-                    case OpCode.Ld_Arg_0:
-                        {
-                            // Get local
-                            _StackHandle argHandle = argLocals[0];
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr, argHandle.TypeHandle.TypeSize);
-
-                            int val = *(int*)(stackPtr);
-
-                            // Increment stack ptr
-                            stackPtr += argHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Arg_1:
-                        {
-                            // Get local
-                            _StackHandle argHandle = argLocals[1];
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr, argHandle.TypeHandle.TypeSize);
-
-                            int val = *(int*)(stackPtr);
-
-                            // Increment stack ptr
-                            stackPtr += argHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    case OpCode.Ld_Arg_2:
-                        {
-                            // Get local
-                            _StackHandle argHandle = argLocals[2];
-
-                            // Move from stack
-                            __memory.Copy(stackBasePtr + argHandle.StackOffset, stackPtr, argHandle.TypeHandle.TypeSize);
-
-                            // Increment stack ptr
-                            stackPtr += argHandle.TypeHandle.TypeSize;
-                            break;
-                        }
-                    #endregion
-
-                    #region Indirect
-                    case OpCode.Ld_Addr_I1:
-                        {
-                            // Dereference address and push as I32
-                            *((int*)(stackPtr - sizeof(IntPtr))) = *((byte*)*((IntPtr*)stackPtr - 1));
-
-                            // Decrement stack ptr
-                            stackPtr -= sizeof(IntPtr) - sizeof(int);
-                            break;
-                        }
-                    case OpCode.Ld_Addr_I2:
-                        {
-                            // Dereference address and push as I32
-                            *((int*)(stackPtr - sizeof(IntPtr))) = *((short*)*((IntPtr*)stackPtr - 1));
-
-                            // Decrement stack ptr
-                            stackPtr -= sizeof(IntPtr) - sizeof(int);
-                            break;
-                        }
-                    case OpCode.Ld_Addr_I4:
-                        {
-                            // Dereference address and push as I32
-                            *((int*)(stackPtr - sizeof(IntPtr))) = *((int*)*((IntPtr*)stackPtr - 1));
-
-                            // Decrement stack ptr
-                            stackPtr -= sizeof(IntPtr) - sizeof(int);
-                            break;
-                        }
-                    case OpCode.Ld_Addr_I8:
-                        {
-                            // Dereference address and push as I32
-                            *((long*)(stackPtr - sizeof(IntPtr))) = *((long*)*((IntPtr*)stackPtr - 1));
-
-                            // Increment stack ptr - in case of 32 bit pointer
-                            stackPtr += sizeof(IntPtr) - sizeof(long);
-                            break;
-                        }
-                    case OpCode.Ld_Addr_F4:
-                        {
-                            // Dereference address and push as I32
-                            *((float*)(stackPtr - sizeof(IntPtr))) = *((float*)*((IntPtr*)stackPtr - 1));
-
-                            // Decrement stack ptr
-                            stackPtr -= sizeof(IntPtr) - sizeof(float);
-                            break;
-                        }
-                    case OpCode.Ld_Addr_F8:
-                        {
-                            // Dereference address and push as I32
-                            *((double*)(stackPtr - sizeof(IntPtr))) = *((double*)*((IntPtr*)stackPtr - 1));
-
-                            // Increment stack ptr - in case of 32 bit pointer
-                            stackPtr += sizeof(IntPtr) - sizeof(double);
-                            break;
-                        }
-                    case OpCode.St_Addr_I1:
-                        {
-                            // Store as byte
-                            *((byte*)*((IntPtr*)stackPtr - 1)) = (byte)*((int*)(stackPtr - sizeof(IntPtr)) - 1);
-
-                            // Pop address and value
-                            stackPtr -= sizeof(IntPtr) + sizeof(int);
-                            break;
-                        }
-                    case OpCode.St_Addr_I2:
-                        {
-                            // Store as byte
-                            *((short*)*((IntPtr*)stackPtr - 1)) = (short)*((int*)(stackPtr - sizeof(IntPtr)) - 1);
-
-                            // Pop address and value
-                            stackPtr -= sizeof(IntPtr) + sizeof(int);
-                            break;
-                        }
-                    case OpCode.St_Addr_I4:
-                        {
-                            // Store as byte
-                            *((int*)*((IntPtr*)stackPtr - 1)) = (int)*((int*)(stackPtr - sizeof(IntPtr)) - 1);
-
-                            // Pop address and value
-                            stackPtr -= sizeof(IntPtr) + sizeof(int);
-                            break;
-                        }
-                    case OpCode.St_Addr_I8:
-                        {
-                            // Store as byte
-                            *((long*)*((IntPtr*)stackPtr - 1)) = (int)*((long*)(stackPtr - sizeof(IntPtr)) - 1);
-
-                            // Pop address and value
-                            stackPtr -= sizeof(IntPtr) + sizeof(long);
-                            break;
-                        }
-                    case OpCode.St_Addr_F4:
-                        {
-                            // Store as byte
-                            *((float*)*((IntPtr*)stackPtr - 1)) = *((float*)(stackPtr - sizeof(IntPtr)) - 1);
-
-                            // Pop address and value
-                            stackPtr -= sizeof(IntPtr) + sizeof(float);
-                            break;
-                        }
-                    case OpCode.St_Addr_F8:
-                        {
-                            // Store as byte
-                            *((double*)*((IntPtr*)stackPtr - 1)) = *((double*)(stackPtr - sizeof(IntPtr)) - 1);
-
-                            // Pop address and value
-                            stackPtr -= sizeof(IntPtr) + sizeof(double);
-                            break;
-                        }
-                    #endregion
-
+                    // Fields
                     #region Field
+                    case OpCode.Ld_Fld:
+                        {
+                            // Get field token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get field handle
+                            _FieldHandle field = context.AppContext.fieldHandles[token];
+
+                            // Pop instance
+                            sp--;
+
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Get memory handle
+                            _MemoryHandle inst = *(_MemoryHandle*)(sp->Ptr - _MemoryHandle.Size);
+
+                            // Get field address
+                            byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
+
+                            // Copy to stack
+                            StackData.CopyFromMemory(sp, fieldMem, field.TypeHandle.TypeCode);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Fld_A:
+                        {
+                            // Get field token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get field handle
+                            _FieldHandle field = context.AppContext.fieldHandles[token];
+
+                            // Pop instance
+                            sp--;
+
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Get memory handle
+                            _MemoryHandle inst = *(_MemoryHandle*)(sp->Ptr - _MemoryHandle.Size);
+
+                            // Get field address
+                            byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
+
+                            // Push address of field
+                            sp->Type = StackTypeCode.Address;
+                            sp->TypeCode = field.TypeHandle.TypeCode;
+                            sp->Ptr = (IntPtr)fieldMem;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
                     #endregion
 
+                    // Arrays
                     #region Array
-                    case OpCode.St_Elem:
+                    case OpCode.Ld_Len:
                         {
-                            // Get array ptr
-                            byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
+                            // Pop instance
+                            sp--;
 
-                            // Get element size - from array type info just before ptr
-                            uint elemSize = *((uint*)arr - 1);
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
 
-                            // Get array element offset taking into account size of element
-                            uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
+                            // Load array instance
+                            _ArrayHandle arr = *(_ArrayHandle*)(sp->Ptr - _ArrayHandle.Size);
 
-                            // Check bounds
-                            if (offset >= (elemSize * (*((uint*)(arr - _ArrayHandle.Size)))))
-                                throw new IndexOutOfRangeException();
+                            // Push length
+                            sp->Type = StackTypeCode.I64;
+                            sp->I64 = arr.ElementCount;
+                            sp++;
 
-                            // Assign at index
-                            __memory.Copy(stackPtr - (sizeof(IntPtr) + sizeof(int) + elemSize), arr + offset, elemSize);
-
-                            // Pop stack - arr ptr, index, element value
-                            stackPtr -= (sizeof(IntPtr) + sizeof(int) + elemSize);
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_Elem:
                         {
-                            // Get array ptr
-                            byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
+                            // Pop index
+                            sp--;
+                            long index = sp->Type == StackTypeCode.I64 ? sp->I64 : sp->I32;
 
-                            // Get element size from array type info just before ptr
-                            uint elemSize = *((uint*)arr - 1);
+                            // Pop instance
+                            sp--;
 
-                            // Get array element offset taking into account size of element
-                            uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
+                            // Check for null
+                            if(sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Load array instance
+                            _ArrayHandle arr = *(_ArrayHandle*)(sp->Ptr - _ArrayHandle.Size);
 
                             // Check bounds
-                            if (offset >= (elemSize * (*((uint*)(arr - _ArrayHandle.Size)))))
-                                throw new IndexOutOfRangeException();
+                            if (index < 0 || index >= arr.ElementCount)
+                                context.Throw<IndexOutOfRangeException>();
 
-                            // Load at index
-                            __memory.Copy(arr + offset, stackPtr, elemSize);
+                            // Get element ptr
+                            byte* elementMem = arr.GetElementAddress((byte*)sp->Ptr, index);
 
-                            // Push stack value
-                            stackPtr += elemSize;
+                            // Copy to stack
+                            StackData.CopyFromMemory(sp, elementMem, arr.MemoryHandle.TypeHandle.TypeCode);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Ld_Elem_A:
                         {
-                            // Get array ptr
-                            byte* arr = (byte*)(*((IntPtr*)stackPtr - 1));
+                            // Pop index
+                            sp--;
+                            long index = sp->Type == StackTypeCode.I64 ? sp->I64 : sp->I32;
 
-                            // Get element size from array type info just before ptr
-                            uint elemSize = *((uint*)arr - 1);
+                            // Pop instance
+                            sp--;
 
-                            // Get array element offset taking into account size of element
-                            uint offset = (elemSize * (uint)*((int*)(stackPtr - (sizeof(IntPtr) + sizeof(int)))));
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Load array instance
+                            _ArrayHandle arr = *(_ArrayHandle*)(sp->Ptr - _ArrayHandle.Size);
 
                             // Check bounds
-                            if (offset >= (elemSize * (*((uint*)(arr - _ArrayHandle.Size)))))
-                                throw new IndexOutOfRangeException();
+                            if (index < 0 || index >= arr.ElementCount)
+                                context.Throw<IndexOutOfRangeException>();
 
-                            // Push address onto stack
-                            *((IntPtr*)stackPtr) = (IntPtr)arr;
+                            // Get element ptr
+                            byte* elementMem = arr.GetElementAddress((byte*)sp->Ptr, index);
 
-                            // Push stack
-                            stackPtr += sizeof(IntPtr);
+                            // Push address of element
+                            sp->Type = StackTypeCode.Address;
+                            sp->TypeCode = arr.MemoryHandle.TypeHandle.TypeCode;
+                            sp->Ptr = (IntPtr)elementMem;                            
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.St_Elem:
+                        {
+                            // Pop value
+                            sp--;
+
+                            // Pop index
+                            sp--;
+                            long index = sp->Type == StackTypeCode.I64 ? sp->I64 : sp->I32;
+
+                            // Pop instance
+                            sp--;
+
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Load array instance
+                            _ArrayHandle arr = *(_ArrayHandle*)(sp->Ptr - _ArrayHandle.Size);
+
+                            // Check bounds
+                            if (index < 0 || index >= arr.ElementCount)
+                                context.Throw<IndexOutOfRangeException>();
+
+                            // Get element ptr
+                            byte* elementMem = arr.GetElementAddress((byte*)sp->Ptr, index);
+
+                            // Copy to memory
+                            StackData.CopyToMemory(sp + 2, elementMem, arr.MemoryHandle.TypeHandle.TypeCode);
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, elementMem, arr.MemoryHandle.TypeHandle.TypeCode);
                             break;
                         }
                     #endregion
 
-                    #region Jump
-                    case OpCode.Jmp:
+                    // Address
+                    #region Address
+                    case OpCode.Ld_Addr:
                         {
-                            // Jump to new instruction
-                            instructionPtr += *((int*)instructionPtr);
+                            // Pop address
+                            sp--;
+
+                            // Copy from address stored on stack
+                            StackData.CopyFromMemory(sp, (byte*)sp->Ptr, sp->TypeCode);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
-                    case OpCode.Jmp_0:
+                    case OpCode.St_Addr:
                         {
-                            // Check zero
-                            if (*((int*)stackPtr - 1) == 0)
-                            {
-                                // Jump to new instruction
-                                instructionPtr += *((int*)instructionPtr);
-                            }
-                            else
-                            {
-                                // Advance instruction ptr
-                                instructionPtr += sizeof(int);
-                            }
-                            // Pop from stack
-                            stackPtr -= sizeof(int);
-                            break;
-                        }
-                    case OpCode.Jmp_1:
-                        {
-                            // Check zero
-                            if (*((int*)stackPtr - 1) == 1)
-                            {
-                                // Jump to new instruction
-                                instructionPtr += *((int*)instructionPtr);
-                            }
-                            else
-                            {
-                                // Advance instruction ptr
-                                instructionPtr += sizeof(int);
-                            }
-                            // Pop from stack
-                            stackPtr -= sizeof(int);
+                            // Pop value
+                            sp--;
+
+                            // Pop address
+                            sp--;
+
+                            // Copy to address stored on stack
+                            StackData.CopyToMemory(sp + 1, (byte*)sp->Ptr, sp->TypeCode);
                             break;
                         }
                     #endregion
 
+                    // Arithmetic
                     #region Arithmetic
                     case OpCode.Add:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch(opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) + *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) + *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) + *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((float*)stackPtr - 2) = *((float*)stackPtr - 2) + *((float*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((double*)stackPtr - 2) = *((double*)stackPtr - 2) + *((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size;
-                                        break;
-                                    }
+                                switch(sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform add I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 + sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform add U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 + (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform add I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 + sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform add U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 + (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform add IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr + (nint)sp->Ptr;
+                                            break;
+                                        }
+                                    case StackTypeCode.F32:
+                                        {
+                                            // Perform add F32 : F32
+                                            (sp - 1)->F32 = (sp - 1)->F32 + sp->F32;
+                                            break;
+                                        }
+                                    case StackTypeCode.F64:
+                                        {
+                                            // Perform add F64 : F64
+                                            (sp - 1)->F64 = (sp - 1)->F64 + sp->F64;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Sub:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) - *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) - *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) - *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((float*)stackPtr - 2) = *((float*)stackPtr - 2) - *((float*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((double*)stackPtr - 2) = *((double*)stackPtr - 2) - *((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform subtract I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 - sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform subtract U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 - (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform subtract I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 - sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform subtract U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 - (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform subtract IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr - (nint)sp->Ptr;
+                                            break;
+                                        }
+                                    case StackTypeCode.F32:
+                                        {
+                                            // Perform subtract F32 : F32
+                                            (sp - 1)->F32 = (sp - 1)->F32 - sp->F32;
+                                            break;
+                                        }
+                                    case StackTypeCode.F64:
+                                        {
+                                            // Perform subtract F64 : F64
+                                            (sp - 1)->F64 = (sp - 1)->F64 - sp->F64;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Mul:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) * *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) * *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) * *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((float*)stackPtr - 2) = *((float*)stackPtr - 2) * *((float*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((double*)stackPtr - 2) = *((double*)stackPtr - 2) * *((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform multiply I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 * sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform multiply U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 * (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform multiply I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 * sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform multiply U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 * (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform multiply IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr * (nint)sp->Ptr;
+                                            break;
+                                        }
+                                    case StackTypeCode.F32:
+                                        {
+                                            // Perform multiply F32 : F32
+                                            (sp - 1)->F32 = (sp - 1)->F32 * sp->F32;
+                                            break;
+                                        }
+                                    case StackTypeCode.F64:
+                                        {
+                                            // Perform multiply F64 : F64
+                                            (sp - 1)->F64 = (sp - 1)->F64 * sp->F64;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Div:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) / *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) / *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) / *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((float*)stackPtr - 2) = *((float*)stackPtr - 2) / *((float*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((double*)stackPtr - 2) = *((double*)stackPtr - 2) / *((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform divide I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 / sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform divide U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 / (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform divide I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 + sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform divide U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 / (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform divide IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr / (nint)sp->Ptr;
+                                            break;
+                                        }
+                                    case StackTypeCode.F32:
+                                        {
+                                            // Perform divide F32 : F32
+                                            (sp - 1)->F32 = (sp - 1)->F32 / sp->F32;
+                                            break;
+                                        }
+                                    case StackTypeCode.F64:
+                                        {
+                                            // Perform divide F64 : F64
+                                            (sp - 1)->F64 = (sp - 1)->F64 / sp->F64;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Neg:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
-
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 1) = -*((int*)stackPtr - 1);
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 1) = -*((long*)stackPtr - 1);
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((float*)stackPtr - 1) = -*((float*)stackPtr - 1);
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((double*)stackPtr - 1) = -*((double*)stackPtr - 1);
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform negate I32 : I32
+                                            (sp - 1)->I32 = -(sp - 1)->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform negate I64 : I64
+                                            (sp - 1)->I64 = -(sp - 1)->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform negate IntPtr : IntPtr
+                                            (sp - 1)->Ptr = -(nint)(sp - 1)->Ptr;
+                                            break;
+                                        }
+                                    case StackTypeCode.F32:
+                                        {
+                                            // Perform negate F32 : F32
+                                            (sp - 1)->F32 = -(sp - 1)->F32;
+                                            break;
+                                        }
+                                    case StackTypeCode.F64:
+                                        {
+                                            // Perform negate F64 : F64
+                                            (sp - 1)->F64 = -(sp - 1)->F64;
+                                            break;
+                                        }
+                                }
                             }
-                            break;
-                        }
-                    case OpCode.Mod:
-                        {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
 
-                            // Select type
-                            switch (opType)
-                            {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) % *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) % *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) % *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((float*)stackPtr - 2) = *((float*)stackPtr - 2) % *((float*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((double*)stackPtr - 2) = *((double*)stackPtr - 2) % *((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size;
-                                        break;
-                                    }
-                            }
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.And:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) & *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) & *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) & *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform bitwise and I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 & sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform bitwise and U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 & (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform bitwise and I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 & sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform bitwise and U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 & (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform bitwise and IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr & (nint)sp->Ptr;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Or:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) | *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) | *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) | *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform bitwise or I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 | sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform bitwise or U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 | (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform bitwise or I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 | sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform bitwise or U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 | (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform bitwise or IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr | (nint)sp->Ptr;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.XOr:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) ^ *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 2) = *((long*)stackPtr - 2) ^ *((long*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 2) = *((ulong*)stackPtr - 2) ^ *((ulong*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform bitwise xor I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 ^ sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform bitwise xor U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 ^ (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform bitwise xor I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 ^ sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform bitwise xor U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 ^ (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform bitwise xor IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr ^ (nint)sp->Ptr;
+                                            break;
+                                        }
+                                }
                             }
-                            break;
-                        }
-                    case OpCode.Not:
-                        {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
 
-                            // Select type
-                            switch (opType)
-                            {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 1) = ~*((int*)stackPtr - 1);
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((long*)stackPtr - 1) = ~*((long*)stackPtr - 1);
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((ulong*)stackPtr - 1) = ~*((ulong*)stackPtr - 1);
-                                        break;
-                                    }
-                            }
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Bit_Shl:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) << *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op - 12 bytes = size(long + int)
-                                        *((long*)(stackPtr - 12)) = *((long*)(stackPtr - 12)) << *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op - 12 bytes = size(long + int)
-                                        *((ulong*)(stackPtr - 12)) = *((ulong*)(stackPtr - 12)) << *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform bitwise shift left I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 << sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform bitwise shift left U32 : I32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 << sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform bitwise shift left I64 : I32
+                                            (sp - 1)->I64 = (sp - 1)->I64 << sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform bitwise shift left U64 : I32
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 << sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform bitwise shift left IntPtr : I32
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr << sp->I32;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Bit_Shr:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            // Allow overflow
+                            unchecked
                             {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = *((int*)stackPtr - 2) >> *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op - 12 bytes = size(long + int)
-                                        *((long*)(stackPtr - 12)) = *((long*)(stackPtr - 12)) >> *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op - 12 bytes = size(long + int)
-                                        *((ulong*)(stackPtr - 12)) = *((ulong*)(stackPtr - 12)) >> *((int*)stackPtr - 1);
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform bitwise shift right I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 >> sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform bitwise shift right U32 : I32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 >> sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform bitwise shift right I64 : I32
+                                            (sp - 1)->I64 = (sp - 1)->I64 >> sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform bitwise shift right U64 : I32
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 >> sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform bitwise shift right IntPtr : I32
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr >> sp->I32;
+                                            break;
+                                        }
+                                }
                             }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Mod:
+                        {
+                            // Decrement ptr
+                            sp--;
+
+                            // Allow overflow
+                            unchecked
+                            {
+                                switch (sp->Type)
+                                {
+                                    default: throw new NotSupportedException(sp->Type.ToString());
+                                    case StackTypeCode.I32:
+                                        {
+                                            // Perform mod I32 : I32
+                                            (sp - 1)->I32 = (sp - 1)->I32 % sp->I32;
+                                            break;
+                                        }
+                                    case StackTypeCode.U32:
+                                        {
+                                            // Perform mod U32 : U32
+                                            (sp - 1)->I32 = (int)((uint)(sp - 1)->I32 % (uint)sp->I32);
+                                            break;
+                                        }
+                                    case StackTypeCode.I64:
+                                        {
+                                            // Perform mod I64 : I64
+                                            (sp - 1)->I64 = (sp - 1)->I64 % sp->I64;
+                                            break;
+                                        }
+                                    case StackTypeCode.U64:
+                                        {
+                                            // Perform mod U64 : U64
+                                            (sp - 1)->I64 = (long)((ulong)(sp - 1)->I64 % (ulong)sp->I64);
+                                            break;
+                                        }
+                                    case StackTypeCode.Address:
+                                        {
+                                            // Perform mod IntPtr : IntPtr
+                                            (sp - 1)->Ptr = (nint)(sp - 1)->Ptr % (nint)sp->Ptr;
+                                            break;
+                                        }
+                                    case StackTypeCode.F32:
+                                        {
+                                            // Perform mod F32 : F32
+                                            (sp - 1)->F32 = (sp - 1)->F32 % sp->F32;
+                                            break;
+                                        }
+                                    case StackTypeCode.F64:
+                                        {
+                                            // Perform mod F64 : F64
+                                            (sp - 1)->F64 = (sp - 1)->F64 % sp->F64;
+                                            break;
+                                        }
+                                }
+                            }
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     #endregion
 
+                    // Compare
                     #region Compare
-                    case OpCode.Cmp_Eq:
-                        {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
-
-                            // Select type
-                            switch (opType)
-                            {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) == *((int*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) == *((long*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) == *((ulong*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) == *((float*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) == *((double*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size + _F32.Size;
-                                        break;
-                                    }
-                            }
-                            break;
-                        }
-                    case OpCode.Cmp_NEq:
-                        {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
-
-                            // Select type
-                            switch (opType)
-                            {
-                                case TypeCode.I32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) != *((int*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.I64:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) != *((long*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.U64:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) != *((ulong*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F32:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) != *((float*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
-                                        break;
-                                    }
-                                case TypeCode.F64:
-                                    {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) != *((double*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size + _F32.Size;
-                                        break;
-                                    }
-                            }
-                            break;
-                        }
                     case OpCode.Cmp_L:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            switch (sp->Type)
                             {
-                                case TypeCode.I32:
+                                default: throw new NotSupportedException(sp->Type.ToString());
+                                case StackTypeCode.I32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) < *((int*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
+                                        // Perform compare I32 : I32
+                                        (sp - 1)->I32 = (sp - 1)->I32 < sp->I32 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.I64:
+                                case StackTypeCode.U32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) < *((long*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare U32 : U32
+                                        (sp - 1)->I32 = ((uint)(sp - 1)->I32 < (uint)sp->I32) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) < *((ulong*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare I64 : I64
+                                        (sp - 1)->I32 = (sp - 1)->I64 < sp->I64 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F32:
+                                case StackTypeCode.U64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) < *((float*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        // Perform compare U64 : U64
+                                        (sp - 1)->I32 = ((ulong)(sp - 1)->I64 < (ulong)sp->I64) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.Address:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) < *((double*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size + _F32.Size;
+                                        // Perform compare IntPtr : IntPtr
+                                        (sp - 1)->I32 = (sp - 1)->Ptr < (nint)sp->Ptr ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        // Perform compare F32 : F32
+                                        (sp - 1)->I32 = (sp - 1)->F32 < sp->F32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        // Perform compare F64 : F64
+                                        (sp - 1)->I32 = (sp - 1)->F64 < sp->F64 ? 1 : 0;
                                         break;
                                     }
                             }
+                            // Set type
+                            (sp - 1)->Type = StackTypeCode.I32;
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Cmp_Le:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            switch (sp->Type)
                             {
-                                case TypeCode.I32:
+                                default: throw new NotSupportedException(sp->Type.ToString());
+                                case StackTypeCode.I32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) <= *((int*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
+                                        // Perform compare I32 : I32
+                                        (sp - 1)->I32 = (sp - 1)->I32 <= sp->I32 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.I64:
+                                case StackTypeCode.U32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) <= *((long*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare U32 : U32
+                                        (sp - 1)->I32 = ((uint)(sp - 1)->I32 <= (uint)sp->I32) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) <= *((ulong*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare I64 : I64
+                                        (sp - 1)->I32 = (sp - 1)->I64 <= sp->I64 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F32:
+                                case StackTypeCode.U64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) <= *((float*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        // Perform compare U64 : U64
+                                        (sp - 1)->I32 = ((ulong)(sp - 1)->I64 <= (ulong)sp->I64) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.Address:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) <= *((double*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size + _F32.Size;
+                                        // Perform compare IntPtr : IntPtr
+                                        (sp - 1)->I32 = (sp - 1)->Ptr <= (nint)sp->Ptr ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        // Perform compare F32 : F32
+                                        (sp - 1)->I32 = (sp - 1)->F32 <= sp->F32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        // Perform compare F64 : F64
+                                        (sp - 1)->I32 = (sp - 1)->F64 <= sp->F64 ? 1 : 0;
                                         break;
                                     }
                             }
+                            // Set type
+                            (sp - 1)->Type = StackTypeCode.I32;
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Cmp_G:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            switch (sp->Type)
                             {
-                                case TypeCode.I32:
+                                default: throw new NotSupportedException(sp->Type.ToString());
+                                case StackTypeCode.I32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) > *((int*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
+                                        // Perform compare I32 : I32
+                                        (sp - 1)->I32 = (sp - 1)->I32 > sp->I32 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.I64:
+                                case StackTypeCode.U32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) > *((long*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare U32 : U32
+                                        (sp - 1)->I32 = ((uint)(sp - 1)->I32 > (uint)sp->I32) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) > *((ulong*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare I64 : I64
+                                        (sp - 1)->I32 = (sp - 1)->I64 > sp->I64 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F32:
+                                case StackTypeCode.U64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) > *((float*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        // Perform compare U64 : U64
+                                        (sp - 1)->I32 = ((ulong)(sp - 1)->I64 > (ulong)sp->I64) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.Address:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) > *((double*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size + _F32.Size;
+                                        // Perform compare IntPtr : IntPtr
+                                        (sp - 1)->I32 = (sp - 1)->Ptr > (nint)sp->Ptr ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        // Perform compare F32 : F32
+                                        (sp - 1)->I32 = (sp - 1)->F32 > sp->F32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        // Perform compare F64 : F64
+                                        (sp - 1)->I32 = (sp - 1)->F64 > sp->F64 ? 1 : 0;
                                         break;
                                     }
                             }
+                            // Set type
+                            (sp - 1)->Type = StackTypeCode.I32;
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Cmp_Ge:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Decrement ptr
+                            sp--;
 
-                            // Select type
-                            switch (opType)
+                            switch (sp->Type)
                             {
-                                case TypeCode.I32:
+                                default: throw new NotSupportedException(sp->Type.ToString());
+                                case StackTypeCode.I32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((int*)stackPtr - 2) >= *((int*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I32.Size;
+                                        // Perform compare I32 : I32
+                                        (sp - 1)->I32 = (sp - 1)->I32 >= sp->I32 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.I64:
+                                case StackTypeCode.U32:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((long*)stackPtr - 2) >= *((long*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare U32 : U32
+                                        (sp - 1)->I32 = ((uint)(sp - 1)->I32 >= (uint)sp->I32) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((ulong*)stackPtr - 2) >= *((ulong*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _I64.Size + _I32.Size;
+                                        // Perform compare I64 : I64
+                                        (sp - 1)->I32 = (sp - 1)->I64 >= sp->I64 ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F32:
+                                case StackTypeCode.U64:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 2) = (*((float*)stackPtr - 2) >= *((float*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F32.Size;
+                                        // Perform compare U64 : U64
+                                        (sp - 1)->I32 = ((ulong)(sp - 1)->I64 >= (ulong)sp->I64) ? 1 : 0;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.Address:
                                     {
-                                        // Perform add op
-                                        *((int*)stackPtr - 4) = (*((double*)stackPtr - 2) >= *((double*)stackPtr - 1)) ? 1 : 0;
-
-                                        // Decrement stack ptr
-                                        stackPtr -= _F64.Size + _F32.Size;
+                                        // Perform compare IntPtr : IntPtr
+                                        (sp - 1)->I32 = (sp - 1)->Ptr >= (nint)sp->Ptr ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        // Perform compare F32 : F32
+                                        (sp - 1)->I32 = (sp - 1)->F32 >= sp->F32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        // Perform compare F64 : F64
+                                        (sp - 1)->I32 = (sp - 1)->F64 >= sp->F64 ? 1 : 0;
                                         break;
                                     }
                             }
+                            // Set type
+                            (sp - 1)->Type = StackTypeCode.I32;
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Cmp_Eq:
+                        {
+                            // Decrement ptr
+                            sp--;
+
+                            switch (sp->Type)
+                            {
+                                default: throw new NotSupportedException(sp->Type.ToString());
+                                case StackTypeCode.I32:
+                                    {
+                                        // Perform compare I32 : I32
+                                        (sp - 1)->I32 = (sp - 1)->I32 == sp->I32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.U32:
+                                    {
+                                        // Perform compare U32 : U32
+                                        (sp - 1)->I32 = ((uint)(sp - 1)->I32 == (uint)sp->I32) ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.I64:
+                                    {
+                                        // Perform compare I64 : I64
+                                        (sp - 1)->I32 = (sp - 1)->I64 == sp->I64 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.U64:
+                                    {
+                                        // Perform compare U64 : U64
+                                        (sp - 1)->I32 = ((ulong)(sp - 1)->I64 == (ulong)sp->I64) ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        // Perform compare IntPtr : IntPtr
+                                        (sp - 1)->I32 = (sp - 1)->Ptr == (nint)sp->Ptr ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        // Perform compare F32 : F32
+                                        (sp - 1)->I32 = (sp - 1)->F32 == sp->F32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        // Perform compare F64 : F64
+                                        (sp - 1)->I32 = (sp - 1)->F64 == sp->F64 ? 1 : 0;
+                                        break;
+                                    }
+                            }
+                            // Set type
+                            (sp - 1)->Type = StackTypeCode.I32;
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Cmp_NEq:
+                        {
+                            // Decrement ptr
+                            sp--;
+
+                            switch (sp->Type)
+                            {
+                                default: throw new NotSupportedException(sp->Type.ToString());
+                                case StackTypeCode.I32:
+                                    {
+                                        // Perform compare I32 : I32
+                                        (sp - 1)->I32 = (sp - 1)->I32 != sp->I32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.U32:
+                                    {
+                                        // Perform compare U32 : U32
+                                        (sp - 1)->I32 = ((uint)(sp - 1)->I32 != (uint)sp->I32) ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.I64:
+                                    {
+                                        // Perform compare I64 : I64
+                                        (sp - 1)->I32 = (sp - 1)->I64 != sp->I64 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.U64:
+                                    {
+                                        // Perform compare U64 : U64
+                                        (sp - 1)->I32 = ((ulong)(sp - 1)->I64 != (ulong)sp->I64) ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        // Perform compare IntPtr : IntPtr
+                                        (sp - 1)->I32 = (sp - 1)->Ptr != (nint)sp->Ptr ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        // Perform compare F32 : F32
+                                        (sp - 1)->I32 = (sp - 1)->F32 != sp->F32 ? 1 : 0;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        // Perform compare F64 : F64
+                                        (sp - 1)->I32 = (sp - 1)->F64 != sp->F64 ? 1 : 0;
+                                        break;
+                                    }
+                            }
+                            // Set type
+                            (sp - 1)->Type = StackTypeCode.I32;
+
+                            // Debug instruction
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     #endregion
 
+                    // Cast
                     #region Cast
-                    case OpCode.Cast_I1:
-                    case OpCode.Cast_I2:
                     case OpCode.Cast_I4:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Pop value
+                            sp--;
 
-                            switch (opType)
+                            // Check type
+                            switch(sp->Type)
                             {
-                                case TypeCode.I64:
+                                case StackTypeCode.I32: break;
+                                case StackTypeCode.U32:
                                     {
-                                        *((long*)(stackPtr - 4)) = *((int*)stackPtr - 1);
-
-                                        // Increment stack ptr by half
-                                        stackPtr += _I32.Size;
+                                        sp->I32 = (int)(uint)sp->I32;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        *((ulong*)(stackPtr - 4)) = (ulong)*((int*)stackPtr - 1);
-
-                                        // Increment stack ptr by half
-                                        stackPtr += _I32.Size;
+                                        sp->I32 = (int)sp->I64;
                                         break;
                                     }
-                                case TypeCode.F32:
+                                case StackTypeCode.U64:
                                     {
-                                        *((float*)stackPtr - 1) = *((int*)stackPtr - 1);
+                                        sp->I32 = (int)(ulong)sp->I64;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.F32:
                                     {
-                                        *((double*)(stackPtr - 4)) = *((int*)stackPtr - 1);
-
-                                        // Increment stack ptr by half
-                                        stackPtr += _F32.Size;
+                                        sp->I32 = (int)sp->F32;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        sp->I32 = (int)sp->F64;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        sp->I32 = (int)sp->Ptr;
                                         break;
                                     }
                             }
+
+                            // Push value
+                            sp->Type = StackTypeCode.I32;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
-
-
                     case OpCode.Cast_I8:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Pop value
+                            sp--;
 
-                            switch(opType)
+                            // Check type
+                            switch (sp->Type)
                             {
-                                case TypeCode.U64:
+                                case StackTypeCode.I64: break;
+                                case StackTypeCode.I32:
                                     {
-                                        *((ulong*)stackPtr - 1) = (ulong)*((long*)stackPtr - 1);
+                                        sp->I64 = (long)sp->I32;
                                         break;
                                     }
-                            }    
+                                case StackTypeCode.U32:
+                                    {
+                                        sp->I64 = (long)(uint)sp->I32;
+                                        break;
+                                    }
+                                case StackTypeCode.U64:
+                                    {
+                                        sp->I64 = (long)(ulong)sp->I64;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        sp->I64 = (long)sp->F32;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        sp->I64 = (long)sp->F64;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        sp->I64 = (long)sp->Ptr;
+                                        break;
+                                    }
+                            }
+
+                            // Push value
+                            sp->Type = StackTypeCode.I64;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Cast_U4:
+                        {
+                            // Pop value
+                            sp--;
+
+                            // Check type
+                            switch (sp->Type)
+                            {
+                                case StackTypeCode.U32: break;
+                                case StackTypeCode.I32:
+                                    {
+                                        sp->I32 = (int)(uint)sp->I32;
+                                        break;
+                                    }
+                                case StackTypeCode.I64:
+                                    {
+                                        sp->I32 = (int)(uint)sp->I64;
+                                        break;
+                                    }
+                                case StackTypeCode.U64:
+                                    {
+                                        sp->I32 = (int)(uint)(ulong)sp->I64;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        sp->I32 = (int)(uint)sp->F32;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        sp->I32 = (int)(uint)sp->F64;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        sp->I32 = (int)(uint)sp->Ptr;
+                                        break;
+                                    }
+                            }
+
+                            // Push value
+                            sp->Type = StackTypeCode.U32;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Cast_U8:
+                        {
+                            // Pop value
+                            sp--;
+
+                            // Check type
+                            switch (sp->Type)
+                            {
+                                case StackTypeCode.U64: break;
+                                case StackTypeCode.I32:
+                                    {
+                                        sp->I64 = (long)(ulong)sp->I32;
+                                        break;
+                                    }
+                                case StackTypeCode.U32:
+                                    {
+                                        sp->I64 = (long)(ulong)(uint)sp->I32;
+                                        break;
+                                    }
+                                case StackTypeCode.I64:
+                                    {
+                                        sp->I64 = (long)(ulong)sp->I64;
+                                        break;
+                                    }
+                                case StackTypeCode.F32:
+                                    {
+                                        sp->I64 = (long)(ulong)sp->F32;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        sp->I64 = (long)(ulong)sp->F64;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        sp->I64 = (long)(ulong)sp->Ptr;
+                                        break;
+                                    }
+                            }
+
+                            // Push value
+                            sp->Type = StackTypeCode.U64;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Cast_F4:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Pop value
+                            sp--;
 
-                            switch (opType)
+                            // Check type
+                            switch (sp->Type)
                             {
-                                case TypeCode.I8:
-                                case TypeCode.U8:
-                                case TypeCode.I16:
-                                case TypeCode.U16:
-                                case TypeCode.I32:
-                                case TypeCode.U32:
+                                case StackTypeCode.F32: break;
+                                case StackTypeCode.I32:
                                     {
-                                        *((int*)stackPtr - 1) = (int)*((float*)stackPtr - 1);
+                                        sp->F32 = (float)sp->I32;
                                         break;
                                     }
-                                case TypeCode.I64:
+                                case StackTypeCode.U32:
                                     {
-                                        *((long*)(stackPtr - 4)) = (long)*((float*)stackPtr - 1);
-
-                                        // Increment stack ptr by half
-                                        stackPtr += _I32.Size;
+                                        sp->F32 = (float)(uint)sp->I32;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        *((ulong*)(stackPtr - 4)) = (ulong)*((float*)stackPtr - 1);
-
-                                        // Increment stack ptr by half
-                                        stackPtr += _I32.Size;
+                                        sp->F32 = (float)sp->I64;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.U64:
                                     {
-                                        *((double*)(stackPtr - 4)) = *((float*)stackPtr - 1);
-
-                                        // Increment stack ptr by half
-                                        stackPtr += _F32.Size;
+                                        sp->F32 = (float)(ulong)sp->I64;
+                                        break;
+                                    }
+                                case StackTypeCode.F64:
+                                    {
+                                        sp->F32 = (float)sp->F64;
+                                        break;
+                                    }
+                                case StackTypeCode.Address:
+                                    {
+                                        sp->F32 = (float)sp->Ptr;
                                         break;
                                     }
                             }
+
+                            // Push value
+                            sp->Type = StackTypeCode.F32;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     case OpCode.Cast_F8:
                         {
-                            // Get type code
-                            TypeCode opType = *(TypeCode*)instructionPtr++;
+                            // Pop value
+                            sp--;
 
-                            switch (opType)
+                            // Check type
+                            switch (sp->Type)
                             {
-                                case TypeCode.I8:
-                                case TypeCode.U8:
-                                case TypeCode.I16:
-                                case TypeCode.U16:
-                                case TypeCode.I32:
-                                case TypeCode.U32:
+                                case StackTypeCode.F64: break;
+                                case StackTypeCode.I32:
                                     {
-                                        *((int*)stackPtr - 2) = (int)*((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr by half
-                                        stackPtr -= _I32.Size;
+                                        sp->F64 = (double)sp->I32;
                                         break;
                                     }
-                                case TypeCode.I64:
+                                case StackTypeCode.U32:
                                     {
-                                        *((long*)stackPtr - 1) = (long)*((double*)stackPtr - 1);
+                                        sp->F64 = (double)(uint)sp->I32;
                                         break;
                                     }
-                                case TypeCode.U64:
+                                case StackTypeCode.I64:
                                     {
-                                        *((ulong*)stackPtr - 1) = (ulong)*((double*)stackPtr - 1);
+                                        sp->F64 = (double)sp->I64;
                                         break;
                                     }
-                                case TypeCode.F32:
+                                case StackTypeCode.U64:
                                     {
-                                        *((float*)stackPtr - 2) = (int)*((double*)stackPtr - 1);
-
-                                        // Decrement stack ptr by half
-                                        stackPtr -= _F32.Size;
+                                        sp->F64 = (double)(ulong)sp->I64;
                                         break;
                                     }
-                                case TypeCode.F64:
+                                case StackTypeCode.Address:
                                     {
-                                        *((double*)stackPtr - 1) = *((double*)stackPtr - 1);
+                                        sp->F64 = (double)sp->Ptr;
                                         break;
                                     }
                             }
+
+                            // Push value
+                            sp->Type = StackTypeCode.F64;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
                     #endregion
 
-                    #region Object
-                    case OpCode.New:
-                    case OpCode.New_S:
+                    // Jump
+                    #region Jump
+                    case OpCode.Jmp_1:
                         {
-                            //// Check for stack alloc
-                            //bool stackAlloc = code == OpCode.New_S;
+                            // Get offset
+                            int offset = *(int*)pc;
+                            pc += sizeof(int);
 
-                            //// Get type handle
-                            //_TypeHandle type = new _TypeHandle
-                            //{
-                            //    typeToken = *((int*)instructionPtr),
-                            //    size = 4,
-                            //};
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1, offset);
 
-                            //// Allocate memory - pop array length from stack
-                            //void* arr = stackAlloc
-                            //    ? __memory.StackAlloc(ref stackAllocPtr, type)
-                            //    : __memory.Alloc(type);
-
-                            //// Push array ptr to stack
-                            //*((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
-
-                            //// Increment instruction ptr
-                            //instructionPtr += sizeof(int);
-
-                            //// Increment stack ptr - in case of 64 bit ptr
-                            //stackPtr += sizeof(IntPtr) - sizeof(uint);
-                            break;
-                        }
-                    case OpCode.NewArr:
-                    case OpCode.NewArr_S:
-                        {
-                            // Get type handle
-                            _TypeHandle type = new _TypeHandle
+                            // Check condition
+                            sp--;
+                            if(sp->I32 == 1)
                             {
-                                TypeToken = *((int*)instructionPtr),
-                                TypeSize = 4,
-                            };
-
-                            // Allocate memory - pop array length from stack
-                            void* arr = __memory.AllocArray(ref stackAllocPtr, type, *((uint*)stackPtr - 1), code == OpCode.NewArr_S);
-
-                            // Push array ptr to stack
-                            *((IntPtr*)(stackPtr - sizeof(uint))) = (IntPtr)arr;
-
-                            // Increment instruction ptr
-                            instructionPtr += sizeof(int);
-
-                            // Increment stack ptr - in case of 64 bit ptr
-                            stackPtr += sizeof(IntPtr) - sizeof(uint);
-                            break;
-                        }
-                    case OpCode.Call:
-                        {
-                            // Get method address
-                            void* callMethodAddr = null;
-
-                            switch(code)
-                            {
-                                case OpCode.Call:
-                                    {
-                                        // Get token
-                                        int callMethodToken = *(int*)instructionPtr;
-                                        instructionPtr += sizeof(int);
-
-                                        // Resolve method
-                                        callMethodAddr = context.ResolveMethod(callMethodToken).methodExecutable;
-                                        break;
-                                    }
-                                case OpCode.Call_Addr:
-                                    {
-                                        // Pop method address from stack
-                                        callMethodAddr = (void*)(stackPtr - sizeof(IntPtr));
-                                        stackPtr -= sizeof(IntPtr);
-                                        break;
-                                    }
+                                // Jump to offset
+                                pc += offset;
                             }
-
-                            // Check for null method
-                            if (callMethodAddr == null)
-                                throw new NotSupportedException("Attempted to call null method address");
-
-                            // Store current call site
-                            threadContext.CallSite->InstructionPtr = instructionPtr;
-                            threadContext.CallSite->StackBasePtr = stackBasePtr;
-                            threadContext.CallSite->StackPtr = stackPtr;
-                            threadContext.CallSite->StackAllocPtr = stackAllocPtr;
-
-                            // Get method handle                            
-                            _MethodHandle targetMethod = *(_MethodHandle*)callMethodAddr;
-
-                            // Get start of arg locals
-                            argLocals = (_StackHandle*)((_MethodHandle*)callMethodAddr + 1);
-
-                            byte* callStackStartPtr = stackPtr; //stackAllocPtr;
-
-                            // Negative offset for arguments - args are already loaded onto the stack at this point, so current stack ptr is the start of locals
-                            for (int i = 0; i < targetMethod.ArgCount; i++)
-                                callStackStartPtr -= argLocals[i].TypeHandle.TypeSize;
-
-                            // Create new call site
-                            CallSite targetCallSite = new CallSite((_MethodHandle*)methodPtr, callStackStartPtr);
-
-                            // Enter method
-                            targetCallSite.Parent = threadContext.CallSite;
-                            threadContext.CallSite = &targetCallSite;
-
-                            // Zero memory for locals
-                            __memory.Zero(targetCallSite.StackPtr, targetMethod.StackPtrOffset);
-
-                            // Get instruction ptr
-                            instructionPtr = (byte*)(argLocals + (method.ArgCount + method.LocalCount));
-
-                            int arg = *(int*)stackBasePtr;
-
-                            // Get stack ptrs
-                            stackBasePtr = targetCallSite.StackBasePtr;
-                            stackPtr = targetCallSite.StackPtr;
-
-                            int arg2 = *(int*)stackBasePtr;
-
-                            // Get stack ptr where dynamic stack allocations can be made - after this method frame
-                            stackAllocPtr = callSite.StackAllocPtr;
                             break;
                         }
+                    case OpCode.Jmp_0:
+                        {
+                            // Get offset
+                            int offset = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1, offset);
+
+                            // Check condition
+                            sp--;
+                            if (sp->I32 == 0)
+                            {
+                                // Jump to offset
+                                pc += offset;
+                            }
+                            break;
+                        }
+                    case OpCode.Jmp:
+                        {
+                            // Get offset
+                            int offset = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, offset);
+
+                            // Jump to offset
+                            pc += offset;
+                            break;
+                        }
+                    #endregion
+
+                    // Object
+                    #region Object
                     case OpCode.Ret:
                         {
-                            // Check for parent call
-                            if (threadContext.CallSite->Parent != null)
-                            {
-                                // Jump to previous call site
-                                threadContext.CallSite = threadContext.CallSite->Parent;
+                            halt = true;
 
-                                // Get return value ptr
-                                byte* stackReturnPtr = stackPtr;
-
-                                // Jump back to previous call site
-                                method = *threadContext.CallSite->Method;
-                                argLocals = (_StackHandle*)(threadContext.CallSite->Method + 1);
-
-                                instructionPtr = threadContext.CallSite->InstructionPtr;
-                                stackBasePtr = threadContext.CallSite->StackBasePtr;
-                                stackPtr = threadContext.CallSite->StackPtr;
-                                stackAllocPtr = threadContext.CallSite->StackAllocPtr;
-
-                                
-
-                                // Check for return value
-                                int returnSize = sizeof(int);
-                                __memory.Copy(stackReturnPtr - returnSize, stackPtr, returnSize);
-                                stackPtr += sizeof(int);
-
-                                int val = *(int*)(stackReturnPtr - returnSize);
-                            }
-                            else
-                            {
-                                // Execution can finish
-                                halt = true;
-                            }
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1);
                             break;
                         }
                     #endregion
                 }
             }
 
-            // Output result
-            //int valueOnStack = __memory.ReadAs<int>(stackPtr - sizeof(int));
-
-            //int ptrOffset = (int)(stackPtr - sizeof(int) - stackBasePtr);
-
-            return stackPtr;
+            return sp - 1;
         }
     }
 }

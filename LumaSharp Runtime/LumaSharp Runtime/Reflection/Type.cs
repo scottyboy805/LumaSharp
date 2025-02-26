@@ -23,7 +23,7 @@ namespace LumaSharp.Runtime.Reflection
     {
         // Private
         private TypeFlags typeFlags = 0;
-        private TypeCode typeCode = 0;
+        private RuntimeTypeCode typeCode = 0;
         private Type elementType = null;
         private Member[] members = null;
 
@@ -33,10 +33,10 @@ namespace LumaSharp.Runtime.Reflection
         // Properties
         public bool IsBuiltInType
         {
-            get { return typeCode != TypeCode.Any; }
+            get { return typeCode != RuntimeTypeCode.Any; }
         }
 
-        public TypeCode TypeCode
+        public RuntimeTypeCode TypeCode
         {
             get { return typeCode; }
         }
@@ -77,7 +77,7 @@ namespace LumaSharp.Runtime.Reflection
         { 
         }
 
-        protected Type(AppContext context, string name, TypeCode code, TypeFlags typeFlags)
+        protected Type(AppContext context, string name, RuntimeTypeCode code, TypeFlags typeFlags)
             : base(context, name, (MemberFlags)typeFlags)
         {
             this.typeCode = code;

@@ -103,7 +103,7 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* AllocArray(ref byte* stackPtr, in _TypeHandle type, uint elementCount, bool stackAlloc = false)
+        public static void* AllocArray(in _TypeHandle type, uint elementCount)
         {
             // Check for zero
             if (type.TypeSize == 0)
@@ -115,18 +115,18 @@ namespace LumaSharp.Runtime
             void* mem;
 
             // Check for stack alloc
-            if (stackAlloc == true)
-            {
-                // Allocate memory on stack
-                mem = stackPtr;
+            //if (stackAlloc == true)
+            //{
+            //    // Allocate memory on stack
+            //    mem = stackPtr;
 
-                // Zero memory
-                __memory.Zero(mem, fullSize);
+            //    // Zero memory
+            //    __memory.Zero(mem, fullSize);
 
-                // Advance offset
-                stackPtr += fullSize;
-            }
-            else
+            //    // Advance offset
+            //    stackPtr += fullSize;
+            //}
+            //else
             {
                 // Allocate memory on heap
                 mem = NativeMemory.AllocZeroed(fullSize);
@@ -222,16 +222,16 @@ namespace LumaSharp.Runtime
             // Select type
             switch(type.TypeCode)
             {
-                case TypeCode.I8: return *(sbyte*)ptr;
-                case TypeCode.U8: return *(byte*)ptr;
-                case TypeCode.I16: return *(short*)ptr;
-                case TypeCode.U16: return *(ushort*)ptr;
-                case TypeCode.I32: return *(int*)ptr;
-                case TypeCode.U32: return *(uint*)ptr;
-                case TypeCode.I64: return *(long*)ptr;
-                case TypeCode.U64: return *(ulong*)ptr;
-                case TypeCode.F32: return *(float*)ptr;
-                case TypeCode.F64: return *(double*)ptr;
+                case RuntimeTypeCode.I1: return *(sbyte*)ptr;
+                case RuntimeTypeCode.U1: return *(byte*)ptr;
+                case RuntimeTypeCode.I2: return *(short*)ptr;
+                case RuntimeTypeCode.U2: return *(ushort*)ptr;
+                case RuntimeTypeCode.I4: return *(int*)ptr;
+                case RuntimeTypeCode.U4: return *(uint*)ptr;
+                case RuntimeTypeCode.I8: return *(long*)ptr;
+                case RuntimeTypeCode.U8: return *(ulong*)ptr;
+                case RuntimeTypeCode.F4: return *(float*)ptr;
+                case RuntimeTypeCode.F8: return *(double*)ptr;
 
                 default:
                     throw new NotSupportedException();
@@ -259,57 +259,57 @@ namespace LumaSharp.Runtime
             // Select type
             switch(type->TypeCode)
             {
-                case TypeCode.I8:
+                case RuntimeTypeCode.I1:
                     {
                         *(sbyte*)ptr = (sbyte)value;
                         break;
                     }
-                case TypeCode.U8:
+                case RuntimeTypeCode.U1:
                     {
                         *(byte*)ptr = (byte)value;
                         break;
                     }
-                case TypeCode.I16:
+                case RuntimeTypeCode.I2:
                     {
                         *(short*)ptr = (short)value;
                         break;
                     }
-                case TypeCode.U16:
+                case RuntimeTypeCode.U2:
                     {
                         *(ushort*)ptr = (ushort)value;
                         break;
                     }
-                case TypeCode.I32:
+                case RuntimeTypeCode.I4:
                     {
                         *(int*)ptr = (int)value;
                         break;
                     }
-                case TypeCode.U32:
+                case RuntimeTypeCode.U4:
                     {
                         *(uint*)ptr = (uint)value;
                         break;
                     }
-                case TypeCode.I64:
+                case RuntimeTypeCode.I8:
                     {
                         *(long*)ptr = (long)value;
                         break;
                     }
-                case TypeCode.U64:
+                case RuntimeTypeCode.U8:
                     {
                         *(ulong*)ptr = (ulong)value;
                         break;
                     }
-                case TypeCode.F32:
+                case RuntimeTypeCode.F4:
                     {
                         *(float*)ptr = (float)value;
                         break;
                     }
-                case TypeCode.F64:
+                case RuntimeTypeCode.F8:
                     {
                         *(double*)ptr = (double)value;
                         break;
                     }
-                case TypeCode.Any:
+                case RuntimeTypeCode.Any:
                     {
                         *(IntPtr*)ptr = (IntPtr)value;
                         break;
