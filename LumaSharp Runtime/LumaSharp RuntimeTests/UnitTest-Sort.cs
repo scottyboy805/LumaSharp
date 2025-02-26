@@ -109,7 +109,7 @@ namespace LumaSharp_RuntimeTests
 
 
             // Generate method
-            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I4 }, new[] { RuntimeTypeCode.I4, RuntimeTypeCode.I4, RuntimeTypeCode.I4, RuntimeTypeCode.I4, RuntimeTypeCode.I4, RuntimeTypeCode.I4, RuntimeTypeCode.I4 }, 4);
+            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32 }, 4);
             byte* instructions = gen.GenerateBytecode();
 
             // Create app and thread context
@@ -117,7 +117,7 @@ namespace LumaSharp_RuntimeTests
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create test array
-            int* arr =  (int*)__memory.AllocArray(new _TypeHandle(RuntimeTypeCode.I4), 5);
+            int* arr =  (int*)__memory.AllocArray(new _TypeHandle(RuntimeTypeCode.I32), 5);
             arr[0] = 11;
             arr[1] = 32;
             arr[2] = 8;

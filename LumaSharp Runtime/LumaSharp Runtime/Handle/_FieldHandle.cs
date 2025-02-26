@@ -13,6 +13,14 @@ namespace LumaSharp.Runtime.Handle
         // Public
         public static readonly uint Size = (uint)sizeof(_FieldHandle);
 
+        // Constructor
+        public _FieldHandle(int token, uint fieldOffset, _TypeHandle typeHandle)
+        {
+            this.FieldToken = token;
+            this.FieldOffset = fieldOffset;
+            this.TypeHandle = typeHandle;
+        }
+
         // Methods
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte* GetFieldAddress(byte* inst)

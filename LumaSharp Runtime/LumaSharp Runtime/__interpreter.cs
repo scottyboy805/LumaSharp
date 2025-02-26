@@ -13,6 +13,11 @@ namespace LumaSharp.Runtime
         // Methods
         internal static StackData* ExecuteBytecode(ThreadContext context, in _MethodHandle method, byte* instructionPtr)
         {
+            return ExecuteBytecode(context, method, instructionPtr, context.ThreadStackPtr);
+        }
+
+        internal static StackData* ExecuteBytecode(ThreadContext context, in _MethodHandle method, byte* instructionPtr, byte* stackBasePtr)
+        {
             // Set instruction ptr
             context.SetInstructionPtr(instructionPtr);
 
@@ -21,12 +26,15 @@ namespace LumaSharp.Runtime
 
             // Get pointers
             byte* pc = instructionPtr;
-            StackData* spVar = (StackData*)context.ThreadStackPtr;
+            StackData* spVar = (StackData*)stackBasePtr;
             StackData* sp = spVar + (method.Signature.ParameterCount + method.Body.VariableCount);
 
             // Check overflow
             if (sp + method.Body.MaxStack >= spMax)
                 context.Throw<StackOverflowException>();
+
+            // Push call stack
+            context.CallStack.Push(new CallSite(method, pc, spVar, sp));
 
             bool halt = false;
 
@@ -371,9 +379,6 @@ namespace LumaSharp.Runtime
                             if (sp->Ptr == IntPtr.Zero)
                                 context.Throw<NullReferenceException>();
 
-                            // Get memory handle
-                            _MemoryHandle inst = *(_MemoryHandle*)(sp->Ptr - _MemoryHandle.Size);
-
                             // Get field address
                             byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
 
@@ -401,9 +406,6 @@ namespace LumaSharp.Runtime
                             if (sp->Ptr == IntPtr.Zero)
                                 context.Throw<NullReferenceException>();
 
-                            // Get memory handle
-                            _MemoryHandle inst = *(_MemoryHandle*)(sp->Ptr - _MemoryHandle.Size);
-
                             // Get field address
                             byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
 
@@ -415,6 +417,32 @@ namespace LumaSharp.Runtime
 
                             // Debug execution
                             context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.St_Fld:
+                        {
+                            // Get field token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get field handle
+                            _FieldHandle field = context.AppContext.fieldHandles[token];
+
+                            // Pop value then instance
+                            sp -= 2;
+
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Get field address
+                            byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
+
+                            // Copy to memory
+                            StackData.CopyToMemory(sp + 1, fieldMem, field.TypeHandle.TypeCode);
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, fieldMem, field.TypeHandle.TypeCode);
                             break;
                         }
                     #endregion
@@ -566,6 +594,9 @@ namespace LumaSharp.Runtime
 
                             // Copy to address stored on stack
                             StackData.CopyToMemory(sp + 1, (byte*)sp->Ptr, sp->TypeCode);
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, (byte*)sp->Ptr, sp->TypeCode);
                             break;
                         }
                     #endregion
@@ -1859,12 +1890,90 @@ namespace LumaSharp.Runtime
 
                     // Object
                     #region Object
-                    case OpCode.Ret:
+                    case OpCode.New:
                         {
-                            halt = true;
+                            // Get token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get type handle
+                            _TypeHandle typeHandle = context.AppContext.typeHandles[token];
+
+                            // Create new instance and push to stack
+                            sp->Type = StackTypeCode.Address;
+                            sp->Ptr = (IntPtr)__memory.Alloc(typeHandle);
+                            sp++;
+
+                            // TODO - call constructor?
 
                             // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.Call:
+                        {
+                            // Get token from instruction
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get method handle
+                            _MethodHandle callHandle = context.AppContext.methodHandles[token];
+
+                            // Get call ptr
+                            StackData* spCall = sp;
+
+                            // Decrement stack ptr
+                            sp -= callHandle.Signature.ParameterCount;
+
+                            // Copy arguments
+                            for(int i = 0; i < callHandle.Signature.ParameterCount; i++)
+                            {
+                                // Copy arg
+                                StackData.CopyStack(sp + i, spCall + i);
+                            }
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5);
+
+                            // Push call
+                            context.CallStack.Push(new CallSite(method, pc, spVar, sp));
+
+                            // Update ptrs to jump to call
+                            pc = instructionPtr;
+                            spVar = spCall;
+                            sp = spVar + (method.Signature.ParameterCount + method.Body.VariableCount);
+
+                            // Check overflow
+                            if (sp + method.Body.MaxStack >= spMax)
+                                context.Throw<StackOverflowException>();
+
+                            break;
+                        }
+                    case OpCode.Ret:
+                        {
+                            // Debug execution
                             context.DebugInstruction(code, pc - 1);
+
+                            // Get return address
+                            StackData* spReturn = sp;
+
+                            // Pop call stack
+                            CallSite call = context.CallStack.Pop();
+
+                            // Reset ptrs
+                            pc = call.InstructionPtr;
+                            spVar = call.StackVarPtr;
+                            sp = call.StackPtr;
+
+                            // Copy return value
+                            // if HasReturnValue
+                            StackData.CopyStack(spReturn - 1, sp);
+                            sp++;
+
+                            // Check for end of callstack
+                            if (context.CallStack.Count == 0)
+                                halt = true;
+
                             break;
                         }
                     #endregion

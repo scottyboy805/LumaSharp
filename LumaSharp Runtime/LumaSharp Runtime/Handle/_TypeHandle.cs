@@ -16,6 +16,12 @@ namespace LumaSharp.Runtime
         }
 
         // Constructor
+        public _TypeHandle(int typeToken, uint typeSize)
+        {
+            this.TypeToken = typeToken;
+            this.TypeSize = typeSize;
+        }
+
         public _TypeHandle(RuntimeTypeCode typeCode)
         {
             this.TypeToken = (int)typeCode;

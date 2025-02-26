@@ -3,26 +3,23 @@ using System.Diagnostics;
 
 namespace LumaSharp.Runtime
 {
-    //internal unsafe struct CallSite
-    //{
-    //    // Public
-    //    public CallSite* Parent;
-    //    public _MethodHandle* Method;
-    //    public byte* InstructionPtr;
-    //    public byte* StackBasePtr;
-    //    public byte* StackPtr;
-    //    public byte* StackAllocPtr;
+    internal unsafe readonly struct CallSite
+    {
+        // Public
+        public readonly _MethodHandle Method;
+        public readonly byte* InstructionPtr;
+        public readonly StackData* StackVarPtr;
+        public readonly StackData* StackPtr;
 
-    //    // Constructor
-    //    public CallSite(_MethodHandle* method, byte* stackBeginPtr, CallSite* parent = null)
-    //    {
-    //        this.Method = method;
-    //        this.StackBasePtr = stackBeginPtr;
-    //        this.StackPtr = stackBeginPtr + method->StackEvalOffset;
-    //        this.StackAllocPtr = StackPtr + method->MaxStack;
-    //        this.Parent = parent;
-    //    }
-    //}
+        // Constructor
+        public CallSite(_MethodHandle method, byte* instructionPtr, StackData* stackVarPtr, StackData* stackPtr)
+        {
+            this.Method = method;
+            this.InstructionPtr = instructionPtr;
+            this.StackVarPtr = stackVarPtr;
+            this.StackPtr = stackPtr;
+        }
+    }
 
     internal unsafe class ThreadContext
     {
@@ -30,11 +27,11 @@ namespace LumaSharp.Runtime
         private byte* instructionBasePtr = null;
         
         // Public
-        public AppContext AppContext = null;
-        public int ThreadID;                // Id of the executing thread
-        public uint ThreadStackSize;         // Size of memory in bytes allocated for the evaluation stack
-        public byte* ThreadStackPtr;        // Eval stack memory for this thread
-        //public CallSite* CallSite;          // The call stack for the current execution
+        public readonly AppContext AppContext = null;
+        public readonly int ThreadID;                                       // Id of the executing thread
+        public readonly uint ThreadStackSize;                               // Size of memory in bytes allocated for the evaluation stack
+        public readonly byte* ThreadStackPtr;                               // Eval stack memory for this thread
+        public readonly Stack<CallSite> CallStack = new Stack<CallSite>();  // The call stack for the current execution
 
         // Constructor
         public ThreadContext(AppContext context, uint stackSize = 4096)

@@ -1,4 +1,5 @@
 ﻿using LumaSharp.Runtime;
+using LumaSharp.Runtime.Emit;
 using LumaSharp.Runtime.Handle;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using AppContext = LumaSharp.Runtime.AppContext;
@@ -58,14 +59,14 @@ namespace LumaSharp_RuntimeTests
                 0xFD,       // Ret
             };
 
-            _VariableHandle arg = new _VariableHandle(RuntimeTypeCode.I4, 0);
+            _VariableHandle arg = new _VariableHandle(RuntimeTypeCode.I32, 0);
 
-            _VariableHandle loc0 = new _VariableHandle(RuntimeTypeCode.I4, 4);
-            _VariableHandle loc1 = new _VariableHandle(RuntimeTypeCode.I4, 8);
-            _VariableHandle loc2 = new _VariableHandle(RuntimeTypeCode.I4, 12);
-            _VariableHandle loc3 = new _VariableHandle(RuntimeTypeCode.I4, 16);
-            _VariableHandle loc4 = new _VariableHandle(RuntimeTypeCode.I4, 20);
-            _VariableHandle loc5 = new _VariableHandle(RuntimeTypeCode.I4, 24);
+            _VariableHandle loc0 = new _VariableHandle(RuntimeTypeCode.I32, 4);
+            _VariableHandle loc1 = new _VariableHandle(RuntimeTypeCode.I32, 8);
+            _VariableHandle loc2 = new _VariableHandle(RuntimeTypeCode.I32, 12);
+            _VariableHandle loc3 = new _VariableHandle(RuntimeTypeCode.I32, 16);
+            _VariableHandle loc4 = new _VariableHandle(RuntimeTypeCode.I32, 20);
+            _VariableHandle loc5 = new _VariableHandle(RuntimeTypeCode.I32, 24);
 
 
             _MethodBodyHandle bodyHandle = new _MethodBodyHandle(16, null, 7);
@@ -92,6 +93,79 @@ namespace LumaSharp_RuntimeTests
 
                 Assert.AreEqual(21, spReturn->I32);
             }
+        }
+
+        [TestMethod]
+        public unsafe void TestRecursive()
+        {
+            BytecodeGenerator gen = new BytecodeGenerator();
+
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_Var_0);
+            gen.Emit(OpCode.Ld_I4_0);
+            gen.Emit(OpCode.Cmp_Eq);
+            gen.Emit(OpCode.St_Var_1);
+            gen.Emit(OpCode.Ld_Var_1);
+            gen.Emit(OpCode.Jmp_0, 8);
+
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_I4_1);
+            gen.Emit(OpCode.St_Var_2);
+            gen.Emit(OpCode.Jmp, 44);
+
+            // Jump target 0x000e
+            gen.Emit(OpCode.Ld_Var_0);
+            gen.Emit(OpCode.Ld_I4_1);
+            gen.Emit(OpCode.Cmp_Eq);
+            gen.Emit(OpCode.St_Var_3);
+            gen.Emit(OpCode.Ld_Var_3);
+            gen.Emit(OpCode.Jmp_0, 8);
+
+            // Jump Target 0x0016
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_I4_1);
+            gen.Emit(OpCode.St_Var_2);
+            gen.Emit(OpCode.Jmp, 28);
+
+            // Jump target 0x001b
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_Var_0);
+            gen.Emit(OpCode.Ld_I4, 2);
+            gen.Emit(OpCode.Sub);
+            gen.EmitToken(OpCode.Call, 110);
+            gen.Emit(OpCode.Ld_Var_0);
+            gen.Emit(OpCode.Ld_I4_1);
+            gen.Emit(OpCode.Sub);
+            gen.EmitToken(OpCode.Call, 110);
+            gen.Emit(OpCode.Add);
+            gen.Emit(OpCode.St_Var_2);
+            gen.Emit(OpCode.Jmp, 0);
+
+            // Jump target 0x0030
+            gen.Emit(OpCode.Ld_Var_2);
+            gen.Emit(OpCode.Ret);
+
+
+            // Generate method
+            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.Bool, RuntimeTypeCode.I32, RuntimeTypeCode.Bool }, 4);
+            byte* instructions = gen.GenerateBytecode();
+
+            // Create app and thread context
+            AppContext appContext = new AppContext();
+            ThreadContext threadContext = new ThreadContext(appContext);
+
+            appContext.methodHandles[110] = method;
+
+            // Push arg
+            StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
+
+            spArg->Type = StackTypeCode.I32;
+            spArg->Ptr = 8;
+
+            // Execute bytecode
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);
+
+            Assert.AreEqual(34, spReturn->I32);
         }
     }
 }

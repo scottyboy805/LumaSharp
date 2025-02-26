@@ -46,31 +46,31 @@ namespace LumaSharp.Runtime
             *_any = new _TypeHandle(RuntimeTypeCode.Any);
             *_bool = new _TypeHandle(RuntimeTypeCode.Bool);
             *_char = new _TypeHandle(RuntimeTypeCode.Char);
-            *_i8 = new _TypeHandle(RuntimeTypeCode.I1);
-            *_u8 = new _TypeHandle(RuntimeTypeCode.U1);
-            *_i16 = new _TypeHandle(RuntimeTypeCode.I2);
-            *_u16 = new _TypeHandle(RuntimeTypeCode.U2);
-            *_i32 = new _TypeHandle(RuntimeTypeCode.I4);
-            *_u32 = new _TypeHandle(RuntimeTypeCode.U4);
-            *_i64 = new _TypeHandle(RuntimeTypeCode.I8);
-            *_u64 = new _TypeHandle(RuntimeTypeCode.U8);
-            *_f32 = new _TypeHandle(RuntimeTypeCode.F4);
-            *_f64 = new _TypeHandle(RuntimeTypeCode.F8);
+            *_i8 = new _TypeHandle(RuntimeTypeCode.I8);
+            *_u8 = new _TypeHandle(RuntimeTypeCode.U8);
+            *_i16 = new _TypeHandle(RuntimeTypeCode.I16);
+            *_u16 = new _TypeHandle(RuntimeTypeCode.U16);
+            *_i32 = new _TypeHandle(RuntimeTypeCode.I32);
+            *_u32 = new _TypeHandle(RuntimeTypeCode.U32);
+            *_i64 = new _TypeHandle(RuntimeTypeCode.I64);
+            *_u64 = new _TypeHandle(RuntimeTypeCode.U64);
+            *_f32 = new _TypeHandle(RuntimeTypeCode.F32);
+            *_f64 = new _TypeHandle(RuntimeTypeCode.F64);
 
             // Register primitives
             loadedTypes[(int)RuntimeTypeCode.Any] = new PrimitiveType(this, RuntimeTypeCode.Any, _any);
             loadedTypes[(int)RuntimeTypeCode.Bool] = new PrimitiveType(this, RuntimeTypeCode.Bool, _bool);
             loadedTypes[(int)RuntimeTypeCode.Char] = new PrimitiveType(this, RuntimeTypeCode.Char, _char);
-            loadedTypes[(int)RuntimeTypeCode.I1] = new PrimitiveType(this, RuntimeTypeCode.I1, _i8);
-            loadedTypes[(int)RuntimeTypeCode.U1] = new PrimitiveType(this, RuntimeTypeCode.U1, _u8);
-            loadedTypes[(int)RuntimeTypeCode.I2] = new PrimitiveType(this, RuntimeTypeCode.I2, _i16);
-            loadedTypes[(int)RuntimeTypeCode.U2] = new PrimitiveType(this, RuntimeTypeCode.U2, _u16);
-            loadedTypes[(int)RuntimeTypeCode.I4] = new PrimitiveType(this, RuntimeTypeCode.I4, _i32);
-            loadedTypes[(int)RuntimeTypeCode.U4] = new PrimitiveType(this, RuntimeTypeCode.U4, _u32);
-            loadedTypes[(int)RuntimeTypeCode.I8] = new PrimitiveType(this, RuntimeTypeCode.I8, _i64);
-            loadedTypes[(int)RuntimeTypeCode.U8] = new PrimitiveType(this, RuntimeTypeCode.U8, _u64);
-            loadedTypes[(int)RuntimeTypeCode.F4] = new PrimitiveType(this, RuntimeTypeCode.F4, _f32);
-            loadedTypes[(int)RuntimeTypeCode.F8] = new PrimitiveType(this, RuntimeTypeCode.F8, _f64);
+            loadedTypes[(int)RuntimeTypeCode.I8] = new PrimitiveType(this, RuntimeTypeCode.I8, _i8);
+            loadedTypes[(int)RuntimeTypeCode.U8] = new PrimitiveType(this, RuntimeTypeCode.U8, _u8);
+            loadedTypes[(int)RuntimeTypeCode.I16] = new PrimitiveType(this, RuntimeTypeCode.I16, _i16);
+            loadedTypes[(int)RuntimeTypeCode.U16] = new PrimitiveType(this, RuntimeTypeCode.U16, _u16);
+            loadedTypes[(int)RuntimeTypeCode.I32] = new PrimitiveType(this, RuntimeTypeCode.I32, _i32);
+            loadedTypes[(int)RuntimeTypeCode.U32] = new PrimitiveType(this, RuntimeTypeCode.U32, _u32);
+            loadedTypes[(int)RuntimeTypeCode.I64] = new PrimitiveType(this, RuntimeTypeCode.I64, _i64);
+            loadedTypes[(int)RuntimeTypeCode.U64] = new PrimitiveType(this, RuntimeTypeCode.U64, _u64);
+            loadedTypes[(int)RuntimeTypeCode.F32] = new PrimitiveType(this, RuntimeTypeCode.F32, _f32);
+            loadedTypes[(int)RuntimeTypeCode.F64] = new PrimitiveType(this, RuntimeTypeCode.F64, _f64);
         }
 
         ~AppContext()

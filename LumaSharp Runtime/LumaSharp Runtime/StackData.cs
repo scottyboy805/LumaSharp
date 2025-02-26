@@ -71,17 +71,17 @@ namespace LumaSharp.Runtime
             {
                 default: throw new NotSupportedException(typeCode.ToString());
                 case RuntimeTypeCode.Bool:
-                case RuntimeTypeCode.I1: *(sbyte*)mem = (sbyte)src->I32; break;
-                case RuntimeTypeCode.U1: *(byte*)mem = (byte)src->I32; break;
+                case RuntimeTypeCode.I8: *(sbyte*)mem = (sbyte)src->I32; break;
+                case RuntimeTypeCode.U8: *(byte*)mem = (byte)src->I32; break;
                 case RuntimeTypeCode.Char:
-                case RuntimeTypeCode.I2: *(short*)mem = (short)src->I32; break;
-                case RuntimeTypeCode.U2: *(ushort*)mem = (ushort)src->I32; break;
-                case RuntimeTypeCode.I4: *(int*)mem = (int)src->I32; break;
-                case RuntimeTypeCode.U4: *(uint*)mem = (uint)src->I32; break;
-                case RuntimeTypeCode.I8: *(long*)mem = (long)src->I64; break;
-                case RuntimeTypeCode.U8: *(ulong*)mem = (ulong)src->I64; break;
-                case RuntimeTypeCode.F4: *(float*)mem = (float)src->F32; break;
-                case RuntimeTypeCode.F8: *(double*)mem = (double)src->F64; break;
+                case RuntimeTypeCode.I16: *(short*)mem = (short)src->I32; break;
+                case RuntimeTypeCode.U16: *(ushort*)mem = (ushort)src->I32; break;
+                case RuntimeTypeCode.I32: *(int*)mem = (int)src->I32; break;
+                case RuntimeTypeCode.U32: *(uint*)mem = (uint)src->I32; break;
+                case RuntimeTypeCode.I64: *(long*)mem = (long)src->I64; break;
+                case RuntimeTypeCode.U64: *(ulong*)mem = (ulong)src->I64; break;
+                case RuntimeTypeCode.F32: *(float*)mem = (float)src->F32; break;
+                case RuntimeTypeCode.F64: *(double*)mem = (double)src->F64; break;
                 case RuntimeTypeCode.Any:
                 case RuntimeTypeCode.Ptr: *(IntPtr*)mem = src->Ptr; break;
                 case RuntimeTypeCode.UPtr: *(UIntPtr*)mem = (UIntPtr)src->Ptr; break;
@@ -95,62 +95,62 @@ namespace LumaSharp.Runtime
             {
                 default: throw new NotSupportedException(typeCode.ToString());
                 case RuntimeTypeCode.Bool:
-                case RuntimeTypeCode.I1:
+                case RuntimeTypeCode.I8:
                     {
                         dst->Type = StackTypeCode.I32;
                         dst->I32 = *(sbyte*)mem;
                         break;
                     }
-                case RuntimeTypeCode.U1:
+                case RuntimeTypeCode.U8:
                     {
                         dst->Type = StackTypeCode.I32;
                         dst->I32 = *(byte*)mem;
                         break;
                     }
                 case RuntimeTypeCode.Char:
-                case RuntimeTypeCode.I2:
+                case RuntimeTypeCode.I16:
                     {
                         dst->Type = StackTypeCode.I32;
                         dst->I32 = *(short*)mem;
                         break;
                     }
-                case RuntimeTypeCode.U2:
+                case RuntimeTypeCode.U16:
                     {
                         dst->Type = StackTypeCode.I32;
                         dst->I32 = *(ushort*)mem;
                         break;
                     }
-                case RuntimeTypeCode.I4:
+                case RuntimeTypeCode.I32:
                     {
                         dst->Type = StackTypeCode.I32;
                         dst->I32 = *(int*)mem;
                         break;
                     }
-                case RuntimeTypeCode.U4:
+                case RuntimeTypeCode.U32:
                     {
                         dst->Type = StackTypeCode.U32;
                         dst->I32 = (int)*(uint*)mem;
                         break;
                     }
-                case RuntimeTypeCode.I8:
+                case RuntimeTypeCode.I64:
                     {
                         dst->Type = StackTypeCode.I64;
                         dst->I64 = *(long*)mem;
                         break;
                     }
-                case RuntimeTypeCode.U8:
+                case RuntimeTypeCode.U64:
                     {
                         dst->Type = StackTypeCode.U64;
                         dst->I64 = (long)*(ulong*)mem;
                         break;
                     }
-                case RuntimeTypeCode.F4:
+                case RuntimeTypeCode.F32:
                     {
                         dst->Type = StackTypeCode.F32;
                         dst->F32 = *(float*)mem;
                         break;
                     }
-                case RuntimeTypeCode.F8:
+                case RuntimeTypeCode.F64:
                     {
                         dst->Type = StackTypeCode.F64;
                         dst->F64 = *(double*)mem;

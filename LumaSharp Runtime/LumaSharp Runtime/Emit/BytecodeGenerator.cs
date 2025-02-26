@@ -143,6 +143,17 @@ namespace LumaSharp.Runtime.Emit
             instructionWriter.Write((byte)code);
             instructionWriter.Write(operand);
         }
+
+        public void EmitToken(OpCode code, int token)
+        {
+            // Check for argument type
+            if (validateInstructions == true && code.GetOperandType() != OperandType.InlineToken)
+                throw new InvalidOperationException(string.Format("Op code {0} expects {1} but got InlineToken", code, code.GetOperandType()));
+
+            // Emit the code and operand
+            instructionWriter.Write((byte)code);
+            instructionWriter.Write(token);
+        }
         #endregion
     }
 }
