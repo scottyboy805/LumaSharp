@@ -1,11 +1,11 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public sealed class Parameter
+    public sealed class MetaVariable
     {
         // Type
         [Flags]
-        internal enum ParameterFlags : uint
+        internal enum VariableFlags : uint
         {
             Reference = 1,
             DefaultValue = 2,
@@ -16,10 +16,10 @@ namespace LumaSharp.Runtime.Reflection
         internal AppContext context = null;
 
         // Private
-        private ParameterFlags parameterFlags = 0;
+        private VariableFlags parameterFlags = 0;
         private string name = "";
         private int index = 0;
-        private MemberReference<Type> parameterType = null;
+        private MemberReference<MetaType> parameterType = null;
 
         // Properties
         public string Name
@@ -32,39 +32,39 @@ namespace LumaSharp.Runtime.Reflection
             get { return index; }
         }
 
-        public Type ParameterType
+        public MetaType ParameterType
         {
             get { return parameterType.Member; }
         }
 
         public bool IsReference
         {
-            get { return (parameterFlags & ParameterFlags.Reference) != 0; }
+            get { return (parameterFlags & VariableFlags.Reference) != 0; }
         }
 
         public bool IsDefaultValue
         {
-            get { return (parameterFlags & ParameterFlags.DefaultValue) != 0; }
+            get { return (parameterFlags & VariableFlags.DefaultValue) != 0; }
         }
 
         public bool IsVariableLength
         {
-            get { return (parameterFlags & ParameterFlags.VariableLength) != 0; }
+            get { return (parameterFlags & VariableFlags.VariableLength) != 0; }
         }
 
         // Constructor
-        internal Parameter(AppContext context, int index)
+        internal MetaVariable(AppContext context, int index)
         {
             this.context = context;
             this.index = index;
         }
 
-        internal Parameter(AppContext context, string name, int index, Type parameterType, ParameterFlags parameterFlags)
+        internal MetaVariable(AppContext context, string name, int index, MetaType parameterType, VariableFlags parameterFlags)
         {
             this.context = context;
             this.name = name;
             this.index = index;
-            this.parameterType = new MemberReference<Type>(parameterType);
+            this.parameterType = new MemberReference<MetaType>(parameterType);
             this.parameterFlags = parameterFlags;
         }
 
@@ -72,11 +72,11 @@ namespace LumaSharp.Runtime.Reflection
         internal void LoadParameterMetadata(BinaryReader reader)
         {
             // Read parameter type
-            this.parameterType = new MemberReference<Type>(
+            this.parameterType = new MemberReference<MetaType>(
                 context, reader.ReadInt32());
 
             // Read flags
-            this.parameterFlags = (ParameterFlags)reader.ReadUInt32();
+            this.parameterFlags = (VariableFlags)reader.ReadUInt32();
         }
     }
 }

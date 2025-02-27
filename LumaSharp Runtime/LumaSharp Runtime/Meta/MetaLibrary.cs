@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public unsafe sealed class Module
+    public unsafe sealed class MetaLibrary
     {
         // Internal
         internal const int magic =  'L' |
@@ -13,9 +13,9 @@ namespace LumaSharp.Runtime.Reflection
         private Stream moduleSource = null;
 
         private int token = 0;
-        private ModuleName moduleName = null;
-        private ModuleName[] referenceNames = null;
-        private Type[] types = null;
+        private MetaLibraryName moduleName = null;
+        private MetaLibraryName[] referenceNames = null;
+        private MetaType[] types = null;
 
         // Properties
         public int Token
@@ -28,27 +28,27 @@ namespace LumaSharp.Runtime.Reflection
             get { return moduleName.Name; }
         }
 
-        public ModuleName ModuleName
+        public MetaLibraryName ModuleName
         {
             get { return moduleName; }
         }
 
-        public ModuleName[] ReferenceNames
+        public MetaLibraryName[] ReferenceNames
         {
             get { return referenceNames; }
         }
 
         // Constructor
-        internal Module(Stream moduleSource, ModuleName moduleName)
+        internal MetaLibrary(Stream moduleSource, MetaLibraryName moduleName)
         {
             this.moduleSource = moduleSource;
             this.moduleName = moduleName;
         }
 
         // Methods
-        public IEnumerable<Type> GetTypes(MemberFlags flags)
+        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
         {
-            foreach(Type type in types)
+            foreach(MetaType type in types)
             {
                 // Check for member flags
                 if (type.HasMemberFlags(flags) == true)
@@ -56,9 +56,9 @@ namespace LumaSharp.Runtime.Reflection
             }
         }
 
-        public IEnumerable<Type> GetExportTypes()
+        public IEnumerable<MetaType> GetExportTypes()
         {
-            foreach (Type type in types)
+            foreach (MetaType type in types)
             {
                 // Check for member flags
                 if (type.IsExport == true)
@@ -72,13 +72,13 @@ namespace LumaSharp.Runtime.Reflection
             int typeCount = reader.ReadInt32();
 
             // Initialize types
-            types = new Type[typeCount];
+            types = new MetaType[typeCount];
 
             // Read all types
             for (int i = 0; i < typeCount; i++)
             {
                 // Create type
-                Type type = new Type(context);
+                MetaType type = new MetaType(context);
 
                 // Read type
                 type.LoadTypeMetadata(reader);
@@ -98,7 +98,7 @@ namespace LumaSharp.Runtime.Reflection
             }
         }
 
-        internal static bool ReadModuleHeader(Stream stream, out ModuleName moduleName, bool throwOnError = true)
+        internal static bool ReadModuleHeader(Stream stream, out MetaLibraryName moduleName, bool throwOnError = true)
         {
             string hintPath = null;
 
@@ -123,7 +123,7 @@ namespace LumaSharp.Runtime.Reflection
             try
             {
                 // Create module name
-                moduleName = new ModuleName(reader, hintPath);
+                moduleName = new MetaLibraryName(reader, hintPath);
             }
             catch
             {

@@ -1,6 +1,4 @@
 ﻿using LumaSharp.Runtime.Handle;
-using System.Diagnostics;
-using System.Drawing;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("LumaSharp Compiler")]
@@ -12,16 +10,13 @@ namespace LumaSharp.Runtime
     internal static unsafe class __interpreter
     {
         // Methods
-        internal static StackData* ExecuteBytecode(ThreadContext context, _MethodHandle* method)//, byte* instructionPtr)
+        internal static StackData* ExecuteBytecode(ThreadContext context, _MethodHandle* method)
         {
-            //// Set instruction ptr
-            //context.SetInstructionPtr((byte*)method + size);// instructionPtr);
-
             // Get sp max
             byte* spMax = context.ThreadStackPtr + context.ThreadStackSize;
 
             // Get pointers
-            byte* pc = (byte*)method + sizeof(_MethodHandle); //instructionPtr;
+            byte* pc = (byte*)method + sizeof(_MethodHandle);
             StackData* spVar = (StackData*)context.ThreadStackPtr;
             StackData* sp = spVar + (method->Signature.ParameterCount + method->Body.VariableCount);
 
@@ -30,10 +25,10 @@ namespace LumaSharp.Runtime
                 context.Throw<StackOverflowException>();
 
             // Set instruction ptr
-            context.DebugInstructionPtr(pc);// instructionPtr);
+            context.DebugInstructionPtr(pc);
 
             // Push call stack
-            context.CallStack.Push(new CallSite(method, pc, spVar, sp));
+            context.PushCall(method, pc, spVar, sp);
 
             bool halt = false;
 
@@ -1942,10 +1937,10 @@ namespace LumaSharp.Runtime
                             context.DebugInstruction(code, pc - 5);
 
                             // Push call
-                            context.CallStack.Push(new CallSite(callHandle, pc, spVar, sp));
+                            context.PushCall(method, pc, spVar, sp);
 
                             // Update ptrs to jump to call
-                            pc = (byte*)callHandle + sizeof(_MethodHandle); //instructionPtr;
+                            pc = (byte*)callHandle + sizeof(_MethodHandle);
                             spVar = spCall;
                             sp = spVar + (callHandle->Signature.ParameterCount + callHandle->Body.VariableCount);
 
@@ -1953,6 +1948,8 @@ namespace LumaSharp.Runtime
                             if (sp + callHandle->Body.MaxStack >= spMax)
                                 context.Throw<StackOverflowException>();
 
+                            // Set instruction ptr
+                            context.DebugInstructionPtr(pc);
                             break;
                         }
                     case OpCode.Call_Addr:
@@ -1980,16 +1977,19 @@ namespace LumaSharp.Runtime
                             context.DebugInstruction(code, pc - 5);
 
                             // Push call
-                            context.CallStack.Push(new CallSite(callHandle, pc, spVar, sp));
+                            context.PushCall(method, pc, spVar, sp);
 
                             // Update ptrs to jump to call
-                            pc = (byte*)callHandle + sizeof(_MethodHandle); //instructionPtr;
+                            pc = (byte*)callHandle + sizeof(_MethodHandle);
                             spVar = spCall;
                             sp = spVar + (callHandle->Signature.ParameterCount + callHandle->Body.VariableCount);
 
                             // Check overflow
                             if (sp + callHandle->Body.MaxStack >= spMax)
                                 context.Throw<StackOverflowException>();
+
+                            // Set instruction ptr
+                            context.DebugInstructionPtr(pc);
                             break;
                         }
                     case OpCode.Ret:
@@ -2001,20 +2001,15 @@ namespace LumaSharp.Runtime
                             StackData* spReturn = sp;
 
                             // Pop call stack
-                            CallSite call = context.CallStack.Pop();
-
-                            // Reset ptrs
-                            pc = call.InstructionPtr;
-                            spVar = call.StackVarPtr;
-                            sp = call.StackPtr;
+                            context.PopCall(out method, out pc, out spVar, out sp);
 
                             // Copy return value
                             // if HasReturnValue
                             StackData.CopyStack(spReturn - 1, sp);
                             sp++;
 
-                            // Check for end of callstack
-                            if (context.CallStack.Count == 0)
+                            // Check for end of call stack
+                            if(context.CallDepth == 0)
                                 halt = true;
 
                             break;

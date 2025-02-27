@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace LumaSharp.Runtime
 {
@@ -169,6 +170,131 @@ namespace LumaSharp.Runtime
                         dst->Ptr = (IntPtr)(*(UIntPtr*)mem);
                         break;
                     }
+            }
+        }
+
+        public static unsafe void Wrap(StackData* dst, object wrap, RuntimeTypeCode typeCode)
+        {
+            switch(typeCode)
+            {
+                default: throw new NotSupportedException(typeCode.ToString());
+                case RuntimeTypeCode.Bool:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (bool)wrap == true ? 1 : 0;
+                        break;
+                    }
+                case RuntimeTypeCode.Char:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (char)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.I8:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (sbyte)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.U8:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (byte)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.I16:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (short)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.U16:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (ushort)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.I32:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (int)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.U32:
+                    {
+                        dst->Type = StackTypeCode.I32;
+                        dst->I32 = (int)(uint)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.I64:
+                    {
+                        dst->Type = StackTypeCode.I64;
+                        dst->I64 = (long)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.U64:
+                    {
+                        dst->Type = StackTypeCode.I64;
+                        dst->I64 = (long)(ulong)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.Any:
+                case RuntimeTypeCode.Ptr:
+                    {
+                        dst->Type = StackTypeCode.Address;
+                        dst->Ptr = (IntPtr)wrap;
+                        break;
+                    }
+                case RuntimeTypeCode.UPtr:
+                    {
+                        dst->Type = StackTypeCode.Address;
+                        dst->Ptr = (IntPtr)(UIntPtr)wrap;
+                        break;
+                    }
+            }
+        }
+
+        public static unsafe void Unwrap(StackData* src, out object unwrapped, RuntimeTypeCode typeCode)
+        {
+            switch(typeCode)
+            {
+                default: throw new NotSupportedException(typeCode.ToString());
+                case RuntimeTypeCode.Bool: unwrapped = src->I32 == 1; break;
+                case RuntimeTypeCode.Char: unwrapped = (char)src->I32; break;
+                case RuntimeTypeCode.I8: unwrapped = (sbyte)src->I32; break;
+                case RuntimeTypeCode.U8: unwrapped = (byte)src->I32; break;
+                case RuntimeTypeCode.I16: unwrapped = (short)src->I32; break;
+                case RuntimeTypeCode.U16: unwrapped = (ushort)src->I32; break;
+                case RuntimeTypeCode.I32: unwrapped = (int)src->I32; break;
+                case RuntimeTypeCode.U32: unwrapped = (uint)src->I32; break;
+                case RuntimeTypeCode.I64: unwrapped = (long)src->I64; break;
+                case RuntimeTypeCode.U64: unwrapped = (ulong)src->I64; break;
+                case RuntimeTypeCode.Any:
+                case RuntimeTypeCode.Ptr: unwrapped = (IntPtr)src->Ptr; break;
+                case RuntimeTypeCode.UPtr: unwrapped = (UIntPtr)src->Ptr; break;
+
+            }
+        }
+
+        public static unsafe void UnwrapAs<T>(StackData* src, T* unwrapped, RuntimeTypeCode typeCode) where T : unmanaged
+        {
+            switch (typeCode)
+            {
+                default: throw new NotSupportedException(typeCode.ToString());
+                case RuntimeTypeCode.Bool: *(bool*)unwrapped = src->I32 == 1; break;
+                case RuntimeTypeCode.Char: *(char*)unwrapped = (char)src->I32; break;
+                case RuntimeTypeCode.I8: *(sbyte*)unwrapped = (sbyte)src->I32; break;
+                case RuntimeTypeCode.U8: *(byte*)unwrapped = (byte)src->I32; break;
+                case RuntimeTypeCode.I16: *(short*)unwrapped = (short)src->I32; break;
+                case RuntimeTypeCode.U16: *(ushort*)unwrapped = (ushort)src->I32; break;
+                case RuntimeTypeCode.I32: *(int*)unwrapped = (int)src->I32; break;
+                case RuntimeTypeCode.U32: *(uint*)unwrapped = (uint)src->I32; break;
+                case RuntimeTypeCode.I64: *(long*)unwrapped = (long)src->I64; break;
+                case RuntimeTypeCode.U64: *(ulong*)unwrapped = (ulong)src->I64; break;
+                case RuntimeTypeCode.Any:
+                case RuntimeTypeCode.Ptr: *(IntPtr*)unwrapped = (IntPtr)src->Ptr; break;
+                case RuntimeTypeCode.UPtr: *(UIntPtr*)unwrapped = (UIntPtr)src->Ptr; break;
+
             }
         }
     }

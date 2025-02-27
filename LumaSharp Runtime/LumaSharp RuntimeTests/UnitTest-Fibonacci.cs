@@ -133,13 +133,10 @@ namespace LumaSharp_RuntimeTests
             appContext.methodHandles[110] = (IntPtr)method;
 
             // Push arg
-            StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
-
-            spArg->Type = StackTypeCode.I32;
-            spArg->Ptr = 8;
+            StackData arg = new StackData { Type = StackTypeCode.I32, I32 = 8 };
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
+            StackData* spReturn = _MethodHandle.Invoke(threadContext, method, IntPtr.Zero, &arg);
 
             Assert.AreEqual(34, spReturn->I32);
         }

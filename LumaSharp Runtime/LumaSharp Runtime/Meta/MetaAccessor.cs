@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public class Accessor : Member
+    public class MetaAccessor : MetaMember
     {
         // Type
         protected internal enum AccessorFlags
@@ -15,9 +15,9 @@ namespace LumaSharp.Runtime.Reflection
 
         // Private
         private AccessorFlags accessorFlags = 0;
-        private Type accessorType = null;
-        private Method readMethod = null;
-        private Method writeMethod = null;
+        private MetaType accessorType = null;
+        private MetaMethod readMethod = null;
+        private MetaMethod writeMethod = null;
 
         // Properties
         public bool IsAbstract
@@ -45,23 +45,23 @@ namespace LumaSharp.Runtime.Reflection
             get { return (accessorFlags & AccessorFlags.Write) != 0; }
         }
 
-        public Type AccessorType
+        public MetaType AccessorType
         {
             get { return accessorType; }
         }
 
-        public Method ReadMethod
+        public MetaMethod ReadMethod
         {
             get { return readMethod; }
         }
 
-        public Method WriteMethod
+        public MetaMethod WriteMethod
         {
             get { return writeMethod; }
         }
 
         // Constructor
-        internal Accessor(AppContext context, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
+        internal MetaAccessor(AppContext context, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
             : base(context, name, memberFlags)
         {
             this.accessorFlags = accessorFlags;

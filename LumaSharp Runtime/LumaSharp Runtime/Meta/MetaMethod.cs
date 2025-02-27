@@ -20,12 +20,12 @@ namespace LumaSharp.Runtime.Reflection
         Generic = 512,
     }
 
-    public unsafe class Method : Member
+    public unsafe class MetaMethod : MetaMember
     {
         // Private
         private MethodFlags methodFlags = 0;
-        private MemberReference<Type> returnTypeReference = null;
-        private Parameter[] parameters = null;
+        private MemberReference<MetaType> returnTypeReference = null;
+        private MetaVariable[] parameters = null;
 
         // Internal
         internal _MethodHandle* methodExecutable = null;
@@ -52,12 +52,12 @@ namespace LumaSharp.Runtime.Reflection
             get { return (methodFlags & MethodFlags.Generic) != 0; }
         }
 
-        public Type ReturnType
+        public MetaType ReturnType
         {
             get { return returnTypeReference.Member; }
         }
 
-        public Parameter[] Parameters
+        public MetaVariable[] Parameters
         {
             get { return parameters; }
         }
@@ -67,11 +67,11 @@ namespace LumaSharp.Runtime.Reflection
             get { return parameters.Length; }
         }
 
-        public IEnumerable<Type> ParameterTypes
+        public IEnumerable<MetaType> ParameterTypes
         {
             get
             {
-                foreach(Parameter parameter in parameters)
+                foreach(MetaVariable parameter in parameters)
                 {
                     yield return parameter.ParameterType;
                 }
@@ -79,12 +79,12 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal Method(AppContext context)
+        internal MetaMethod(AppContext context)
             : base(context)
         { 
         }
 
-        internal Method(AppContext context, string name, MethodFlags methodFlags) 
+        internal MetaMethod(AppContext context, string name, MethodFlags methodFlags) 
             : base(context, name, (MemberFlags)methodFlags)
         {
             this.methodFlags = methodFlags;
@@ -94,35 +94,62 @@ namespace LumaSharp.Runtime.Reflection
         public object Invoke(object[] args, IntPtr instance = default)
         {
             // Invoke the method
-            nint stackPtr = InvokeMethodHandle(instance, args);
+            StackData* stackPtr = InvokeHandle(args, instance);
 
-            // Check for return value
-            if ((methodFlags & MethodFlags.ReturnValue) != 0)
+            // Get return object
+            object returnVal = null;
+
+            // Check for return val
+            if ((methodExecutable->Signature.Flags & _MethodSignatureFlags.HasReturn) != 0)
             {
-                // Get type handle
-                _TypeHandle returnTypeHandle = *ReturnType.typeExecutable;
-
-                // Get return value
-                return __memory.ReadAs(returnTypeHandle, (void*)stackPtr, -(int)returnTypeHandle.TypeSize);
+                // Unwrap return val
+                StackData.Unwrap(stackPtr, out returnVal, methodExecutable->Signature.ReturnParameter->TypeHandle.TypeCode);
             }
-            return null;
+
+            return returnVal;
+
+            //// Check for return value
+            //if ((methodFlags & MethodFlags.ReturnValue) != 0)
+            //{
+            //    // Get type handle
+            //    _TypeHandle returnTypeHandle = *ReturnType.typeExecutable;
+
+            //    // Get return value
+            //    return __memory.ReadAs(returnTypeHandle, (void*)stackPtr, -(int)returnTypeHandle.TypeSize);
+            //}
+            //return null;
         }
 
         public T Invoke<T>(object[] args, IntPtr instance = default) where T : unmanaged
         {
             // Invoke the method
-            nint stackPtr = InvokeMethodHandle(instance, args);
+            StackData* stackPtr = InvokeHandle(args, instance);
 
-            // Check for return value
-            if((methodFlags & MethodFlags.ReturnValue) != 0)
+            // Get return object
+            T returnVal = default;
+
+            // Check for return val
+            if ((methodExecutable->Signature.Flags & _MethodSignatureFlags.HasReturn) != 0)
             {
-                // Get return value
-                return __memory.ReadAs<T>((void*)stackPtr, -sizeof(T));
+                // Check return type code
+
+
+                // Unwrap return val
+                StackData.UnwrapAs(stackPtr, &returnVal, methodExecutable->Signature.ReturnParameter->TypeHandle.TypeCode);
             }
-            return default;
+
+            return returnVal;
+
+            //// Check for return value
+            //if ((methodFlags & MethodFlags.ReturnValue) != 0)
+            //{
+            //    // Get return value
+            //    return __memory.ReadAs<T>((void*)stackPtr, -sizeof(T));
+            //}
+            //return default;
         }
 
-        private nint InvokeMethodHandle(IntPtr instance, object[] args)
+        private StackData* InvokeHandle(object[] args, IntPtr instance)
         {
             // Check for no handle available
             if (methodExecutable == null)
@@ -132,33 +159,45 @@ namespace LumaSharp.Runtime.Reflection
             ThreadContext threadContext = context.GetCurrentThreadContext();
 
             // Ptr where arguments should be loaded
-            byte* stackArgPtr = threadContext.ThreadStackPtr;
+            //byte* stackArgPtr = threadContext.ThreadStackPtr;
 
-            // Load instance
-            if (IsGlobal == false)
-            {
-                // Push instance
-                //__memory.WriteAs(instance, ref stackArgPtr);
-            }
+            //// Load instance
+            //if (IsGlobal == false)
+            //{
+            //    // Push instance
+            //    //__memory.WriteAs(instance, ref stackArgPtr);
+            //}
 
-            // Load arguments
-            if (args != null)
+            //// Load arguments
+            //if (args != null)
+            //{
+            //    for (int i = 0; i < args.Length; i++)
+            //    {
+            //        // Push argument
+            //        __memory.WriteAs(args[i], parameters[i].ParameterType.typeExecutable, ref stackArgPtr);
+            //    }
+            //}
+
+            // Alloc temp args
+            StackData* spArg = stackalloc StackData[args.Length];
+
+            // Init args
+            for(int i = 0; i < args.Length; i++)
             {
-                for (int i = 0; i < args.Length; i++)
-                {
-                    // Push argument
-                    __memory.WriteAs(args[i], parameters[i].ParameterType.typeExecutable, ref stackArgPtr);
-                }
+                // Wrap arguments to stack object
+                StackData.Wrap(spArg + i, args[i], methodExecutable->Signature.Parameters[i].TypeHandle.TypeCode);
             }
 
 
             Stopwatch timer = Stopwatch.StartNew();
 
             // Invoke the method
-            nint result = default;// (nint)__interpreter.ExecuteBytecode(context, threadContext, methodExecutable);
+            StackData* spReturn = _MethodHandle.Invoke(threadContext, methodExecutable, instance, spArg);
 
             Console.WriteLine("Execution took: " + timer.Elapsed.TotalMilliseconds + "ms");
-            return result;
+
+            // Get stack return address
+            return spReturn;
         }
 
         internal void LoadMethodMetadata(BinaryReader reader)
@@ -174,13 +213,13 @@ namespace LumaSharp.Runtime.Reflection
             if ((methodFlags & MethodFlags.ReturnValue) != 0)
             {
                 // Load return type
-                this.returnTypeReference = new MemberReference<Type>(
+                this.returnTypeReference = new MemberReference<MetaType>(
                     context, reader.ReadInt32());
             }
             else
             {
                 // Use void return type
-                this.returnTypeReference = new MemberReference<Type>(
+                this.returnTypeReference = new MemberReference<MetaType>(
                     context.ResolveType(0));
             }
 
@@ -191,13 +230,13 @@ namespace LumaSharp.Runtime.Reflection
                 int parameterCount = reader.ReadUInt16();
 
                 // Initialize array
-                this.parameters = new Parameter[parameterCount];
+                this.parameters = new MetaVariable[parameterCount];
 
                 // Load parameters
                 for (int i = 0; i < parameterCount; i++)
                 {
                     // Create parameter
-                    Parameter parameter = new Parameter(context, i);
+                    MetaVariable parameter = new MetaVariable(context, i);
 
                     // Read parameter
                     parameter.LoadParameterMetadata(reader);
@@ -209,7 +248,7 @@ namespace LumaSharp.Runtime.Reflection
             else
             {
                 // Use empty parameters
-                this.parameters = new Parameter[0];
+                this.parameters = new MetaVariable[0];
             }
         }
 

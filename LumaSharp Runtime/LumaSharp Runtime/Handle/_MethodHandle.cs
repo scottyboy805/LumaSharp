@@ -1,4 +1,5 @@
-﻿
+﻿using System.Reflection;
+
 namespace LumaSharp.Runtime.Handle
 {
     [Flags]
@@ -60,6 +61,36 @@ namespace LumaSharp.Runtime.Handle
         }
 
         // Methods       
+        internal static StackData* Invoke(ThreadContext context, _MethodHandle* method, IntPtr inst, StackData* args)
+        {
+            // Get spArg address
+            StackData* spArg = (StackData*)context.ThreadStackPtr;
+
+            // Check for this
+            if ((method->Signature.Flags & _MethodSignatureFlags.HasThis) != 0)
+            { 
+                // Check for null instance
+                if(inst == IntPtr.Zero)
+                    throw new TargetInvocationException("Non-static method requires an instance", null);
+
+                // Load instance
+                spArg->Type = StackTypeCode.Address;
+                spArg->Ptr = inst;
+                spArg++;
+            }
+
+            // Load args
+            for(int i = 0; i < method->Signature.ParameterCount; i++)
+            {
+                // Copy arg value
+                StackData.CopyStack(&args[i], spArg);
+                spArg++;
+            }
+            
+            // Execute bytecode
+            return __interpreter.ExecuteBytecode(context, method);
+        }
+
         internal void Write(BinaryWriter writer)
         {
             //writer.Write(MethodToken);

@@ -2,7 +2,7 @@
 using LumaSharp.Runtime.Reflection;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
-using Type = LumaSharp.Runtime.Reflection.Type;
+using MetaType = LumaSharp.Runtime.Reflection.MetaType;
 
 namespace LumaSharp.Runtime
 {
@@ -17,9 +17,9 @@ namespace LumaSharp.Runtime
         // Private
         private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
-        private Dictionary<int, Module> loadedModules = new Dictionary<int, Module>();
-        private Dictionary<int, Type> loadedTypes = new Dictionary<int, Type>();
-        private Dictionary<int, Member> loadedMembers = new Dictionary<int, Member>();       
+        private Dictionary<int, MetaLibrary> loadedModules = new Dictionary<int, MetaLibrary>();
+        private Dictionary<int, MetaType> loadedTypes = new Dictionary<int, MetaType>();
+        private Dictionary<int, MetaMember> loadedMembers = new Dictionary<int, MetaMember>();       
 
 
         // Constructor
@@ -42,7 +42,7 @@ namespace LumaSharp.Runtime
         }
 
         // Methods
-        public Module LoadModule(string modulePath, bool metadataOnly = false)
+        public MetaLibrary LoadModule(string modulePath, bool metadataOnly = false)
         {
             // Check for null or empty
             if (string.IsNullOrEmpty(modulePath) == true)
@@ -56,18 +56,18 @@ namespace LumaSharp.Runtime
             return LoadModule(File.OpenRead(modulePath), metadataOnly);
         }
 
-        public Module LoadModule(Stream stream, bool metadataOnly = false)
+        public MetaLibrary LoadModule(Stream stream, bool metadataOnly = false)
         {
             // Check for null
             if(stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             // Read the module header
-            ModuleName moduleName;
-            Module.ReadModuleHeader(stream, out moduleName);
+            MetaLibraryName moduleName;
+            MetaLibrary.ReadModuleHeader(stream, out moduleName);
 
             // Check for already loaded
-            Module loadedModule = ResolveModule(moduleName.Name, moduleName.Version);
+            MetaLibrary loadedModule = ResolveModule(moduleName.Name, moduleName.Version);
 
             // Get loaded module
             if (loadedModule != null)
@@ -75,7 +75,7 @@ namespace LumaSharp.Runtime
 
 
             // Create the module and reader
-            Module module = new Module(stream, moduleName);
+            MetaLibrary module = new MetaLibrary(stream, moduleName);
             BinaryReader reader = new BinaryReader(stream);
 
             // Read module
@@ -90,38 +90,38 @@ namespace LumaSharp.Runtime
             return module;
         }
 
-        public Module ResolveModule(int token)
+        public MetaLibrary ResolveModule(int token)
         {
             // Try to get the member
-            Module module;
+            MetaLibrary module;
             if (loadedModules.TryGetValue(token, out module) == false)
                 throw new DllNotFoundException("Token: " + token);
 
             return module;
         }
 
-        public Module ResolveModule(string name)
+        public MetaLibrary ResolveModule(string name)
         {
             return loadedModules.Values
                 .FirstOrDefault(m => m.ModuleName.Name == name);
         }
 
-        public Module ResolveModule(string name, Version version)
+        public MetaLibrary ResolveModule(string name, Version version)
         {
             return loadedModules.Values
                 .FirstOrDefault(m => m.ModuleName.Name == name 
                 && m.ModuleName.Version.Equals(version));
         }
 
-        public Member ResolveMember(int token)
+        public MetaMember ResolveMember(int token)
         {
             // Try to get the member
-            Member member;
+            MetaMember member;
             if (loadedMembers.TryGetValue(token, out member) == true)
                 return member;
 
             // Check for type
-            Type type;
+            MetaType type;
             if (loadedTypes.TryGetValue(token, out type) == true)
                 return type;
 
@@ -129,54 +129,54 @@ namespace LumaSharp.Runtime
             throw new MissingMemberException("Token: " + token);
         }
 
-        public T ResolveMember<T>(int token) where T : Member
+        public T ResolveMember<T>(int token) where T : MetaMember
         {
             return ResolveMember(token) as T;
         }
 
-        public Type ResolveType(int token)
+        public MetaType ResolveType(int token)
         {
             throw new NotImplementedException();
         }
 
-        public Field ResolveField(int token)
+        public MetaField ResolveField(int token)
         {
             // Try to get the member
-            Member member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is Field) == false)
+            MetaMember member;
+            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaField) == false)
                 throw new MissingMemberException("Token: " + token);
 
-            return member as Field;
+            return member as MetaField;
         }
 
-        public Accessor ResolveAccessor(int token)
+        public MetaAccessor ResolveAccessor(int token)
         {
             // Try to get the member
-            Member member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is Accessor) == false)
+            MetaMember member;
+            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaAccessor) == false)
                 throw new MissingMemberException("Token: " + token);
 
-            return member as Accessor;
+            return member as MetaAccessor;
         }
 
-        public Method ResolveMethod(int token)
+        public MetaMethod ResolveMethod(int token)
         {
             // Try to get the member
-            Member member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is Method) == false)
+            MetaMember member;
+            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaMethod) == false)
                 throw new MissingMemberException("Token: " + token);
 
-            return member as Method;
+            return member as MetaMethod;
         }
 
-        public IEnumerable<Module> GetLibraries()
+        public IEnumerable<MetaLibrary> GetLibraries()
         {
             return loadedModules.Values;
         }
 
-        public IEnumerable<Type> GetTypes(MemberFlags flags)
+        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
         {
-            foreach(Type type in loadedTypes.Values)
+            foreach(MetaType type in loadedTypes.Values)
             {
                 // Check for field with flags
                 if (type.HasMemberFlags(flags) == true)
@@ -188,7 +188,7 @@ namespace LumaSharp.Runtime
         {
         }
 
-        internal void DefineMember(Member member)
+        internal void DefineMember(MetaMember member)
         {
             // Check for already added
             if (loadedMembers.ContainsKey(member.Token) == true)

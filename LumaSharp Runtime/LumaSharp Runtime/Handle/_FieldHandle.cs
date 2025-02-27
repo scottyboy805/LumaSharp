@@ -28,6 +28,24 @@ namespace LumaSharp.Runtime.Handle
             return (inst + FieldOffset);
         }
 
+        internal static void SetFieldValue(_FieldHandle* field, IntPtr inst, StackData* value)
+        {
+            // Get field address
+            byte* fieldMem = field->GetFieldAddress((byte*)inst);
+
+            // Copy to memory
+            StackData.CopyToMemory(value, fieldMem, field->TypeHandle.TypeCode);
+        }
+
+        internal static void GetFieldValue(_FieldHandle* field, IntPtr inst, StackData* value)
+        {
+            // Get field address
+            byte* fieldMem = field->GetFieldAddress((byte*)inst);
+
+            // Copy from memory
+            StackData.CopyFromMemory(value, fieldMem, field->TypeHandle.TypeCode);
+        }
+
         internal void Write(BinaryWriter writer)
         {
             writer.Write(FieldToken);

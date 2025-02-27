@@ -10,7 +10,7 @@ namespace LumaSharp.Runtime.Reflection
         Global = 8,
     }
 
-    public abstract class Member
+    public abstract class MetaMember
     {
         // Internal
         internal AppContext context = null;
@@ -57,12 +57,12 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal Member(AppContext context) 
+        internal MetaMember(AppContext context) 
         {
             this.context = context;
         }
 
-        protected Member(AppContext context, string name, MemberFlags flags)
+        protected MetaMember(AppContext context, string name, MemberFlags flags)
         {
             this.context =context;
             this.name = name;

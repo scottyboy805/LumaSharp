@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
-    public enum TypeFlags : uint
+    public enum MetaTypeFlags : uint
     {
         Export = 1,
         Internal = 2,
@@ -19,13 +19,13 @@ namespace LumaSharp.Runtime.Reflection
         Generic = 1024,
     }
 
-    public unsafe class Type : Member
+    public unsafe class MetaType : MetaMember
     {
         // Private
-        private TypeFlags typeFlags = 0;
+        private MetaTypeFlags typeFlags = 0;
         private RuntimeTypeCode typeCode = 0;
-        private Type elementType = null;
-        private Member[] members = null;
+        private MetaType elementType = null;
+        private MetaMember[] members = null;
 
         // Internal
         internal _TypeHandle* typeExecutable = null;
@@ -43,41 +43,41 @@ namespace LumaSharp.Runtime.Reflection
 
         public bool IsType
         {
-            get { return (typeFlags & TypeFlags.Type) != 0; }
+            get { return (typeFlags & MetaTypeFlags.Type) != 0; }
         }
 
         public bool IsContract
         {
-            get { return (typeFlags & TypeFlags.Contract) != 0; }
+            get { return (typeFlags & MetaTypeFlags.Contract) != 0; }
         }
 
         public bool IsEnum
         {
-            get { return (typeFlags & TypeFlags.Enum) != 0; }
+            get { return (typeFlags & MetaTypeFlags.Enum) != 0; }
         }
 
         public bool IsArray
         {
-            get { return (typeFlags & TypeFlags.Array) != 0; }
+            get { return (typeFlags & MetaTypeFlags.Array) != 0; }
         }
 
         public bool IsGeneric
         {
-            get { return (typeFlags & TypeFlags.Generic) != 0; }
+            get { return (typeFlags & MetaTypeFlags.Generic) != 0; }
         }
 
-        public Type ElementType
+        public MetaType ElementType
         {
             get { return elementType; }
         }
 
         // Constructor
-        internal Type(AppContext context)
+        internal MetaType(AppContext context)
             : base(context)
         { 
         }
 
-        protected Type(AppContext context, string name, RuntimeTypeCode code, TypeFlags typeFlags)
+        protected MetaType(AppContext context, string name, RuntimeTypeCode code, MetaTypeFlags typeFlags)
             : base(context, name, (MemberFlags)typeFlags)
         {
             this.typeCode = code;
@@ -85,9 +85,9 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Methods
-        public IEnumerable<Member> GetMembers(MemberFlags flags)
+        public IEnumerable<MetaMember> GetMembers(MemberFlags flags)
         {
-            foreach(Member member in members)
+            foreach(MetaMember member in members)
             {
                 // Check for member flags
                 if (member.HasMemberFlags(flags) == true)
@@ -95,53 +95,53 @@ namespace LumaSharp.Runtime.Reflection
             }
         }
 
-        public IEnumerable<Type> GetTypes(MemberFlags flags)
+        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
         {
-            foreach (Member member in members)
+            foreach (MetaMember member in members)
             {
                 // Check for field with flags
-                if (member is Type && member.HasMemberFlags(flags) == true)
-                    yield return (Type)member;
+                if (member is MetaType && member.HasMemberFlags(flags) == true)
+                    yield return (MetaType)member;
             }
         }
 
-        public IEnumerable<Field> GetFields(MemberFlags flags)
+        public IEnumerable<MetaField> GetFields(MemberFlags flags)
         {
-            foreach(Member member in members)
+            foreach(MetaMember member in members)
             {
                 // Check for field with flags
-                if (member is Field && member.HasMemberFlags(flags) == true)
-                    yield return (Field)member;
+                if (member is MetaField && member.HasMemberFlags(flags) == true)
+                    yield return (MetaField)member;
             }
         }
 
-        public IEnumerable<Accessor> GetAccessors(MemberFlags flags)
+        public IEnumerable<MetaAccessor> GetAccessors(MemberFlags flags)
         {
-            foreach (Member member in members)
+            foreach (MetaMember member in members)
             {
                 // Check for field with flags
-                if (member is Accessor && member.HasMemberFlags(flags) == true)
-                    yield return (Accessor)member;
+                if (member is MetaAccessor && member.HasMemberFlags(flags) == true)
+                    yield return (MetaAccessor)member;
             }
         }
 
-        public IEnumerable<Method> GetInitializers(MemberFlags flags)
+        public IEnumerable<MetaMethod> GetInitializers(MemberFlags flags)
         {
-            foreach (Member member in members)
+            foreach (MetaMember member in members)
             {
                 // Check for method with flags and not initializer
-                if (member is Method && member.HasMemberFlags(flags) == true && ((Method)member).IsInitializer == true)
-                    yield return (Method)member;
+                if (member is MetaMethod && member.HasMemberFlags(flags) == true && ((MetaMethod)member).IsInitializer == true)
+                    yield return (MetaMethod)member;
             }
         }
 
-        public IEnumerable<Method> GetMethods(MemberFlags flags) 
+        public IEnumerable<MetaMethod> GetMethods(MemberFlags flags) 
         {
-            foreach(Member member in members)
+            foreach(MetaMember member in members)
             {
                 // Check for method with flags and not initializer
-                if(member is Method && member.HasMemberFlags(flags) == true && ((Method)member).IsInitializer == false)
-                    yield return (Method)member;
+                if(member is MetaMethod && member.HasMemberFlags(flags) == true && ((MetaMethod)member).IsInitializer == false)
+                    yield return (MetaMethod)member;
             }
         }
 
@@ -151,9 +151,9 @@ namespace LumaSharp.Runtime.Reflection
             LoadMemberMetadata(reader);
 
             // Get type flags
-            typeFlags = (TypeFlags)MemberFlags;
+            typeFlags = (MetaTypeFlags)MemberFlags;
 
-            List<Member> members = new List<Member>();
+            List<MetaMember> members = new List<MetaMember>();
 
             // Read fields
             int fieldCount = reader.ReadInt32();
@@ -162,7 +162,7 @@ namespace LumaSharp.Runtime.Reflection
             for(int i = 0; i < fieldCount; i++)
             {
                 // Create field
-                Field field = new Field(context);
+                MetaField field = new MetaField(context);
 
                 // Read field
                 field.LoadFieldMetadata(reader);
@@ -178,7 +178,7 @@ namespace LumaSharp.Runtime.Reflection
             for(int i = 0; i < methodCount; i++)
             {
                 // Create method
-                Method method = new Method(context);
+                MetaMethod method = new MetaMethod(context);
 
                 // Read method
                 method.LoadMethodMetadata(reader);
@@ -201,7 +201,7 @@ namespace LumaSharp.Runtime.Reflection
 
 
             // Read all fields
-            foreach(Field field in members.OfType<Field>())
+            foreach(MetaField field in members.OfType<MetaField>())
             {
                 // Read executable
                 field.LoadFieldExecutable(reader);

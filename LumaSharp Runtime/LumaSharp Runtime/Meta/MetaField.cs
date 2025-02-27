@@ -14,28 +14,28 @@ namespace LumaSharp.Runtime.Reflection
         Constant = 16,
     }
 
-    public unsafe class Field : Member
+    public unsafe class MetaField : MetaMember
     {
         // Private
         private FieldFlags fieldFlags = 0;
-        private Type fieldType = null;
+        private MetaType fieldType = null;
 
         // Internal
         internal _FieldHandle* fieldExecutable = null;
 
         // Properties
-        public Type FieldType
+        public MetaType FieldType
         {
             get { return fieldType; }
         }
 
         // Constructor
-        internal Field(AppContext context)
+        internal MetaField(AppContext context)
             : base(context)
         { 
         }
 
-        internal Field(AppContext context, string name, FieldFlags fieldFlags)
+        internal MetaField(AppContext context, string name, FieldFlags fieldFlags)
             : base(context, name, (MemberFlags)fieldFlags)
         {
             this.fieldFlags = fieldFlags;

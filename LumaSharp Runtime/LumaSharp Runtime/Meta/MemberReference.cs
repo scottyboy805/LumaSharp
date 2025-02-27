@@ -2,7 +2,7 @@
 
 namespace LumaSharp.Runtime.Reflection
 {
-    internal sealed class MemberReference<T> where T : Member
+    internal sealed class MemberReference<T> where T : MetaMember
     {
         // Private
         private AppContext context = null;
@@ -41,7 +41,7 @@ namespace LumaSharp.Runtime.Reflection
             this.symbolToken = symbolToken;
         }
 
-        public MemberReference(Type fromType)
+        public MemberReference(MetaType fromType)
         {
             this.context = fromType.context;
             this.symbolToken = fromType.Token;

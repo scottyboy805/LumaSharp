@@ -1,13 +1,13 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public class GenericMethod : Method
+    public class GenericMethod : MetaMethod
     {
         // Private
-        private Type[] genericParameterTypes = null;
+        private MetaType[] genericParameterTypes = null;
 
         // Properties
-        public Type[] GenericParameterTypes
+        public MetaType[] GenericParameterTypes
         {
             get { return genericParameterTypes; }
         }

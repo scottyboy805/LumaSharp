@@ -1,13 +1,13 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public class GenericType : Type
+    public class GenericType : MetaType
     {
         // Private
-        private Type[] genericParameterTypes = null;        
+        private MetaType[] genericParameterTypes = null;        
 
         // Properties
-        public Type[] GenericParameterTypes
+        public MetaType[] GenericParameterTypes
         {
             get { return genericParameterTypes; }
         }
@@ -18,8 +18,8 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal GenericType(AppContext context, string name, Type[] genericParameterTypes, TypeFlags typeFlags) 
-            : base(context, name, RuntimeTypeCode.Any, typeFlags | TypeFlags.Generic)
+        internal GenericType(AppContext context, string name, MetaType[] genericParameterTypes, MetaTypeFlags typeFlags) 
+            : base(context, name, RuntimeTypeCode.Any, typeFlags | MetaTypeFlags.Generic)
         {
             this.genericParameterTypes = genericParameterTypes;
         }
