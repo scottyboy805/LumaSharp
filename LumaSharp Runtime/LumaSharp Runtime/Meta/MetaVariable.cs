@@ -16,10 +16,10 @@ namespace LumaSharp.Runtime.Reflection
         internal AppContext context = null;
 
         // Private
-        private VariableFlags parameterFlags = 0;
+        private VariableFlags variableFlags = 0;
         private string name = "";
         private int index = 0;
-        private MemberReference<MetaType> parameterType = null;
+        private MemberReference<MetaType> variableType = null;
 
         // Properties
         public string Name
@@ -34,22 +34,22 @@ namespace LumaSharp.Runtime.Reflection
 
         public MetaType ParameterType
         {
-            get { return parameterType.Member; }
+            get { return variableType.Member; }
         }
 
         public bool IsReference
         {
-            get { return (parameterFlags & VariableFlags.Reference) != 0; }
+            get { return (variableFlags & VariableFlags.Reference) != 0; }
         }
 
         public bool IsDefaultValue
         {
-            get { return (parameterFlags & VariableFlags.DefaultValue) != 0; }
+            get { return (variableFlags & VariableFlags.DefaultValue) != 0; }
         }
 
         public bool IsVariableLength
         {
-            get { return (parameterFlags & VariableFlags.VariableLength) != 0; }
+            get { return (variableFlags & VariableFlags.VariableLength) != 0; }
         }
 
         // Constructor
@@ -64,19 +64,19 @@ namespace LumaSharp.Runtime.Reflection
             this.context = context;
             this.name = name;
             this.index = index;
-            this.parameterType = new MemberReference<MetaType>(parameterType);
-            this.parameterFlags = parameterFlags;
+            this.variableType = new MemberReference<MetaType>(parameterType);
+            this.variableFlags = parameterFlags;
         }
 
         // Methods
         internal void LoadParameterMetadata(BinaryReader reader)
         {
             // Read parameter type
-            this.parameterType = new MemberReference<MetaType>(
+            this.variableType = new MemberReference<MetaType>(
                 context, reader.ReadInt32());
 
             // Read flags
-            this.parameterFlags = (VariableFlags)reader.ReadUInt32();
+            this.variableFlags = (VariableFlags)reader.ReadUInt32();
         }
     }
 }

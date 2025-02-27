@@ -87,13 +87,13 @@ namespace LumaSharp.Runtime
         [Conditional("DEBUG")]
         public void DebugInstruction(OpCode op, byte* pc)
         {
-            Debug.WriteLine("{0:X4}: {1}", (IntPtr)(pc - instructionBasePtr), op);
+            Debug.WriteLine("{0}: {1}", DebugOffset(pc), op);
         }
 
         [Conditional("DEBUG")]
         public void DebugInstruction(OpCode op, byte* pc, StackData* sp)
         {
-            Debug.WriteLine("{0:X4}: {1}\t\t{2}", (IntPtr)(pc - instructionBasePtr), op, *sp);
+            Debug.WriteLine("{0}: {1}{2}", DebugOffset(pc), DebugOp(op), *sp);
         }
 
         [Conditional("DEBUG")]
@@ -103,19 +103,41 @@ namespace LumaSharp.Runtime
             StackData tmp;
             StackData.CopyFromMemory(&tmp, mem, typeCode);
 
-            Debug.WriteLine("{0:X4}: {1}\t\t{2}", (IntPtr)(pc - instructionBasePtr), op, tmp);
+            Debug.WriteLine("{0}: {1}{2}", DebugOffset(pc), DebugOp(op), tmp);
         }
 
         [Conditional("DEBUG")]
         public void DebugInstruction(OpCode op, byte* pc, int branchOffset)
         {
-            Debug.WriteLine("{0:X4}: {1}\t\t{2:X4}", (IntPtr)(pc - instructionBasePtr), op, (IntPtr)((pc + branchOffset) - instructionBasePtr));
+            Debug.WriteLine("{0}: {1}{2:X4}", DebugOffset(pc), DebugOp(op), (IntPtr)((pc + branchOffset) - instructionBasePtr));
         }
 
         [Conditional("DEBUG")]
         public void DebugInstruction(OpCode op, byte* pc, StackData* sp, int branchOffset)
         {
-            Debug.WriteLine("{0:X4}: {1}\t\t{2} {3:X4}", (IntPtr)(pc - instructionBasePtr), op, *sp, (IntPtr)((pc + branchOffset) - instructionBasePtr));
+            Debug.WriteLine("{0}: {1}{2} {3:X4}", DebugOffset(pc), DebugOp(op), *sp, (IntPtr)((pc + branchOffset) - instructionBasePtr));
+        }
+
+        private string DebugOffset(byte* pc)
+        {
+            // Add leading indent
+            string offsetString = new string('\t', callDepth - 1);
+
+            // Add offset
+            offsetString += string.Format("{0:X4}", (IntPtr)(pc - instructionBasePtr));
+
+            return offsetString;
+        }
+
+        private string DebugOp(OpCode code)
+        {
+            int fixedSize = 12;
+            string opString = code.ToString();
+
+            for (int i = opString.Length; i < fixedSize; i++)
+                opString += ' ';
+
+            return opString;
         }
     }
 }
