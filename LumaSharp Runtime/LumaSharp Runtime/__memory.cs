@@ -60,14 +60,14 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* Alloc(in _TypeHandle type)
+        public static void* Alloc(_TypeHandle* type)
         {
             // Check for zero
-            if (type.TypeSize == 0)
+            if (type->TypeSize == 0)
                 return null;
 
             // Size must include 4 bytes for reference counter and 4 bytes for type code
-            uint fullSize = type.TypeSize + _MemoryHandle.Size;
+            uint fullSize = type->TypeSize + _MemoryHandle.Size;
 
             // Allocate
             void* mem;
@@ -103,14 +103,14 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* AllocArray(in _TypeHandle type, uint elementCount)
+        public static void* AllocArray(_TypeHandle* elementType, uint elementCount)
         {
             // Check for zero
-            if (type.TypeSize == 0)
+            if (elementType->TypeSize == 0)
                 return null;
 
             // Size must include type info??
-            uint fullSize = (type.TypeSize * elementCount) + _ArrayHandle.Size;
+            uint fullSize = (elementType->TypeSize * elementCount) + _ArrayHandle.Size;
 
             void* mem;
 
@@ -137,7 +137,7 @@ namespace LumaSharp.Runtime
 
             // Insert memory handle before data
             (*((_ArrayHandle*)mem)).ElementCount = elementCount;
-            (*((_ArrayHandle*)mem)).MemoryHandle.TypeHandle = type;
+            (*((_ArrayHandle*)mem)).MemoryHandle.TypeHandle = elementType;
 
             // Get data offset
             mem = ((byte*)mem) + _ArrayHandle.Size;

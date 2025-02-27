@@ -154,7 +154,7 @@ namespace LumaSharp_RuntimeTests
             AppContext appContext = new AppContext();
             ThreadContext threadContext = new ThreadContext(appContext);
 
-            appContext.methodHandles[110] = method;
+            appContext.methodHandles[110] = (IntPtr)(&method);
 
             // Push arg
             StackData* spArg = (StackData*)threadContext.ThreadStackPtr;

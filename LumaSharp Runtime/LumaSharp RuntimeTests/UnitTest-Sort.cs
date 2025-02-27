@@ -117,7 +117,8 @@ namespace LumaSharp_RuntimeTests
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create test array
-            int* arr =  (int*)__memory.AllocArray(new _TypeHandle(RuntimeTypeCode.I32), 5);
+            _TypeHandle type = new _TypeHandle(RuntimeTypeCode.I32);
+            int* arr =  (int*)__memory.AllocArray(&type, 5);
             arr[0] = 11;
             arr[1] = 32;
             arr[2] = 8;

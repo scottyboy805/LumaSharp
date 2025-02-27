@@ -16,7 +16,7 @@ namespace LumaSharp.Runtime.Handle
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte* GetElementAddress(byte* arr, long index)
         {
-            return (byte*)(arr + (MemoryHandle.TypeHandle.TypeSize * index));
+            return (byte*)(arr + (MemoryHandle.TypeHandle->TypeSize * index));
         }
     }
 }

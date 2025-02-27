@@ -99,7 +99,7 @@ namespace LumaSharp.Runtime
         As_Any = 0xF8,          // 4 byte data - type token - Convert object or primitive to object of type
         From_Any = 0xF9,        // 4 byte data - type token - Convert primitive boxed value to primitive
         Ld_Size = 0xFA,         // No data
-		Ld_Type = 0xFB,			// No data
+        Ld_Type = 0xFB,			// 4 byte data - type token
         Ld_Func = 0xFC,         // 4 byte data - type token
         Ret = 0xFD,             // No data
         Throw = 0xFE,           // No data

@@ -33,8 +33,10 @@ namespace LumaSharp_RuntimeTests
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create type handle
-            appContext.typeHandles[110] = new _TypeHandle(110, 4);
-            appContext.fieldHandles[120] = new _FieldHandle(120, 0, new _TypeHandle(RuntimeTypeCode.I32));
+            _TypeHandle typeHandle = new _TypeHandle(110, 4);
+            _FieldHandle fieldHandle = new _FieldHandle(120, 0, new _TypeHandle(RuntimeTypeCode.I32));
+            appContext.typeHandles[110] = (IntPtr)(&typeHandle);
+            appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
             StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);
@@ -67,8 +69,10 @@ namespace LumaSharp_RuntimeTests
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create type handle
-            appContext.typeHandles[110] = new _TypeHandle(110, 4);
-            appContext.fieldHandles[120] = new _FieldHandle(120, 0, new _TypeHandle(RuntimeTypeCode.I32));
+            _TypeHandle typeHandle = new _TypeHandle(110, 4);
+            _FieldHandle fieldHandle = new _FieldHandle(120, 0, new _TypeHandle(RuntimeTypeCode.I32));
+            appContext.typeHandles[110] = (IntPtr)(&typeHandle);
+            appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
             StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);

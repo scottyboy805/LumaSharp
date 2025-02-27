@@ -1,5 +1,5 @@
-﻿
-using LumaSharp.Runtime.Handle;
+﻿using LumaSharp.Runtime.Handle;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("LumaSharp Compiler")]
@@ -13,11 +13,6 @@ namespace LumaSharp.Runtime
         // Methods
         internal static StackData* ExecuteBytecode(ThreadContext context, in _MethodHandle method, byte* instructionPtr)
         {
-            return ExecuteBytecode(context, method, instructionPtr, context.ThreadStackPtr);
-        }
-
-        internal static StackData* ExecuteBytecode(ThreadContext context, in _MethodHandle method, byte* instructionPtr, byte* stackBasePtr)
-        {
             // Set instruction ptr
             context.SetInstructionPtr(instructionPtr);
 
@@ -26,7 +21,7 @@ namespace LumaSharp.Runtime
 
             // Get pointers
             byte* pc = instructionPtr;
-            StackData* spVar = (StackData*)stackBasePtr;
+            StackData* spVar = (StackData*)context.ThreadStackPtr;
             StackData* sp = spVar + (method.Signature.ParameterCount + method.Body.VariableCount);
 
             // Check overflow
@@ -370,7 +365,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle field = context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
 
                             // Pop instance
                             sp--;
@@ -380,10 +375,10 @@ namespace LumaSharp.Runtime
                                 context.Throw<NullReferenceException>();
 
                             // Get field address
-                            byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
+                            byte* fieldMem = field->GetFieldAddress((byte*)sp->Ptr);
 
                             // Copy to stack
-                            StackData.CopyFromMemory(sp, fieldMem, field.TypeHandle.TypeCode);
+                            StackData.CopyFromMemory(sp, fieldMem, field->TypeHandle.TypeCode);
                             sp++;
 
                             // Debug execution
@@ -397,7 +392,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle field = context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
 
                             // Pop instance
                             sp--;
@@ -407,11 +402,11 @@ namespace LumaSharp.Runtime
                                 context.Throw<NullReferenceException>();
 
                             // Get field address
-                            byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
+                            byte* fieldMem = field->GetFieldAddress((byte*)sp->Ptr);
 
                             // Push address of field
                             sp->Type = StackTypeCode.Address;
-                            sp->TypeCode = field.TypeHandle.TypeCode;
+                            sp->TypeCode = field->TypeHandle.TypeCode;
                             sp->Ptr = (IntPtr)fieldMem;
                             sp++;
 
@@ -426,7 +421,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle field = context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
 
                             // Pop value then instance
                             sp -= 2;
@@ -436,13 +431,13 @@ namespace LumaSharp.Runtime
                                 context.Throw<NullReferenceException>();
 
                             // Get field address
-                            byte* fieldMem = field.GetFieldAddress((byte*)sp->Ptr);
+                            byte* fieldMem = field->GetFieldAddress((byte*)sp->Ptr);
 
                             // Copy to memory
-                            StackData.CopyToMemory(sp + 1, fieldMem, field.TypeHandle.TypeCode);
+                            StackData.CopyToMemory(sp + 1, fieldMem, field->TypeHandle.TypeCode);
 
                             // Debug execution
-                            context.DebugInstruction(code, pc - 5, fieldMem, field.TypeHandle.TypeCode);
+                            context.DebugInstruction(code, pc - 5, fieldMem, field->TypeHandle.TypeCode);
                             break;
                         }
                     #endregion
@@ -494,7 +489,7 @@ namespace LumaSharp.Runtime
                             byte* elementMem = arr.GetElementAddress((byte*)sp->Ptr, index);
 
                             // Copy to stack
-                            StackData.CopyFromMemory(sp, elementMem, arr.MemoryHandle.TypeHandle.TypeCode);
+                            StackData.CopyFromMemory(sp, elementMem, arr.MemoryHandle.TypeHandle->TypeCode);
                             sp++;
 
                             // Debug execution
@@ -526,7 +521,7 @@ namespace LumaSharp.Runtime
 
                             // Push address of element
                             sp->Type = StackTypeCode.Address;
-                            sp->TypeCode = arr.MemoryHandle.TypeHandle.TypeCode;
+                            sp->TypeCode = arr.MemoryHandle.TypeHandle->TypeCode;
                             sp->Ptr = (IntPtr)elementMem;                            
                             sp++;
 
@@ -561,10 +556,10 @@ namespace LumaSharp.Runtime
                             byte* elementMem = arr.GetElementAddress((byte*)sp->Ptr, index);
 
                             // Copy to memory
-                            StackData.CopyToMemory(sp + 2, elementMem, arr.MemoryHandle.TypeHandle.TypeCode);
+                            StackData.CopyToMemory(sp + 2, elementMem, arr.MemoryHandle.TypeHandle->TypeCode);
 
                             // Debug execution
-                            context.DebugInstruction(code, pc - 1, elementMem, arr.MemoryHandle.TypeHandle.TypeCode);
+                            context.DebugInstruction(code, pc - 1, elementMem, arr.MemoryHandle.TypeHandle->TypeCode);
                             break;
                         }
                     #endregion
@@ -1897,7 +1892,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle
-                            _TypeHandle typeHandle = context.AppContext.typeHandles[token];
+                            _TypeHandle* typeHandle = (_TypeHandle*)context.AppContext.typeHandles[token];
 
                             // Create new instance and push to stack
                             sp->Type = StackTypeCode.Address;
@@ -1917,16 +1912,16 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get method handle
-                            _MethodHandle callHandle = context.AppContext.methodHandles[token];
+                            _MethodHandle* callHandle = (_MethodHandle*)context.AppContext.methodHandles[token];
 
                             // Get call ptr
                             StackData* spCall = sp;
 
                             // Decrement stack ptr
-                            sp -= callHandle.Signature.ParameterCount;
+                            sp -= callHandle->Signature.ParameterCount;
 
                             // Copy arguments
-                            for(int i = 0; i < callHandle.Signature.ParameterCount; i++)
+                            for(int i = 0; i < callHandle->Signature.ParameterCount; i++)
                             {
                                 // Copy arg
                                 StackData.CopyStack(sp + i, spCall + i);
@@ -1974,6 +1969,60 @@ namespace LumaSharp.Runtime
                             if (context.CallStack.Count == 0)
                                 halt = true;
 
+                            break;
+                        }
+
+                    case OpCode.Ld_Size:
+                        {
+                            // Pop token
+                            sp--;
+
+                            // Get type handle
+                            _TypeHandle* type = (_TypeHandle*)context.AppContext.typeHandles[sp->I32];
+
+                            // Push size of type
+                            sp->Type = StackTypeCode.I32;
+                            sp->I32 = (int)type->TypeSize;
+                            sp++;
+                            
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 1, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Type:
+                        {
+                            // Get type token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get type handle ptr
+                            _TypeHandle* typePtr = (_TypeHandle*)context.AppContext.typeHandles[token];
+
+                            // Push address of type to stack
+                            sp->Type = StackTypeCode.Address;
+                            sp->Ptr = (IntPtr)typePtr;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Func:
+                        {
+                            // Get method token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get method handle ptr
+                            _MethodHandle* methodPtr = (_MethodHandle*)context.AppContext.methodHandles[token];
+
+                            // Push address of method to stack
+                            sp->Type = StackTypeCode.Address;
+                            sp->Ptr = (IntPtr)methodPtr;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
                             break;
                         }
                     #endregion
