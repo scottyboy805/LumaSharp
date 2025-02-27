@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Runtime.Handle;
 using System.Diagnostics;
+using System.Drawing;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("LumaSharp Compiler")]
@@ -11,22 +12,25 @@ namespace LumaSharp.Runtime
     internal static unsafe class __interpreter
     {
         // Methods
-        internal static StackData* ExecuteBytecode(ThreadContext context, in _MethodHandle method, byte* instructionPtr)
+        internal static StackData* ExecuteBytecode(ThreadContext context, _MethodHandle* method)//, byte* instructionPtr)
         {
-            // Set instruction ptr
-            context.SetInstructionPtr(instructionPtr);
+            //// Set instruction ptr
+            //context.SetInstructionPtr((byte*)method + size);// instructionPtr);
 
             // Get sp max
             byte* spMax = context.ThreadStackPtr + context.ThreadStackSize;
 
             // Get pointers
-            byte* pc = instructionPtr;
+            byte* pc = (byte*)method + sizeof(_MethodHandle); //instructionPtr;
             StackData* spVar = (StackData*)context.ThreadStackPtr;
-            StackData* sp = spVar + (method.Signature.ParameterCount + method.Body.VariableCount);
+            StackData* sp = spVar + (method->Signature.ParameterCount + method->Body.VariableCount);
 
             // Check overflow
-            if (sp + method.Body.MaxStack >= spMax)
+            if (sp + method->Body.MaxStack >= spMax)
                 context.Throw<StackOverflowException>();
+
+            // Set instruction ptr
+            context.DebugInstructionPtr(pc);// instructionPtr);
 
             // Push call stack
             context.CallStack.Push(new CallSite(method, pc, spVar, sp));
@@ -263,7 +267,7 @@ namespace LumaSharp.Runtime
 
                             // Push address of variable
                             sp->Type = StackTypeCode.Address;
-                            sp->TypeCode = method.Body.Variables[offset].TypeHandle.TypeCode;
+                            sp->TypeCode = method->Body.Variables[offset].TypeHandle.TypeCode;
                             sp->Ptr = (IntPtr)(spVar + offset);
                             sp++;
 
@@ -279,7 +283,7 @@ namespace LumaSharp.Runtime
 
                             // Push address of variable
                             sp->Type = StackTypeCode.Address;
-                            sp->TypeCode = method.Body.Variables[offset].TypeHandle.TypeCode;
+                            sp->TypeCode = method->Body.Variables[offset].TypeHandle.TypeCode;
                             sp->Ptr = (IntPtr)(spVar + offset);                            
                             sp++;
 
@@ -1906,6 +1910,7 @@ namespace LumaSharp.Runtime
                             break;
                         }
                     case OpCode.Call:
+                    case OpCode.Call_Virt:
                         {
                             // Get token from instruction
                             int token = *(int*)pc;
@@ -1927,21 +1932,64 @@ namespace LumaSharp.Runtime
                                 StackData.CopyStack(sp + i, spCall + i);
                             }
 
+                            // Check for virtual call - need to resolve the correct method via late binding
+                            if(code == OpCode.Call_Virt)
+                            {
+                                // TODO
+                            }
+
                             // Debug execution
                             context.DebugInstruction(code, pc - 5);
 
                             // Push call
-                            context.CallStack.Push(new CallSite(method, pc, spVar, sp));
+                            context.CallStack.Push(new CallSite(callHandle, pc, spVar, sp));
 
                             // Update ptrs to jump to call
-                            pc = instructionPtr;
+                            pc = (byte*)callHandle + sizeof(_MethodHandle); //instructionPtr;
                             spVar = spCall;
-                            sp = spVar + (method.Signature.ParameterCount + method.Body.VariableCount);
+                            sp = spVar + (callHandle->Signature.ParameterCount + callHandle->Body.VariableCount);
 
                             // Check overflow
-                            if (sp + method.Body.MaxStack >= spMax)
+                            if (sp + callHandle->Body.MaxStack >= spMax)
                                 context.Throw<StackOverflowException>();
 
+                            break;
+                        }
+                    case OpCode.Call_Addr:
+                        {
+                            // Pop handle
+                            sp--;
+
+                            // Get method handle from stack
+                            _MethodHandle* callHandle = (_MethodHandle*)sp->Ptr;
+
+                            // Get call ptr
+                            StackData* spCall = sp;
+
+                            // Decrement stack ptr
+                            sp -= callHandle->Signature.ParameterCount;
+
+                            // Copy arguments
+                            for (int i = 0; i < callHandle->Signature.ParameterCount; i++)
+                            {
+                                // Copy arg
+                                StackData.CopyStack(sp + i, spCall + i);
+                            }
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5);
+
+                            // Push call
+                            context.CallStack.Push(new CallSite(callHandle, pc, spVar, sp));
+
+                            // Update ptrs to jump to call
+                            pc = (byte*)callHandle + sizeof(_MethodHandle); //instructionPtr;
+                            spVar = spCall;
+                            sp = spVar + (callHandle->Signature.ParameterCount + callHandle->Body.VariableCount);
+
+                            // Check overflow
+                            if (sp + callHandle->Body.MaxStack >= spMax)
+                                context.Throw<StackOverflowException>();
                             break;
                         }
                     case OpCode.Ret:
@@ -1974,15 +2022,12 @@ namespace LumaSharp.Runtime
 
                     case OpCode.Ld_Size:
                         {
-                            // Pop token
+                            // Pop handle
                             sp--;
-
-                            // Get type handle
-                            _TypeHandle* type = (_TypeHandle*)context.AppContext.typeHandles[sp->I32];
 
                             // Push size of type
                             sp->Type = StackTypeCode.I32;
-                            sp->I32 = (int)type->TypeSize;
+                            sp->I32 = (int)((_TypeHandle*)sp->Ptr)->TypeSize;
                             sp++;
                             
                             // Debug execution

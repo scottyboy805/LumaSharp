@@ -6,13 +6,13 @@ namespace LumaSharp.Runtime
     internal unsafe readonly struct CallSite
     {
         // Public
-        public readonly _MethodHandle Method;
+        public readonly _MethodHandle* Method;
         public readonly byte* InstructionPtr;
         public readonly StackData* StackVarPtr;
         public readonly StackData* StackPtr;
 
         // Constructor
-        public CallSite(_MethodHandle method, byte* instructionPtr, StackData* stackVarPtr, StackData* stackPtr)
+        public CallSite(_MethodHandle* method, byte* instructionPtr, StackData* stackVarPtr, StackData* stackPtr)
         {
             this.Method = method;
             this.InstructionPtr = instructionPtr;
@@ -43,14 +43,17 @@ namespace LumaSharp.Runtime
         }
 
         // Methods
-        public void SetInstructionPtr(byte* instructionPtr)
-        {
-            this.instructionBasePtr = instructionPtr;
-        }
+        
 
         public void Throw<T>() where T : Exception, new()
         {
             throw new T();
+        }
+
+        [Conditional("DEBUG")]
+        public void DebugInstructionPtr(byte* instructionPtr)
+        {
+            this.instructionBasePtr = instructionPtr;
         }
 
         [Conditional("DEBUG")]

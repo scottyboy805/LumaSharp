@@ -109,9 +109,8 @@ namespace LumaSharp_RuntimeTests
 
 
             // Generate method
-            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32 }, 4);
-            byte* instructions = gen.GenerateBytecode();
-
+            _MethodHandle* method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32 }, 4);
+           
             // Create app and thread context
             AppContext appContext = new AppContext();            
             ThreadContext threadContext = new ThreadContext(appContext);
@@ -132,7 +131,7 @@ namespace LumaSharp_RuntimeTests
             spArg->Ptr = (IntPtr)arr;
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
 
             Assert.AreEqual(4, arr[0]);
             Assert.AreEqual(8, arr[1]);

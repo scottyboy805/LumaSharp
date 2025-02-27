@@ -25,8 +25,7 @@ namespace LumaSharp_RuntimeTests
             gen.Emit(OpCode.Ret);
 
             // Generate method
-            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32 }, 4);
-            byte* instructions = gen.GenerateBytecode();
+            _MethodHandle* method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32 }, 4);
 
             // Create app and thread context
             AppContext appContext = new AppContext();
@@ -39,7 +38,7 @@ namespace LumaSharp_RuntimeTests
             appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
 
             Assert.AreEqual(1234, spReturn->I32);
         }
@@ -61,8 +60,7 @@ namespace LumaSharp_RuntimeTests
             gen.Emit(OpCode.Ret);
 
             // Generate method
-            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32 }, 4);
-            byte* instructions = gen.GenerateBytecode();
+            _MethodHandle* method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.I32 }, 4);
 
             // Create app and thread context
             AppContext appContext = new AppContext();
@@ -75,7 +73,7 @@ namespace LumaSharp_RuntimeTests
             appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
 
             Assert.AreEqual(1234, spReturn->I32);
         }

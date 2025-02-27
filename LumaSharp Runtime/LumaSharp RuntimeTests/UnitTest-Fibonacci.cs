@@ -13,86 +13,63 @@ namespace LumaSharp_RuntimeTests
         [TestMethod]
         public unsafe void TestIterative()
         {
-            // 1 arg
-            // 6 locals
+            BytecodeGenerator gen = new BytecodeGenerator();
 
-            byte[] instructions =
-            {
-                0x00,       // Nop
-                0x19,       // Ld_I4_0
-                0x2A,       // St_Var_1
-                0x1A,       // Ld_I4_1
-                0x2B,       // St_Var_2
-                0x19,       // Ld_I4_0
-                0x2C,       // St_Var_3
-                0x13, 2, 0x00, 0x00, 0x00,    // Ld_I4, 2
-                0x2D, 4,    // St_Var, 4
-                0xB3, 16, 0x00, 0x00, 0x00,       // Jump
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_I4_0);
+            gen.Emit(OpCode.St_Var_1);
+            gen.Emit(OpCode.Ld_I4_1);
+            gen.Emit(OpCode.St_Var_2);
+            gen.Emit(OpCode.Ld_I4_0);
+            gen.Emit(OpCode.St_Var_3);
+            gen.Emit(OpCode.Ld_I4, 2);
+            gen.Emit(OpCode.St_Var, (sbyte)4);
+            gen.Emit(OpCode.Jmp, 16);
 
-                // Jump target:
-                    0x00,       // Nop
-                    0x22,       // Ld_Var_1
-                    0x23,       // Ld_Var_2
-                    0x71,       // Add
-                    0x2C,       // St_Var_3
-                    0x23,       // Ld_Var_2
-                    0x2A,       // St_Var_1
-                    0x24,       // Ld_Var_3
-                    0x2B,       // St_Var_2
-                    0x00,       // Nop
-                    0x25, 4,    // Ld_Var, 4
-                    0x1A,       // Ld_I4_1
-                    0x71,       // Add
-                    0x2D, 4,    // St_Var, 4
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_Var_1);
+            gen.Emit(OpCode.Ld_Var_2);
+            gen.Emit(OpCode.Add);
+            gen.Emit(OpCode.St_Var_3);
+            gen.Emit(OpCode.Ld_Var_2);
+            gen.Emit(OpCode.St_Var_1);
+            gen.Emit(OpCode.Ld_Var_3);
+            gen.Emit(OpCode.St_Var_2);
+            gen.Emit(OpCode.Nop);
+            gen.Emit(OpCode.Ld_Var, (sbyte)4);
+            gen.Emit(OpCode.Ld_I4_1);
+            gen.Emit(OpCode.Add);
+            gen.Emit(OpCode.St_Var, (sbyte)4);
 
-                    0x25, 4,    // Ld_Var, 4
-                    0x21,       // Ld_Var_0     //   Argument
-                    0x93,       // Cmp_Le
-                    0x2D, 5,    // St_Var, 5
-                    0x25, 5,    // Ld_Var, 5
-                    0xB1, 0x00, 0x00, 0x00, 0x00,      // Jmp_1
+            gen.Emit(OpCode.Ld_Var, (sbyte)4);
+            gen.Emit(OpCode.Ld_Var_0);
+            gen.Emit(OpCode.Cmp_Le);
+            gen.Emit(OpCode.St_Var, (sbyte)5);
+            gen.Emit(OpCode.Ld_Var, (sbyte)5);
+            gen.Emit(OpCode.Jmp_1, -29);
 
-                0x24,       // Ld_Var_3
-                0x2D, 6,    // St_Var, 6
-                0xB3, 0x00, 0x00, 0x00, 0x00,           // Jmp
-                0x25, 6,    // Ld_Var, 6
-                0xFD,       // Ret
-            };
-
-            _VariableHandle arg = new _VariableHandle(RuntimeTypeCode.I32, 0);
-
-            _VariableHandle loc0 = new _VariableHandle(RuntimeTypeCode.I32, 4);
-            _VariableHandle loc1 = new _VariableHandle(RuntimeTypeCode.I32, 8);
-            _VariableHandle loc2 = new _VariableHandle(RuntimeTypeCode.I32, 12);
-            _VariableHandle loc3 = new _VariableHandle(RuntimeTypeCode.I32, 16);
-            _VariableHandle loc4 = new _VariableHandle(RuntimeTypeCode.I32, 20);
-            _VariableHandle loc5 = new _VariableHandle(RuntimeTypeCode.I32, 24);
+            gen.Emit(OpCode.Ld_Var_3);
+            gen.Emit(OpCode.St_Var, (sbyte)6);
+            gen.Emit(OpCode.Ld_Var, (sbyte)6);
+            gen.Emit(OpCode.Ret);
 
 
-            _MethodBodyHandle bodyHandle = new _MethodBodyHandle(16, null, 7);
-            _MethodSignature signatureHandle = new _MethodSignature(1, null, null);
-            _MethodHandle methodHandle = new _MethodHandle(0, signatureHandle, bodyHandle);
+            _MethodHandle* method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new RuntimeTypeCode[] { RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32, RuntimeTypeCode.I32 }, 7);
 
             // Create app and thread context
             AppContext appContext = new AppContext();
             ThreadContext threadContext = new ThreadContext(appContext);
 
-            // Pin instruction memory
-            fixed(byte* inst = instructions)
-            {
-                (*(int*)(inst + 44)) = -29;
+            // Push arg
+            StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
 
-                // Push arg
-                StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
+            spArg->Type = StackTypeCode.I32;
+            spArg->I32 = 8;
 
-                spArg->Type = StackTypeCode.I32;
-                spArg->I32 = 8;
+            // Execute bytecode
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
 
-                // Execute bytecode
-                StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, methodHandle, inst);
-
-                Assert.AreEqual(21, spReturn->I32);
-            }
+            Assert.AreEqual(21, spReturn->I32);
         }
 
         [TestMethod]
@@ -147,14 +124,13 @@ namespace LumaSharp_RuntimeTests
 
 
             // Generate method
-            _MethodHandle method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.Bool, RuntimeTypeCode.I32, RuntimeTypeCode.Bool }, 4);
-            byte* instructions = gen.GenerateBytecode();
-
+            _MethodHandle* method = gen.GenerateMethod(new[] { RuntimeTypeCode.I32 }, new[] { RuntimeTypeCode.Bool, RuntimeTypeCode.I32, RuntimeTypeCode.Bool }, 4);
+            
             // Create app and thread context
             AppContext appContext = new AppContext();
             ThreadContext threadContext = new ThreadContext(appContext);
 
-            appContext.methodHandles[110] = (IntPtr)(&method);
+            appContext.methodHandles[110] = (IntPtr)method;
 
             // Push arg
             StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
@@ -163,7 +139,7 @@ namespace LumaSharp_RuntimeTests
             spArg->Ptr = 8;
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method, instructions);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
 
             Assert.AreEqual(34, spReturn->I32);
         }

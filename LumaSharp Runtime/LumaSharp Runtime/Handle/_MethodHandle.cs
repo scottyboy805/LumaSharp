@@ -4,9 +4,10 @@ namespace LumaSharp.Runtime.Handle
     [Flags]
     public enum _MethodSignatureFlags : uint
     {
-        HasArguments = 1 << 0,
-        HasReturn = 1 << 1,
-        VoidCall = 1 << 2,
+        HasThis = 1 << 0,
+        HasArguments = 1 << 1,
+        HasReturn = 1 << 2,
+        VoidCall = 1 << 3,
     }
 
     public unsafe readonly struct _MethodSignature
@@ -48,7 +49,7 @@ namespace LumaSharp.Runtime.Handle
         // Internal
         public readonly int MethodToken;
         public readonly _MethodSignature Signature;
-        public readonly _MethodBodyHandle Body;        
+        public readonly _MethodBodyHandle Body;
 
         // Constructor
         public _MethodHandle(int token, _MethodSignature signature, _MethodBodyHandle body)

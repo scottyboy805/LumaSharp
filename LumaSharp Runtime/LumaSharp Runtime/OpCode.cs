@@ -93,7 +93,7 @@ namespace LumaSharp.Runtime
         New = 0xF1,             // 4 byte data - type token
         NewArr = 0xF2,          // 4 byte data - type token
         Call = 0xF4,            // 4 byte data - method token
-        CallVirt = 0xF5,        // 4 byte data - method token
+        Call_Virt = 0xF5,        // 4 byte data - method token
         Call_Addr = 0xF6,       // No data
         Is_Any = 0xF7,          // 4 byte data - type token - Is obj of specified type
         As_Any = 0xF8,          // 4 byte data - type token - Convert object or primitive to object of type
@@ -187,10 +187,11 @@ namespace LumaSharp.Runtime
                 case OpCode.New:
                 case OpCode.NewArr:
                 case OpCode.Call:
-                case OpCode.CallVirt:
+                case OpCode.Call_Virt:
                 case OpCode.Is_Any:
                 case OpCode.As_Any:
                 case OpCode.From_Any:
+                case OpCode.Ld_Type:
                 case OpCode.Ld_Func:  return OperandType.InlineToken;
             }
             return OperandType.InlineNone;

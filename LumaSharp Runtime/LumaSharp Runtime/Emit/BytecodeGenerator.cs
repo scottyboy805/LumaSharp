@@ -55,16 +55,29 @@ namespace LumaSharp.Runtime.Emit
             return (byte*)mem;
         }
 
-        public unsafe _MethodHandle GenerateMethod(RuntimeTypeCode[] parameterTypes, RuntimeTypeCode[] localTypes, int maxStack)
+        public unsafe _MethodHandle* GenerateMethod(RuntimeTypeCode[] parameterTypes, RuntimeTypeCode[] localTypes, int maxStack)
         {
+            // Allocate the native memory
+            void* mem = NativeMemory.Alloc((nuint)instructionBuffer.Length + (uint)sizeof(_MethodHandle));
+
             // Create signature
             _MethodSignature signature = new _MethodSignature((ushort)parameterTypes.Length, null, null);
 
             // Create body
             _MethodBodyHandle body = new _MethodBodyHandle((ushort)maxStack, null, (ushort)localTypes.Length);
 
-            // Create method
-            return new _MethodHandle(0, signature, body);
+            // Create method handle
+            *(_MethodHandle*)mem = new _MethodHandle(0, signature, body);
+
+            // Append instructions
+            fixed(void* buffer = instructionBuffer.GetBuffer())
+            {
+                // Copy instructions
+                NativeMemory.Copy(buffer, (byte*)mem + sizeof(_MethodHandle), (nuint)instructionBuffer.Length);
+            }
+
+            // Get method handle ptr
+            return (_MethodHandle*)mem;
         }
 
         #region Emit
