@@ -10,24 +10,25 @@ any = 123;
 ### Imports:
 ```cs
 // Import seems like a better fit rather than using
-import Collections;
-import Collections:Generic;
-import MyList as Collections:Generic.List<i8>;  // Aliasing is supported
+import Collections
+import Collections:Generic
+import MyList as Collections:Generic.List<i8>  // Aliasing is supported
 ```
 
 ### Namespaces:
 ```cs
 // Much the same, only the namespace separator character is `:` to avoid ambiguity.
 // For example: `MyNamespace.MySomething.MyType` in C# `MySomething` could be either a namespace or a type which cannot be determined statically.
-// That potential ambiguity is removed in Luma sharp: `MyNamespace:MySomething.MyType` as we can see that `MySomething` in indeed a type.
-// Also just use block syntax only where C# supports `namespace Example;` type syntax which is not needed in my opinion
-namespace My:Root:Namespace{}
+// That potential ambiguity is removed in Luma sharp: `MyNamespace:MySomething.MyType` as we can see that `MySomething` in indeed a type (Otherwise it would use a trailing ':' character to denote a namespace).
+// Also no support for block syntax but instead uses label syntax to specify that all following declarations are part of the specified namespace.
+namespace My:Root:Namespace
+type MyType{} // etc
 ```
 ### Types:
 ```cs
 // No class or struct, just the 'type' keyword to declare a new user type with support for generics, inheritance, and multiple contract implementation.
 // Types can be value or reference based depending upon how they are allocated
-export type MyType<T0, T1: enum> : MyBaseType<T0>, CIterator<T0>, CResource{}
+#export type MyType<T0, T1: enum> : MyBaseType<T0>, CIterator<T0>, CResource{}
 
 // Stack allocated
 MyType<i8, MyEnum> myVar = MyType<i8, MyEnum>();
@@ -37,6 +38,9 @@ MyType<i8, MyEnum>& myHeapVar = new MyType<i8, MyEnum>();
 ```
 
 ```cs
+// UPDATE - Moving away from this for simplicity. All types can be allocated on the stack or heap depending upon new operator usage, and will be passed by reference automatically unless '#copy' attribute is used
+// Returning a stack allocated object is not supported and will throw a compiler error unless the return type also has '#copy' attribute.
+
 // Possible alternative to eliminate the need to use reference syntax when declaring variables is to support `valuetype` keyword
 // MyValueType will be allocated on the stack, but there is still support for generics and inheritance
 export valuetype MyValueType<T> : MyBaseValueType{}
@@ -74,7 +78,7 @@ export enum MyFlags: u8
 
 ### Access Modifiers
 ```cs
-default visibility (No keyword required) // The member is visible by the current and all derived members - Same as C# protected
+default visibility (No attribute required) // The member is visible by the current and all derived members - Same as C# protected
 export // The member is accessible from the current and other libraries: IE. the type visiblity is exported. Same as C# public
 internal // The member is  accessibly from the current library in any context, but not from external libraries - Same as C# internal
 hidden // The member is only visible to the parent member (Only suitable for nested members) - Same as C# private
@@ -87,22 +91,32 @@ global // (Only suitable for field, accessor and method) The member is globally 
 type MyType{
   hidden i32 myField = 6 + 12;
 }
+
+// Fields can also use attributes to specifiy whether they are read only or constant.
+type MyType{
+  #readonly i32 myReadonlyField = 20;   // Can only be assigned at initializer or constructor
+  #const i32 myConstField = 40;         // Can only be assigned at initializer and is automatically global
+}
 ```
 
 ### Accessors
 ```cs
 // Similar to C# properties although the aim is to make usage as easy as possible with only 2 possible usages - C# has too many variations for my liking
 type MyType{
-  export i64 MySimpleAccessor => myLongVariable;
+  hidden i64 myLongVariable,
 
+  // Simple read only
+  export i64 MySimpleAccessor => myLongVariable,
+
+  // Read write
   internal float MyAccessor
-    => read: return myFloatVariable;
+    => read: return myFloatVariable
     => write: {
-      CheckInputValue(input);
-      myFloatVariable = input;
+      CheckInputValue(input)
+      myFloatVariable = input
     }
 
-  internal float MyReadOnlyAccessor => read: return myFloatVriable;
+  internal float MyReadOnlyAccessor => read: return myFloatVriable
 }
 ```
 
@@ -111,16 +125,16 @@ type MyType{
 // Much the same as C# methods - Only real thing to talk about is variable size parameters lists
 type MyType{
   // Simple inlined method
-  i8 MySimpleMethod(i16 val) => return (i8)val;
+  i8 MySimpleMethod(i16 val) => return (i8)val
 
   // Simple pass by reference method - Same as using C# 'ref' keyword - but should also be used instead of 'in' and 'out'
-  void MyRefMethod(i32& val) => val++;
+  void MyRefMethod(i32& val) => val++
 
   // Simple method with variable length parameter
   export i32 MyVariableParamMethod(i32 values ...)
   {
     // Values is converted to i32 array containing proveded number of parameters
-    return values.Count;
+    return values.Count
   }
 }
 ```
@@ -147,22 +161,29 @@ type MyType{
 ```cs
 // An action is essentially just a C# delegate - a way to store a method as a variable to be invoked at a later time
 type MyType{
-  action i32 MyAction(i32 a, i32 b);
+  action i32 MyAction(i32 a, i32 b)
 
   void MyMethod()
   {
     // Create and call standard
-    MyAction callA = (i32 a, i32 b) => return a + b;
-    i32 result = callA(3, 5);
+    MyAction callA = (i32 a, i32 b) => return a + b
+    i32 result = callA(3, 5)
 
     // Unlike C# we can cast to common base and dynamic invoke
-    action callB = callA;
-    i32 result = (i32)callB(4, 6);
+    action callB = callA
+    i32 result = (i32)callB(4, 6)
   }
 }
 ```
 
 ### Attributes
+The language uses the following built-in atttributes in declarations:
+#readonly - The accoiated field can only be read from
+#const - The associated field is a global constant
+#copy - The method parameter or return parameter is copied when called (Only allowed for stack allocated types)
+#ref - The method parameter is passed by reference (Only applicable to primitive types that are passed by value by default, but can be used in any case to be more explicit - All user types are passed by reference by default no matter where they were allocated)
+#bitmask - The enum declaration should use unique bitset auto initialization
+
 ```cs
 // Custom attributes are very useful in C#, although I think they can be improved slightly using a hash tag type syntax
 #Serializable
@@ -177,6 +198,9 @@ All types are sealed by default and cannot be derived from unless explicitly mar
 export type MyType override
 {
 }
+
+// Note that base types and contract implementations must come after the override keyword
+export type SomeType override : SomeBase{}
 ```
 Methods and accessors can be marked as overridable and can be pure virtual (abstract in C#) if no body is defined:
 ```cs
@@ -184,43 +208,42 @@ export void MyMethod() override
 {
   // Default implementation - can be overriden in sub classes
 }
-export void MyPureVirtualMethod() override; // Pure virtual - must be overriden in sub classes
+export void MyPureVirtualMethod() override // Pure virtual - must be overriden in sub classes
 ```
 
 ## A Complete Example - Bubble Sort
 ```cs
-import Collections.Generic;
+import Collections.Generic
 
 // Enclosing namespace
 namespace BubbleSort:Example
+
+// Main type
+global type Program
 {
-  // Main type
-  global type Program
+  // List of values to sort
+  hidden global List<i32> unsortedValues = new { 800, 11, 50, 771, 649 }
+
+  // Main entry point to the program
+  export global void Main()
   {
-    // List of values to sort
-    hidden List<i32> unsortedValues = new { 800, 11, 50, 771, 649 };
-  
-    // Main entry point to the program
-    export global void Main()
+    BubbleSort(unsortedValues)
+  }
+
+  // Algorithm method
+  global void BubbleSort(List<i32> values)
+  {
+    i32 temp = 0
+
+    for i32 i = 0, i < values.Count, i++
     {
-      BubbleSort(unsortedValues);
-    }
-  
-    // Algorithm method
-    global void BubbleSort(List<i32> values)
-    {
-      i32 temp = 0;
-  
-      for(i32 i = 0; i < values.Count; i++)
+      for i32 j = 0, j < values.Count - 1, j++
       {
-        for(int j = 0; j < values.Count - 1; j++)
+        if values[j] > values[j + 1]
         {
-          if(values[j] > values[j + 1])
-          {
-            temp = values[j + 1];
-            values[j + 1] = values[j];
-            values[j] = temp;
-          }
+          temp = values[j + 1]
+          values[j + 1] = values[j]
+          values[j] = temp
         }
       }
     }
