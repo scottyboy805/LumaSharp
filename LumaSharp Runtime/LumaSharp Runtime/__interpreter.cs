@@ -1,4 +1,5 @@
 ﻿using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reflection;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("LumaSharp Compiler")]
@@ -47,6 +48,25 @@ namespace LumaSharp.Runtime
                     case OpCode.Nop:
                         {
                             context.DebugInstruction(code, pc - 1);
+                            break;
+                        }
+
+                    // Stack
+                    case OpCode.Pop:
+                        {
+                            sp--;
+
+                            // Debug executable
+                            context.DebugInstruction(code, pc - 1);
+                            break;
+                        }
+                    case OpCode.Dup:
+                        {
+                            *sp = *(sp - 1);
+                            sp++;
+
+                            // Debug executable
+                            context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
 
@@ -413,6 +433,54 @@ namespace LumaSharp.Runtime
                             context.DebugInstruction(code, pc - 5, sp - 1);
                             break;
                         }
+                    case OpCode.Ld_Fld_G:
+                        {
+                            // Get field token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get field handle
+                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+
+                            // Get global memory handle
+                            IntPtr globalMem = context.AppContext.globalMemoryHandles[field->DeclaringTypeToken];
+
+                            // Get global field address
+                            byte* fieldMem = field->GetFieldAddress((byte*)globalMem);
+
+                            // Copy to stack
+                            StackData.CopyFromMemory(sp, fieldMem, field->TypeHandle.TypeCode);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.Ld_Fld_GA:
+                        {
+                            // Get field token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get field handle
+                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+
+                            // Get global memory handle
+                            IntPtr globalMem = context.AppContext.globalMemoryHandles[field->DeclaringTypeToken];
+
+                            // Get global field address
+                            byte* fieldMem = field->GetFieldAddress((byte*)globalMem);
+
+                            // Push address to stack
+                            sp->Type = StackTypeCode.Address;
+                            sp->TypeCode = field->TypeHandle.TypeCode;
+                            sp->Ptr = (IntPtr)fieldMem;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
                     case OpCode.St_Fld:
                         {
                             // Get field token
@@ -434,6 +502,31 @@ namespace LumaSharp.Runtime
 
                             // Copy to memory
                             StackData.CopyToMemory(sp + 1, fieldMem, field->TypeHandle.TypeCode);
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, fieldMem, field->TypeHandle.TypeCode);
+                            break;
+                        }
+                    case OpCode.St_Fld_G:
+                        {
+                            // Get field token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get field handle
+                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+
+                            // Get global memory handle
+                            IntPtr globalMem = context.AppContext.globalMemoryHandles[field->DeclaringTypeToken];
+
+                            // Pop value
+                            sp--;
+
+                            // Get global field address
+                            byte* fieldMem = field->GetFieldAddress((byte*)globalMem);
+
+                            // Copy to memory
+                            StackData.CopyToMemory(sp, fieldMem, field->TypeHandle.TypeCode);
 
                             // Debug execution
                             context.DebugInstruction(code, pc - 5, fieldMem, field->TypeHandle.TypeCode);
@@ -1827,6 +1920,46 @@ namespace LumaSharp.Runtime
                             context.DebugInstruction(code, pc - 1, sp - 1);
                             break;
                         }
+                    case OpCode.Cast_Any:
+                        {
+                            // Get token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get type handle
+                            _TypeHandle* asType = (_TypeHandle*)context.AppContext.typeHandles[token];
+
+                            // Pop object
+                            sp--;
+
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Get memory handle
+                            _MemoryHandle* memoryHandle = (_MemoryHandle*)((byte*)sp->Ptr - _MemoryHandle.Size);
+
+                            // Check for same type handle
+                            bool isType = (memoryHandle->TypeHandle->TypeToken == asType->TypeToken);
+
+                            // Check for further work - need to handle subclasses and implementations
+                            if (isType == false)
+                            {
+                                // Get the meta types
+                                MetaType instMetaType = context.AppContext.ResolveType(memoryHandle->TypeHandle->TypeToken);
+                                MetaType asMetaType = context.AppContext.ResolveType(asType->TypeToken);
+
+                                // Check for assignable - TODO
+                            }
+
+                            // Check if we can assign
+                            if (isType == false)
+                                context.Throw<InvalidCastException>();
+
+                            // Push back to stack - cast is ok
+                            sp++;
+                            break;
+                        }
                     #endregion
 
                     // Jump
@@ -1838,7 +1971,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Debug execution
-                            context.DebugInstruction(code, pc - 5, sp - 1, offset);
+                            context.DebugInstruction(code, pc - 5, sp - 1, offset + 5);
 
                             // Check condition
                             sp--;
@@ -1856,7 +1989,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Debug execution
-                            context.DebugInstruction(code, pc - 5, sp - 1, offset);
+                            context.DebugInstruction(code, pc - 5, sp - 1, offset + 5);
 
                             // Check condition
                             sp--;
@@ -1874,7 +2007,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Debug execution
-                            context.DebugInstruction(code, pc - 5, offset);
+                            context.DebugInstruction(code, pc - 5, offset + 5);
 
                             // Jump to offset
                             pc += offset;
@@ -2012,6 +2145,118 @@ namespace LumaSharp.Runtime
                             if(context.CallDepth == 0)
                                 halt = true;
 
+                            break;
+                        }
+
+                    case OpCode.Is_Any:
+                        {
+                            // Get token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get type handle
+                            _TypeHandle* asType = (_TypeHandle*)context.AppContext.typeHandles[token];
+
+                            // Check for null
+                            if((sp - 1)->Ptr == IntPtr.Zero)
+                            {
+                                // Push null and exit early - instance is not the specified type because it is null
+                                break;
+                            }
+
+                            // Pop instance
+                            sp--;
+
+                            // Get memory handle
+                            _MemoryHandle* memoryHandle = (_MemoryHandle*)((byte*)sp->Ptr - _MemoryHandle.Size);
+
+                            // Check for same type handle
+                            bool isType = (memoryHandle->TypeHandle->TypeToken == asType->TypeToken);
+
+                            // Check for further work - need to handle subclasses and implementations
+                            if (isType == false)
+                            {
+                                // Get the meta types
+                                MetaType instMetaType = context.AppContext.ResolveType(memoryHandle->TypeHandle->TypeToken);
+                                MetaType asMetaType = context.AppContext.ResolveType(asType->TypeToken);
+
+                                // Check for assignable - TODO
+                            }
+
+                            // Check for type
+                            if(isType == false)
+                            {
+                                // Push null because it is not the right type
+                                sp->Type = StackTypeCode.Address;
+                                sp->Ptr = IntPtr.Zero;
+                            }
+
+                            // Push
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.Box_Any:
+                        {
+                            // Get token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get type handle
+                            _TypeHandle* toType = (_TypeHandle*)context.AppContext.typeHandles[token];
+
+                            // Pop primitive
+                            sp--;
+
+                            // Allocate memory for the type
+                            byte* mem = (byte*)__memory.Alloc(toType);
+
+                            // Copy stack primitive to memory
+                            StackData.CopyToMemory(sp, mem, toType->TypeCode);
+
+                            // Push the any object to the stack
+                            sp->Type = StackTypeCode.Address;
+                            sp->Ptr = (IntPtr)mem;
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
+                            break;
+                        }
+                    case OpCode.Unbox_Any:
+                        {
+                            // Get token
+                            int token = *(int*)pc;
+                            pc += sizeof(int);
+
+                            // Get type handle
+                            _TypeHandle* asType = (_TypeHandle*)context.AppContext.typeHandles[token];
+
+                            // Pop object
+                            sp--;
+
+                            // Check for null
+                            if (sp->Ptr == IntPtr.Zero)
+                                context.Throw<NullReferenceException>();
+
+                            // Get memory handle
+                            _MemoryHandle* memoryHandle = (_MemoryHandle*)((byte*)sp->Ptr -_MemoryHandle.Size);
+
+                            // Check for same type handle
+                            bool isType = (memoryHandle->TypeHandle->TypeToken == asType->TypeToken);
+
+                            // Check if we can assign
+                            if (isType == false)
+                                context.Throw<InvalidCastException>();
+
+                            // Convert the boxed value to primitive and push to stack
+                            StackData.CopyFromMemory(sp, (byte*)sp->Ptr, asType->TypeCode);
+                            sp++;
+
+                            // Debug execution
+                            context.DebugInstruction(code, pc - 5, sp - 1);
                             break;
                         }
 

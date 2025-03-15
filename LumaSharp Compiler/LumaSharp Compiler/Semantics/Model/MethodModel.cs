@@ -21,7 +21,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         private MethodFlags methodFlags = default;
         private _MethodHandle methodHandle = default;
-        private _StackHandle[] argLocalHandles = default;
+        private _VariableHandle[] argLocalHandles = default;
 
         // Properties
         public MethodSyntax Syntax
@@ -340,7 +340,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
 
             // Build arg and locals
-            List<_StackHandle> argLocals = new List<_StackHandle>();
+            List<_VariableHandle> argLocals = new List<_VariableHandle>();
             uint stackOffset = 0;
             ushort argCount = 0;
             ushort localCount = 0;
@@ -355,11 +355,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                     : parameterIdentifierSymbols[i].TypeSymbol;
 
                 // Add parameter
-                argLocals.Add(new _StackHandle
-                {
-                    TypeHandle = parameterTypeSymbol.TypeHandle,
-                    StackOffset = stackOffset,
-                });
+                argLocals.Add(new _VariableHandle(parameterTypeSymbol.TypeHandle, stackOffset));
 
                 // Advance offset
                 stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
@@ -392,11 +388,7 @@ namespace LumaSharp_Compiler.Semantics.Model
                     continue;
 
                 // Add local
-                argLocals.Add(new _StackHandle
-                {
-                    TypeHandle = locals[i].TypeSymbol.TypeHandle,
-                    StackOffset = stackOffset,
-                });
+                argLocals.Add(new _VariableHandle(locals[i].TypeSymbol.TypeHandle, stackOffset)); 
 
                 // Advance offset
                 stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;

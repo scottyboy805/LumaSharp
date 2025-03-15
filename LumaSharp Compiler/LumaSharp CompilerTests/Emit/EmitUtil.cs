@@ -9,7 +9,7 @@ namespace LumaSharp_CompilerTests.Emit
     public static class EmitUtil
     {
         // Methods
-        public static Method GetExecutableMethodOnly(MethodModel model)
+        public static MetaMethod GetExecutableMethodOnly(MethodModel model)
         {
             // Create context
             AppContext context = new AppContext();
@@ -35,7 +35,7 @@ namespace LumaSharp_CompilerTests.Emit
             BinaryReader reader = new BinaryReader(stream);
 
             // Read method
-            Method method = new Method(context);
+            MetaMethod method = new MetaMethod(context);
             method.LoadMethodMetadata(reader);
             method.LoadMethodExecutable(reader);
 

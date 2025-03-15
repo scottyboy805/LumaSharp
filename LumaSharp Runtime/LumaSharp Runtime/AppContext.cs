@@ -1,6 +1,7 @@
 ﻿using LumaSharp.Runtime.Handle;
 using LumaSharp.Runtime.Reflection;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using MetaType = LumaSharp.Runtime.Reflection.MetaType;
 
@@ -13,6 +14,7 @@ namespace LumaSharp.Runtime
         internal readonly ConcurrentDictionary<int, IntPtr> typeHandles = new();        // token, _TypeHandle*
         internal readonly ConcurrentDictionary<int, IntPtr> fieldHandles = new();       // token, _FieldHandle*
         internal readonly ConcurrentDictionary<int, IntPtr> methodHandles = new();      // token, _MethodHandle*
+        internal readonly ConcurrentDictionary<int, IntPtr> globalMemoryHandles = new();
 
         // Private
         private _TypeHandle* primitivePtr = null;
@@ -191,11 +193,11 @@ namespace LumaSharp.Runtime
         internal void DefineMember(MetaMember member)
         {
             // Check for already added
-            if (loadedMembers.ContainsKey(member.Token) == true)
-                throw new InvalidOperationException("Member with token already exists: " + member.Token);
+            if (loadedMembers.ContainsKey(member.MetaToken) == true)
+                throw new InvalidOperationException("Member with token already exists: " + member.MetaToken);
 
             // Store member
-            loadedMembers[member.Token] = member;
+            loadedMembers[member.MetaToken] = member;
         }
 
         internal ThreadContext GetCurrentThreadContext()

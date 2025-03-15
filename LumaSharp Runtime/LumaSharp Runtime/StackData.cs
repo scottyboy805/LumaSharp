@@ -52,7 +52,7 @@ namespace LumaSharp.Runtime
                 StackTypeCode.F32 => string.Format("F32 {0}", F32),
                 StackTypeCode.F64 => string.Format("F64 {0}", F64),
                 StackTypeCode.Address => Ptr != IntPtr.Zero 
-                    ? string.Format("Address {0:X4}", Ptr)
+                    ? string.Format("Address 0x{0:X}", Ptr)
                     : "Address Null",
                 _ => "Invalid",
             };

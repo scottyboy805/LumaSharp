@@ -16,14 +16,14 @@ namespace LumaSharp.Runtime.Reflection
         internal AppContext context = null;
 
         // Private
-        private int token = 0;
+        private int metaToken = 0;
         private string name = "";
         private MemberFlags memberFlags = 0;
 
         // Properties
-        public int Token
+        public int MetaToken
         {
-            get { return token; }
+            get { return metaToken; }
         }
 
         public string Name
@@ -77,7 +77,7 @@ namespace LumaSharp.Runtime.Reflection
 
         internal void LoadMemberMetadata(BinaryReader reader)
         {
-            token = reader.ReadInt32();
+            metaToken = reader.ReadInt32();
             name = reader.ReadString();
             memberFlags = (MemberFlags)reader.ReadUInt32();
         }

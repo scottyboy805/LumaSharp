@@ -1,6 +1,4 @@
 ﻿
-using System.Runtime.InteropServices;
-
 namespace LumaSharp.Runtime
 {
     public unsafe readonly struct _TypeHandle

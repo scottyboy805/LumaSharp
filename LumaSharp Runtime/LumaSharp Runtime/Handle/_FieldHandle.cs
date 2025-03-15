@@ -7,6 +7,7 @@ namespace LumaSharp.Runtime.Handle
     {
         // Public
         public readonly int FieldToken;
+        public readonly int DeclaringTypeToken;
         public readonly uint FieldOffset;
         public readonly _TypeHandle TypeHandle;
 

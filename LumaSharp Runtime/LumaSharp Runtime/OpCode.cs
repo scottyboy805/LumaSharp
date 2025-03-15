@@ -5,6 +5,10 @@ namespace LumaSharp.Runtime
     {
         Nop = 0x00,
 
+        // Stack
+        Pop = 0x01,
+        Dup = 0x02,
+
         // Const
         Ld_I1 = 0x11,           // 1 byte data
         Ld_I2 = 0x12,           // 2 byte data
@@ -38,11 +42,11 @@ namespace LumaSharp.Runtime
 
         // Fields
         Ld_Fld = 0x31,          // 4 byte data - field token
-        Ld_Fld_S = 0x32,        // 4 byte data - field token
+        Ld_Fld_G = 0x32,        // 4 byte data - field token
         Ld_Fld_A = 0x33,        // 4 byte data - field token
-        Ld_Fls_SA = 0x34,       // 4 byte data - field token
+        Ld_Fld_GA = 0x34,       // 4 byte data - field token
         St_Fld = 0x35,          // 4 byte data - field token
-        St_Fld_S = 0x36,        // 4 byte data - field token
+        St_Fld_G = 0x36,        // 4 byte data - field token
 
         // Arrays
         Ld_Len = 0x41,          // No data
@@ -96,8 +100,8 @@ namespace LumaSharp.Runtime
         Call_Virt = 0xF5,        // 4 byte data - method token
         Call_Addr = 0xF6,       // No data
         Is_Any = 0xF7,          // 4 byte data - type token - Is obj of specified type
-        As_Any = 0xF8,          // 4 byte data - type token - Convert object or primitive to object of type
-        From_Any = 0xF9,        // 4 byte data - type token - Convert primitive boxed value to primitive
+        Box_Any = 0xF8,         // 4 byte data - type token - Convert object or primitive to object of type
+        Unbox_Any = 0xF9,       // 4 byte data - type token - Convert primitive boxed value to primitive
         Ld_Size = 0xFA,         // No data
         Ld_Type = 0xFB,			// 4 byte data - type token
         Ld_Func = 0xFC,         // 4 byte data - type token
@@ -169,11 +173,11 @@ namespace LumaSharp.Runtime
 
                 // Fields
                 case OpCode.Ld_Fld:
-                case OpCode.Ld_Fld_S:
+                case OpCode.Ld_Fld_G:
                 case OpCode.Ld_Fld_A:
-                case OpCode.Ld_Fls_SA:
+                case OpCode.Ld_Fld_GA:
                 case OpCode.St_Fld:
-                case OpCode.St_Fld_S: return OperandType.InlineToken;
+                case OpCode.St_Fld_G: return OperandType.InlineToken;
 
                 // Cast
                 case OpCode.Cast_Any: return OperandType.InlineToken;
@@ -189,8 +193,8 @@ namespace LumaSharp.Runtime
                 case OpCode.Call:
                 case OpCode.Call_Virt:
                 case OpCode.Is_Any:
-                case OpCode.As_Any:
-                case OpCode.From_Any:
+                case OpCode.Box_Any:
+                case OpCode.Unbox_Any:
                 case OpCode.Ld_Type:
                 case OpCode.Ld_Func:  return OperandType.InlineToken;
             }

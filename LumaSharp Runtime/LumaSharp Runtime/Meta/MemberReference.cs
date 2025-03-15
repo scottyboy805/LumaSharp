@@ -44,7 +44,7 @@ namespace LumaSharp.Runtime.Reflection
         public MemberReference(MetaType fromType)
         {
             this.context = fromType.context;
-            this.symbolToken = fromType.Token;
+            this.symbolToken = fromType.MetaToken;
             this.resolvedMember = fromType as T;
         }
     }

@@ -49,6 +49,7 @@ namespace LumaSharp.Runtime.Handle
     {
         // Internal
         public readonly int MethodToken;
+        public readonly int DeclaringTypeToken;
         public readonly _MethodSignature Signature;
         public readonly _MethodBodyHandle Body;
 

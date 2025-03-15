@@ -23,7 +23,7 @@ namespace LumaSharp.Runtime
         private static HashSet<IntPtr> trackedStackMemory = new HashSet<IntPtr>();
 
         // Methods
-        public static byte* InitStack(uint size = 4096)// * 1024)    // 4mb by default
+        public static byte* InitStack(uint size = 4096)    // 4mb by default
         {
             // Allocate stack memory
             IntPtr stackMemory = (IntPtr)NativeMemory.AllocZeroed(size);
@@ -70,31 +70,13 @@ namespace LumaSharp.Runtime
             uint fullSize = type->TypeSize + _MemoryHandle.Size;
 
             // Allocate
-            void* mem;
+            void* mem = NativeMemory.AllocZeroed(fullSize);
 
-            // Check for stack alloc
-            //if(stackAlloc == true)
-            //{
-            //    // Allocate memory on stack
-            //    mem = stackPtr;
-
-            //    // Zero memory
-            //    __memory.Zero(mem, fullSize);
-
-            //    // Advance offset
-            //    stackPtr += fullSize;
-            //}
-            //else
-            {
-                // Allocate memory on the heap
-                mem = NativeMemory.AllocZeroed(fullSize);
-
-                // Register memory
-                trackedMemory.Add((IntPtr)mem);
-            }
+            // Register memory
+            trackedMemory.Add((IntPtr)mem);
 
             // Insert memory handle before data
-            (*((_MemoryHandle*)mem)).TypeHandle = type;
+            *(_MemoryHandle*)mem = new _MemoryHandle(type);
 
             // Get data offset
             mem = ((byte*)mem) + _MemoryHandle.Size;
@@ -103,41 +85,77 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void* AllocArray(_TypeHandle* elementType, uint elementCount)
+        public static void* AllocArray(_TypeHandle* elementType, long elementCount)
         {
             // Check for zero
             if (elementType->TypeSize == 0)
                 return null;
 
             // Size must include type info??
-            uint fullSize = (elementType->TypeSize * elementCount) + _ArrayHandle.Size;
+            long fullSize = (elementType->TypeSize * elementCount) + _ArrayHandle.Size;
 
-            void* mem;
+            // Allocate zeroed memory
+            void* mem = NativeMemory.AllocZeroed((nuint)fullSize);
 
-            // Check for stack alloc
-            //if (stackAlloc == true)
-            //{
-            //    // Allocate memory on stack
-            //    mem = stackPtr;
-
-            //    // Zero memory
-            //    __memory.Zero(mem, fullSize);
-
-            //    // Advance offset
-            //    stackPtr += fullSize;
-            //}
-            //else
-            {
-                // Allocate memory on heap
-                mem = NativeMemory.AllocZeroed(fullSize);
-
-                // Register memory
-                trackedMemory.Add((IntPtr)mem);
-            }
+            // Register memory
+            trackedMemory.Add((IntPtr)mem);            
 
             // Insert memory handle before data
-            (*((_ArrayHandle*)mem)).ElementCount = elementCount;
-            (*((_ArrayHandle*)mem)).MemoryHandle.TypeHandle = elementType;
+            (*(_ArrayHandle*)mem) = new _ArrayHandle(elementCount, elementType);
+
+            // Get data offset
+            mem = ((byte*)mem) + _ArrayHandle.Size;
+
+            return mem;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void* AllocStack(_TypeHandle* type, ref byte* spAlloc, bool zeroed = false)
+        {
+            // Check for zero
+            if (type->TypeSize == 0)
+                return null;
+
+            // Size must include 4 bytes for reference counter and 4 bytes for type code
+            uint fullSize = type->TypeSize + _MemoryHandle.Size;
+
+            // Get memory and increment allocation ptr
+            void* mem = spAlloc;
+            spAlloc += fullSize;
+
+            // Check for zeroed
+            if (zeroed == true)
+                Zero(mem, fullSize);
+
+            // Insert memory handle before data
+            *(_MemoryHandle*)mem = new _MemoryHandle(type);
+
+            // Get data offset
+            mem = ((byte*)mem) + _MemoryHandle.Size;
+
+            return mem;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void* AllocArrayStack(_TypeHandle* elementType, long elementCount, ref byte* spAlloc, bool zeroed = true)
+        {
+            // Check for zero
+            if (elementType->TypeSize == 0)
+                return null;
+
+            // Size must include type info??
+            long fullSize = (elementType->TypeSize * elementCount) + _ArrayHandle.Size;
+
+            // Get memory and increment allocation ptr
+            void* mem = spAlloc;
+            spAlloc += fullSize;
+
+            // Check for zeroed
+            if (zeroed == true)
+                Zero(mem, (nuint)fullSize);
+
+            // Insert memory handle before data
+            (*(_ArrayHandle*)mem) = new _ArrayHandle(elementCount, elementType);
 
             // Get data offset
             mem = ((byte*)mem) + _ArrayHandle.Size;
@@ -199,130 +217,130 @@ namespace LumaSharp.Runtime
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Zero(void* mem, uint size)
+        public static void Zero(void* mem, nuint size)
         {
             NativeMemory.Clear(mem, size);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T ReadAs<T>(void* mem, int offset = 0) where T : unmanaged
-        {
-            // Get offset
-            byte* ptr = (byte*)mem + offset;
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //public static T ReadAs<T>(void* mem, int offset = 0) where T : unmanaged
+        //{
+        //    // Get offset
+        //    byte* ptr = (byte*)mem + offset;
 
-            // Get as T
-            return *(T*)ptr;
-        }
+        //    // Get as T
+        //    return *(T*)ptr;
+        //}
 
-        public static object ReadAs(_TypeHandle type, void* mem, int offset = 0)
-        {
-            // Get offset
-            byte* ptr = (byte*)mem + offset;
+        //public static object ReadAs(_TypeHandle type, void* mem, int offset = 0)
+        //{
+        //    // Get offset
+        //    byte* ptr = (byte*)mem + offset;
 
-            // Select type
-            switch(type.TypeCode)
-            {
-                case RuntimeTypeCode.I8: return *(sbyte*)ptr;
-                case RuntimeTypeCode.U8: return *(byte*)ptr;
-                case RuntimeTypeCode.I16: return *(short*)ptr;
-                case RuntimeTypeCode.U16: return *(ushort*)ptr;
-                case RuntimeTypeCode.I32: return *(int*)ptr;
-                case RuntimeTypeCode.U32: return *(uint*)ptr;
-                case RuntimeTypeCode.I64: return *(long*)ptr;
-                case RuntimeTypeCode.U64: return *(ulong*)ptr;
-                case RuntimeTypeCode.F32: return *(float*)ptr;
-                case RuntimeTypeCode.F64: return *(double*)ptr;
+        //    // Select type
+        //    switch(type.TypeCode)
+        //    {
+        //        case RuntimeTypeCode.I8: return *(sbyte*)ptr;
+        //        case RuntimeTypeCode.U8: return *(byte*)ptr;
+        //        case RuntimeTypeCode.I16: return *(short*)ptr;
+        //        case RuntimeTypeCode.U16: return *(ushort*)ptr;
+        //        case RuntimeTypeCode.I32: return *(int*)ptr;
+        //        case RuntimeTypeCode.U32: return *(uint*)ptr;
+        //        case RuntimeTypeCode.I64: return *(long*)ptr;
+        //        case RuntimeTypeCode.U64: return *(ulong*)ptr;
+        //        case RuntimeTypeCode.F32: return *(float*)ptr;
+        //        case RuntimeTypeCode.F64: return *(double*)ptr;
 
-                default:
-                    throw new NotSupportedException();
-            }
-        }
+        //        default:
+        //            throw new NotSupportedException();
+        //    }
+        //}
 
-        public static void WriteAs<T>(T value, ref byte* mem, int offset = 0, bool incrementPtr = true) where T : unmanaged
-        {
-            // Get offset
-            byte* ptr = (byte*)mem + offset;
+        //public static void WriteAs<T>(T value, ref byte* mem, int offset = 0, bool incrementPtr = true) where T : unmanaged
+        //{
+        //    // Get offset
+        //    byte* ptr = (byte*)mem + offset;
 
-            // Store value
-            *(T*)ptr = value;
+        //    // Store value
+        //    *(T*)ptr = value;
 
-            // Increment ptr
-            if (incrementPtr == true)
-                mem = (byte*)mem + sizeof(T);
-        }
+        //    // Increment ptr
+        //    if (incrementPtr == true)
+        //        mem = (byte*)mem + sizeof(T);
+        //}
 
-        public static void WriteAs(object value, _TypeHandle* type, ref byte* mem, int offset = 0, bool incrementPtr = true)
-        {
-            // Get offset
-            byte* ptr = (byte*)mem + offset;
+        //public static void WriteAs(object value, _TypeHandle* type, ref byte* mem, int offset = 0, bool incrementPtr = true)
+        //{
+        //    // Get offset
+        //    byte* ptr = (byte*)mem + offset;
 
-            // Select type
-            switch(type->TypeCode)
-            {
-                case RuntimeTypeCode.I8:
-                    {
-                        *(sbyte*)ptr = (sbyte)value;
-                        break;
-                    }
-                case RuntimeTypeCode.U8:
-                    {
-                        *(byte*)ptr = (byte)value;
-                        break;
-                    }
-                case RuntimeTypeCode.I16:
-                    {
-                        *(short*)ptr = (short)value;
-                        break;
-                    }
-                case RuntimeTypeCode.U16:
-                    {
-                        *(ushort*)ptr = (ushort)value;
-                        break;
-                    }
-                case RuntimeTypeCode.I32:
-                    {
-                        *(int*)ptr = (int)value;
-                        break;
-                    }
-                case RuntimeTypeCode.U32:
-                    {
-                        *(uint*)ptr = (uint)value;
-                        break;
-                    }
-                case RuntimeTypeCode.I64:
-                    {
-                        *(long*)ptr = (long)value;
-                        break;
-                    }
-                case RuntimeTypeCode.U64:
-                    {
-                        *(ulong*)ptr = (ulong)value;
-                        break;
-                    }
-                case RuntimeTypeCode.F32:
-                    {
-                        *(float*)ptr = (float)value;
-                        break;
-                    }
-                case RuntimeTypeCode.F64:
-                    {
-                        *(double*)ptr = (double)value;
-                        break;
-                    }
-                case RuntimeTypeCode.Any:
-                    {
-                        *(IntPtr*)ptr = (IntPtr)value;
-                        break;
-                    }
+        //    // Select type
+        //    switch(type->TypeCode)
+        //    {
+        //        case RuntimeTypeCode.I8:
+        //            {
+        //                *(sbyte*)ptr = (sbyte)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.U8:
+        //            {
+        //                *(byte*)ptr = (byte)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.I16:
+        //            {
+        //                *(short*)ptr = (short)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.U16:
+        //            {
+        //                *(ushort*)ptr = (ushort)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.I32:
+        //            {
+        //                *(int*)ptr = (int)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.U32:
+        //            {
+        //                *(uint*)ptr = (uint)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.I64:
+        //            {
+        //                *(long*)ptr = (long)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.U64:
+        //            {
+        //                *(ulong*)ptr = (ulong)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.F32:
+        //            {
+        //                *(float*)ptr = (float)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.F64:
+        //            {
+        //                *(double*)ptr = (double)value;
+        //                break;
+        //            }
+        //        case RuntimeTypeCode.Any:
+        //            {
+        //                *(IntPtr*)ptr = (IntPtr)value;
+        //                break;
+        //            }
 
-                default:
-                    throw new NotSupportedException();
-            }
+        //        default:
+        //            throw new NotSupportedException();
+        //    }
 
-            // Increment ptr
-            if (incrementPtr == true)
-                mem = (byte*)mem + type->TypeSize;
-        }
+        //    // Increment ptr
+        //    if (incrementPtr == true)
+        //        mem = (byte*)mem + type->TypeSize;
+        //}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsReferenced(void* mem)

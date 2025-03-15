@@ -2,11 +2,18 @@
 {
     internal unsafe struct _MemoryHandle
     {
-        // Internal
-        internal int ReferenceCounter;
-        internal _TypeHandle* TypeHandle;
+        // Public
+        public int ReferenceCounter;
+        public readonly _TypeHandle* TypeHandle;
 
         // Public
         public static readonly uint Size = (uint)sizeof(_MemoryHandle);
+
+        // Constructor
+        internal _MemoryHandle(_TypeHandle* typeHandle)
+        {
+            this.ReferenceCounter = 0;
+            this.TypeHandle = typeHandle;
+        }
     }
 }
