@@ -30,20 +30,15 @@ type MyType{} // etc
 // Types can be value or reference based depending upon how they are allocated
 #export type MyType<T0, T1: enum> : MyBaseType<T0>, CIterator<T0>, CResource{}
 
-// Stack allocated
-MyType<i8, MyEnum> myVar = MyType<i8, MyEnum>();
-
-// Heap allocated - reference type returned by 'new' and referenced by '&'
-MyType<i8, MyEnum>& myHeapVar = new MyType<i8, MyEnum>();
+// Reference and value types created in the same way
+MyType<i8, MyEnum> myHeapVar = new MyType<i8, MyEnum>()
 ```
 
 ```cs
-// UPDATE - Moving away from this for simplicity. All types can be allocated on the stack or heap depending upon new operator usage, and will be passed by reference automatically unless '#copy' attribute is used
-// Returning a stack allocated object is not supported and will throw a compiler error unless the return type also has '#copy' attribute.
-
-// Possible alternative to eliminate the need to use reference syntax when declaring variables is to support `valuetype` keyword
-// MyValueType will be allocated on the stack, but there is still support for generics and inheritance
-export valuetype MyValueType<T> : MyBaseValueType{}
+// There are no value types/struct in LumaSharp, only types which are passed by reference by default
+// Instead you can use the #copy attribute to specify that the type is copied by default (behaves like a struct), unless an explict by ref attribute is specirfied on a method parameter (#in, #ref)
+// This also means that value types support inheritance, field initialization and other features
+#copy export type MyValueType<T> : MyBaseValueType{}
 ```
 
 ### Contracts:
@@ -180,8 +175,9 @@ type MyType{
 The language uses the following built-in atttributes in declarations:
 #readonly - The accoiated field can only be read from
 #const - The associated field is a global constant
-#copy - The method parameter or return parameter is copied when called (Only allowed for stack allocated types)
-#ref - The method parameter is passed by reference (Only applicable to primitive types that are passed by value by default, but can be used in any case to be more explicit - All user types are passed by reference by default no matter where they were allocated)
+#copy - The type is copied between method frames by default (value type) unless an explict by-ref attribute exists on the method aprameter
+#in - The method parameter is passed by reference (read only). For non-copy types it has no effect since they are passed by reference anyway
+#ref - The method parameter is passed by reference (read and write). For non-copy types it has no effect since they are passed by reference anyway
 #bitmask - The enum declaration should use unique bitset auto initialization
 
 ```cs
