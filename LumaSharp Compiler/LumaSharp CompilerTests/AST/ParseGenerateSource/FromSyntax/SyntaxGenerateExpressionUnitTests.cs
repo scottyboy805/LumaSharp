@@ -1,7 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler;
+﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.AST.Factory;
 
 namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 {
@@ -97,15 +95,14 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_Field()
         {
             SyntaxNode syntax0 = Syntax.FieldReference(
-                "myField", Syntax.VariableReference("myVariable"));
+                Syntax.VariableReference("myVariable"), "myField");
 
             // Get expression text
             Assert.AreEqual("myVariable.myField", syntax0?.GetSourceText());
             Assert.AreEqual("myVariable", syntax0.StartToken.Text);
             Assert.AreEqual("myField", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.FieldReference(
-                "myField", Syntax.FieldReference("myOtherField", Syntax.VariableReference("myVariable")));
+            SyntaxNode syntax1 = Syntax.FieldReference(Syntax.FieldReference(Syntax.VariableReference("myVariable"), "myOtherField"), "myField");
 
             // Get expression text
             Assert.AreEqual("myVariable.myOtherField.myField", syntax1.GetSourceText());
@@ -117,7 +114,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_Method()
         {
             SyntaxNode syntax0 = Syntax.MethodInvoke(
-                "myMethod", Syntax.VariableReference("myVariable"));
+                Syntax.VariableReference("myVariable"), "myMethod");
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod()", syntax0.GetSourceText());
@@ -125,8 +122,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.MethodInvoke(
-                "myMethod", Syntax.VariableReference("myVariable"))
-                .WithArguments(Syntax.Literal(5), Syntax.Literal(false));
+                Syntax.VariableReference("myVariable"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false)));
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod(5,false)", syntax1.GetSourceText());
@@ -134,8 +130,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.MethodInvoke(
-                "myMethod", Syntax.VariableReference("myVariable"))
-                .WithGenericArguments(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("MyType"));
+                Syntax.VariableReference("myVariable"), "myMethod", 
+                Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("MyType")));
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod<i32,MyType>()", syntax2.GetSourceText());
@@ -143,9 +139,9 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.MethodInvoke(
-                "myMethod", Syntax.VariableReference("myVariable"))
-                .WithGenericArguments(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("MyType"))
-                .WithArguments(Syntax.Literal(5), Syntax.Literal(false));
+                Syntax.VariableReference("myVariable"), "myMethod", 
+                Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("MyType")),
+                Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false)));
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod<i32,MyType>(5,false)", syntax3.GetSourceText());
@@ -157,7 +153,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_New()
         {
             SyntaxNode syntax0 = Syntax.New(
-                Syntax.TypeReference("MyType"), false);
+                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(false)));
 
             // Get expression text
             Assert.AreEqual("new MyType()", syntax0.GetSourceText());
@@ -165,7 +161,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.New(
-                Syntax.TypeReference("MyType"), true);
+                Syntax.TypeReference("MyType"));
 
             // Get expression text
             Assert.AreEqual("MyType()", syntax1.GetSourceText());
@@ -173,8 +169,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.New(
-                Syntax.TypeReference("MyType"), false)
-                .WithArguments(Syntax.Literal(5), Syntax.Literal(true));
+                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(true)));
 
             // Get expression text
             Assert.AreEqual("new MyType(5,true)", syntax2.GetSourceText());
@@ -182,8 +177,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.New(
-                Syntax.TypeReference("MyType"), true)
-                .WithArguments(Syntax.Literal(5), Syntax.Literal(true));
+                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(true)));
 
             // Get expression text
             Assert.AreEqual("MyType(5,true)", syntax3.GetSourceText());

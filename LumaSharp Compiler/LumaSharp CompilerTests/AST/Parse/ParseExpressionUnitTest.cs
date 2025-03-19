@@ -1,7 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.AST.Expression;
 
 namespace LumaSharp_CompilerTests.AST.Parse
 {
@@ -84,7 +83,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(FieldAccessorReferenceExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(FieldReferenceExpressionSyntax));
         }
 
         [DataTestMethod]

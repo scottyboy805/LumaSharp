@@ -1,9 +1,6 @@
-﻿
-using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.Reporting;
-using System.Xml.Linq;
+﻿using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class SyntaxTree : SyntaxNode, IRootSyntaxContainer
     {
@@ -12,6 +9,28 @@ namespace LumaSharp_Compiler.AST
         private CompileReport report = new CompileReport();
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get
+            {
+                if (HasRootElements == true && RootElementCount > 0)
+                    return rootElements[0].StartToken;
+
+                return SyntaxToken.Invalid;
+            }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if (HasRootElements == true && RootElementCount > 0)
+                    return rootElements[rootElements.Count - 1].EndToken;
+
+                return SyntaxToken.Invalid;
+            }
+        }
+
         public int RootElementCount
         {
             get { return HasRootElements ? rootElements.Count : 0; }
@@ -54,17 +73,14 @@ namespace LumaSharp_Compiler.AST
 
         // Constructor
         internal SyntaxTree()
-            : base(null, null) 
+            : base(null) 
         {
-            base.tree = this;
             this.rootElements = new List<SyntaxNode>();
         }
 
         internal SyntaxTree(LumaSharpParser.CompilationUnitContext unit)
-            : base(null, null, unit)
+            : base(null)
         {
-            base.tree = this;
-
             // Get root members
             LumaSharpParser.ImportElementContext[] importElements = unit.importElement();
             LumaSharpParser.RootElementContext[] rootElements = unit.rootElement();
@@ -81,7 +97,7 @@ namespace LumaSharp_Compiler.AST
                 for(int i = 0; i < importElements.Length; i++)
                 {
                     // Create import
-                    this.rootElements.Add(new ImportSyntax(this, this, importElements[i]));
+                    this.rootElements.Add(new ImportSyntax(this, importElements[i]));
                 }
             }
 
@@ -90,7 +106,7 @@ namespace LumaSharp_Compiler.AST
             {
                 for (int i = 0; i < rootElements.Length; i++)
                 {
-                    this.rootElements.Add(MemberSyntax.RootElement(this, this, rootElements[i]));
+                    this.rootElements.Add(MemberSyntax.RootElement(this, rootElements[i]));
 
                     //// Get namespace or root member
                     //LumaSharpParser.NamespaceDeclarationContext namespaceElement = rootElements[i].namespaceDeclaration();
@@ -146,7 +162,6 @@ namespace LumaSharp_Compiler.AST
                     rootElements.Add(node);
 
                     // Update hierarchy
-                    node.tree = tree;
                     node.parent = this;
                 }
             }

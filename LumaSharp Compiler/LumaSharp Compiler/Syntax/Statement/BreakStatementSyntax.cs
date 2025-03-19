@@ -1,35 +1,44 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class BreakStatementSyntax : StatementSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
+        private readonly SyntaxToken keyword;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return keyword; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
         }
 
         // Constructor
-        internal BreakStatementSyntax()
-            : base(new SyntaxToken("break"))
+        internal BreakStatementSyntax(SyntaxNode parent)
+            : base(parent)
         {
-            this.keyword = base.StartToken;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.BreakKeyword);
         }
 
-        internal BreakStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
-            : base(tree, parent, statement)
+        internal BreakStatementSyntax(SyntaxNode parent, LumaSharpParser.StatementContext statement)
+            : base(parent)
         {
-            keyword = new SyntaxToken(statement.BREAK());
+            keyword = new SyntaxToken(SyntaxTokenKind.BreakKeyword, statement.BREAK());
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
             keyword.GetSourceText(writer);
-            statementEnd.GetSourceText(writer);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using LumaSharp.Runtime;
-using LumaSharp_Compiler.AST;
+using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Semantics
+namespace LumaSharp.Compiler.Semantics
 {
     public interface ITypeReferenceSymbol : IReferenceSymbol
     {

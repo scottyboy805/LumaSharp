@@ -1,8 +1,6 @@
-﻿using LumaSharp_Compiler.Semantics.Model;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Model.Statement;
+﻿using LumaSharp.Compiler.Semantics.Model;
 
-namespace LumaSharp_Compiler.Semantics.Visitor
+namespace LumaSharp.Compiler.Semantics.Visitor
 {
     public abstract class SemanticVisitor : ISemanticVisitor
     {
@@ -14,8 +12,13 @@ namespace LumaSharp_Compiler.Semantics.Visitor
 
         public virtual void VisitAssign(AssignModel model)
         {
-            VisitExpression(model.Right);
-            VisitExpression(model.Left);
+            // Visit right first
+            foreach (ExpressionModel expression in model.Right)
+                VisitExpression(expression);
+
+            // Visit left second
+            foreach(ExpressionModel expression in model.Left)
+                VisitExpression(expression);
         }
 
         public virtual void VisitBinary(BinaryModel model)
@@ -125,7 +128,10 @@ namespace LumaSharp_Compiler.Semantics.Visitor
         public virtual void VisitReturn(ReturnModel model)
         {
             if (model.HasReturnExpression == true)
-                VisitExpression(model.ReturnModelExpression);
+            {
+                foreach(ExpressionModel returnExpression in model.ReturnModelExpressions)
+                    VisitExpression(returnExpression);
+            }
         }
 
         public virtual void VisitCondition(ConditionModel model)
@@ -177,7 +183,7 @@ namespace LumaSharp_Compiler.Semantics.Visitor
             {
                 VisitAssign(model as AssignModel);
             }
-            // Check for retrun
+            // Check for return
             else if (model is ReturnModel)
             {
                 VisitReturn(model as ReturnModel);

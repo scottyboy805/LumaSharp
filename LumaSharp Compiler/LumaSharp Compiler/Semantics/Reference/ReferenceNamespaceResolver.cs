@@ -1,6 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal class ReferenceNamespaceResolver
     {
@@ -8,7 +8,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         public ReferenceNamespaceResolver() { }
 
         // Methods
-        public bool ResolveReferenceNamespaceSymbol(ReferenceLibrary thisLibrary, ReferenceLibrary[] referenceLibraries, NamespaceName namespaceName, out INamespaceReferenceSymbol resovledNamespace)
+        public bool ResolveReferenceNamespaceSymbol(ReferenceLibrary thisLibrary, ReferenceLibrary[] referenceLibraries, SeparatedTokenList namespaceName, out INamespaceReferenceSymbol resovledNamespace)
         {
             // Check this library first
             if (ResolveReferenceNamespaceSymbol(thisLibrary, namespaceName, out resovledNamespace) == true)
@@ -30,12 +30,12 @@ namespace LumaSharp_Compiler.Semantics.Reference
             return false;
         }
 
-        public bool ResolveReferenceNamespaceSymbol(ReferenceLibrary library, NamespaceName namespaceName, out INamespaceReferenceSymbol resolvedNamespace)
+        public bool ResolveReferenceNamespaceSymbol(ReferenceLibrary library, SeparatedTokenList namespaceName, out INamespaceReferenceSymbol resolvedNamespace)
         {
             INamespaceReferenceSymbol current = null;
 
             // Check all identifiers
-            for(int i = 0; i < namespaceName.Identifiers.Length; i++)
+            for(int i = 0; i < namespaceName.Count; i++)
             {
                 // Select best fitting namespaces
                 IEnumerable<INamespaceReferenceSymbol> namespaceSymbols = current == null
@@ -48,7 +48,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 foreach (INamespaceReferenceSymbol namespaceSymbol in namespaceSymbols)
                 {
                     // Check for matching name
-                    if (namespaceName.Identifiers[i].Text == namespaceSymbol.NamespaceName)
+                    if (namespaceName[i].Text == namespaceSymbol.NamespaceName)
                     {
                         match = true;
                         current = namespaceSymbol;
@@ -57,7 +57,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 }
 
                 // Check for all matched
-                if(match == true && i == namespaceName.Identifiers.Length - 1)
+                if(match == true && i == namespaceName.Count - 1)
                 {
                     resolvedNamespace = current;
                     return true;

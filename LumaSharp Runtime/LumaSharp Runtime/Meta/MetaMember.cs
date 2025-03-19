@@ -1,8 +1,9 @@
-﻿
+﻿using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
-    public enum MemberFlags : uint
+    public enum MemberFlags : ushort
     {
         Export = 1,
         Internal = 2,
@@ -16,14 +17,14 @@ namespace LumaSharp.Runtime.Reflection
         internal AppContext context = null;
 
         // Private
-        private int metaToken = 0;
+        private _TokenHandle token = default;
         private string name = "";
         private MemberFlags memberFlags = 0;
 
         // Properties
-        public int MetaToken
+        public _TokenHandle Token
         {
-            get { return metaToken; }
+            get { return token; }
         }
 
         public string Name
@@ -62,9 +63,10 @@ namespace LumaSharp.Runtime.Reflection
             this.context = context;
         }
 
-        protected MetaMember(AppContext context, string name, MemberFlags flags)
+        protected MetaMember(AppContext context, _TokenHandle token, string name, MemberFlags flags)
         {
             this.context =context;
+            this.token = token;
             this.name = name;
             this.memberFlags = flags;
         }
@@ -75,11 +77,11 @@ namespace LumaSharp.Runtime.Reflection
             return (memberFlags & flags) == flags;
         }
 
-        internal void LoadMemberMetadata(BinaryReader reader)
-        {
-            metaToken = reader.ReadInt32();
-            name = reader.ReadString();
-            memberFlags = (MemberFlags)reader.ReadUInt32();
-        }
+        //internal void LoadMemberMetadata(BinaryReader reader)
+        //{
+        //    metaToken = new _TokenHandle(reader.ReadInt32());
+        //    name = reader.ReadString();
+        //    memberFlags = (MemberFlags)reader.ReadUInt32();
+        //}
     }
 }

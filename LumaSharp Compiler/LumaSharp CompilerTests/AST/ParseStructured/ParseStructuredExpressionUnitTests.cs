@@ -1,7 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.AST.Expression;
 
 namespace LumaSharp_CompilerTests.AST.ParseStructured
 {
@@ -42,7 +41,7 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
 
         [DataTestMethod]
         [DataRow("i32.myField", typeof(TypeReferenceSyntax))]
-        [DataRow("my.Field.Final", typeof(FieldAccessorReferenceExpressionSyntax))]
+        [DataRow("my.Field.Final", typeof(FieldReferenceExpressionSyntax))]
         [DataRow("my.Method(a).Final", typeof(MethodInvokeExpressionSyntax))]
         [DataRow("my.Array[0].Final", typeof(ArrayIndexExpressionSyntax))]
         [DataRow(@"""Hello World"".Length", typeof(LiteralExpressionSyntax))]
@@ -59,14 +58,14 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(FieldAccessorReferenceExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(FieldReferenceExpressionSyntax));
 
-            Assert.IsInstanceOfType(((FieldAccessorReferenceExpressionSyntax)expression).AccessExpression, expressionType);
+            Assert.IsInstanceOfType(((FieldReferenceExpressionSyntax)expression).AccessExpression, expressionType);
         }
 
         [DataTestMethod]
         [DataRow("i32.myMethod()", typeof(TypeReferenceSyntax))]
-        [DataRow("my.Field.Final()", typeof(FieldAccessorReferenceExpressionSyntax))]
+        [DataRow("my.Field.Final()", typeof(FieldReferenceExpressionSyntax))]
         [DataRow("my.Method(a).Final()", typeof(MethodInvokeExpressionSyntax))]
         [DataRow("my.Array[0].Final(123)", typeof(ArrayIndexExpressionSyntax))]
         [DataRow(@"""Hello World"".Length()", typeof(LiteralExpressionSyntax))]
@@ -89,7 +88,7 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
         }
 
         [DataTestMethod]
-        [DataRow("my.Field[0]", typeof(FieldAccessorReferenceExpressionSyntax))]
+        [DataRow("my.Field[0]", typeof(FieldReferenceExpressionSyntax))]
         [DataRow("my.Method(a)[0]", typeof(MethodInvokeExpressionSyntax))]
         [DataRow("my.Array[0][0, 1]", typeof(ArrayIndexExpressionSyntax))]
         [DataRow(@"""Hello World""[0, 1]", typeof(LiteralExpressionSyntax))]

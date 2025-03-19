@@ -1,9 +1,7 @@
-﻿using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using System.Linq.Expressions;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public enum ConstantType
     {
@@ -51,11 +49,11 @@ namespace LumaSharp_Compiler.Semantics.Model
         {
             if(value == null)
             {
-                literal = new SyntaxToken("null");
+                literal = new SyntaxToken(SyntaxTokenKind.NullKeyword);
             }
             else if(value is string)
             {
-                literal = new SyntaxToken("\"" + value + "\"");
+                literal = new SyntaxToken(SyntaxTokenKind.Literal, "\"" + value + "\"");
             }
             else
             {
@@ -68,37 +66,37 @@ namespace LumaSharp_Compiler.Semantics.Model
                     case TypeCode.UInt16:
                     case TypeCode.Int32:
                         {
-                            literal = new SyntaxToken(value.ToString());                            
+                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());                            
                             break;
                         }
                     case TypeCode.UInt32:
                         {
-                            literal = new SyntaxToken(value.ToString());
-                            descriptor = new SyntaxToken("U");
+                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U");
                             break;
                         }
                     case TypeCode.Int64:
                         {
-                            literal = new SyntaxToken(value.ToString());
-                            descriptor = new SyntaxToken("L");
+                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L");
                             break;
                         }
                     case TypeCode.UInt64:
                         {
-                            literal = new SyntaxToken(value.ToString());
-                            descriptor = new SyntaxToken("UL");
+                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL");
                             break;
                         }
                     case TypeCode.Single:
                         {
-                            literal = new SyntaxToken(value.ToString());
-                            descriptor = new SyntaxToken("F");
+                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "F");
                             break;
                         }
                     case TypeCode.Double:
                         {
-                            literal = new SyntaxToken(value.ToString());
-                            descriptor = new SyntaxToken("D");
+                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "D");
                             break;
                         }
                 }
@@ -127,7 +125,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             if (constantType == ConstantType.LiteralString)
             {
                 // Resolve symbol
-                this.constantTypeSymbol = provider.ResolveTypeSymbol(null, new TypeReferenceSyntax("string"));
+                this.constantTypeSymbol = provider.ResolveTypeSymbol(null, Syntax.TypeReference("string"));
             }
             else
             {
@@ -226,7 +224,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             if(token.Text.Contains('.') == true)
             {
                 // Check for descriptor
-                if (descriptor != null)
+                if (descriptor.Kind != SyntaxTokenKind.Invalid)
                 {
                     // Check for D
                     if(descriptor.Text == "D")
@@ -275,7 +273,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
             // Check for integer
             {
-                if (descriptor != null)
+                if (descriptor.Kind != SyntaxTokenKind.Invalid)
                 {
                     // Check for U
                     if (descriptor.Text == "U")

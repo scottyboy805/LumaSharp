@@ -1,12 +1,12 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model.Expression
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class FieldAccessorReferenceModel : ExpressionModel
     {
         // Private
-        private FieldAccessorReferenceExpressionSyntax syntax = null;
+        private FieldReferenceExpressionSyntax syntax = null;
         private ExpressionModel accessModel = null;
         private IIdentifierReferenceSymbol fieldAccessorIdentifierSymbol = null;
 
@@ -66,7 +66,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         }
 
         // Constructor
-        public FieldAccessorReferenceModel(SemanticModel model, SymbolModel parent, FieldAccessorReferenceExpressionSyntax syntax)
+        public FieldAccessorReferenceModel(SemanticModel model, SymbolModel parent, FieldReferenceExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;

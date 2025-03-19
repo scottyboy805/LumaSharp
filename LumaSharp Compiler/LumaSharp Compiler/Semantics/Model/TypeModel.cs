@@ -1,19 +1,17 @@
 ﻿using LumaSharp.Runtime;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Reference;
 using LumaSharp.Runtime.Reflection;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Reference;
-using System.Text;
-using PrimitiveType = LumaSharp_Compiler.AST.PrimitiveType;
+using PrimitiveType = LumaSharp.Compiler.AST.PrimitiveType;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class TypeModel : MemberModel, ITypeReferenceSymbol
     {
         // Private
-        private MemberSyntax syntax = null;
-        private NamespaceName namespaceName = null;
+        private MemberSyntax typeSyntax = null;
+        private SeparatedTokenList namespaceName = null;
 
         private TypeModel parentType = null;
         private IReadOnlyList<INamespaceReferenceSymbol> importSymbols = null;
@@ -27,13 +25,13 @@ namespace LumaSharp_Compiler.Semantics.Model
         private MethodModel[] memberMethods = null;
         private MethodModel[] operatorMethods = null;
 
-        private TypeFlags typeFlags = default;
+        private MetaTypeFlags typeFlags = default;
         private _TypeHandle typeHandle = default;
 
         // Properties
-        internal MemberSyntax Syntax
+        internal MemberSyntax TypeSyntax
         {
-            get { return syntax; }
+            get { return typeSyntax; }
         }
 
         public INamespaceReferenceSymbol NamespaceSymbol
@@ -86,12 +84,12 @@ namespace LumaSharp_Compiler.Semantics.Model
             get 
             { 
                 // Check for type
-                if(syntax is TypeSyntax)
-                    return ((TypeSyntax)syntax).HasGenericParameters;
+                if(typeSyntax is TypeSyntax)
+                    return ((TypeSyntax)typeSyntax).HasGenericParameters;
 
                 // Check for contract
-                if (syntax is ContractSyntax)
-                    return ((ContractSyntax)syntax).HasGenericParameters;
+                if (typeSyntax is ContractSyntax)
+                    return ((ContractSyntax)typeSyntax).HasGenericParameters;
 
                 return false;
             }
@@ -102,12 +100,12 @@ namespace LumaSharp_Compiler.Semantics.Model
             get 
             { 
                 // Check for type
-                if(syntax is TypeSyntax)
-                    return ((TypeSyntax)syntax).HasBaseTypes;
+                if(typeSyntax is TypeSyntax)
+                    return ((TypeSyntax)typeSyntax).HasBaseTypes;
 
                 // Check for contract
-                if(syntax is ContractSyntax)
-                    return ((ContractSyntax)syntax).HasBaseTypes;
+                if(typeSyntax is ContractSyntax)
+                    return ((ContractSyntax)typeSyntax).HasBaseTypes;
 
                 return false;
             }
@@ -123,7 +121,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             get 
             { 
                 if(namespaceName != null)
-                    return namespaceName.Identifiers.Select(i => i.Text).ToArray();
+                    return namespaceName.Select(i => i.Text).ToArray();
 
                 return null;
             }
@@ -131,22 +129,22 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool IsExport
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "export") != null; }
+            get { return typeSyntax.HasAccessModifiers == true && typeSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.ExportKeyword); }
         }
 
         public bool IsInternal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "internal") != null; }
+            get { return typeSyntax.HasAccessModifiers == true && typeSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.InternalKeyword); }
         }
 
         public bool IsHidden
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "hidden") != null; }
+            get { return typeSyntax.HasAccessModifiers == true && typeSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.HiddenKeyword); }
         }
 
         public bool IsGlobal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
+            get { return typeSyntax.HasAccessModifiers == true && typeSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.GlobalKeyword); }
         }
 
         public PrimitiveType PrimitiveType
@@ -161,20 +159,25 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool IsType
         {
-            get { return syntax is TypeSyntax; }
+            get { return typeSyntax is TypeSyntax; }
         }
 
         public bool IsContract
         {
-            get { return syntax is ContractSyntax; }
+            get { return typeSyntax is ContractSyntax; }
         }
 
         public bool IsEnum
         {
-            get { return syntax is EnumSyntax; }
+            get { return typeSyntax is EnumSyntax; }
         }
 
-        public TypeFlags TypeFlags
+        public bool IsCopy
+        {
+            get { return typeSyntax.Attributes.Any(a => a.AttributeType.Identifier.Text == "Copy"); }
+        }
+
+        public MetaTypeFlags TypeFlags
         {
             get { return typeFlags; }
         }
@@ -230,7 +233,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         internal TypeModel(SemanticModel model, SymbolModel parent, TypeSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
             : base(model, parent, syntax)
         {
-            this.syntax = syntax;
+            this.typeSyntax = syntax;
             this.namespaceName = syntax.Namespace;
             this.importSymbols = importSymbols;
 
@@ -242,19 +245,19 @@ namespace LumaSharp_Compiler.Semantics.Model
             if (syntax.HasGenericParameters == true)
             {
                 // Create symbol array
-                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.GenericParameterCount];
+                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.Count];
 
                 // Build all
                 for (int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
                 {
                     // Add to type model
-                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters[i], this);
                 }
             }
 
             // Update base types
             this.baseTypesSymbols = syntax.HasBaseTypes == true
-                ? syntax.BaseTypeReferences.Select(t => new TypeReferenceModel(model, this, t)).ToArray()
+                ? syntax.BaseTypes.Select(t => new TypeReferenceModel(model, this, t)).ToArray()
                 : null;
 
 
@@ -268,7 +271,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         internal TypeModel(SemanticModel model, SymbolModel parent, ContractSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
             : base(model, parent, syntax)
         {
-            this.syntax = syntax;
+            this.typeSyntax = syntax;
             this.namespaceName = syntax.Namespace;
             this.importSymbols = importSymbols;
 
@@ -280,19 +283,19 @@ namespace LumaSharp_Compiler.Semantics.Model
             if (syntax.HasGenericParameters == true)
             {
                 // Create symbol array
-                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.GenericParameterCount];
+                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.Count];
 
                 // Build all
                 for (int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
                 {
                     // Add to type model
-                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters[i], this);
                 }
             }
 
             // Update base types
             this.baseTypesSymbols = syntax.HasBaseTypes == true
-                ? syntax.BaseTypeReferences.Select(t => new TypeReferenceModel(model, this, t)).ToArray()
+                ? syntax.BaseTypes.Select(t => new TypeReferenceModel(model, this, t)).ToArray()
                 : null;
 
             // Build model
@@ -305,7 +308,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         internal TypeModel(SemanticModel model, SymbolModel parent, EnumSyntax syntax, IReadOnlyList<INamespaceReferenceSymbol> importSymbols)
             : base(model, parent, syntax)
         {
-            this.syntax = syntax;
+            this.typeSyntax = syntax;
             this.namespaceName = syntax.Namespace;
             this.importSymbols = importSymbols;
 
@@ -330,11 +333,11 @@ namespace LumaSharp_Compiler.Semantics.Model
                     namespaceName.GetSourceText(writer);
 
                 // Get type name
-                syntax.Identifier.GetSourceText(writer);
+                typeSyntax.Identifier.GetSourceText(writer);
 
                 // Get generic arguments
                 if (HasGenericParameters == true)
-                    ((TypeSyntax)syntax).GenericParameters.GetSourceText(writer);
+                    ((TypeSyntax)typeSyntax).GenericParameters.GetSourceText(writer);
 
                 // Get string
                 return writer.ToString();
@@ -456,12 +459,12 @@ namespace LumaSharp_Compiler.Semantics.Model
                 {
                     if (baseTypesSymbols == null)
                     {
-                        baseTypesSymbols = new TypeReferenceModel[] { new TypeReferenceModel(Model, this, new TypeReferenceSyntax(newBaseName)) };
+                        baseTypesSymbols = new TypeReferenceModel[] { new TypeReferenceModel(Model, this, Syntax.TypeReference(newBaseName)) };
                     }
                     else
                     {
                         List<TypeReferenceModel> baseModels = new List<TypeReferenceModel>(baseTypesSymbols);
-                        baseModels.Insert(0, new TypeReferenceModel(Model, this, new TypeReferenceSyntax(newBaseName)));
+                        baseModels.Insert(0, new TypeReferenceModel(Model, this, Syntax.TypeReference(newBaseName)));
 
                         baseTypesSymbols = baseModels.ToArray();
                     }
@@ -539,33 +542,36 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
         }
 
-        private TypeFlags BuildTypeFlags()
+        private MetaTypeFlags BuildTypeFlags()
         {
-            TypeFlags flags = 0;
+            MetaTypeFlags flags = 0;
 
             // Check for export
-            if (IsExport == true) flags |= TypeFlags.Export;
+            if (IsExport == true) flags |= MetaTypeFlags.Export;
 
             // Check for internal
-            if (IsInternal == true) flags |= TypeFlags.Internal;
+            if (IsInternal == true) flags |= MetaTypeFlags.Internal;
 
             // Check for hidden
-            if (IsHidden == true) flags |= TypeFlags.Hidden;
+            if (IsHidden == true) flags |= MetaTypeFlags.Hidden;
 
             // Check for global
-            if (IsGlobal == true) flags |= TypeFlags.Global;
+            if (IsGlobal == true) flags |= MetaTypeFlags.Global;
 
             // Check for type
-            if (IsType == true) flags |= TypeFlags.Type;
+            if (IsType == true) flags |= MetaTypeFlags.Type;
 
             // Check for contract
-            if (IsContract == true) flags |= TypeFlags.Contract;
+            if (IsContract == true) flags |= MetaTypeFlags.Contract;
 
             // Check for enum
-            if (IsEnum == true) flags |= TypeFlags.Enum;
+            if (IsEnum == true) flags |= MetaTypeFlags.Enum;
 
-            // Check for array
-            if (HasGenericParameters == true) flags |= TypeFlags.Generic;
+            // Check for array generic
+            if (HasGenericParameters == true) flags |= MetaTypeFlags.Generic;
+
+            // Check for copy
+            if(IsCopy == true) flags |= MetaTypeFlags.Copy;
 
             return flags;
         }

@@ -1,10 +1,8 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Emit.Builder;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Runtime;
-using LumaSharp.Runtime.Emit;
+using LumaSharp.Compiler.Emit;
 
 namespace LumaSharp_CompilerTests.Emit.Instructions
 {
@@ -17,8 +15,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableReference("myVar")))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -29,11 +27,11 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 0);
-            Assert.AreEqual(OpCode.Ld_Loc_0, builder[0].opCode);
+            Assert.IsTrue(builder.Count > 0);
+            Assert.AreEqual(OpCode.Ld_Var_0, builder[0].OpCode);
         }
 
         [TestMethod]
@@ -42,9 +40,9 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
+                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
                     Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableReference("myVar")))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -55,11 +53,11 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Loc_1, builder[0].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_1, builder[0].OpCode);
         }
 
         [TestMethod]
@@ -68,10 +66,10 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
+                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
                 Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
                     Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableReference("myVar")))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -82,11 +80,11 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Loc_2, builder[0].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_2, builder[0].OpCode);
         }
 
         [TestMethod]
@@ -95,11 +93,11 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
+                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
                 Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
                 Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l2"),
                     Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableReference("myVar")))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -110,12 +108,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Loc, builder[0].opCode);
-            Assert.AreEqual((byte)3, builder[0].data0);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var, builder[0].OpCode);
+            Assert.AreEqual((byte)3, builder[0].Operand);
         }
 
         [TestMethod]
@@ -131,12 +129,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             statements[byte.MaxValue] = Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar");
 
             // Store our access expression finally
-            statements[byte.MaxValue + 1] = Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableReference("myVar"));
+            statements[byte.MaxValue + 1] = Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.VariableReference("myVar"));
 
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(statements)));
+                .WithBody(statements)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -147,12 +145,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Loc_E, builder[0].opCode);
-            Assert.AreEqual((ushort)byte.MaxValue, builder[0].data0);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_E, builder[0].OpCode);
+            Assert.AreEqual((ushort)byte.MaxValue, builder[0].Operand);
         }
     }
 }

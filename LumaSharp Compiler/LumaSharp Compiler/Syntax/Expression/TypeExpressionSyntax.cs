@@ -1,17 +1,38 @@
-﻿namespace LumaSharp_Compiler.AST
+﻿
+namespace LumaSharp.Compiler.AST
 {
     public sealed class TypeExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
-        private SyntaxToken lparen = null;
-        private SyntaxToken rparen = null;
-        private TypeReferenceSyntax typeReference = null;
+        private readonly SyntaxToken keyword;
+        private readonly SyntaxToken lParen;
+        private readonly SyntaxToken rParen;
+        private readonly TypeReferenceSyntax typeReference;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rParen; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public new SyntaxToken LParen
+        {
+            get { return lParen; }
+        }
+
+        public new SyntaxToken RParen
+        {
+            get { return rParen; }
         }
 
         public TypeReferenceSyntax TypeReference
@@ -25,29 +46,31 @@
         }
 
         // Constructor
-        internal TypeExpressionSyntax(TypeReferenceSyntax typeReference)
-            : base(SyntaxToken.Type(), SyntaxToken.RParen())
+        internal TypeExpressionSyntax(SyntaxNode parent, TypeReferenceSyntax typeReference)
+            : base(parent, null)
         {
-            this.keyword = base.StartToken;
-            this.lparen = SyntaxToken.LParen();
-            this.rparen = base.EndToken;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.TypeKeyword);
+            this.lParen = Syntax.KeywordOrSymbol(SyntaxTokenKind.LParenSymbol);
+            this.rParen = Syntax.KeywordOrSymbol(SyntaxTokenKind.RParenSymbol);
 
             // Type reference
             this.typeReference = typeReference;
         }
 
-        internal TypeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeExpressionContext type)
-            : base(tree, parent, type)
+        internal TypeExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
+            LumaSharpParser.TypeExpressionContext type = expression.typeExpression();
+
             // Keyword
-            this.keyword = new SyntaxToken(type.TYPE());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.TypeKeyword, type.TYPE());
 
             // LR paren
-            this.lparen = new SyntaxToken(type.lparen);
-            this.rparen = new SyntaxToken(type.rparen);
+            this.lParen = new SyntaxToken(SyntaxTokenKind.LParenSymbol, type.LPAREN());
+            this.rParen = new SyntaxToken(SyntaxTokenKind.RParenSymbol, type.RPAREN());
 
             // Type reference
-            this.typeReference = new TypeReferenceSyntax(tree, this, type.typeReference());
+            this.typeReference = new TypeReferenceSyntax(this, null, type.typeReference());
         }
 
         // Methods
@@ -56,14 +79,14 @@
             // Write keyword
             keyword.GetSourceText(writer);
 
-            // Lparen
-            lparen.GetSourceText(writer);
+            // LParen
+            lParen.GetSourceText(writer);
 
             // Expression
             typeReference.GetSourceText(writer);
 
-            // Rparen
-            rparen.GetSourceText(writer);
+            // RParen
+            rParen.GetSourceText(writer);
         }
     }
 }

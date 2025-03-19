@@ -1,34 +1,39 @@
 ﻿
-using LumaSharp_Compiler.AST.Expression;
-
-namespace LumaSharp_Compiler.AST.Statement
+namespace LumaSharp.Compiler.AST
 {
     public sealed class MethodInvokeStatementSyntax : StatementSyntax
     {
         // Private
-        private MethodInvokeExpressionSyntax invokeExpression = null;
+        private readonly MethodInvokeExpressionSyntax invokeExpression;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return invokeExpression.StartToken; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return invokeExpression.EndToken; }
+        }
+
         public MethodInvokeExpressionSyntax InvokeExpression
         {
             get { return invokeExpression; }
         }
 
         // Constructor
-        internal MethodInvokeStatementSyntax(MethodInvokeExpressionSyntax invokeExpression)
-            : base(invokeExpression.StartToken)
+        internal MethodInvokeStatementSyntax(SyntaxNode parent, MethodInvokeExpressionSyntax invokeExpression)
+            : base(parent)
         {
             this.invokeExpression = invokeExpression;
         }
 
-        internal MethodInvokeStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodInvokeStatementContext invoke)
-            : base(tree, parent, invoke)
+        internal MethodInvokeStatementSyntax(SyntaxNode parent, LumaSharpParser.MethodInvokeStatementContext invoke)
+            : base(parent)
         {
             // Get invoke
-            this.invokeExpression = new MethodInvokeExpressionSyntax(tree, this, invoke.expression(), invoke.methodInvokeExpression());
-
-            // Semicolon
-            this.statementEnd = new SyntaxToken(invoke.semi);
+            this.invokeExpression = new MethodInvokeExpressionSyntax(this, invoke.expression());
         }
 
         // Methods
@@ -36,9 +41,6 @@ namespace LumaSharp_Compiler.AST.Statement
         {
             // Invoke
             invokeExpression.GetSourceText(writer);
-
-            // Semicolon
-            this.statementEnd.GetSourceText(writer);
         }
     }
 }

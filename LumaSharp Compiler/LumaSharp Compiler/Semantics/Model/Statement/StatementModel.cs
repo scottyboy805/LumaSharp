@@ -1,7 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Statement;
+﻿using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Semantics.Model.Statement
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public abstract class StatementModel : SymbolModel
     {

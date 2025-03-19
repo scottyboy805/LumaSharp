@@ -115,8 +115,8 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.EnumBlockContext fields = context.enumBlock();
 
             Assert.AreEqual("Item1", fields.enumField(0).IDENTIFIER().GetText());
-            Assert.AreEqual("=", fields.enumField(0).fieldAssignment().GetChild(0).GetText());
-            Assert.AreEqual("5", fields.enumField(0).fieldAssignment().GetChild(1).GetText());
+            Assert.AreEqual("=", fields.enumField(0).variableAssignment().GetChild(0).GetText());
+            Assert.AreEqual("5", fields.enumField(0).variableAssignment().GetChild(1).GetText());
         }
 
         [TestMethod]
@@ -137,14 +137,14 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.EnumBlockContext fields = context.enumBlock();
 
             Assert.AreEqual("Item1", fields.enumField(0).IDENTIFIER().GetText());
-            Assert.AreEqual("=", fields.enumField(0).fieldAssignment().GetChild(0).GetText());
-            Assert.AreEqual("5", fields.enumField(0).fieldAssignment().GetChild(1).GetText());
+            Assert.AreEqual("=", fields.enumField(0).variableAssignment().GetChild(0).GetText());
+            Assert.AreEqual("5", fields.enumField(0).variableAssignment().GetChild(1).GetText());
 
             Assert.AreEqual(",", fields.GetChild(2).GetText());
 
             Assert.AreEqual("Item2", fields.enumField(1).IDENTIFIER().GetText());
-            Assert.AreEqual("=", fields.enumField(1).fieldAssignment().GetChild(0).GetText());
-            Assert.AreEqual("10", fields.enumField(1).fieldAssignment().GetChild(1).GetText());
+            Assert.AreEqual("=", fields.enumField(1).variableAssignment().GetChild(0).GetText());
+            Assert.AreEqual("10", fields.enumField(1).variableAssignment().GetChild(1).GetText());
         }
     }
 }

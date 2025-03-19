@@ -1,7 +1,7 @@
-﻿using LumaSharp_Compiler.AST.Expression;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model.Expression
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class NewModel : ExpressionModel
     {
@@ -23,11 +23,6 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
         public TypeReferenceModel NewTypeExpression
         {
             get { return newTypeModel; }
-        }
-
-        public bool StackAlloc
-        {
-            get { return syntax.IsStackAlloc; }
         }
 
         public override IEnumerable<SymbolModel> Descendants

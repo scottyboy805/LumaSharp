@@ -1,23 +1,40 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class GenericParameterSyntax : SyntaxNode
     {
         // Private
-        private SyntaxToken identifier = null;
-        private TypeReferenceSyntax[] constraintTypes = null;
-        private SyntaxToken colon = null;
-        private int index = 0;
+        private readonly SyntaxToken identifier;
+        private readonly SeparatedListSyntax<TypeReferenceSyntax> genericConstraints;
+        private readonly SyntaxToken colon;
+        private readonly int index;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return identifier; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for constraint
+                if (HasConstraintTypes == true)
+                    return genericConstraints.EndToken;
+
+                return identifier;
+            }
+        }
+
         public SyntaxToken Identifier
         {
             get { return identifier; }
         }
 
-        public TypeReferenceSyntax[] ConstraintTypes
+        public SeparatedListSyntax<TypeReferenceSyntax> ConstraintTypes
         {
-            get { return constraintTypes; }
+            get { return genericConstraints; }
         }
 
         public int Index
@@ -27,47 +44,78 @@ namespace LumaSharp_Compiler.AST
 
         public int ConstraintTypeCount
         {
-            get { return HasConstraintTypes ? constraintTypes.Length : 0; }
+            get { return HasConstraintTypes ? genericConstraints.Count : 0; }
         }
 
         public bool HasConstraintTypes
         {
-            get { return constraintTypes != null; }
+            get { return genericConstraints != null; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return constraintTypes; }
+            get { return genericConstraints.Descendants; }
         }
 
         // Constructor
-        internal GenericParameterSyntax(string identifier, TypeReferenceSyntax[] constraintTypes, int index = 0)
-            : base(new SyntaxToken(identifier))
+        internal GenericParameterSyntax(SyntaxNode parent, string identifier, int index, TypeReferenceSyntax[] constraintTypes)
+            : base(parent)
         {
             // Identifier
-            this.identifier = new SyntaxToken(identifier);
-
-            // Constrain types
-            this.constraintTypes = constraintTypes;
-            this.colon = SyntaxToken.Colon();
+            this.identifier = Syntax.Identifier(identifier);
             this.index = index;
+
+            if (genericConstraints != null)
+            {
+                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.genericConstraints = new SeparatedListSyntax<TypeReferenceSyntax>(this, SyntaxTokenKind.CommaSymbol);
+
+                // Constrain types
+                foreach (TypeReferenceSyntax constraintType in constraintTypes)
+                    this.genericConstraints.AddElement(constraintType, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
+            }
         }
 
-        internal GenericParameterSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericParameterContext paramDef, int index)
-            : base(tree, parent, paramDef)
+        internal GenericParameterSyntax(SyntaxNode parent, LumaSharpParser.GenericParameterContext paramDef, int index)
+            : base(parent)
         {
             // Identifier
-            this.identifier = new SyntaxToken(paramDef.IDENTIFIER());
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, paramDef.IDENTIFIER());
 
             // Assigned index in list
             this.index = index;
 
             // Constraint types
-            LumaSharpParser.TypeReferenceContext[] constraints = paramDef.typeReference();
+            LumaSharpParser.GenericConstraintListContext constraints = paramDef.genericConstraintList();
 
             if(constraints != null)
             {
-                this.constraintTypes = constraints.Select(c => new TypeReferenceSyntax(tree, this, c)).ToArray();
+                // Create constraints
+                this.genericConstraints = new SeparatedListSyntax<TypeReferenceSyntax>(this, SyntaxTokenKind.CommaSymbol);
+
+                // Get colon
+                this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, constraints.COLON());
+
+
+                // Get primary constraint
+                LumaSharpParser.GenericConstraintContext primaryConstraint = constraints.genericConstraint();
+
+                this.genericConstraints.AddElement(new TypeReferenceSyntax(genericConstraints, null, primaryConstraint.typeReference()), null);
+
+
+                // Get secondary constraints
+                LumaSharpParser.GenericConstraintSecondaryContext[] secondaryConstraints = constraints.genericConstraintSecondary();
+
+                if(secondaryConstraints != null)
+                {
+                    // Process all constrains
+                    foreach(LumaSharpParser.GenericConstraintSecondaryContext secondaryConstraint in secondaryConstraints)
+                    {
+                        this.genericConstraints.AddElement(
+                            new TypeReferenceSyntax(genericConstraints, null, secondaryConstraint.genericConstraint().typeReference()),
+                            new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryConstraint.COMMA()));
+                    }
+                }
             }
         }
 
@@ -79,14 +127,11 @@ namespace LumaSharp_Compiler.AST
 
             if (HasConstraintTypes == true)
             {
-                for (int i = 0; i < constraintTypes.Length; i++)
-                {
-                    // Colon
-                    colon.GetSourceText(writer);
+                // Colon
+                colon.GetSourceText(writer);
 
-                    // Write constrain types
-                    constraintTypes[i].GetSourceText(writer);
-                }
+                // Get constrains types
+                genericConstraints.GetSourceText(writer);
             }
         }
     }

@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.AST.Factory
+namespace LumaSharp.Compiler.AST
 {
     public interface IRootSyntaxContainer
     {

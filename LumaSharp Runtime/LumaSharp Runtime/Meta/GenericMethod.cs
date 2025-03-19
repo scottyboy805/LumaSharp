@@ -1,4 +1,5 @@
-﻿
+﻿using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
     public class GenericMethod : MetaMethod
@@ -18,8 +19,8 @@ namespace LumaSharp.Runtime.Reflection
         }
         
         // Constructor
-        internal GenericMethod(AppContext context, string name, MethodFlags methodFlags) 
-            : base(context, name, methodFlags)
+        internal GenericMethod(AppContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags) 
+            : base(context, token, name, methodFlags, null, null)
         {
         }
     }

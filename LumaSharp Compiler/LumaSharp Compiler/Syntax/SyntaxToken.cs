@@ -1,21 +1,181 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public sealed class SyntaxToken
+    public enum SyntaxTokenKind
+    {
+        Invalid = 0,
+
+        Identifier,
+        Literal,
+        LiteralDescriptor,
+        UnaryOperator,
+        BinaryOperator,
+        AssignOperator,
+
+        LGenericSymbol,
+        RGenericSymbol,
+        LArraySymbol,
+        RArraySymbol,
+        LBlockSymbol,
+        RBlockSymbol,
+        LParenSymbol,
+        RParenSymbol,
+
+        DotSymbol,
+        CommaSymbol,
+        ColonSymbol,
+        HashSymbol,
+        LambdaSymbol,
+        EnumerableSymbol,
+        RangeInclusiveSymbol,
+        RangeExclusiveSymbol,
+        TernarySymbol,
+
+        VoidKeyword,
+        AnyKeyword,
+        BoolKeyword,
+        CharKeyword,
+        I8Keyword,
+        U8Keyword,
+        I16Keyword,
+        U16Keyword,
+        I32Keyword,
+        U32Keyword,
+        I64Keyword,
+        U64Keyword,
+        F32Keyword,
+        F64Keyword,
+        StringKeyword,
+
+        ImportKeyword,
+        NamespaceKeyword,
+        TypeKeyword,
+        AttributeKeyword,
+        ContractKeyword,
+        EnumKeyword,
+        GlobalKeyword,
+        ExportKeyword,
+        InternalKeyword,
+        HiddenKeyword,
+        AsKeyword,
+        ContinueKeyword,
+        BreakKeyword,
+        ReturnKeyword,
+        OverrideKeyword,
+        IfKeyword,
+        ElseKeyword,
+        ElseifKeyword,
+        TrueKeyword,
+        FalseKeyword,
+        NullKeyword,
+        InKeyword,
+        ForKeyword,
+        SelectKeyword,
+        MatchKeyword,
+        DefaultKeyword,
+        TryKeyword,
+        CatchKeyword,
+        FinallyKeyword,
+        SizeKeyword,
+        ReadKeyword,
+        WriteKeyword,
+        ThisKeyword,
+        BaseKeyword,
+        NewKeyword,
+    }
+
+    public readonly struct SyntaxToken
     {
         // Private
-        private string text = "";
-        private SyntaxSource source = null;
+        private static readonly Dictionary<SyntaxTokenKind, string> syntaxTokenStrings = new()
+        {
+            { SyntaxTokenKind.LGenericSymbol, "<" },
+            { SyntaxTokenKind.RGenericSymbol, ">" },
+            { SyntaxTokenKind.LArraySymbol, "[" },
+            { SyntaxTokenKind.RArraySymbol, "]" },
+            { SyntaxTokenKind.LBlockSymbol, "{" },
+            { SyntaxTokenKind.RBlockSymbol, "}" },
+            { SyntaxTokenKind.LParenSymbol, "(" },
+            { SyntaxTokenKind.RParenSymbol, ")" },
 
-        private string leadingWhitespace = "";
-        private string trailingWhitespace = "";
+            { SyntaxTokenKind.DotSymbol, "." },
+            { SyntaxTokenKind.CommaSymbol, "," },
+            { SyntaxTokenKind.ColonSymbol, ":" },
+            { SyntaxTokenKind.HashSymbol, "#" },
+            { SyntaxTokenKind.LambdaSymbol, "=>" },
+            { SyntaxTokenKind.EnumerableSymbol, "..." },
+            { SyntaxTokenKind.RangeInclusiveSymbol, "..=" },
+            { SyntaxTokenKind.RangeExclusiveSymbol, "..<" },
+            { SyntaxTokenKind.TernarySymbol, "?" },
+
+            { SyntaxTokenKind.VoidKeyword, "void" },
+            { SyntaxTokenKind.AnyKeyword, "any" },
+            { SyntaxTokenKind.BoolKeyword, "bool" },
+            { SyntaxTokenKind.CharKeyword, "char" },
+            { SyntaxTokenKind.I8Keyword, "i8" },
+            { SyntaxTokenKind.U8Keyword, "u8" },
+            { SyntaxTokenKind.I16Keyword, "i16" },
+            { SyntaxTokenKind.U16Keyword, "u16" },
+            { SyntaxTokenKind.I32Keyword, "i32" },
+            { SyntaxTokenKind.U32Keyword, "u32" },
+            { SyntaxTokenKind.I64Keyword, "i64" },
+            { SyntaxTokenKind.U64Keyword, "u64" },
+            { SyntaxTokenKind.F32Keyword, "f32" },
+            { SyntaxTokenKind.F64Keyword, "f64" },
+            { SyntaxTokenKind.StringKeyword, "string" },
+
+            { SyntaxTokenKind.ImportKeyword, "import" },
+            { SyntaxTokenKind.NamespaceKeyword, "namespace" },
+            { SyntaxTokenKind.TypeKeyword, "type" },
+            { SyntaxTokenKind.AttributeKeyword, "attribute" },
+            { SyntaxTokenKind.ContractKeyword, "contract" },
+            { SyntaxTokenKind.EnumKeyword, "enum" },
+            { SyntaxTokenKind.GlobalKeyword, "global" },
+            { SyntaxTokenKind.ExportKeyword, "export" },
+            { SyntaxTokenKind.InternalKeyword, "internal" },
+            { SyntaxTokenKind.HiddenKeyword, "hidden" },
+            { SyntaxTokenKind.AsKeyword, "as" },
+            { SyntaxTokenKind.ContinueKeyword, "continue" },
+            { SyntaxTokenKind.BreakKeyword, "break" },
+            { SyntaxTokenKind.ReturnKeyword, "return" },
+            { SyntaxTokenKind.OverrideKeyword, "override" },
+            { SyntaxTokenKind.IfKeyword, "if" },
+            { SyntaxTokenKind.ElseKeyword, "else" },
+            { SyntaxTokenKind.ElseifKeyword, "elseif" },
+            { SyntaxTokenKind.TrueKeyword, "true" },
+            { SyntaxTokenKind.FalseKeyword, "false" },
+            { SyntaxTokenKind.NullKeyword, "null" },
+            { SyntaxTokenKind.InKeyword, "in" },
+            { SyntaxTokenKind.ForKeyword, "for" },
+            { SyntaxTokenKind.SelectKeyword, "select" },
+            { SyntaxTokenKind.MatchKeyword, "match" },
+            { SyntaxTokenKind.DefaultKeyword, "default" },
+            { SyntaxTokenKind.TryKeyword, "try" },
+            { SyntaxTokenKind.CatchKeyword, "catch" },
+            { SyntaxTokenKind.FinallyKeyword, "finally" },
+            { SyntaxTokenKind.SizeKeyword, "size" },
+            { SyntaxTokenKind.ReadKeyword, "read" },
+            { SyntaxTokenKind.WriteKeyword, "write" },
+            { SyntaxTokenKind.ThisKeyword, "this" },
+            { SyntaxTokenKind.BaseKeyword, "base" },
+            { SyntaxTokenKind.NewKeyword, "new" },
+        };
+
+        private readonly SyntaxTokenKind kind;
+        private readonly string text;
+        private readonly SyntaxSource source;
 
         // Public
-        public static readonly SyntaxToken Empty = new SyntaxToken("");
+        public static readonly SyntaxToken Invalid = new SyntaxToken(SyntaxTokenKind.Invalid, (string)null);
 
         // Properties
+        public SyntaxTokenKind Kind
+        {
+            get { return kind; }
+        }
+
         public string Text
         {
             get { return text; }
@@ -26,133 +186,53 @@ namespace LumaSharp_Compiler.AST
             get { return source; }
         }
 
-        public string LeadingWhitespace
-        {
-            get { return leadingWhitespace; }
-        }
-
-        public string TrailingWhitespace
-        {
-            get { return trailingWhitespace; }
-        }
-
-        public bool HasLeadingWhitespace
-        {
-            get { return leadingWhitespace != null; }
-        }
-
-        public bool HasTrailingWhitespace
-        {
-            get { return trailingWhitespace != null; }
-        }
-
         // Constructor
-        internal SyntaxToken(string identifier)
+        internal SyntaxToken(SyntaxTokenKind kind, SyntaxSource source = default)
         {
-            this.text = identifier;
-            this.source = new SyntaxSource();
+            // Get text
+            string text;
+            if (syntaxTokenStrings.TryGetValue(kind, out text) == false)
+                throw new ArgumentException(string.Format("Syntax kind '{0}' requires text to be specified", kind));
+
+            this.kind = kind;
+            this.text = text;
+            this.source = source;
         }
 
-        internal SyntaxToken(ITerminalNode node)
-            : this(node.Symbol)
+        internal SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSource source = default)
+        {
+            // Ensure text is correct
+            string expected;
+            if (syntaxTokenStrings.TryGetValue(kind, out expected) == true && expected != text)
+                throw new ArgumentException(string.Format("Expected text '{0}' for syntax kind: '{1}'", expected, kind));
+
+            this.kind = kind;
+            this.text = text;
+            this.source = source;
+        }
+
+        internal SyntaxToken(SyntaxTokenKind kind, ITerminalNode node)
+            : this(kind, node != null ? node.Symbol : null)
         {
         }
 
-        internal SyntaxToken(IToken node)
+        internal SyntaxToken(SyntaxTokenKind kind, IToken node)
         {
+            this.kind = kind;
             this.text = node.Text;
             this.source = new SyntaxSource(node);
-
-            // Get the whitespace
-            GetWhitespace(node.TokenIndex);
         }
 
         // Methods
         public void GetSourceText(TextWriter writer)
         {
-            // Write leading whitespace
-            if(HasLeadingWhitespace == true)
-                writer.Write(leadingWhitespace);
-
             // Write symbol
             writer.Write(text);
-
-            // Write trailing whitespace
-            if(HasTrailingWhitespace == true)
-                writer.Write(trailingWhitespace);
         }
 
         public override string ToString()
         {
             return text;
         }
-
-        private void GetWhitespace(int tokenIndex)
-        {
-            // Get whitespace
-            if (ParserContext.Current != null)
-            {
-                // Get leading
-                foreach (IToken token in ParserContext.Current.GetLeadingHiddenTokens(tokenIndex))
-                    leadingWhitespace += token.Text;
-
-                // Get trailing
-                foreach(IToken token in ParserContext.Current.GetTrailingHiddenTokens(tokenIndex))
-                    trailingWhitespace += token.Text;
-            }
-        }
-
-        public SyntaxToken WithLeadingWhitespace(string whitespace)
-        {
-            leadingWhitespace = whitespace;
-            return this;
-        }
-
-        public SyntaxToken WithTrailingWhitespace(string whitespace)
-        {
-            trailingWhitespace = whitespace;
-            return this;
-        }
-
-
-        // Internal
-        internal static SyntaxToken Import() => new SyntaxToken("import");
-        internal static SyntaxToken Namespace() => new SyntaxToken("namespace");
-        internal static SyntaxToken As() => new SyntaxToken("as");
-        internal static SyntaxToken Type() => new SyntaxToken("type");
-        internal static SyntaxToken Contract() => new SyntaxToken("contract");
-        internal static SyntaxToken Enum() => new SyntaxToken("enum");
-        internal static SyntaxToken Read() => new SyntaxToken("read");
-        internal static SyntaxToken Write() => new SyntaxToken("write");
-        internal static SyntaxToken Size() => new SyntaxToken("size");
-        internal static SyntaxToken This() => new SyntaxToken("this");
-        internal static SyntaxToken Base() => new SyntaxToken("base");
-        internal static SyntaxToken New() => new SyntaxToken("new");
-        internal static SyntaxToken If() => new SyntaxToken("if");
-        internal static SyntaxToken Elif() => new SyntaxToken("elif");
-        internal static SyntaxToken Else() => new SyntaxToken("else");
-        internal static SyntaxToken Foreach() => new SyntaxToken("foreach");
-        internal static SyntaxToken In() => new SyntaxToken("in");
-        internal static SyntaxToken For() => new SyntaxToken("for");
-        internal static SyntaxToken Return() => new SyntaxToken("return");
-
-        internal static SyntaxToken LParen() => new SyntaxToken("(");
-        internal static SyntaxToken RParen() => new SyntaxToken(")");
-        internal static SyntaxToken LBlock() => new SyntaxToken("{");
-        internal static SyntaxToken RBlock() => new SyntaxToken("}");
-        internal static SyntaxToken LArray() => new SyntaxToken("[");
-        internal static SyntaxToken RArray() => new SyntaxToken("]");
-        internal static SyntaxToken LGeneric() => new SyntaxToken("<");
-        internal static SyntaxToken RGeneric() => new SyntaxToken(">");
-        internal static SyntaxToken Dot() => new SyntaxToken(".");
-        internal static SyntaxToken Comma() => new SyntaxToken(",");
-        internal static SyntaxToken Colon() => new SyntaxToken(":");
-        internal static SyntaxToken Semi() => new SyntaxToken(";");
-        internal static SyntaxToken Hash() => new SyntaxToken("#");
-        internal static SyntaxToken Reference() => new SyntaxToken("&");
-        internal static SyntaxToken VariableParam() => new SyntaxToken("...");
-
-        internal static SyntaxToken Lambda() => new SyntaxToken("=>");
-        internal static SyntaxToken Assign() => new SyntaxToken("=");
     }
 }

@@ -1,8 +1,6 @@
-﻿using LumaSharp_Compiler.Semantics.Model;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Model.Statement;
+﻿using LumaSharp.Compiler.Semantics.Model;
 
-namespace LumaSharp_Compiler.Semantics
+namespace LumaSharp.Compiler.Semantics
 {
     public interface ISemanticVisitor
     {

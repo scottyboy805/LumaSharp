@@ -1,10 +1,9 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Emit.Builder;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Runtime;
 using LumaSharp.Runtime.Emit;
+using LumaSharp.Compiler.Emit;
 
 namespace LumaSharp_CompilerTests.Emit.Instructions
 {
@@ -18,7 +17,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -29,12 +28,13 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeGenerator generator = new BytecodeGenerator();
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg_1, builder[0].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_1, builder[0].OpCode);
         }
 
         [TestMethod]
@@ -45,7 +45,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a1"),
                     Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -56,12 +56,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg_2, builder[0].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_2, builder[0].OpCode);
         }
 
         [TestMethod]
@@ -73,7 +73,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a1"),
                     Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a2"),
                     Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -84,12 +84,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg_3, builder[0].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_3, builder[0].OpCode);
         }
 
         [TestMethod]
@@ -102,7 +102,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                     Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a2"),
                     Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a3"),
                     Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg"))
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -113,13 +113,13 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg, builder[0].opCode);
-            Assert.AreEqual((byte)4, builder[0].data0);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var, builder[0].OpCode);
+            Assert.AreEqual((byte)4, builder[0].Operand);
         }
 
         [TestMethod]
@@ -137,7 +137,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithParameters(parameters)
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -148,13 +148,13 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg_E, builder[0].opCode);
-            Assert.AreEqual((ushort)(byte.MaxValue + 1), builder[0].data0);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_E, builder[0].OpCode);
+            Assert.AreEqual((ushort)(byte.MaxValue + 1), builder[0].Operand);
         }
 
         [TestMethod]
@@ -164,7 +164,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg", true))
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -175,13 +175,13 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg_1, builder[0].opCode);
-            Assert.AreEqual(OpCode.Ld_Addr_I4, builder[1].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_1, builder[0].OpCode);
+            Assert.AreEqual(OpCode.Ld_Addr, builder[1].OpCode);
         }
 
         [TestMethod]
@@ -199,7 +199,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithParameters(parameters)
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("myArg"), Syntax.VariableReference("myArg")))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.VariableReference("myArg")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -210,14 +210,14 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
             // Note that for instance methods arg0 is reserved for `this` instance
-            Assert.IsTrue(builder.InstructionIndex > 1);
-            Assert.AreEqual(OpCode.Ld_Arg_E, builder[0].opCode);
-            Assert.AreEqual((ushort)(byte.MaxValue + 1), builder[0].data0);
-            Assert.AreEqual(OpCode.Ld_Addr_I4, builder[1].opCode);
+            Assert.IsTrue(builder.Count > 1);
+            Assert.AreEqual(OpCode.Ld_Var_E, builder[0].OpCode);
+            Assert.AreEqual((ushort)(byte.MaxValue + 1), builder[0].Operand);
+            Assert.AreEqual(OpCode.Ld_Addr, builder[1].OpCode);
         }
     }
 }

@@ -1,8 +1,7 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Expression;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model.Expression
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class MethodInvokeModel : ExpressionModel
     {
@@ -24,7 +23,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             {
                 // Get return type
                 if (methodIdentifierSymbol != null)
-                    return methodIdentifierSymbol.ReturnTypeSymbol;
+                    return methodIdentifierSymbol.ReturnTypeSymbols[0];
 
                 return null;
             }
@@ -57,9 +56,9 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             this.syntax = syntax;
             this.accessModel = syntax.AccessExpression != null
                 ? ExpressionModel.Any(model, this, syntax.AccessExpression)
-                : new ThisModel(model, this, new ThisExpressionSyntax());
+                : new ThisModel(model, this, Syntax.This());
             this.argumentModels = (syntax.ArgumentCount > 0)
-                ? syntax.Arguments.Select(a => ExpressionModel.Any(model, this, a)).ToArray()
+                ? syntax.ArgumentList.Select(a => ExpressionModel.Any(model, this, a)).ToArray()
                 : null;
         }
 

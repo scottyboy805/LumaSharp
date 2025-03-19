@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Semantics
+namespace LumaSharp.Compiler.Semantics
 {
     public interface IAliasIdentifierReferenceSymbol : IIdentifierReferenceSymbol
     {

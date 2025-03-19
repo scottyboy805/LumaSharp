@@ -30,8 +30,8 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER(0).GetText());
-            Assert.AreEqual("Generic", imports[0].importStatement().namespaceName().IDENTIFIER(1).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER().GetText());
+            Assert.AreEqual("Generic", imports[0].importStatement().namespaceName().namespaceNameSecondary(0).IDENTIFIER().GetText());
         }
 
         [TestMethod]
@@ -45,9 +45,9 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER(0).GetText());
-            Assert.AreEqual("Generic", imports[0].importStatement().namespaceName().IDENTIFIER(1).GetText());
-            Assert.AreEqual("Async", imports[0].importStatement().namespaceName().IDENTIFIER(2).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER().GetText());
+            Assert.AreEqual("Generic", imports[0].importStatement().namespaceName().namespaceNameSecondary(0).IDENTIFIER().GetText());
+            Assert.AreEqual("Async", imports[0].importStatement().namespaceName().namespaceNameSecondary(1).IDENTIFIER().GetText());
         }
 
         [TestMethod]
@@ -61,10 +61,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.IsNotNull(imports = context.importElement());
 
             // Check for namespace name
-            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER().GetText());
 
-            Assert.AreEqual("Collections", imports[1].importStatement().namespaceName().IDENTIFIER(0).GetText());
-            Assert.AreEqual("Generic", imports[1].importStatement().namespaceName().IDENTIFIER(1).GetText());
+            Assert.AreEqual("Collections", imports[1].importStatement().namespaceName().namespaceNameSecondary(0).IDENTIFIER().GetText());
+            Assert.AreEqual("Generic", imports[1].importStatement().namespaceName().namespaceNameSecondary(1).IDENTIFIER().GetText());
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
 
             // Check for namespace name
             Assert.AreEqual("C", imports[0].importAlias().IDENTIFIER().GetText());
-            Assert.AreEqual("Collections", imports[0].importAlias().namespaceName().IDENTIFIER(0).GetText());
+            Assert.AreEqual("Collections", imports[0].importAlias().namespaceName().IDENTIFIER().GetText());
             Assert.AreEqual("List", imports[0].importAlias().typeReference().GetText());
         }
 
@@ -95,8 +95,8 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
 
             // Check for namespace name
             Assert.AreEqual("C", imports[0].importAlias().IDENTIFIER().GetText());
-            Assert.AreEqual("Collections", imports[0].importAlias().namespaceName().IDENTIFIER(0).GetText());
-            Assert.AreEqual("Generic", imports[0].importAlias().namespaceName().IDENTIFIER(1).GetText());
+            Assert.AreEqual("Collections", imports[0].importAlias().namespaceName().IDENTIFIER().GetText());
+            Assert.AreEqual("Generic", imports[0].importAlias().namespaceName().namespaceNameSecondary(0).IDENTIFIER().GetText());
             Assert.AreEqual("List", imports[0].importAlias().typeReference().GetText());
         }
     }

@@ -1,14 +1,11 @@
 ﻿
-using LumaSharp_Compiler.AST.Factory;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public sealed class NamespaceSyntax : SyntaxNode, IRootSyntaxContainer
+    public sealed class NamespaceSyntax : SyntaxNode
     {
         // Private
-        private SyntaxToken keyword = null;
-        private NamespaceName name = null;
-        private BlockSyntax<MemberSyntax> members = null;
+        private readonly SyntaxToken keyword;
+        private readonly SeparatedTokenList name;
 
         // Properties
         public SyntaxToken Keyword
@@ -16,61 +13,45 @@ namespace LumaSharp_Compiler.AST
             get { return keyword; }
         }
 
-        public override SyntaxToken EndToken
+        public override SyntaxToken StartToken
         {
-            get { return members.EndToken; }
+            get { return keyword; }
         }
 
-        public NamespaceName Name
+        public override SyntaxToken EndToken
+        {
+            get { return name.EndToken; }
+        }
+
+        public SeparatedTokenList Name
         {
             get { return name; }
         }
 
-        public BlockSyntax<MemberSyntax> Block
-        {
-            get { return members; }
-        }
-
-        public IEnumerable<MemberSyntax> Members
-        {
-            get { return members.Elements; }
-        }
-
-        public int MemberCount
-        {
-            get { return members.ElementCount; }
-        }
-
-        public bool HasMembers
-        {
-            get { return members.HasElements; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return members.Descendants; }
+            get { yield break; }
         }
 
         // Constructor
-        internal NamespaceSyntax(string[] identifiers)
-            : base(SyntaxToken.Namespace(), new SyntaxToken(identifiers[identifiers.Length - 1]))
+        internal NamespaceSyntax(SyntaxNode parent, string[] identifiers)
+            : base(parent)
         {
-            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
-            this.name = new NamespaceName(identifiers);
-            this.members = new BlockSyntax<MemberSyntax>();            
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.NamespaceKeyword);
+            this.name = new SeparatedTokenList(this, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
+
+            foreach (string identifier in identifiers)
+                this.name.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol));
         }
 
-        internal NamespaceSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NamespaceDeclarationContext namespaceDef) 
-            : base(tree, parent, namespaceDef)
+        internal NamespaceSyntax(SyntaxNode parent, LumaSharpParser.NamespaceDeclarationContext namespaceDef) 
+            : base(parent)
         {
             // Get keyword
-            this.keyword = new SyntaxToken(namespaceDef.NAMESPACE());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.NamespaceKeyword, namespaceDef.NAMESPACE());
 
             // Create name
-            this.name = new NamespaceName(tree, this, namespaceDef.namespaceName());
-
-            // Create block
-            this.members = new BlockSyntax<MemberSyntax>(tree, this, namespaceDef.rootMemberBlock());
+            this.name = new SeparatedTokenList(this, namespaceDef.namespaceName());
         }
 
         // Methods
@@ -81,23 +62,6 @@ namespace LumaSharp_Compiler.AST
 
             // Write namespace name
             name.GetSourceText(writer);
-
-            // Write block
-            members.GetSourceText(writer);
-        }
-
-        void IRootSyntaxContainer.AddRootSyntax(SyntaxNode node)
-        {
-            if (node is TypeSyntax ||
-                node is ContractSyntax ||
-                node is EnumSyntax)
-            {
-                ((IMemberSyntaxContainer)members).AddMember(node as MemberSyntax);
-
-                // Update hierarchy
-                node.tree = tree;
-                node.parent = this;
-            }
         }
     }
 }

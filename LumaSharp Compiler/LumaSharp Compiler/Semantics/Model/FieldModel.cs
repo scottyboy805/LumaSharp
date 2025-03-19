@@ -1,11 +1,10 @@
 ﻿using LumaSharp.Runtime.Handle;
 using LumaSharp.Runtime.Reflection;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Reference;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Reference;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class FieldModel : MemberModel, IFieldReferenceSymbol, IIdentifierReferenceSymbol
     {
@@ -31,22 +30,22 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool IsExport
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "export") != null; }
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.ExportKeyword); }
         }
 
         public bool IsInternal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "internal") != null; }
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.InternalKeyword); }
         }
 
         public bool IsHidden
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "hidden") != null; }
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.HiddenKeyword); }
         }
 
         public bool IsGlobal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.GlobalKeyword); }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol

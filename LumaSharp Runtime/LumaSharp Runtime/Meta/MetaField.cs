@@ -1,8 +1,9 @@
-﻿
+﻿using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
-    public enum FieldFlags : uint
+    public enum FieldFlags : ushort
     {
         Export = 1,
         Internal = 2,
@@ -29,8 +30,8 @@ namespace LumaSharp.Runtime.Reflection
         { 
         }
 
-        internal MetaField(AppContext context, string name, FieldFlags fieldFlags)
-            : base(context, name, (MemberFlags)fieldFlags)
+        internal MetaField(AppContext context, _TokenHandle token, string name, FieldFlags fieldFlags)
+            : base(context, token, name, (MemberFlags)fieldFlags)
         {
             this.fieldFlags = fieldFlags;
         }

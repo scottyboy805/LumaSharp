@@ -1,16 +1,32 @@
 ﻿
-namespace LumaSharp_Compiler.AST.Expression
+namespace LumaSharp.Compiler.AST
 {
     public sealed class NewExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
-        private SyntaxToken lparen = null;
-        private SyntaxToken rparen = null;
-        private TypeReferenceSyntax newType = null;
-        private ExpressionSyntax[] argumentExpressions = null;
+        private readonly SyntaxToken keyword;
+        private readonly TypeReferenceSyntax newType;
+        private readonly ArgumentListSyntax arguments;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get
+            {
+                // Check for keyword
+                if (HasKeyword == true)
+                    return keyword;
+
+                // Type
+                return newType.StartToken;
+            }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return arguments.EndToken; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
@@ -21,35 +37,24 @@ namespace LumaSharp_Compiler.AST.Expression
             get { return newType; }
         }
 
-        public ExpressionSyntax[] ArgumentExpressions
+        public ArgumentListSyntax ArgumentList
         {
-            get { return argumentExpressions; }
-            internal set { argumentExpressions = value; }
+            get { return arguments; }
         }
 
-        public int ArgumentExpressionCount
+        public int ArgumentCount
         {
-            get { return HasArgumentExpressions ? argumentExpressions.Length : 0; }
+            get { return HasArguments == true ? arguments.Count : 0; }
         }
 
-        public bool IsByReference
+        public bool HasArguments
         {
-            get { return keyword != null && keyword.Text == "new"; }
-        }
-
-        public bool IsStackAlloc
-        {
-            get { return keyword == null; }
+            get { return arguments != null; }
         }
 
         public bool HasKeyword
         {
-            get { return keyword != null; }
-        }
-
-        public bool HasArgumentExpressions
-        {
-            get { return argumentExpressions != null; }
+            get { return keyword.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -58,61 +63,39 @@ namespace LumaSharp_Compiler.AST.Expression
             {
                 yield return newType;
 
-                foreach (SyntaxNode node in argumentExpressions)
+                foreach (SyntaxNode node in arguments.Descendants)
                     yield return node;
             }
         }
 
         // Constructor
-        internal NewExpressionSyntax(TypeReferenceSyntax newType, bool stackAlloc)
-            : base(stackAlloc == false ? SyntaxToken.New() : newType.StartToken, SyntaxToken.RParen())
+        internal NewExpressionSyntax(SyntaxNode parent, TypeReferenceSyntax newType, ArgumentListSyntax arguments)
+            : base(parent, null)
         {
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.NewKeyword);
             this.newType = newType;
-            this.keyword = stackAlloc == false ? new SyntaxToken("new").WithTrailingWhitespace(" ") : null;
-            
-            lparen = SyntaxToken.LParen();
-            rparen = base.EndToken;
+            this.arguments = arguments;
         }
 
-        internal NewExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.NewExpressionContext expression)
-            : base(tree, parent, expression)
+        internal NewExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
+            LumaSharpParser.NewExpressionContext newExpression = expression.newExpression();
+
             // Keyword
-            if (expression.NEW() != null)
+            if (newExpression.NEW() != null)
             {
-                this.keyword = new SyntaxToken(expression.NEW());
-            }
-            else if (expression.STACKNEW() != null)
-            {
-                this.keyword = new SyntaxToken(expression.STACKNEW());
+                this.keyword = new SyntaxToken(SyntaxTokenKind.NewKeyword, newExpression.NEW());
             }
 
-            // Get initializer
-            LumaSharpParser.InitializerInvokeExpressionContext initializer = expression.initializerInvokeExpression();
-
             // New type
-            this.newType = new TypeReferenceSyntax(tree, this, initializer.typeReference());
+            this.newType = new TypeReferenceSyntax(this, null, expression.typeReference());
 
-            // LR paren
-            this.lparen = new SyntaxToken(initializer.lparen);
-            this.rparen = new SyntaxToken(initializer.rparen);
+            // Init arguments
+            LumaSharpParser.ArgumentListContext argumentList = newExpression.argumentList();
 
-            // Init expressions
-            this.argumentExpressions = initializer.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
-        }
-
-        internal NewExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.InitializerInvokeExpressionContext initializer)
-            : base(tree, parent, initializer)
-        {
-            // New type
-            this.newType = new TypeReferenceSyntax(tree, this, initializer.typeReference());
-
-            // LR paren
-            this.lparen = new SyntaxToken(initializer.lparen);
-            this.rparen = new SyntaxToken(initializer.rparen);
-
-            // Init expressions
-            this.argumentExpressions = initializer.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
+            if(argumentList != null)
+                this.arguments = new ArgumentListSyntax(this, argumentList);
         }
 
         // Methods
@@ -125,25 +108,8 @@ namespace LumaSharp_Compiler.AST.Expression
             // Type reference
             newType.GetSourceText(writer);
 
-            // L paren
-            lparen.GetSourceText(writer);
-
-            // Arguments
-            if(HasArgumentExpressions == true)
-            {
-                for(int i = 0; i < argumentExpressions.Length; i++)
-                {
-                    // Expression
-                    argumentExpressions[i].GetSourceText(writer);
-
-                    // Separator
-                    if (i < argumentExpressions.Length - 1)
-                        writer.Write(",");
-                }
-            }
-
-            // R paren
-            rparen.GetSourceText(writer);
+            // Argument list
+            arguments.GetSourceText(writer);
         }
     }
 }

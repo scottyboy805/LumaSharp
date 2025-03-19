@@ -1,13 +1,13 @@
 ﻿using Antlr4.Runtime;
 
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public sealed class SyntaxSource
+    public readonly struct SyntaxSource
     {
         // Private
-        private string sourceName = "";
-        private int line = -1;
-        private int column = -1;
+        private readonly string sourceName = "";
+        private readonly int line = -1;
+        private readonly int column = -1;
 
         // Properties
         public string SourceName
@@ -26,8 +26,6 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal SyntaxSource() { }
-
         internal SyntaxSource(IToken token)
         {
             this.sourceName = token.TokenSource.SourceName;

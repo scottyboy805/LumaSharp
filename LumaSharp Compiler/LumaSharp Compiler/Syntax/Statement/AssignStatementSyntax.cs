@@ -1,25 +1,35 @@
 ﻿
-namespace LumaSharp_Compiler.AST.Statement
+namespace LumaSharp.Compiler.AST
 {
     public sealed class AssignStatementSyntax : StatementSyntax
     {
         // Private
-        private SyntaxToken assignOperation = null;
-        private ExpressionSyntax left = null;
-        private ExpressionSyntax right = null;
+        private readonly SyntaxToken assign;
+        private readonly SeparatedListSyntax<ExpressionSyntax> left = null;
+        private readonly SeparatedListSyntax<ExpressionSyntax> right = null;
 
         // Properties
-        public SyntaxToken AssignOperation
+        public override SyntaxToken StartToken
         {
-            get { return assignOperation; }
+            get { return left.StartToken; }
         }
 
-        public ExpressionSyntax Left
+        public override SyntaxToken EndToken
+        {
+            get { return right.EndToken; }
+        }
+
+        public SyntaxToken Assign
+        {
+            get { return assign; }
+        }
+
+        public SeparatedListSyntax<ExpressionSyntax> Left
         {
             get { return left; }
         }
 
-        public ExpressionSyntax Right
+        public SeparatedListSyntax<ExpressionSyntax> Right
         {
             get { return right; }
         }
@@ -34,29 +44,33 @@ namespace LumaSharp_Compiler.AST.Statement
         }
 
         // Constructor
-        internal AssignStatementSyntax(ExpressionSyntax left, ExpressionSyntax right)
-            : base(left.StartToken)
+        internal AssignStatementSyntax(SyntaxNode parent, AssignOperation op, ExpressionSyntax[] left, ExpressionSyntax[] right)
+            : base(parent)
         {
-            this.left = left;
-            this.right = right;
+            this.assign = Syntax.AssignOp(op);
+            this.left = new SeparatedListSyntax<ExpressionSyntax>(this, SyntaxTokenKind.CommaSymbol);
+            this.right = new SeparatedListSyntax<ExpressionSyntax>(this, SyntaxTokenKind.CommaSymbol);
 
-            assignOperation = SyntaxToken.Assign();
+            // Add left
+            foreach (ExpressionSyntax expression in left)
+                this.left.AddElement(expression, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
+
+            // Add right
+            foreach (ExpressionSyntax expression in right)
+                this.right.AddElement(expression, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
         }
 
-        internal AssignStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AssignStatementContext assign)
-            : base(tree, parent, assign)
+        internal AssignStatementSyntax(SyntaxNode parent, LumaSharpParser.AssignStatementContext assign)
+            : base(parent)
         {
             // Op
-            this.assignOperation = new SyntaxToken(assign.assign);
+            this.assign = new SyntaxToken(SyntaxTokenKind.AssignOperator, assign.ASSIGN());
 
             // Get left
-            this.left = ExpressionSyntax.Any(tree, this, assign.expression(0));
+            this.left = ExpressionSyntax.List(this, assign.expressionList(0));
 
             // Get right
-            this.right = ExpressionSyntax.Any(tree, this, assign.expression(1));
-
-            // Semicolon
-            this.statementEnd = new SyntaxToken(assign.semi);
+            this.right = ExpressionSyntax.List(this, assign.expressionList(1));
         }
 
         // Methods
@@ -66,13 +80,10 @@ namespace LumaSharp_Compiler.AST.Statement
             left.GetSourceText(writer);
 
             // Write op
-            assignOperation.GetSourceText(writer);
+            assign.GetSourceText(writer);
 
             // Write right
             right.GetSourceText(writer);
-
-            // Semicolon
-            statementEnd.GetSourceText(writer);
         }
     }
 }

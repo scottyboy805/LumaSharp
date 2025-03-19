@@ -1,20 +1,18 @@
 ﻿
-namespace LumaSharp_Compiler.AST.Statement
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ConditionStatementSyntax : StatementSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
-        private SyntaxToken lparen = null;
-        private SyntaxToken rparen = null;
-        private ExpressionSyntax conditionExpression = null;
-        private StatementSyntax inlineStatement = null;
-        private BlockSyntax<StatementSyntax> blockStatement = null;
+        private readonly SyntaxToken keyword;
+        private readonly ExpressionSyntax condition;
+        private readonly StatementSyntax inlineStatement;
+        private readonly BlockSyntax<StatementSyntax> blockStatement;
 
-        private ConditionStatementSyntax alternate = null;
+        private readonly ConditionStatementSyntax alternate;
 
         // Properties
-        public SyntaxToken Keyword
+        public override SyntaxToken StartToken
         {
             get { return keyword; }
         }
@@ -23,59 +21,50 @@ namespace LumaSharp_Compiler.AST.Statement
         {
             get
             {
-                if(HasAlternate == true)
-                {
+                // Check for alternate
+                if (HasAlternate == true)
                     return alternate.EndToken;
-                }
-                else if(HasBlockStatement == true)
-                {
+
+                // Check for block
+                if (HasBlockStatement == true)
                     return blockStatement.EndToken;
-                }
-                return base.EndToken;
+
+                // Check for condition
+                if(HasCondition == true)
+                    return condition.EndToken;
+
+                return keyword;
             }
         }
 
-        public SyntaxToken LParen
+        public SyntaxToken Keyword
         {
-            get { return lparen; }
-        }
+            get { return keyword; }
+        }        
 
-        public SyntaxToken RParen
+        public ExpressionSyntax Condition
         {
-            get { return rparen; }
-        }
-
-        public ExpressionSyntax ConditionExpression
-        {
-            get { return conditionExpression; }
+            get { return condition; }
         }
 
         public StatementSyntax InlineStatement
         {
             get { return inlineStatement; }
-            internal set { inlineStatement = value; }
         }
 
         public BlockSyntax<StatementSyntax> BlockStatement
         {
             get { return blockStatement; }
-            internal set { blockStatement = value; }
-        }
-
-        public SyntaxToken Semicolon
-        {
-            get { return statementEnd; }
         }
 
         public ConditionStatementSyntax Alternate
         {
             get { return alternate; }
-            internal set { alternate = value; }
         }
 
         public bool HasCondition
         {
-            get { return conditionExpression != null; }
+            get { return condition != null; }
         }
 
         public bool HasInlineStatement
@@ -88,111 +77,112 @@ namespace LumaSharp_Compiler.AST.Statement
             get { return blockStatement != null; }
         }
 
+        public bool IsAlternate
+        {
+            get { return keyword.Kind != SyntaxTokenKind.IfKeyword; }
+        }
+
         public bool HasAlternate
         {
             get { return alternate != null; }
         }
 
         // Constructor
-        internal ConditionStatementSyntax(ExpressionSyntax condition)
-            : base(SyntaxToken.If())
+        internal ConditionStatementSyntax(SyntaxNode parent, ExpressionSyntax condition, bool isAlternate, ConditionStatementSyntax alternate, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+            : base(parent)
         {
-            this.keyword = base.StartToken;
-            this.lparen = SyntaxToken.LParen();
-            this.rparen = SyntaxToken.RParen();
+            if (condition != null)
+            {
+                this.keyword = isAlternate == false
+                    ? Syntax.KeywordOrSymbol(SyntaxTokenKind.IfKeyword)
+                    : Syntax.KeywordOrSymbol(SyntaxTokenKind.ElseifKeyword);
+            }
+            else
+            {
+                this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ElseKeyword);
+            }
 
             // Condition
-            this.conditionExpression = condition;
+            this.condition = condition;
+            this.alternate = alternate;
+
+            this.blockStatement = body;
+            this.inlineStatement = inlineStatement;
         }
 
-        internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.IfStatementContext condition)
-            : base(tree, parent, condition)
+        internal ConditionStatementSyntax(SyntaxNode parent, LumaSharpParser.IfStatementContext condition)
+            : base(parent)
         {
             // Keyword
-            this.keyword = new SyntaxToken(condition.IF());
-
-            // LR paren
-            this.lparen = new SyntaxToken(condition.lparen);
-            this.rparen = new SyntaxToken(condition.rparen);
+            this.keyword = new SyntaxToken(SyntaxTokenKind.IfKeyword, condition.IF());
 
             // Condition
-            this.conditionExpression = ExpressionSyntax.Any(tree, this, condition.expression());
+            this.condition = ExpressionSyntax.Any(this, condition.expression());
 
             // Statement inline
             if(condition.statement() != null)
             {
-                this.inlineStatement = Any(tree, this, condition.statement());
+                this.inlineStatement = Any(this, condition.statement());
             }
 
             // Statement block
             if(condition.statementBlock() != null)
             {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, condition.statementBlock());
+                this.blockStatement = new BlockSyntax<StatementSyntax>(this, condition.statementBlock());
             }
-
-            // Semi
-            if(condition.semi != null)
-                this.statementEnd = new SyntaxToken(condition.semi);
 
             // Get alternate
             if(condition.elseifStatement() != null)
             {
-                //alternate = new ConditionStatementSyntax(tree, this, condition.elseifStatement());
+                //alternate = new ConditionStatementSyntax(this, condition.elseifStatement());
             }
             if(condition.elseStatement() != null)
             {
-                alternate = new ConditionStatementSyntax(tree, this, condition.elseStatement());
+                alternate = new ConditionStatementSyntax(this, condition.elseStatement());
             }
         }
 
-        internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ElseifStatementContext alternate)
-            : base(tree, parent, alternate)
+        internal ConditionStatementSyntax(SyntaxNode parent, LumaSharpParser.ElseifStatementContext alternate)
+            : base(parent)
         {
             // Keyword
-            this.keyword = new SyntaxToken(alternate.ELSEIF());
-
-            // LR paren
-            this.lparen = new SyntaxToken(alternate.lparen);
-            this.rparen = new SyntaxToken(alternate.rparen);
+            this.keyword = new SyntaxToken(SyntaxTokenKind.ElseifKeyword, alternate.ELSEIF());
 
             // Condition
-            this.conditionExpression = ExpressionSyntax.Any(tree, this, alternate.expression());
+            this.condition = ExpressionSyntax.Any(this, alternate.expression());
 
             // Statement inline
             if (alternate.statement() != null)
             {
-                this.inlineStatement = Any(tree, this, alternate.statement());
+                this.inlineStatement = Any(this, alternate.statement());
             }
 
             // Statement block
             if (alternate.statementBlock() != null)
             {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, alternate.statementBlock());
+                this.blockStatement = new BlockSyntax<StatementSyntax>(this, alternate.statementBlock());
             }
 
 
             // Get alternate
         }
 
-        internal ConditionStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ElseStatementContext alternate)
-            : base(tree, parent, alternate)
+        internal ConditionStatementSyntax(SyntaxNode parent, LumaSharpParser.ElseStatementContext alternate)
+            : base(parent)
         {
             // Keyword
-            this.keyword = new SyntaxToken(alternate.ELSE());
-
-            // LR paren
-            //this.lparen = new SyntaxToken(alternate.lp)
+            this.keyword = new SyntaxToken(SyntaxTokenKind.ElseKeyword, alternate.ELSE());
 
             // Statement inline
             if(alternate.statement() != null)
             {
-                this.inlineStatement = Any(tree, this, alternate.statement());
+                this.inlineStatement = Any(this, alternate.statement());
             }
 
             // Statement block
             if(alternate.statementBlock() != null)
             {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, alternate.statementBlock());
+                this.blockStatement = new BlockSyntax<StatementSyntax>(this, alternate.statementBlock());
             }
         }
 
@@ -205,14 +195,8 @@ namespace LumaSharp_Compiler.AST.Statement
             // Check for condition
             if(HasCondition == true)
             {
-                // Lparen
-                lparen.GetSourceText(writer);
-
                 // Condition
-                conditionExpression.GetSourceText(writer);
-
-                // Rparen
-                rparen.GetSourceText(writer);
+                condition.GetSourceText(writer);
             }
 
             // Check for inline
@@ -225,11 +209,6 @@ namespace LumaSharp_Compiler.AST.Statement
             {
                 BlockStatement.GetSourceText(writer);
             }
-            // Fall back to empty statement
-            else if(statementEnd != null)
-            {
-                statementEnd.GetSourceText(writer);
-            }
 
             // Write alternate
             if(HasAlternate == true)
@@ -238,12 +217,12 @@ namespace LumaSharp_Compiler.AST.Statement
             }
         }
 
-        internal void MakeAlternate()
-        {
-            keyword = conditionExpression != null
-                ? SyntaxToken.Elif()
-                : SyntaxToken.Else()
-                    .WithTrailingWhitespace(" ");
-        }
+        //internal void MakeAlternate()
+        //{
+        //    keyword = conditionExpression != null
+        //        ? SyntaxToken.Elif()
+        //        : SyntaxToken.Else()
+        //            .WithTrailingWhitespace(" ");
+        //}
     }
 }

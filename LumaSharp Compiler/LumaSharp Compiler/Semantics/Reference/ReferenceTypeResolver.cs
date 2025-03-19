@@ -1,7 +1,7 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal sealed class ReferenceTypeResolver
     {
@@ -192,7 +192,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         private bool IsReferenceTypeSymbolMatch(ITypeReferenceSymbol typeSymbol, TypeReferenceSyntax reference)
         {
             // Check for nested type
-            if (reference.HasParentTypeIdentifier == true)
+            if (reference.HasParentType == true)
             {
 
             }

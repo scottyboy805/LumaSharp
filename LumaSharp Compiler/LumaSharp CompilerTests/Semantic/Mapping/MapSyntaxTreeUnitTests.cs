@@ -1,8 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler;
+﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.Semantics.Model;
+using LumaSharp.Compiler.Semantics.Model;
 
 namespace LumaSharp_CompilerTests.Semantic.Mapping
 {
@@ -13,9 +11,8 @@ namespace LumaSharp_CompilerTests.Semantic.Mapping
         public void MapSyntaxTree_Namespace()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Namespace("MyNamespace")
-                .WithRootMembers(
-                    Syntax.Type("MyType")));
+                Syntax.Namespace("MyNamespace"),
+                Syntax.Type("MyType"));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

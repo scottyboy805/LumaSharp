@@ -1,22 +1,22 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Expression;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics
+namespace LumaSharp.Compiler.Semantics
 {
     public interface ISymbolProvider
     {
         // Methods
-        int GetDeclaredSymbolToken(IReferenceSymbol symbol);
+        _TokenHandle GetDeclaredSymbolToken(IReferenceSymbol symbol);
 
-        INamespaceReferenceSymbol ResolveNamespaceSymbol(NamespaceName namespaceName);
+        INamespaceReferenceSymbol ResolveNamespaceSymbol(SeparatedTokenList namespaceName);
 
-        ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource source);
+        ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource? source);
 
         ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference);
 
         IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference);
 
-        IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference);
+        IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldReferenceExpressionSyntax reference);
 
         IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference, ITypeReferenceSymbol[] argumentTypes = null);
     }

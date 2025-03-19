@@ -6,8 +6,8 @@ namespace LumaSharp.Runtime.Handle
     public unsafe readonly struct _FieldHandle
     {
         // Public
-        public readonly int FieldToken;
-        public readonly int DeclaringTypeToken;
+        public readonly _TokenHandle FieldToken;
+        public readonly _TokenHandle DeclaringTypeToken;
         public readonly uint FieldOffset;
         public readonly _TypeHandle TypeHandle;
 
@@ -15,9 +15,10 @@ namespace LumaSharp.Runtime.Handle
         public static readonly uint Size = (uint)sizeof(_FieldHandle);
 
         // Constructor
-        public _FieldHandle(int token, uint fieldOffset, _TypeHandle typeHandle)
+        public _FieldHandle(_TokenHandle fieldToken, _TokenHandle declaringTypeToken, uint fieldOffset, _TypeHandle typeHandle)
         {
-            this.FieldToken = token;
+            this.FieldToken = fieldToken;
+            this.DeclaringTypeToken = declaringTypeToken;
             this.FieldOffset = fieldOffset;
             this.TypeHandle = typeHandle;
         }
@@ -45,20 +46,6 @@ namespace LumaSharp.Runtime.Handle
 
             // Copy from memory
             StackData.CopyFromMemory(value, fieldMem, field->TypeHandle.TypeCode);
-        }
-
-        internal void Write(BinaryWriter writer)
-        {
-            writer.Write(FieldToken);
-            writer.Write(FieldOffset);
-            //writer.Write(FieldSize);
-        }
-
-        internal void Read(BinaryReader reader)
-        {
-            //FieldToken = reader.ReadInt32();
-            //FieldOffset = reader.ReadUInt32();
-            //FieldSize = reader.ReadUInt32();
         }
     }
 }

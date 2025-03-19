@@ -1,7 +1,5 @@
 ﻿
-using Antlr4.Runtime;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public enum BinaryOperation
     {
@@ -23,11 +21,21 @@ namespace LumaSharp_Compiler.AST
     public sealed class BinaryExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken operation = null;
-        private ExpressionSyntax left = null;        
-        private ExpressionSyntax right = null;
+        private readonly SyntaxToken operation;
+        private readonly ExpressionSyntax left;        
+        private readonly ExpressionSyntax right;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return left.StartToken; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return right.EndToken; }
+        }
+
         public SyntaxToken Operation
         {
             get { return operation; }
@@ -65,7 +73,6 @@ namespace LumaSharp_Compiler.AST
 
                     _ => throw new NotImplementedException(),
                 };
-                throw new NotSupportedException("Invalid binary operation");
             }
         }
 
@@ -79,26 +86,25 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        public BinaryExpressionSyntax(ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
-            : base(left.StartToken, right.EndToken)
+        internal BinaryExpressionSyntax(SyntaxNode parent, ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
+            : base(parent, null)
         {
             this.left = left;
             this.right = right;
-
-            this.operation = GetBinaryOperation(op);
+            this.operation = Syntax.BinaryOp(op);
         }
 
-        internal BinaryExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(tree, parent, expression)
+        internal BinaryExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
             // Op
-            this.operation = new SyntaxToken(expression.binary);
+            this.operation = new SyntaxToken(SyntaxTokenKind.BinaryOperator, expression.binary);
 
             // Get left
-            this.left = Any(tree, this, expression.expression(0));
+            this.left = Any(this, expression.expression(0));
 
             // Get right
-            this.right = Any(tree, this, expression.expression(1));
+            this.right = Any(this, expression.expression(1));
         }
 
         // Methods
@@ -112,28 +118,6 @@ namespace LumaSharp_Compiler.AST
 
             // Write right
             right.GetSourceText(writer);
-        }
-
-        private static SyntaxToken GetBinaryOperation(BinaryOperation op)
-        {
-            return new SyntaxToken(op switch
-            {
-                BinaryOperation.Add => "+",
-                BinaryOperation.Subtract => "-",
-                BinaryOperation.Multiply => "*",
-                BinaryOperation.Divide => "/",
-                BinaryOperation.Modulus => "%",
-                BinaryOperation.Greater => ">",
-                BinaryOperation.GreaterEqual => ">=",
-                BinaryOperation.Less => "<",
-                BinaryOperation.LessEqual => "<=",
-                BinaryOperation.Equal => "==",
-                BinaryOperation.NotEqual => "!=",
-                BinaryOperation.And => "&&",
-                BinaryOperation.Or => "||",
-
-                _ => throw new NotImplementedException(),
-            });
         }
     }
 }

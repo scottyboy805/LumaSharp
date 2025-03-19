@@ -1,8 +1,13 @@
 ﻿
-namespace LumaSharp_Compiler.AST.Factory
+namespace LumaSharp.Compiler.AST
 {
-    public interface IStatementSyntaxContainer : ISyntaxFactory
+    public interface IStatementSyntaxContainer
     {
+        // Properties
+        SyntaxTree SyntaxTree { get; }
+
+        SyntaxNode Parent { get; }
+
         // Methods
         void AddStatement(StatementSyntax statement);
     }

@@ -1,6 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal static class TypeChecker
     {

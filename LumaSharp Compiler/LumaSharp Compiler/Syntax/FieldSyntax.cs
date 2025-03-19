@@ -1,24 +1,59 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public class FieldSyntax : MemberSyntax
+    public sealed class FieldSyntax : MemberSyntax
     {
         // Private
-        private TypeReferenceSyntax fieldType = null;        
-        private ExpressionSyntax fieldAssignment = null;
-        private SyntaxToken reference = null;
-        private SyntaxToken assign = null;
-        private SyntaxToken semicolon = null;
+        private readonly TypeReferenceSyntax fieldType;
+        private readonly VariableAssignExpressionSyntax fieldAssignment;
+        private readonly SyntaxToken comma;                 // Required if there is another member following immediately
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get
+            {
+                // Check for attribute
+                if (HasAttributes == true)
+                    return Attributes[0].StartToken;
+
+                // Check for modifiers
+                if (HasAccessModifiers == true)
+                    return AccessModifiers[0];
+
+                return fieldType.StartToken;
+            }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for comma
+                if (HasComma == true)
+                    return comma;
+
+                // Check for assignment
+                if (HasFieldAssignment == true)
+                    return fieldAssignment.EndToken;
+
+                return identifier;
+            }
+        }
+
         public TypeReferenceSyntax FieldType
         {
             get { return fieldType; }
         }
 
-        public ExpressionSyntax FieldAssignment
+        public VariableAssignExpressionSyntax FieldAssignment
         {
             get { return fieldAssignment; }
+        }
+
+        public SyntaxToken Comma
+        {
+            get { return comma; }
         }
 
         public bool HasFieldAssignment
@@ -26,9 +61,9 @@ namespace LumaSharp_Compiler.AST
             get { return fieldAssignment != null; }
         }
 
-        public bool IsByReference
+        public bool HasComma
         {
-            get { return reference != null; }
+            get { return comma.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -45,55 +80,51 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(string identifier, TypeReferenceSyntax fieldType, ExpressionSyntax fieldAssign, bool byReference)
-            : base(identifier, fieldType.StartToken, SyntaxToken.Semi())
+        internal FieldSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignExpressionSyntax fieldAssignment)
+            : base(parent, identifier, attributes, accessModifiers)
         {
             this.fieldType = fieldType;
-            this.fieldAssignment = fieldAssign;
-            this.identifier.WithLeadingWhitespace(" ");
-            this.reference = (byReference != false) ? SyntaxToken.Reference() : null;
-            this.assign = SyntaxToken.Assign();
-            this.semicolon = base.EndToken;
+            this.fieldAssignment = fieldAssignment;
         }
 
-        internal FieldSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.FieldDeclarationContext fieldDef)
-            : base(fieldDef.IDENTIFIER(), tree, node, fieldDef, fieldDef.attributeDeclaration(), fieldDef.accessModifier())
+        internal FieldSyntax(SyntaxNode node, LumaSharpParser.FieldDeclarationContext fieldDef)
+            : base(fieldDef.IDENTIFIER(), node, fieldDef.attributeReference(), fieldDef.accessModifier())
         {
             // Create type reference
-            this.fieldType = new TypeReferenceSyntax(tree, this, fieldDef.typeReference());
+            this.fieldType = new TypeReferenceSyntax(this, null, fieldDef.typeReference());
 
             // Check for assign
-            LumaSharpParser.FieldAssignmentContext assignment = fieldDef.fieldAssignment();
+            LumaSharpParser.VariableAssignmentContext assignment = fieldDef.variableAssignment();
 
             if(assignment != null)
             {
-                // Get assign
-                this.assign = new SyntaxToken(assignment.assign);
-
-                // Get expression
-                this.fieldAssignment = ExpressionSyntax.Any(tree, this, assignment.expression());
+                this.fieldAssignment = new VariableAssignExpressionSyntax(this, assignment);
             }
+
+            // Comma
+            if(fieldDef.COMMA() != null)
+                this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, fieldDef.COMMA());
         }
 
-        internal FieldSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax enumType, LumaSharpParser.EnumFieldContext enumField)
-            : base(enumField.IDENTIFIER(), tree, parent, enumField, enumField.attributeDeclaration(), null)
+        internal FieldSyntax(SyntaxNode parent, TypeReferenceSyntax enumType, LumaSharpParser.EnumFieldContext enumField)
+            : base(enumField.IDENTIFIER(), parent, enumField.attributeReference(), null)
         {
             // Create field type
             this.fieldType = enumType;
 
             // Check for assignment
-            LumaSharpParser.FieldAssignmentContext assignment = enumField.fieldAssignment();
+            LumaSharpParser.VariableAssignmentContext assignment = enumField.variableAssignment();
 
             if(assignment != null)
             {
-                // Get assign
-                this.assign = new SyntaxToken(assignment.assign);
-
-                // Get expression
-                this.fieldAssignment = ExpressionSyntax.Any(tree, this, assignment.expression());
+                this.fieldAssignment = new VariableAssignExpressionSyntax(this, assignment);
             }
+
+            // Comma
+            this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, enumField.COMMA());
         }
 
+        // Methods
         public override void GetSourceText(TextWriter writer)
         {
             // Attributes
@@ -102,27 +133,19 @@ namespace LumaSharp_Compiler.AST
             // Field type
             fieldType.GetSourceText(writer);
 
-            // Check for by reference
-            if(IsByReference == true)
-            {
-                reference.GetSourceText(writer);
-            }
-
             // Identifier
             identifier.GetSourceText(writer);
 
             // Assign
             if(HasFieldAssignment == true)
             {
-                // Assign op
-                assign.GetSourceText(writer);
-
                 // Assign expression
                 fieldAssignment.GetSourceText(writer);
             }
 
-            // End
-            semicolon.GetSourceText(writer);
+            // Comma
+            if (HasComma == true)
+                comma.GetSourceText(writer);
         }
     }
 }

@@ -1,20 +1,26 @@
 ﻿
-namespace LumaSharp_Compiler.AST.Expression
+namespace LumaSharp.Compiler.AST
 {
     public sealed class MethodInvokeExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private ExpressionSyntax accessExpression = null;
-        private SyntaxToken identifier = null;
-        private TypeReferenceSyntax[] genericArguments = null;
-        private ExpressionSyntax[] arguments = null;
-        private SyntaxToken dot = null;
-        private SyntaxToken lgen = null;
-        private SyntaxToken rgen = null;
-        private SyntaxToken lparen = null;
-        private SyntaxToken rparen = null;
+        private readonly ExpressionSyntax accessExpression;
+        private readonly SyntaxToken identifier;
+        private readonly SyntaxToken dot;
+        private readonly GenericArgumentListSyntax genericArgumentList;
+        private readonly ArgumentListSyntax argumentList;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return accessExpression.StartToken; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return argumentList.EndToken; }
+        }
+
         public ExpressionSyntax AccessExpression
         {
             get { return accessExpression; }
@@ -25,36 +31,34 @@ namespace LumaSharp_Compiler.AST.Expression
             get { return identifier; }
         }
 
-        public TypeReferenceSyntax[] GenericArguments
+        public SyntaxToken Dot
         {
-            get { return genericArguments; }
-            internal set { genericArguments = value; }
+            get { return dot; }
         }
 
-        public ExpressionSyntax[] Arguments
+        public GenericArgumentListSyntax GenericArgumentList
         {
-            get { return arguments; }
-            internal set { arguments = value; }
+            get { return genericArgumentList; }
+        }
+
+        public ArgumentListSyntax ArgumentList
+        {
+            get { return argumentList; }
         }
 
         public int GenericArgumentCount
         {
-            get { return HasGenericArguments ? genericArguments.Length : 0; }
+            get { return HasGenericArguments ? genericArgumentList.Count : 0; }
         }
 
         public int ArgumentCount
         {
-            get { return HasArguments ? arguments.Length : 0; }
+            get { return argumentList.Count; }
         }
 
         public bool HasGenericArguments
         {
-            get { return genericArguments != null; }
-        }
-
-        public bool HasArguments
-        {
-            get { return arguments != null; }
+            get { return genericArgumentList != null; }         // Possible to have empty generics Type<>
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -66,115 +70,64 @@ namespace LumaSharp_Compiler.AST.Expression
                 // Get generics
                 if(HasGenericArguments == true)
                 {
-                    foreach (SyntaxNode node in GenericArguments)
+                    foreach (SyntaxNode node in genericArgumentList.Descendants)
                         yield return node;
                 }
 
                 // Get arguments
-                if(HasArguments == true)
-                {
-                    foreach(SyntaxNode node in Arguments)
-                        yield return node;
-                }
+                foreach(SyntaxNode node in argumentList.Descendants)
+                    yield return node;
             }
         }
 
         // Constructor
-        internal MethodInvokeExpressionSyntax(string identifier, ExpressionSyntax accessExpression)
-            : base(accessExpression.StartToken, SyntaxToken.RParen())
+        internal MethodInvokeExpressionSyntax(SyntaxNode parent, string identifier, ExpressionSyntax accessExpression, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments)
+            : base(parent, null)
         {
-            this.identifier = new SyntaxToken(identifier);
+            this.identifier = Syntax.Identifier(identifier);
             this.accessExpression = accessExpression;
+            this.argumentList = arguments;
 
-            dot = SyntaxToken.Dot();
-            lgen = SyntaxToken.LGeneric();
-            rgen = SyntaxToken.RGeneric();
-            lparen = SyntaxToken.LParen();
-            rparen = base.EndToken;
+            if(genericArgumentList != null)
+            {
+                this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
+                this.genericArgumentList = genericArguments;
+            }
         }
 
-        internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(tree, parent, expression)
+        internal MethodInvokeExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
-            // Create access expression
-            if (expression.typeReference() != null)
-            {
-                this.accessExpression = new TypeReferenceSyntax(tree, this, expression.typeReference());
-            }
-            else if(expression.expression(0) != null)
-            {
-                this.accessExpression = Any(tree, this, expression.expression(0));
-            }
-
-            // Get the method
+            // Get invoke
             LumaSharpParser.MethodInvokeExpressionContext method = expression.methodInvokeExpression();
 
             // Identifier
-            this.identifier = new SyntaxToken(method.IDENTIFIER());
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, method.IDENTIFIER());
 
-            // Get dot token
-            if (accessExpression != null)
-            {
-                dot = new SyntaxToken(method.dot);
-            }
-            
             // Generic arguments
-            LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
+            LumaSharpParser.GenericArgumentListContext generics = method.genericArgumentList();
 
             if (generics != null)
             {
-                this.genericArguments = generics.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
-
-                lgen = new SyntaxToken(generics.lgen);
-                rgen = new SyntaxToken(generics.rgen);
+                this.genericArgumentList = new GenericArgumentListSyntax(this, generics);
             }
 
-            lparen = new SyntaxToken(method.lparen);
-            rparen = new SyntaxToken(method.rparen);
-
-
-            // Method arguments
-            LumaSharpParser.MethodArgumentsContext argumentList = method.methodArguments();
-
-            if(argumentList != null)
-            {
-                // Get arguments
-                this.arguments = argumentList.methodArgument().Select(a => ExpressionSyntax.Any(tree, this, a.expression())).ToArray();
-            }
-        }
-
-        internal MethodInvokeExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression, LumaSharpParser.MethodInvokeExpressionContext method)
-            : base(tree, parent, method)
-        {
-            // Identifier
-            this.identifier = new SyntaxToken(method.IDENTIFIER());
-
-            dot = new SyntaxToken(method.dot);
-
-            // Generic arguments
-            LumaSharpParser.GenericArgumentsContext generics = method.genericArguments();
-
-            if (generics != null)
-            {
-                this.genericArguments = generics.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
-
-                lgen = new SyntaxToken(generics.lgen);
-                rgen = new SyntaxToken(generics.rgen);
-            }
-
-            lparen = new SyntaxToken(method.lparen);
-            rparen = new SyntaxToken(method.rparen);
+            // Create arguments
+            this.argumentList = new ArgumentListSyntax(this, method.argumentList());
 
             if (expression != null)
             {
+                // Create dot
+                dot = new SyntaxToken(SyntaxTokenKind.DotSymbol, method.DOT());
+
                 // Create access expression
                 if (expression.typeReference() != null)
                 {
-                    this.accessExpression = new TypeReferenceSyntax(tree, this, expression.typeReference());
+                    this.accessExpression = new TypeReferenceSyntax(this, null, expression.typeReference());
                 }
                 else
                 {
-                    this.accessExpression = Any(tree, this, expression.expression(0));
+                    this.accessExpression = Any(this, expression.expression(0));
                 }
             }
         }
@@ -186,10 +139,7 @@ namespace LumaSharp_Compiler.AST.Expression
             {
                 // Write access
                 accessExpression.GetSourceText(writer);
-            }
 
-            if (dot != null)
-            {
                 // Write dot 
                 dot.GetSourceText(writer);
             }
@@ -200,41 +150,12 @@ namespace LumaSharp_Compiler.AST.Expression
             // Write generics
             if(HasGenericArguments == true)
             {
-                // Write lgen
-                lgen.GetSourceText(writer);
-
-                // Write all generics
-                for(int i = 0; i < genericArguments.Length; i++)
-                {
-                    genericArguments[i].GetSourceText(writer);
-
-                    // Write comma
-                    if(i < genericArguments.Length - 1)
-                        writer.Write(",");
-                }
-
-                // Write rgen
-                rgen.GetSourceText(writer);
+                // Build generic arguments
+                genericArgumentList.GetSourceText(writer);
             }
 
-            // Write lparen
-            lparen.GetSourceText(writer);
-
-            // Write all arguments
-            if (HasArguments == true)
-            {
-                for (int i = 0; i < arguments.Length; i++)
-                {
-                    arguments[i].GetSourceText(writer);
-
-                    // Write comma
-                    if(i < arguments.Length - 1)
-                        writer.Write(",");
-                }
-            }
-
-            // Write rparen
-            rparen.GetSourceText(writer);
+            // Build arguments
+            argumentList.GetSourceText(writer);
         }
     }
 }

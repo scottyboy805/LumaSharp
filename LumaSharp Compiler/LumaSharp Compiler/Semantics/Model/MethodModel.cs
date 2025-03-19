@@ -1,37 +1,32 @@
 ﻿using LumaSharp.Runtime;
-using LumaSharp.Runtime.Handle;
 using LumaSharp.Runtime.Reflection;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Statement;
-using System.Runtime.CompilerServices;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class MethodModel : MemberModel, IScopeModel, IMethodReferenceSymbol, IScopedReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
-        private MethodSyntax syntax = null;
+        private MethodSyntax methodSyntax = null;
         private TypeModel declaringType = null;
-        private ITypeReferenceSymbol returnTypeSymbol = null;
+        private ITypeReferenceSymbol[] returnTypeSymbols = null;
         private GenericParameterModel[] genericParameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] parameterIdentifierSymbols = null;
         private ILocalIdentifierReferenceSymbol[] localIdentifierSymbols = null;
         private StatementModel[] bodyStatements = null;
 
-        private MethodFlags methodFlags = default;
-        private _MethodHandle methodHandle = default;
-        private _VariableHandle[] argLocalHandles = default;
+        private MetaMethodFlags methodFlags = 0;
 
         // Properties
-        public MethodSyntax Syntax
+        public MethodSyntax MethodSyntax
         {
-            get { return syntax; }
+            get { return methodSyntax; }
         }
 
         public string MethodName
         {
-            get { return syntax.Identifier.Text; }
+            get { return methodSyntax.Identifier.Text; }
         }
 
         public string ScopeName
@@ -41,27 +36,32 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public string IdentifierName
         {
-            get { return syntax.Identifier.Text; }
+            get { return methodSyntax.Identifier.Text; }
         }
 
         public bool IsExport
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "export") != null; }
+            get { return methodSyntax.HasAccessModifiers == true && methodSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.ExportKeyword); }
         }
 
         public bool IsInternal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "internal") != null; }
+            get { return methodSyntax.HasAccessModifiers == true && methodSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.InternalKeyword); }
         }
 
         public bool IsHidden
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "hidden") != null; }
+            get { return methodSyntax.HasAccessModifiers == true && methodSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.HiddenKeyword); }
         }
 
         public bool IsGlobal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
+            get { return methodSyntax.HasAccessModifiers == true && methodSyntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.GlobalKeyword); }
+        }
+
+        public bool IsOverride
+        {
+            get { return methodSyntax.IsOverride; }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
@@ -76,12 +76,19 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public ITypeReferenceSymbol TypeSymbol
         {
-            get { return returnTypeSymbol; }
+            get 
+            {
+                // Check for multiple returns
+                if (returnTypeSymbols.Length > 1)
+                    throw new InvalidOperationException("Type reference cannot be inferred from method with multiple return types");
+
+                return returnTypeSymbols[0]; 
+            }
         }
 
-        public ITypeReferenceSymbol ReturnTypeSymbol
+        public ITypeReferenceSymbol[] ReturnTypeSymbols
         {
-            get { return returnTypeSymbol; }
+            get { return returnTypeSymbols; }
         }
 
         public IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols
@@ -104,39 +111,38 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return bodyStatements; }
         }
 
-        public bool HasReturnType
+        public bool HasReturnTypes
         {
-            get { return syntax.ReturnType.Identifier.Text != "void"; }
+            get 
+            { 
+                return methodSyntax.ReturnTypes.Count > 1 
+                    || methodSyntax.ReturnTypes[0].Identifier.Kind != SyntaxTokenKind.VoidKeyword; 
+            }
         }
 
         public bool HasParameters
         {
-            get { return syntax.HasParameters; }
+            get { return methodSyntax.HasParameters; }
         }
 
         public bool HasGenericParameters
         {
-            get { return syntax.HasGenericParameters; }
+            get { return methodSyntax.HasGenericParameters; }
+        }
+
+        public bool HasOverride
+        {
+            get { return methodSyntax.IsOverride; }
         }
 
         public bool HasBody
         {
-            get { return syntax.HasBody; }
+            get { return methodSyntax.HasBody; }
         }
 
-        public MethodFlags MethodFlags
+        public MetaMethodFlags MethodFlags
         {
             get { return methodFlags; }
-        }
-
-        public _MethodHandle MethodHandle
-        {
-            get { return methodHandle; }
-        }
-
-        public _StackHandle[] MethodArgLocals
-        {
-            get { return argLocalHandles; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -155,20 +161,20 @@ namespace LumaSharp_Compiler.Semantics.Model
         internal MethodModel(SemanticModel model, TypeModel parent, MethodSyntax syntax)
             : base(model, parent, syntax)
         {
-            this.syntax = syntax;
+            this.methodSyntax = syntax;
             this.declaringType = parent;
 
             // Create generics
             if (syntax.HasGenericParameters == true)
             {
                 // Create symbol array
-                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.GenericParameterCount];
+                genericParameterIdentifierSymbols = new GenericParameterModel[syntax.GenericParameters.Count];
 
                 // Build all
                 for (int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
                 {
                     // Add to method model
-                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters.GenericParameters[i], this);
+                    genericParameterIdentifierSymbols[i] = new GenericParameterModel(syntax.GenericParameters[i], this);
                 }
             }
 
@@ -195,10 +201,11 @@ namespace LumaSharp_Compiler.Semantics.Model
             memberToken = provider.GetDeclaredSymbolToken(this);
 
             // Get return type
-            returnTypeSymbol = provider.ResolveTypeSymbol(this, syntax.ReturnType);
+            returnTypeSymbols = methodSyntax.ReturnTypes.Select(t =>
+                provider.ResolveTypeSymbol(this, t)).ToArray();
 
             // Resolve generics
-            if(syntax.HasGenericParameters == true)
+            if(methodSyntax.HasGenericParameters == true)
             {
                 // Resolve all
                 for(int i = 0; i < genericParameterIdentifierSymbols.Length; i++)
@@ -209,10 +216,10 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Resolve parameters
-            if(syntax.HasParameters == true)
+            if(methodSyntax.HasParameters == true)
             {
                 // Check for global
-                int size = (IsGlobal == true) ? syntax.Parameters.ParameterCount : syntax.Parameters.ParameterCount + 1;
+                int size = (IsGlobal == true) ? methodSyntax.Parameters.Count : methodSyntax.Parameters.Count + 1;
 
                 // Create parameter array
                 parameterIdentifierSymbols = new ILocalIdentifierReferenceSymbol[size];
@@ -222,7 +229,8 @@ namespace LumaSharp_Compiler.Semantics.Model
                 {
                     // Create local model
                     LocalOrParameterModel localModel = new LocalOrParameterModel(
-                        new ParameterSyntax(new TypeReferenceSyntax(declaringType.Syntax), "this"), this, 0);
+                        Syntax.Parameter(Syntax.TypeReference(declaringType.TypeSyntax), "this"),
+                        this, 0);
 
                     // Create implicit `this` parameter at position 0
                     parameterIdentifierSymbols[0] = localModel;
@@ -234,10 +242,10 @@ namespace LumaSharp_Compiler.Semantics.Model
                 int offset = IsGlobal ? 0 : 1;
 
                 // Resolve all
-                for(int i = 0; i < syntax.Parameters.ParameterCount; i++)
+                for(int i = 0; i < methodSyntax.Parameters.Count; i++)
                 {
                     // Create parameter model
-                    LocalOrParameterModel parameterModel = new LocalOrParameterModel(syntax.Parameters.Parameters[i], this, i + offset);
+                    LocalOrParameterModel parameterModel = new LocalOrParameterModel(methodSyntax.Parameters[i], this, i + offset);
 
                     // Store parameter model
                     parameterIdentifierSymbols[i + offset] = parameterModel;
@@ -253,7 +261,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
             // Check for body
-            if(syntax.HasBody == true)
+            if(methodSyntax.HasBody == true)
             {
                 foreach(StatementModel statement in bodyStatements)
                 {
@@ -339,78 +347,75 @@ namespace LumaSharp_Compiler.Semantics.Model
             }
 
 
-            // Build arg and locals
-            List<_VariableHandle> argLocals = new List<_VariableHandle>();
-            uint stackOffset = 0;
-            ushort argCount = 0;
-            ushort localCount = 0;
-            uint stackPtrOffset = 0;
 
-            // Process parameters
-            for(int i = 0; i < parameterIdentifierSymbols.Length; i++)
-            {
-                // Get type symbol - pass user types by reference via `any` type
-                ITypeReferenceSymbol parameterTypeSymbol = (parameterIdentifierSymbols[i].TypeSymbol.IsPrimitive == false)
-                    ? provider.ResolveTypeSymbol(AST.PrimitiveType.Any, null)
-                    : parameterIdentifierSymbols[i].TypeSymbol;
+            ////// ############## TODO - move this to methodbodybuilder
+            //// Build arg and locals
+            //List<_VariableHandle> argLocals = new List<_VariableHandle>();
+            //uint stackOffset = 0;
+            //ushort argCount = 0;
+            //ushort localCount = 0;
+            //uint stackPtrOffset = 0;
 
-                // Add parameter
-                argLocals.Add(new _VariableHandle(parameterTypeSymbol.TypeHandle, stackOffset));
+            //// Process parameters
+            //for(int i = 0; i < parameterIdentifierSymbols.Length; i++)
+            //{
+            //    // Get type symbol - pass user types by reference via `any` type
+            //    ITypeReferenceSymbol parameterTypeSymbol = (parameterIdentifierSymbols[i].TypeSymbol.IsPrimitive == false)
+            //        ? provider.ResolveTypeSymbol(PrimitiveType.Any, methodSyntax.Parameters[i].StartToken.Source)
+            //        : parameterIdentifierSymbols[i].TypeSymbol;
 
-                // Advance offset
-                stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
+            //    // Add parameter
+            //    argLocals.Add(new _VariableHandle(parameterTypeSymbol.TypeHandle, stackOffset));
 
-                // Increment args
-                argCount++;
-            }
+            //    // Advance offset
+            //    stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
 
-            // Get all locals
-            List<ILocalIdentifierReferenceSymbol> locals = new List<ILocalIdentifierReferenceSymbol>();
+            //    // Increment args
+            //    argCount++;
+            //}
 
-            // Add root locals
-            if (localIdentifierSymbols != null)
-                locals.AddRange(localIdentifierSymbols);
+            //// Get all locals
+            //List<ILocalIdentifierReferenceSymbol> locals = new List<ILocalIdentifierReferenceSymbol>();
 
-            // Add scoped locals
-            foreach (IScopedReferenceSymbol scope in DescendantsOfType<IScopedReferenceSymbol>(true))
-            {
-                // Check for locals
-                if (scope.LocalsInScope != null)
-                    locals.AddRange(scope.LocalsInScope);
-            }
+            //// Add root locals
+            //if (localIdentifierSymbols != null)
+            //    locals.AddRange(localIdentifierSymbols);
+
+            //// Add scoped locals
+            //foreach (IScopedReferenceSymbol scope in DescendantsOfType<IScopedReferenceSymbol>(true))
+            //{
+            //    // Check for locals
+            //    if (scope.LocalsInScope != null)
+            //        locals.AddRange(scope.LocalsInScope);
+            //}
 
                 
-            // Build all locals
-            for(int i = 0; i < locals.Count; i++)
-            {
-                // Check for not resolved
-                if (locals[i].TypeSymbol == null)
-                    continue;
+            //// Build all locals
+            //for(int i = 0; i < locals.Count; i++)
+            //{
+            //    // Check for not resolved
+            //    if (locals[i].TypeSymbol == null)
+            //        continue;
 
-                // Add local
-                argLocals.Add(new _VariableHandle(locals[i].TypeSymbol.TypeHandle, stackOffset)); 
+            //    // Add local
+            //    argLocals.Add(new _VariableHandle(locals[i].TypeSymbol.TypeHandle, stackOffset)); 
 
-                // Advance offset
-                stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
+            //    // Advance offset
+            //    stackOffset += argLocals[argLocals.Count - 1].TypeHandle.TypeSize;
 
-                // Increment locals
-                localCount++;
-            }
+            //    // Increment locals
+            //    localCount++;
+            //}
 
-            // Calculate start exestuation offset
-            stackPtrOffset = stackOffset;
+            //// Calculate start exestuation offset
+            //stackPtrOffset = stackOffset;
 
-            // Build method
-            this.methodHandle = new _MethodHandle
-            {
-                MethodToken = SymbolToken,
-                ArgCount = argCount,
-                LocalCount = localCount,
-                StackPtrOffset = stackPtrOffset,
-            };
 
-            // Store arg locals
-            argLocalHandles = argLocals.ToArray();
+            
+
+
+            //// Store arg locals
+            //argLocalHandles = argLocals.ToArray();
         }
 
         public override void StaticallyEvaluateMember(ISymbolProvider provider)
@@ -455,37 +460,38 @@ namespace LumaSharp_Compiler.Semantics.Model
             return variableModel;
         }
 
-        private MethodFlags BuildMethodFlags()
+        private MetaMethodFlags BuildMethodFlags()
         {
-            MethodFlags flags = 0;
+            MetaMethodFlags flags = 0;
 
             // Check for export
-            if(IsExport == true) flags |= MethodFlags.Export;
+            if(IsExport == true) flags |= MetaMethodFlags.Export;
 
             // Check for internal
-            if (IsInternal == true) flags |= MethodFlags.Internal;
+            if (IsInternal == true) flags |= MetaMethodFlags.Internal;
 
             // Check for hidden
-            if (IsHidden == true) flags |= MethodFlags.Hidden;
+            if (IsHidden == true) flags |= MetaMethodFlags.Hidden;
 
             // Check for global
-            if(IsGlobal == true) flags |= MethodFlags.Global;
+            if(IsGlobal == true) flags |= MetaMethodFlags.Global;
 
             // Check for return value
-            if (HasReturnType == true) flags |= MethodFlags.ReturnValue;
+            if (HasReturnTypes == true) flags |= MetaMethodFlags.ReturnValue;
 
             // Check for parameters
-            if (HasParameters == true) flags |= MethodFlags.ParamValues;
+            if (HasParameters == true) flags |= MetaMethodFlags.ParamValues;
 
             // Check for initializer
 
             // Check for abstract
-            if (HasBody == false) flags |= MethodFlags.Abstract;
+            if (HasBody == false) flags |= MetaMethodFlags.Abstract;
 
             // Check for override
+            if (HasOverride == true) flags |= MetaMethodFlags.Override;
 
             // Check for generic
-            if (HasGenericParameters == true) flags |= MethodFlags.Generic;
+            if (HasGenericParameters == true) flags |= MetaMethodFlags.Generic;
 
             return flags;
         }

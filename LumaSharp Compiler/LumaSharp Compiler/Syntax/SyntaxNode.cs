@@ -1,63 +1,33 @@
-﻿using Antlr4.Runtime;
-
-namespace LumaSharp_Compiler.AST
+﻿
+namespace LumaSharp.Compiler.AST
 {
     public abstract class SyntaxNode
     {
         // Internal
-        internal SyntaxTree tree = null;
         internal SyntaxNode parent = null;
 
-        // Private
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
-
         // Properties
-        public SyntaxTree SyntaxTree
+        public virtual SyntaxTree SyntaxTree
         {
-            get { return tree; }
+            get { return parent.SyntaxTree; }
         }
 
         public SyntaxNode Parent
         {
             get { return parent; }
+            internal set { parent = value; }
         }
 
-        public virtual SyntaxToken StartToken
-        {
-            get { return start; }
-        }
+        public abstract SyntaxToken StartToken { get; }
 
-        public virtual SyntaxToken EndToken
-        {
-            get { return end; }
-        }
+        public abstract SyntaxToken EndToken { get; }
 
         internal abstract IEnumerable<SyntaxNode> Descendants { get; }
 
         // Constructor
-        protected SyntaxNode(SyntaxToken token)
+        protected SyntaxNode(SyntaxNode parent)
         {
-            this.start = token;
-            this.end = token;
-        }
-
-        protected SyntaxNode(SyntaxToken start, SyntaxToken end)
-        {
-            this.start = start;
-            this.end = end;
-        }
-
-        protected SyntaxNode(SyntaxTree tree, SyntaxNode parent, ParserRuleContext context)
-        {
-            this.tree = tree;
             this.parent = parent;
-
-            if (context != null)
-            {
-                this.start = context.Start != null ? new SyntaxToken(context.Start) : SyntaxToken.Empty;
-                this.end = context.Stop != null ? new SyntaxToken(context.Stop) : SyntaxToken.Empty;
-            }
         }
 
         // Methods
@@ -114,8 +84,5 @@ namespace LumaSharp_Compiler.AST
                 }
             }
         }
-
-
-        
     }
 }

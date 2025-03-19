@@ -1,8 +1,9 @@
-﻿using LumaSharp_Compiler.Semantics.Reference;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.Semantics.Reference;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class SemanticModel : ILibraryReferenceSymbol
     {
@@ -24,7 +25,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return thisLibrary; }
         } 
 
-        public int SymbolToken
+        public _TokenHandle SymbolToken
         {
             get { return thisLibrary.SymbolToken; }
         }

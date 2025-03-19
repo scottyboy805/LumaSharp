@@ -1,10 +1,13 @@
 ﻿
-using LumaSharp_Compiler.AST.Factory;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public interface IMemberSyntaxContainer : ISyntaxFactory
+    public interface IMemberSyntaxContainer
     {
+        // Properties
+        SyntaxTree SyntaxTree { get; }
+
+        SyntaxNode Parent { get; }
+
         // Methods
         void AddMember(MemberSyntax member);
     }

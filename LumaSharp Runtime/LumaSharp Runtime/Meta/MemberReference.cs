@@ -1,4 +1,4 @@
-﻿using System.Reflection.Metadata;
+﻿using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp.Runtime.Reflection
 {
@@ -6,14 +6,14 @@ namespace LumaSharp.Runtime.Reflection
     {
         // Private
         private AppContext context = null;
-        private int symbolToken = -1;
+        private _TokenHandle symbolToken = default;
 
         // Internal
         internal T resolvedMember = null;
         internal bool didResolveMember = false;
 
         // Properties
-        public int SymbolToken
+        public _TokenHandle SymbolToken
         {
             get { return symbolToken; }
         }
@@ -35,7 +35,7 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        public MemberReference(AppContext context, int symbolToken)
+        public MemberReference(AppContext context, _TokenHandle symbolToken)
         {
             this.context = context;
             this.symbolToken = symbolToken;
@@ -44,7 +44,7 @@ namespace LumaSharp.Runtime.Reflection
         public MemberReference(MetaType fromType)
         {
             this.context = fromType.context;
-            this.symbolToken = fromType.MetaToken;
+            this.symbolToken = fromType.Token;
             this.resolvedMember = fromType as T;
         }
     }

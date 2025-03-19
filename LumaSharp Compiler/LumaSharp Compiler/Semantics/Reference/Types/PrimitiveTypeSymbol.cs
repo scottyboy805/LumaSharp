@@ -1,7 +1,8 @@
 ﻿using LumaSharp.Runtime;
-using LumaSharp_Compiler.AST;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal sealed class PrimitiveTypeSymbol : ITypeReferenceSymbol
     {
@@ -48,7 +49,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         public ILibraryReferenceSymbol LibrarySymbol => library;
 
-        public int SymbolToken => (int)primitiveType;
+        public _TokenHandle SymbolToken => typeHandle.TypeToken;
 
         public string LibraryName => "runtime";
 
@@ -65,11 +66,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
                 this.baseTypes = new ITypeReferenceSymbol[] { baseType };
 
             // Create handle
-            this.typeHandle = new _TypeHandle
-            {
-                TypeToken = (int)primitiveType,
-                TypeSize = __runtime.Size((int)primitiveType),
-            };
+            this.typeHandle = new _TypeHandle(new _TokenHandle((RuntimeTypeCode)primitiveType), GetRuntimeTypeSize(primitiveType));
 
             // Load members from reference library
         }
@@ -90,6 +87,29 @@ namespace LumaSharp_Compiler.Semantics.Reference
         public override string ToString()
         {
             return TypeName;
+        }
+
+        private uint GetRuntimeTypeSize(PrimitiveType primitiveType)
+        {
+            return primitiveType switch
+            {
+                AST.PrimitiveType.Void => 0,
+                AST.PrimitiveType.Any => RuntimeType.GetTypeSize(RuntimeTypeCode.Any),
+                AST.PrimitiveType.Bool => RuntimeType.GetTypeSize(RuntimeTypeCode.Bool),
+                AST.PrimitiveType.Char => RuntimeType.GetTypeSize(RuntimeTypeCode.Char),
+                AST.PrimitiveType.I8 => RuntimeType.GetTypeSize(RuntimeTypeCode.I8),
+                AST.PrimitiveType.U8 => RuntimeType.GetTypeSize(RuntimeTypeCode.U8),
+                AST.PrimitiveType.I16 => RuntimeType.GetTypeSize(RuntimeTypeCode.I16),
+                AST.PrimitiveType.U16 => RuntimeType.GetTypeSize(RuntimeTypeCode.U16),
+                AST.PrimitiveType.I32 => RuntimeType.GetTypeSize(RuntimeTypeCode.I32),
+                AST.PrimitiveType.U32 => RuntimeType.GetTypeSize(RuntimeTypeCode.U32),
+                AST.PrimitiveType.I64 => RuntimeType.GetTypeSize(RuntimeTypeCode.I64),
+                AST.PrimitiveType.U64 => RuntimeType.GetTypeSize(RuntimeTypeCode.U64),
+                AST.PrimitiveType.F32 => RuntimeType.GetTypeSize(RuntimeTypeCode.F32),
+                AST.PrimitiveType.F64 => RuntimeType.GetTypeSize(RuntimeTypeCode.F64),
+                
+                _ => throw new NotSupportedException(),
+            };
         }
     }
 }

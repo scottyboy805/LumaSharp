@@ -1,33 +1,35 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Reference;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Reference;
 
-namespace LumaSharp_Compiler.Semantics.Model.Statement
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class ReturnModel : StatementModel
     {
         // Private
         private ReturnStatementSyntax syntax = null;
-        private ExpressionModel returnModel = null;
+        private ExpressionModel[] returnModels = null;
 
         // Properties
-        public ExpressionModel ReturnModelExpression
+        public ExpressionModel[] ReturnModelExpressions
         {
-            get { return returnModel; }
+            get { return returnModels; }
         }
 
         public bool HasReturnExpression
         {
-            get { return syntax.HasReturnExpression; }
+            get { return syntax.HasExpressions; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
         {
             get
             {
-                if(returnModel != null)
-                    yield return returnModel;
+                if (returnModels != null)
+                {
+                    foreach(ExpressionModel model in returnModels)
+                        yield return model;
+                }
             }
         }
 
@@ -37,8 +39,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         {
             this.syntax = syntax;
 
-            if(syntax.ReturnExpression != null)
-                this.returnModel = ExpressionModel.Any(model, this, syntax.ReturnExpression);
+            if(syntax.Expressions != null)
+                this.returnModels = syntax.Expressions.Select(e => ExpressionModel.Any(model, this, e)).ToArray();
         }
 
         // Methods
@@ -55,15 +57,25 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             // Check for return
             if(HasReturnExpression == true)
             {
-                // Resolve symbols in return model
-                returnModel.ResolveSymbols(provider, report);
-
-                if (returnModel.EvaluatedTypeSymbol != null && parentMethod.ReturnTypeSymbol != null)
+                // Check for incorrect return count
+                if(returnModels.Length != parentMethod.ReturnTypeSymbols.Length)
                 {
-                    // Check for return type conversion
-                    if (TypeChecker.IsTypeAssignable(returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol) == false)
+                    // TODO - report error
+                }
+
+                // Process all return models
+                for(int i = 0; i < returnModels.Length; i++)
+                {
+                    // Resolve symbols in return model
+                    returnModels[i].ResolveSymbols(provider, report);
+
+                    if (returnModels[i].EvaluatedTypeSymbol != null && parentMethod.ReturnTypeSymbols[i] != null && i < returnModels.Length && i < parentMethod.ReturnTypeSymbols.Length)
                     {
-                        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModel.EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbol);
+                        // Check for return type conversion
+                        if (TypeChecker.IsTypeAssignable(returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]) == false)
+                        {
+                            report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
+                        }
                     }
                 }
             }
@@ -72,10 +84,18 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         public override void StaticallyEvaluateStatement(ISymbolProvider provider)
         {
             // Check for expression which can be statically evaluated
-            if(HasReturnExpression == true && returnModel.IsStaticallyEvaluated == true)
+            if(HasReturnExpression == true)
             {
-                // Evaluate the expression
-                returnModel = returnModel.StaticallyEvaluateExpression(provider);
+                // Process all models
+                for(int i = 0; i < returnModels.Length; i++)
+                {
+                    // Check for statically evaluated
+                    if (returnModels[i].IsStaticallyEvaluated == false)
+                        continue;
+
+                    // Evaluate the expression
+                    returnModels[i] = returnModels[i].StaticallyEvaluateExpression(provider);
+                }
             }
         }
     }

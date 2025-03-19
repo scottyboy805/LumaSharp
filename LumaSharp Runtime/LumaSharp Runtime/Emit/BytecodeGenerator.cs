@@ -10,11 +10,17 @@ namespace LumaSharp.Runtime.Emit
         private MemoryStream instructionBuffer = null;
         private BinaryWriter instructionWriter = null;
         private bool validateInstructions = true;
+        private int maxStack = 0;
 
         // Properties
         public int CurrentOffset
         {
             get { return (int)instructionBuffer.Position; }
+        }
+
+        public int MaxStack
+        {
+            get { return maxStack; }
         }
 
         // Constructor
@@ -61,13 +67,13 @@ namespace LumaSharp.Runtime.Emit
             void* mem = NativeMemory.Alloc((nuint)instructionBuffer.Length + (uint)sizeof(_MethodHandle));
 
             // Create signature
-            _MethodSignature signature = new _MethodSignature((ushort)parameterTypes.Length, null, null);
+            _MethodSignatureHandle signature = new _MethodSignatureHandle((ushort)parameterTypes.Length, (ushort)localTypes.Length, null, null);
 
             // Create body
             _MethodBodyHandle body = new _MethodBodyHandle((ushort)maxStack, null, (ushort)localTypes.Length);
 
             // Create method handle
-            *(_MethodHandle*)mem = new _MethodHandle(0, signature, body);
+            *(_MethodHandle*)mem = new _MethodHandle(new _TokenHandle(0), new _TokenHandle(0), signature, body);
 
             // Append instructions
             fixed(void* buffer = instructionBuffer.GetBuffer())

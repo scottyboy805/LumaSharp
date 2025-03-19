@@ -1,7 +1,7 @@
 ﻿
-using LumaSharp_Compiler.AST;
+using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Reporting
+namespace LumaSharp.Compiler.Reporting
 {
     // Type
     public enum Code
@@ -164,7 +164,7 @@ namespace LumaSharp_Compiler.Reporting
             string formatted = string.Format("[{0}] LS{1}: {2}", severity.ToString().ToUpper(), code, message);
 
             // Check for source
-            if(source != null)
+            if(source.SourceName != null)
             {
                 // Create formatted source
                 string formattedSource = string.Format(" in source file `{0}` at line `{1}`, column `{2}`", 

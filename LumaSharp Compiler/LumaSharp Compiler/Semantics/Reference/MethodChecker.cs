@@ -1,5 +1,5 @@
 ﻿
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal static class MethodChecker
     {

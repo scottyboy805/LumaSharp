@@ -1,77 +1,96 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public sealed class ParameterListSyntax : SyntaxNode
+    public sealed class ParameterListSyntax : SeparatedListSyntax<ParameterSyntax>
     {
         // Private
-        private ParameterSyntax[] parameters = null;
-        private SyntaxToken lparen = null;
-        private SyntaxToken rparen = null;
-        private SyntaxToken comma = null;
+        private readonly SyntaxToken lParen;
+        private readonly SyntaxToken rParen;
 
         // Properties
-        public ParameterSyntax[] Parameters
+        public override SyntaxToken StartToken
         {
-            get { return parameters; }
+            get { return lParen; }
         }
 
-        public int ParameterCount
+        public override SyntaxToken EndToken
         {
-            get { return HasParameters ? parameters.Length : 0; }
+            get { return rParen; }
+        }
+
+        public SyntaxToken LParen
+        {
+            get { return lParen; }
+        }
+
+        public SyntaxToken RParen
+        {
+            get { return rParen; }
         }
 
         public bool HasParameters
         {
-            get { return parameters != null && parameters.Length > 0; }
-        }
-
-        internal override IEnumerable<SyntaxNode> Descendants
-        {
-            get { return parameters; }
+            get { return Count > 0; }
         }
 
         // Constructor
-        internal ParameterListSyntax(ParameterSyntax[] parameters)
-            : base(SyntaxToken.LParen(), SyntaxToken.RParen())
+        internal ParameterListSyntax(SyntaxNode parent, ParameterSyntax[] parameters)
+            : base(parent, SyntaxTokenKind.CommaSymbol)
         {
-            this.parameters = parameters;
-            this.lparen = base.StartToken;
-            this.rparen = base.EndToken;
-            this.comma = SyntaxToken.Comma();
+            this.lParen = Syntax.KeywordOrSymbol(SyntaxTokenKind.LParenSymbol);
+            this.rParen = Syntax.KeywordOrSymbol(SyntaxTokenKind.RParenSymbol);
+
+            if (parameters != null)
+            {
+                // Add all parameters
+                foreach (ParameterSyntax parameter in parameters)
+                    AddElement(parameter, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
+            }
         }
 
-        internal ParameterListSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterListContext paramsDef)
-            : base(tree, parent, paramsDef)
+        internal ParameterListSyntax(SyntaxNode parent, LumaSharpParser.MethodParameterListContext paramsDef)
+            : base(parent, SyntaxTokenKind.CommaSymbol)
         {
-            // Get all parameters
-            LumaSharpParser.MethodParameterContext[] parameters = paramsDef.methodParameter();
+            this.lParen = new SyntaxToken(SyntaxTokenKind.CommaSymbol, paramsDef.LPAREN());
+            this.rParen = new SyntaxToken(SyntaxTokenKind.CommaSymbol, paramsDef.RPAREN());
 
-            // Check for any
-            if(parameters != null)
+            // Add primate element
+            LumaSharpParser.MethodParameterContext primaryParameter = paramsDef.methodParameter();
+
+            // Check for primary
+            if (primaryParameter != null)
+                AddElement(new ParameterSyntax(this, primaryParameter, 0), null);
+
+
+            // Add secondary elements
+            LumaSharpParser.MethodParameterSecondaryContext[] secondaryParameters = paramsDef.methodParameterSecondary();
+
+            // Check for secondary
+            if(secondaryParameters != null)
             {
-                this.parameters = parameters.Select((p, i) => new ParameterSyntax(tree, this, p, i)).ToArray();
+                int index = 1;
+
+                // Process all additional parameters
+                foreach(LumaSharpParser.MethodParameterSecondaryContext secondaryParameter in secondaryParameters)
+                {
+                    AddElement(
+                        new ParameterSyntax(this, secondaryParameter.methodParameter(), index++),
+                        new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryParameter.COMMA()));
+                }
             }
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            // Lparen
-            lparen.GetSourceText(writer);
+            // Parameter start
+            lParen.GetSourceText(writer);
 
-            // Write all
-            for(int i = 0; i < parameters.Length; i++)
-            {
-                // Write parameter
-                parameters[i].GetSourceText(writer);
+            // Parameters
+            base.GetSourceText(writer);
 
-                // Comma
-                if (i < parameters.Length - 1)
-                    comma.GetSourceText(writer);
-            }
-
-            // Rparen
-            rparen.GetSourceText(writer);
+            // Parameter end
+            rParen.GetSourceText(writer);
         }
     }
 }

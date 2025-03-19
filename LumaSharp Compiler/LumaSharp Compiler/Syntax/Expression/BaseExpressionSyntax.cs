@@ -1,12 +1,22 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class BaseExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
+        private readonly SyntaxToken keyword;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return keyword; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
@@ -18,16 +28,16 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal BaseExpressionSyntax()
-            : base(SyntaxToken.Base())
+        internal BaseExpressionSyntax(SyntaxNode parent)
+            : base(parent, null)
         {
-            this.keyword = base.StartToken;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.BaseKeyword);
         }
 
-        internal BaseExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(tree, parent, expression)
+        internal BaseExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
-            keyword = new SyntaxToken(expression.BASE());
+            keyword = new SyntaxToken(SyntaxTokenKind.BaseKeyword, expression.BASE());
         }
 
 

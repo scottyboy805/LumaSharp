@@ -1,9 +1,6 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.Semantics.Model.Statement;
-using LumaSharp_Compiler.Semantics.Model.Expression;
 
 namespace LumaSharp_CompilerTests.Semantic.Symbols
 {
@@ -17,7 +14,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference(PrimitiveType.I32)),
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Assign(Syntax.FieldReference("myField", Syntax.This()), Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.FieldReference(Syntax.This(), "myField"), AssignOperation.Assign, Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -38,8 +35,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.VariableReference("myVar")), Syntax.VariableReference("myVar")))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                    Syntax.Assign(Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField"), AssignOperation.Assign, Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -59,10 +56,10 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers("global"),
+                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.FieldReference("myField", Syntax.TypeReference("Test")), Syntax.VariableReference("myVar")))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                    Syntax.Assign(Syntax.FieldReference(Syntax.TypeReference("Test"), "myField"), AssignOperation.Assign, Syntax.VariableReference("myVar")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

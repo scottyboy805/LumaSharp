@@ -1,9 +1,8 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Statement;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Model.Statement
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class ForModel : StatementModel, IScopeModel, IScopedReferenceSymbol, IReferenceSymbol
     {
@@ -75,9 +74,9 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             get { return null; }
         }
 
-        public int SymbolToken
+        public _TokenHandle SymbolToken
         {
-            get { return -1; }
+            get { return default; }
         }
 
         // Constructor
@@ -87,16 +86,16 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             this.syntax = syntax;
 
             // Variable
-            if(syntax.HasForVariables == true)
-                this.variableModel = StatementModel.Any(model, this, syntax.ForVariable, StatementIndex, this) as VariableModel;
+            if(syntax.HasVariable == true)
+                this.variableModel = StatementModel.Any(model, this, syntax.Variable, StatementIndex, this) as VariableModel;
 
             // Condition
-            if (syntax.HasForCondition == true)
-                this.conditionModel = ExpressionModel.Any(model, this, syntax.ForCondition);
+            if (syntax.HasCondition == true)
+                this.conditionModel = ExpressionModel.Any(model, this, syntax.Condition);
 
             // Increment
-            if (syntax.HasForIncrements == true)
-                this.incrementModels = syntax.ForIncrements.Select(i => ExpressionModel.Any(model, this, i)).ToArray();
+            if (syntax.HasIncrements == true)
+                this.incrementModels = syntax.Increments.Select(i => ExpressionModel.Any(model, this, i)).ToArray();
 
             // Statements
             BuildSyntaxBlock(syntax);

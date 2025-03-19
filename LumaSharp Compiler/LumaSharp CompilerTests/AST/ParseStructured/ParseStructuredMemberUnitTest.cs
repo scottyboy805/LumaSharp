@@ -1,5 +1,5 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST.ParseStructured
@@ -78,7 +78,7 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
             Assert.AreEqual(hasModifiers, accessor.HasAccessModifiers);
             Assert.AreEqual(hasRead, accessor.HasReadBody);
             Assert.AreEqual(hasWrite, accessor.HasWriteBody);
-            Assert.AreEqual(hasExpression, accessor.HasAssignExpression);
+            Assert.AreEqual(hasExpression, accessor.HasLambdaBody);
             Assert.AreEqual(attributeCount, accessor.AttributeCount);
         }
     }

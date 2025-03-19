@@ -1,8 +1,8 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Expression;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal sealed class ReferenceSymbolProvider : ISymbolProvider
     {
@@ -30,7 +30,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         private ReferenceLibrary runtimeLibrary = null;
         private ReferenceLibrary thisLibrary = null;
         private ReferenceLibrary[] referenceLibraries = null;
-        private Dictionary<int, IReferenceSymbol> declaredSymbols = new Dictionary<int, IReferenceSymbol>();
+        private Dictionary<_TokenHandle, IReferenceSymbol> declaredSymbols = new Dictionary<_TokenHandle, IReferenceSymbol>();
 
         private ICompileReportProvider report = null;
         private ReferenceNamespaceResolver namespaceResolver = null;
@@ -73,34 +73,34 @@ namespace LumaSharp_Compiler.Semantics.Reference
         }
 
         // Methods
-        public int GetDeclaredSymbolToken(IReferenceSymbol symbol)
+        public _TokenHandle GetDeclaredSymbolToken(IReferenceSymbol symbol)
         {
             // Check for null
             if (symbol == null)
                 throw new ArgumentNullException(nameof(symbol));
-
+            
             // Check for already declared
             if (declaredSymbols.ContainsKey(symbol.SymbolToken) == true)
                 return symbol.SymbolToken;
 
             // Generate new token
-            int token = 0;
+            _TokenHandle token = default;
 
             // Get random
-            Random rand = new Random();
-            do
-            {
-                // Get next id
-                token = rand.Next();
-            }
-            while (declaredSymbols.ContainsKey(token) == true);
+            //Random rand = new Random();
+            //do
+            //{
+            //    // Get next id
+            //    token = rand.Next();
+            //}
+            //while (declaredSymbols.ContainsKey(token) == true);
 
             // Declare symbol
             declaredSymbols[token] = symbol;
             return token;
         }
 
-        public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource source)
+        public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource? source)
         {
             ITypeReferenceSymbol primitive = null;
 
@@ -137,12 +137,12 @@ namespace LumaSharp_Compiler.Semantics.Reference
             // Check for null
             if(primitive == null)
             {
-                report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, source, primitiveType.ToString().ToLower());
+                report.ReportMessage(Code.BuiltInTypeNotFound, MessageSeverity.Error, source != null ? source.Value : default, primitiveType.ToString().ToLower());
             }
             return primitive;
         }
 
-        public INamespaceReferenceSymbol ResolveNamespaceSymbol(NamespaceName name)
+        public INamespaceReferenceSymbol ResolveNamespaceSymbol(SeparatedTokenList name)
         {
             INamespaceReferenceSymbol resolvedSymbol;
 
@@ -166,7 +166,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for void
-            if(reference.Identifier.Text == "void" && reference.HasNamespace == false && reference.HasParentTypeIdentifier == false)
+            if(reference.Identifier.Text == "void" && reference.HasNamespace == false && reference.HasParentType == false)
             {
                 // Report errors if void type usage is not correct - used as generic/array for example
                 typeResolver.CheckVoidTypeUsage(reference);
@@ -180,7 +180,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for string
-            if(reference.Identifier.Text == "string" && reference.HasNamespace == false && reference.HasParentTypeIdentifier == false)
+            if(reference.Identifier.Text == "string" && reference.HasNamespace == false && reference.HasParentType == false)
             {
                 // Check for resolved
                 if(_string == null)
@@ -191,7 +191,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             }
 
             // Check for enum
-            if(reference.Identifier.Text == "enum" && reference.HasNamespace == false && reference.HasParentTypeIdentifier == false)
+            if(reference.Identifier.Text == "enum" && reference.HasNamespace == false && reference.HasParentType == false)
             {
                 // Check for resolved
                 if(_enum == null)
@@ -219,7 +219,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
 
 
-        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldAccessorReferenceExpressionSyntax reference)
+        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldReferenceExpressionSyntax reference)
         {
             // Check for type
             if (context is ITypeReferenceSymbol typeReference)

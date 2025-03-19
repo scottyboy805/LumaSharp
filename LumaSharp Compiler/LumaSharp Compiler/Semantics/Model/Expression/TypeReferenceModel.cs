@@ -1,8 +1,8 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Reference;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Reference;
 
-namespace LumaSharp_Compiler.Semantics.Model.Expression
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class TypeReferenceModel : ExpressionModel
     {
@@ -40,7 +40,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
 
             if (syntax.GenericArgumentCount > 0)
             {
-                this.genericArgumentModels = syntax.GenericArguments.GenericTypes.Select(
+                this.genericArgumentModels = syntax.GenericArguments.Select(
                     t => new TypeReferenceModel(model, this, t)).ToArray();
             }
         }
@@ -72,7 +72,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                 if (syntax.IsGenericType == true && genericArgumentModels != null)
                 {
                     // Check all generic arguments
-                    CheckGenericArguments(typeSymbol, syntax.GenericArguments.GenericTypes, genericArgumentModels, report);
+                    CheckGenericArguments(typeSymbol, syntax.GenericArguments.ToArray(), genericArgumentModels, report);
                 }
             }
         }

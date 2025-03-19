@@ -1,13 +1,30 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class LiteralExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken value = null;
-        private SyntaxToken descriptor = null;
+        private readonly SyntaxToken value;
+        private readonly SyntaxToken descriptor;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return value; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for descriptor
+                if (HasDescriptor == true)
+                    return descriptor;
+
+                return value;
+            }
+        }
+
         public SyntaxToken Value
         {
             get { return value; }
@@ -20,7 +37,7 @@ namespace LumaSharp_Compiler.AST
 
         public bool HasDescriptor
         {
-            get { return descriptor != null; }
+            get { return descriptor.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -29,27 +46,24 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        //internal LiteralExpressionSyntax(SyntaxTree tree, SyntaxNode parent)
-        //    : base(tree, parent)
-        //{
-        //}
-
-        internal LiteralExpressionSyntax(SyntaxToken value, SyntaxToken descriptor = null)
-            : base(value)
+        internal LiteralExpressionSyntax(SyntaxNode parent, SyntaxToken value, SyntaxToken? descriptor = null)
+            : base(parent, null)
         {
             this.value = value;
-            this.descriptor = descriptor;
+            this.descriptor = descriptor != null ? descriptor.Value : default;
         }
 
-        internal LiteralExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EndExpressionContext end)
-            : base(tree, parent, end)
+        internal LiteralExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
+            LumaSharpParser.EndExpressionContext end = expression.endExpression();
+
             // Create value
-            this.value = new SyntaxToken(end.Start);
+            this.value = new SyntaxToken(SyntaxTokenKind.Literal, end.Start);
 
             // Create descriptor
             if (end.Start != end.Stop)
-                this.descriptor = new SyntaxToken(end.Stop);
+                this.descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, end.Stop);
         }
 
         // Methods

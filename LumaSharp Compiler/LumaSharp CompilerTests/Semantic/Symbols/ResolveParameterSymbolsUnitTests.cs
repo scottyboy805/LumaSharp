@@ -1,6 +1,5 @@
-﻿using LumaSharp_Compiler.Semantics.Model;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Factory;
+﻿using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.Semantic.Symbols
@@ -15,10 +14,10 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("MyType")
                     .WithMembers(Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
                         .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myParam"))
-                        .WithStatements(
+                        .WithBody(
                             Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
                             Syntax.Assign(
-                                Syntax.VariableReference("myVar"),
+                                Syntax.VariableReference("myVar"), AssignOperation.Assign,
                                 Syntax.Literal(5)))));
 
             // Create model
@@ -46,7 +45,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("test")
                 .WithMembers(Syntax.Method("test", Syntax.TypeReference("test"))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("test"), "myVal"))
-                .WithStatements(Syntax.Return(Syntax.VariableReference("myVal")))));
+                .WithBody(Syntax.Return(Syntax.VariableReference("myVal")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

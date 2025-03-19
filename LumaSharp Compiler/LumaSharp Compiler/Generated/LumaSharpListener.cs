@@ -101,6 +101,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitNamespaceName([NotNull] LumaSharpParser.NamespaceNameContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.namespaceNameSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterNamespaceNameSecondary([NotNull] LumaSharpParser.NamespaceNameSecondaryContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.namespaceNameSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitNamespaceNameSecondary([NotNull] LumaSharpParser.NamespaceNameSecondaryContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeDeclaration"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -191,15 +201,15 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitMemberDeclaration([NotNull] LumaSharpParser.MemberDeclarationContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.attributeDeclaration"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.attributeReference"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterAttributeDeclaration([NotNull] LumaSharpParser.AttributeDeclarationContext context);
+	void EnterAttributeReference([NotNull] LumaSharpParser.AttributeReferenceContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.attributeDeclaration"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.attributeReference"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitAttributeDeclaration([NotNull] LumaSharpParser.AttributeDeclarationContext context);
+	void ExitAttributeReference([NotNull] LumaSharpParser.AttributeReferenceContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.fieldDeclaration"/>.
 	/// </summary>
@@ -210,16 +220,6 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitFieldDeclaration([NotNull] LumaSharpParser.FieldDeclarationContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.fieldAssignment"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterFieldAssignment([NotNull] LumaSharpParser.FieldAssignmentContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.fieldAssignment"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitFieldAssignment([NotNull] LumaSharpParser.FieldAssignmentContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.accessorDeclaration"/>.
 	/// </summary>
@@ -241,25 +241,15 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitAccessorBody([NotNull] LumaSharpParser.AccessorBodyContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.accessorRead"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.accessorReadWrite"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterAccessorRead([NotNull] LumaSharpParser.AccessorReadContext context);
+	void EnterAccessorReadWrite([NotNull] LumaSharpParser.AccessorReadWriteContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.accessorRead"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.accessorReadWrite"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitAccessorRead([NotNull] LumaSharpParser.AccessorReadContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.accessorWrite"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterAccessorWrite([NotNull] LumaSharpParser.AccessorWriteContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.accessorWrite"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitAccessorWrite([NotNull] LumaSharpParser.AccessorWriteContext context);
+	void ExitAccessorReadWrite([NotNull] LumaSharpParser.AccessorReadWriteContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.initializerDeclaration"/>.
 	/// </summary>
@@ -271,6 +261,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitInitializerDeclaration([NotNull] LumaSharpParser.InitializerDeclarationContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.initializerBaseExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterInitializerBaseExpression([NotNull] LumaSharpParser.InitializerBaseExpressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.initializerBaseExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitInitializerBaseExpression([NotNull] LumaSharpParser.InitializerBaseExpressionContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodDeclaration"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -280,6 +280,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitMethodDeclaration([NotNull] LumaSharpParser.MethodDeclarationContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodReturnList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMethodReturnList([NotNull] LumaSharpParser.MethodReturnListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodReturnList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMethodReturnList([NotNull] LumaSharpParser.MethodReturnListContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodParameterList"/>.
 	/// </summary>
@@ -300,6 +310,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitMethodParameter([NotNull] LumaSharpParser.MethodParameterContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodParameterSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterMethodParameterSecondary([NotNull] LumaSharpParser.MethodParameterSecondaryContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodParameterSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitMethodParameterSecondary([NotNull] LumaSharpParser.MethodParameterSecondaryContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.accessModifier"/>.
 	/// </summary>
@@ -331,15 +351,55 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitGenericParameter([NotNull] LumaSharpParser.GenericParameterContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericParameterSecondary"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterGenericArguments([NotNull] LumaSharpParser.GenericArgumentsContext context);
+	void EnterGenericParameterSecondary([NotNull] LumaSharpParser.GenericParameterSecondaryContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericArguments"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericParameterSecondary"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitGenericArguments([NotNull] LumaSharpParser.GenericArgumentsContext context);
+	void ExitGenericParameterSecondary([NotNull] LumaSharpParser.GenericParameterSecondaryContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericConstraintList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGenericConstraintList([NotNull] LumaSharpParser.GenericConstraintListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericConstraintList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGenericConstraintList([NotNull] LumaSharpParser.GenericConstraintListContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericConstraint"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGenericConstraint([NotNull] LumaSharpParser.GenericConstraintContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericConstraint"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGenericConstraint([NotNull] LumaSharpParser.GenericConstraintContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericConstraintSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGenericConstraintSecondary([NotNull] LumaSharpParser.GenericConstraintSecondaryContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericConstraintSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGenericConstraintSecondary([NotNull] LumaSharpParser.GenericConstraintSecondaryContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.genericArgumentList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterGenericArgumentList([NotNull] LumaSharpParser.GenericArgumentListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.genericArgumentList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitGenericArgumentList([NotNull] LumaSharpParser.GenericArgumentListContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.arrayParameters"/>.
 	/// </summary>
@@ -361,6 +421,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitInheritParameters([NotNull] LumaSharpParser.InheritParametersContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeReferenceList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterTypeReferenceList([NotNull] LumaSharpParser.TypeReferenceListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.typeReferenceList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitTypeReferenceList([NotNull] LumaSharpParser.TypeReferenceListContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeReference"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -370,6 +440,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitTypeReference([NotNull] LumaSharpParser.TypeReferenceContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeReferenceSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterTypeReferenceSecondary([NotNull] LumaSharpParser.TypeReferenceSecondaryContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.typeReferenceSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitTypeReferenceSecondary([NotNull] LumaSharpParser.TypeReferenceSecondaryContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.shortTypeReference"/>.
 	/// </summary>
@@ -410,6 +490,16 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitStatementBlock([NotNull] LumaSharpParser.StatementBlockContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.statementLambda"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterStatementLambda([NotNull] LumaSharpParser.StatementLambdaContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.statementLambda"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitStatementLambda([NotNull] LumaSharpParser.StatementLambdaContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.statement"/>.
 	/// </summary>
@@ -461,15 +551,25 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitLocalVariableStatement([NotNull] LumaSharpParser.LocalVariableStatementContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.localVariableAssignment"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.localVariableSecondary"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterLocalVariableAssignment([NotNull] LumaSharpParser.LocalVariableAssignmentContext context);
+	void EnterLocalVariableSecondary([NotNull] LumaSharpParser.LocalVariableSecondaryContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.localVariableAssignment"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.localVariableSecondary"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitLocalVariableAssignment([NotNull] LumaSharpParser.LocalVariableAssignmentContext context);
+	void ExitLocalVariableSecondary([NotNull] LumaSharpParser.LocalVariableSecondaryContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.variableAssignment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterVariableAssignment([NotNull] LumaSharpParser.VariableAssignmentContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.variableAssignment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitVariableAssignment([NotNull] LumaSharpParser.VariableAssignmentContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.assignStatement"/>.
 	/// </summary>
@@ -520,26 +620,6 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitForStatement([NotNull] LumaSharpParser.ForStatementContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.forVariableStatement"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.forVariableStatement"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitForVariableStatement([NotNull] LumaSharpParser.ForVariableStatementContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.forIncrementExpression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitForIncrementExpression([NotNull] LumaSharpParser.ForIncrementExpressionContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.foreachStatement"/>.
 	/// </summary>
@@ -611,6 +691,26 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitFinallyStatement([NotNull] LumaSharpParser.FinallyStatementContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.expressionList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterExpressionList([NotNull] LumaSharpParser.ExpressionListContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.expressionList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitExpressionList([NotNull] LumaSharpParser.ExpressionListContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.expressionLambda"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterExpressionLambda([NotNull] LumaSharpParser.ExpressionLambdaContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.expressionLambda"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitExpressionLambda([NotNull] LumaSharpParser.ExpressionLambdaContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.expression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -620,6 +720,26 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitExpression([NotNull] LumaSharpParser.ExpressionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.parenExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterParenExpression([NotNull] LumaSharpParser.ParenExpressionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.parenExpression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitParenExpression([NotNull] LumaSharpParser.ParenExpressionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.expressionSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterExpressionSecondary([NotNull] LumaSharpParser.ExpressionSecondaryContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.expressionSecondary"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitExpressionSecondary([NotNull] LumaSharpParser.ExpressionSecondaryContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
 	/// </summary>
@@ -691,35 +811,15 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitMethodInvokeExpression([NotNull] LumaSharpParser.MethodInvokeExpressionContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArguments"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.argumentList"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterMethodArguments([NotNull] LumaSharpParser.MethodArgumentsContext context);
+	void EnterArgumentList([NotNull] LumaSharpParser.ArgumentListContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodArguments"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.argumentList"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitMethodArguments([NotNull] LumaSharpParser.MethodArgumentsContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.methodArgument"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterMethodArgument([NotNull] LumaSharpParser.MethodArgumentContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.methodArgument"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitMethodArgument([NotNull] LumaSharpParser.MethodArgumentContext context);
-	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.initializerInvokeExpression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.initializerInvokeExpression"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitInitializerInvokeExpression([NotNull] LumaSharpParser.InitializerInvokeExpressionContext context);
+	void ExitArgumentList([NotNull] LumaSharpParser.ArgumentListContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.rangeExpression"/>.
 	/// </summary>

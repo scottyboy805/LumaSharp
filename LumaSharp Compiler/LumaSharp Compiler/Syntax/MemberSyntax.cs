@@ -1,14 +1,20 @@
-﻿using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
-
-namespace LumaSharp_Compiler.AST
+﻿using Antlr4.Runtime.Tree;
+namespace LumaSharp.Compiler.AST
 {
+    public enum AccessModifier
+    {
+        Export,
+        Internal,
+        Hidden,
+        Global,
+    }
+
     public abstract class MemberSyntax : SyntaxNode
     {
         // Protected
-        protected AttributeSyntax[] attributes = null;
-        protected SyntaxToken[] accessModifiers = null;
-        protected SyntaxToken identifier = null;
+        protected readonly AttributeReferenceSyntax[] attributes;
+        protected readonly SyntaxToken[] accessModifiers;
+        protected readonly SyntaxToken identifier;
 
         // Properties
         public override SyntaxToken StartToken
@@ -23,26 +29,18 @@ namespace LumaSharp_Compiler.AST
                 if (HasAccessModifiers == true)
                     return accessModifiers[0];
 
-                return base.StartToken;
+                return identifier;
             }
         }
 
-        public AttributeSyntax[] Attributes
+        public AttributeReferenceSyntax[] Attributes
         {
             get { return attributes; }
-            internal set { attributes = value; }
         }
 
         public SyntaxToken[] AccessModifiers
         {
             get { return accessModifiers; }
-            internal set 
-            { 
-                accessModifiers = value;
-
-                foreach (SyntaxToken modifier in accessModifiers)
-                    modifier.WithTrailingWhitespace(" ");
-            }
         }
 
         public SyntaxToken Identifier
@@ -71,27 +69,29 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        protected MemberSyntax(string identifier, SyntaxToken start, SyntaxToken end)
-            : base(start, end)
+        protected MemberSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers)
+            : base(parent)
         {
-            this.identifier = new SyntaxToken(identifier);
+            this.identifier = Syntax.Identifier(identifier);
+            this.attributes = attributes;
+            this.accessModifiers = accessModifiers;
         }
 
-        internal MemberSyntax(ITerminalNode identifier, SyntaxTree tree, SyntaxNode parent, ParserRuleContext context, LumaSharpParser.AttributeDeclarationContext[] attributes, LumaSharpParser.AccessModifierContext[] modifiers)
-            : base(tree, parent, context)
+        internal MemberSyntax(ITerminalNode identifier, SyntaxNode parent, LumaSharpParser.AttributeReferenceContext[] attributes, LumaSharpParser.AccessModifierContext[] modifiers)
+            : base(parent)
         {
-            this.identifier = new SyntaxToken(identifier);
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, identifier);
 
             // Attributes
             if(attributes != null && attributes.Length > 0)
             {
-                this.attributes = attributes.Select(a => new AttributeSyntax(tree, this, a)).ToArray();
+                this.attributes = attributes.Select(a => new AttributeReferenceSyntax(this, a)).ToArray();
             }
 
             // Access modifiers
             if (modifiers != null && modifiers.Length > 0)
             {
-                this.accessModifiers = modifiers.Select(m => new SyntaxToken(m.Start)).ToArray();
+                this.accessModifiers = GetModifiers(modifiers);
             }
         }
 
@@ -101,7 +101,7 @@ namespace LumaSharp_Compiler.AST
             if (HasAttributes == true)
             {
                 // Get custom attributes
-                foreach (AttributeSyntax attribute in attributes)
+                foreach (AttributeReferenceSyntax attribute in attributes)
                 {
                     attribute.GetSourceText(writer);
                 }
@@ -117,59 +117,94 @@ namespace LumaSharp_Compiler.AST
             }
         }
 
-        internal static SyntaxNode RootElement(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.RootElementContext element)
+        private SyntaxToken[] GetModifiers(LumaSharpParser.AccessModifierContext[] modifiers)
+        {
+            SyntaxToken[] tokens = new SyntaxToken[modifiers.Length];
+
+            // Process all
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                // Check for hidden
+                if (modifiers[i].SPECIALHIDDEN() != null)
+                {
+                    tokens[i] = new SyntaxToken(SyntaxTokenKind.HiddenKeyword, modifiers[i].SPECIALHIDDEN());
+                }
+                // Check for internal
+                else if (modifiers[i].INTERNAL() != null)
+                {
+                    tokens[i] = new SyntaxToken(SyntaxTokenKind.InternalKeyword, modifiers[i].INTERNAL());
+                }
+                // Check for export
+                else if (modifiers[i].EXPORT() != null)
+                {
+                    tokens[i] = new SyntaxToken(SyntaxTokenKind.ExportKeyword, modifiers[i].EXPORT());
+                }
+                // Check for global
+                else if (modifiers[i].GLOBAL() != null)
+                {
+                    tokens[i] = new SyntaxToken(SyntaxTokenKind.GlobalKeyword, modifiers[i].GLOBAL());
+                }
+                else
+                {
+                    tokens[i] = SyntaxToken.Invalid;
+                }
+            }
+            return tokens;
+        }
+
+        internal static SyntaxNode RootElement(SyntaxNode parent, LumaSharpParser.RootElementContext element)
         {
             // Check for namespace
             if (element.namespaceDeclaration() != null)
-                return new NamespaceSyntax(tree, parent, element.namespaceDeclaration());
+                return new NamespaceSyntax(parent, element.namespaceDeclaration());
 
             // Get member
-            return RootMember(tree, parent, element.rootMember());
+            return RootMember(parent, element.rootMember());
         }
 
-        internal static MemberSyntax RootMember(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.RootMemberContext member)
+        internal static MemberSyntax RootMember(SyntaxNode parent, LumaSharpParser.RootMemberContext member)
         {
             // Check for type declaration
             if (member.typeDeclaration() != null)
-                return new TypeSyntax(tree, parent, member.typeDeclaration());
+                return new TypeSyntax(parent, member.typeDeclaration());
 
             // Check for contract declaration
             if (member.contractDeclaration() != null)
-                return new ContractSyntax(tree, parent, member.contractDeclaration());
+                return new ContractSyntax(parent, member.contractDeclaration());
 
             // Check for enum declaration
             if (member.enumDeclaration() != null)
-                return new EnumSyntax(tree, parent, member.enumDeclaration());
+                return new EnumSyntax(parent, member.enumDeclaration());
 
             // Not valid
             throw new NotSupportedException("Unsupported root member type: " + member);
         }
 
-        internal static MemberSyntax Member(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberDeclarationContext member)
+        internal static MemberSyntax Member(SyntaxNode parent, LumaSharpParser.MemberDeclarationContext member)
         {
             // Check for type
             if (member.typeDeclaration() != null)
-                return new TypeSyntax(tree, parent, member.typeDeclaration());
+                return new TypeSyntax(parent, member.typeDeclaration());
 
             // Check for contract
             if(member.contractDeclaration() != null)
-                return new ContractSyntax(tree, parent, member.contractDeclaration());
+                return new ContractSyntax(parent, member.contractDeclaration());
 
             // Check for enum
             if (member.enumDeclaration() != null)
-                return new EnumSyntax(tree, parent, member.enumDeclaration());
+                return new EnumSyntax(parent, member.enumDeclaration());
 
             // Check for field
             if (member.fieldDeclaration() != null)
-                return new FieldSyntax(tree, parent, member.fieldDeclaration());
+                return new FieldSyntax(parent, member.fieldDeclaration());
 
             // Check for accessor
             if (member.accessorDeclaration() != null)
-                return new AccessorSyntax(tree, parent, member.accessorDeclaration());
+                return new AccessorSyntax(parent, member.accessorDeclaration());
 
             // Check for method
             if(member.methodDeclaration() != null)
-                return new MethodSyntax(tree, parent, member.methodDeclaration());
+                return new MethodSyntax(parent, member.methodDeclaration());
 
             // Not valid
             throw new NotSupportedException("Unsupported member type: " + member);

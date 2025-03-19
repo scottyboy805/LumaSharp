@@ -1,36 +1,25 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Statement;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Reference;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Reference;
 
-namespace LumaSharp_Compiler.Semantics.Model.Statement
+namespace LumaSharp.Compiler.Semantics.Model
 {
-    public enum AssignOperation
-    {
-        Assign,
-        AddAssign,
-        SubtractAssign,
-        MultiplyAssign,
-        DivideAssign,
-    }
-
     public sealed class AssignModel : StatementModel
     {
         // Private
         //private AssignStatementSyntax syntax = null;
-        private SyntaxToken operationToken = null;
-        private ExpressionModel left = null;
-        private ExpressionModel right = null;
-        private AssignOperation operation = 0;
+        private readonly SyntaxToken operationToken;
+        private readonly ExpressionModel[] left;
+        private readonly ExpressionModel[] right;
+        private AssignOperation operation;
 
         // Properties
-        public ExpressionModel Left
+        public ExpressionModel[] Left
         {
             get { return left; }
         }
 
-        public ExpressionModel Right
+        public ExpressionModel[] Right
         {
             get { return right; }
         }
@@ -44,8 +33,11 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         {
             get
             {
-                yield return left;
-                yield return right;
+                foreach (ExpressionModel expression in left)
+                    yield return expression;
+
+                foreach(ExpressionModel expression in right)
+                    yield return expression;
             }
         }
 
@@ -54,17 +46,17 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             : base(model, parent, syntax, statementIndex)
         {
             //this.syntax = syntax;
-            this.operationToken = syntax.AssignOperation;
-            this.left = ExpressionModel.Any(model, this, syntax.Left);
-            this.right = ExpressionModel.Any(model, this, syntax.Right);
+            this.operationToken = syntax.Assign;
+            this.left = syntax.Left.Select(l => ExpressionModel.Any(model, this, l)).ToArray();
+            this.right = syntax.Right.Select(r => ExpressionModel.Any(model, this, r)).ToArray();
         }
 
         public AssignModel(SemanticModel model, SymbolModel parent, VariableDeclarationStatementSyntax syntax, ExpressionModel left, ExpressionModel right, int statementIndex)
             : base(model, parent, syntax, statementIndex)
         {
-            this.operationToken = SyntaxToken.Assign();
-            this.left = left;
-            this.right = right;
+            this.operationToken = syntax.Assignment.Assign;
+            this.left = new ExpressionModel[] { left };
+            this.right = new ExpressionModel[] { right };
         }
 
         // Methods
@@ -76,20 +68,72 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve left
-            left.ResolveSymbols(provider, report);
+            foreach(ExpressionModel leftModel in left)
+                leftModel.ResolveSymbols(provider, report);
 
             // Resolve right
-            right.ResolveSymbols(provider, report);
+            foreach(ExpressionModel rightModel in right)
+                rightModel.ResolveSymbols(provider, report);
 
-            // Check for resolved
-            if (left.EvaluatedTypeSymbol != null && right.EvaluatedTypeSymbol != null)
+
+            // Check for assignable
+            if(left.Length == right.Length)
             {
-                // Check for assignment
-                if (TypeChecker.IsTypeAssignable(right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol) == false)
+                for(int i = 0; i < left.Length; i++)
                 {
-                    report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right.Source, right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol);
+                    // Check for resolved
+                    if (left[i].EvaluatedTypeSymbol != null && right[i].EvaluatedTypeSymbol != null)
+                    {
+                        // Check for assignment
+                        if (TypeChecker.IsTypeAssignable(right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol) == false)
+                        {
+                            report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right[i].Source, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
+                        }
+                    }
                 }
             }
+            // Check for method
+            else if(right.Length == 1 && right[0] is MethodInvokeModel invokeMethod)
+            {
+                // Check return types count
+                if(left.Length == invokeMethod.MethodIdentifier.ReturnTypeSymbols.Length)
+                {
+                    // Get the method symbol
+                    ITypeReferenceSymbol[] methodReturnSymbols = invokeMethod.MethodIdentifier.ReturnTypeSymbols;
+
+                    for (int i = 0; i < left.Length; i++)
+                    {
+                        // Check for resolved
+                        if (left[i].EvaluatedTypeSymbol != null && methodReturnSymbols[i] != null)
+                        {
+                            // Check for assignment
+                            if (TypeChecker.IsTypeAssignable(methodReturnSymbols[i], left[i].EvaluatedTypeSymbol) == false)
+                            {
+                                report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, invokeMethod.Source, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Method does not return x amount of parameters
+                }
+            }
+            // Invalid assignment count
+            else
+            {
+
+            }
+
+            // Check for resolved
+            //if (left.EvaluatedTypeSymbol != null && right.EvaluatedTypeSymbol != null)
+            //{
+            //    // Check for assignment
+            //    if (TypeChecker.IsTypeAssignable(right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol) == false)
+            //    {
+            //        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right.Source, right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol);
+            //    }
+            //}
 
 
             // Parse operation

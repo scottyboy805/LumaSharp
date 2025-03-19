@@ -1,35 +1,44 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ContinueStatementSyntax : StatementSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
+        private readonly SyntaxToken keyword;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return keyword; }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
         }
 
         // Constructor
-        internal ContinueStatementSyntax()
-            : base(new SyntaxToken("continue"))
+        internal ContinueStatementSyntax(SyntaxNode parent)
+            : base(parent)
         {
-            this.keyword = base.StartToken;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ContinueKeyword);
         }
 
-        internal ContinueStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.StatementContext statement)
-            : base(tree, parent, statement)
+        internal ContinueStatementSyntax(SyntaxNode parent, LumaSharpParser.StatementContext statement)
+            : base(parent)
         {
-            keyword = new SyntaxToken(statement.CONTINUE());
+            keyword = new SyntaxToken(SyntaxTokenKind.ContinueKeyword, statement.CONTINUE());
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            writer.Write(keyword.ToString());
-            writer.Write(statementEnd.ToString());
+            keyword.GetSourceText(writer);
         }
     }
 }

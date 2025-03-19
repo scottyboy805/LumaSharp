@@ -1,7 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.AST.Expression;
+﻿using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Semantics.Model.Expression
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public abstract class ExpressionModel : SymbolModel
     {
@@ -69,8 +68,8 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
                 return new VariableReferenceModel(model, parent, syntax as VariableReferenceExpressionSyntax);
 
             // Check for field
-            if(syntax is FieldAccessorReferenceExpressionSyntax)
-                return new FieldAccessorReferenceModel(model, parent, syntax as FieldAccessorReferenceExpressionSyntax);
+            if(syntax is FieldReferenceExpressionSyntax)
+                return new FieldAccessorReferenceModel(model, parent, syntax as FieldReferenceExpressionSyntax);
 
             // Check for method
             if (syntax is MethodInvokeExpressionSyntax)

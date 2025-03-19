@@ -1,65 +1,78 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public class GenericParameterListSyntax : SyntaxNode
+    public sealed class GenericParameterListSyntax : SeparatedListSyntax<GenericParameterSyntax>
     {
         // Private        
-        private GenericParameterSyntax[] genericParameters = null;
-        private SyntaxToken lgen = null;
-        private SyntaxToken rgen = null;
-        private SyntaxToken comma = null;
+        private readonly SyntaxToken lGeneric;
+        private readonly SyntaxToken rGeneric;
 
         // Properties
-        public GenericParameterSyntax[] GenericParameters
+        public override SyntaxToken StartToken
         {
-            get { return genericParameters; }
+            get { return lGeneric; }
         }
 
-        public int GenericParameterCount
+        public override SyntaxToken EndToken
         {
-            get { return HasGenericParameters ? genericParameters.Length : 0; }
+            get { return rGeneric; }
+        }
+
+        public SyntaxToken LGeneric
+        {
+            get { return lGeneric; }
+        }
+
+        public SyntaxToken RGeneric
+        {
+            get { return rGeneric; }
         }
 
         public bool HasGenericParameters
         {
-            get { return genericParameters != null && genericParameters.Length > 0; }
-        }
-
-        internal override IEnumerable<SyntaxNode> Descendants
-        {
-            get { yield break; }
+            get { return Count > 0; }
         }
 
         // Constructor
-        internal GenericParameterListSyntax(GenericParameterSyntax[] genericParameters)
-            : base(SyntaxToken.LGeneric(), SyntaxToken.RGeneric())
+        internal GenericParameterListSyntax(SyntaxNode parent, GenericParameterSyntax[] genericParameters)
+            : base(parent, SyntaxTokenKind.CommaSymbol)
         {
-            this.genericParameters = genericParameters;
-            this.lgen = base.StartToken;
-            this.rgen = base.EndToken;
-            this.comma = SyntaxToken.Comma();
+            this.lGeneric = Syntax.KeywordOrSymbol(SyntaxTokenKind.LGenericSymbol);
+            this.rGeneric = Syntax.KeywordOrSymbol(SyntaxTokenKind.RGenericSymbol);
+
+            foreach (GenericParameterSyntax genericParameter in genericParameters)
+                AddElement(genericParameter, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
         }
 
-        //internal GenericParameterListSyntax(SyntaxTree tree, SyntaxNode parent, string[] genericNames)
-        //    : base(tree, parent)
-        //{
-        //    this.start = new SyntaxToken("<");
-        //    this.end = new SyntaxToken(">");
-        //    this.genericParameters = new SyntaxToken[genericNames.Length];
-
-        //    for(int i = 0; i < genericParameters.Length; i++)
-        //        genericParameters[i] = new SyntaxToken(genericNames[i]);
-        //}
-
-        internal GenericParameterListSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.GenericParameterListContext generics)
-            : base(tree, parent, generics)
+        internal GenericParameterListSyntax(SyntaxNode parent, LumaSharpParser.GenericParameterListContext generics)
+            : base(parent, SyntaxTokenKind.CommaSymbol)
         {
-            // Parameters
-            LumaSharpParser.GenericParameterContext[] parameters = generics.genericParameter();
+            this.lGeneric = new SyntaxToken(SyntaxTokenKind.LGenericSymbol, generics.LGENERIC());
+            this.rGeneric = new SyntaxToken(SyntaxTokenKind.RGenericSymbol, generics.RGENERIC());
 
-            if(parameters != null)
+            // Add primary element
+            LumaSharpParser.GenericParameterContext primaryGenericParameter = generics.genericParameter();
+
+            // Check for primary
+            if (primaryGenericParameter != null)
+                AddElement(new GenericParameterSyntax(this, primaryGenericParameter, 0), null);
+
+
+            // Add secondary elements
+            LumaSharpParser.GenericParameterSecondaryContext[] secondaryGenericParameters = generics.genericParameterSecondary();
+
+            // Check for secondary
+            if(secondaryGenericParameters != null)
             {
-                this.genericParameters = parameters.Select((p, i) => new GenericParameterSyntax(tree, this, p, i)).ToArray();
+                int index = 1;
+
+                // Process all additional parameters
+                foreach (LumaSharpParser.GenericParameterSecondaryContext secondaryGenericParameter in secondaryGenericParameters)
+                {
+                    AddElement(
+                        new GenericParameterSyntax(this, secondaryGenericParameter.genericParameter(), index++),
+                        new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryGenericParameter.COMMA()));
+                }
             }
         }
 
@@ -67,21 +80,13 @@ namespace LumaSharp_Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Generic start
-            lgen.GetSourceText(writer);
+            lGeneric.GetSourceText(writer);
 
             // Generic parameters
-            for(int i = 0; i <  genericParameters.Length; i++)
-            {
-                // Write generic
-                genericParameters[i].GetSourceText(writer);
-
-                // Comma
-                if (i < genericParameters.Length - 1)
-                    comma.GetSourceText(writer);
-            }
+            base.GetSourceText(writer);
 
             // Generic end
-            rgen.GetSourceText(writer);
+            rGeneric.GetSourceText(writer);
         }
     }
 }

@@ -21,10 +21,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
             // Get attribute
-            LumaSharpParser.AttributeDeclarationContext attrib = context.attributeDeclaration(0);
+            LumaSharpParser.AttributeReferenceContext attrib = context.attributeReference(0);
 
             // Check for attributes
-            Assert.AreEqual(1, context.attributeDeclaration().Length);
+            Assert.AreEqual(1, context.attributeReference().Length);
             Assert.AreEqual("#", attrib.GetChild(0).GetText());
             Assert.AreEqual("MyAttribute", attrib.typeReference().GetText());
         }
@@ -45,11 +45,11 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
             // Get attribute
-            LumaSharpParser.AttributeDeclarationContext attrib1 = context.attributeDeclaration(0);
-            LumaSharpParser.AttributeDeclarationContext attrib2 = context.attributeDeclaration(1);
+            LumaSharpParser.AttributeReferenceContext attrib1 = context.attributeReference(0);
+            LumaSharpParser.AttributeReferenceContext attrib2 = context.attributeReference(1);
 
             // Check for attributes
-            Assert.AreEqual(2, context.attributeDeclaration().Length);
+            Assert.AreEqual(2, context.attributeReference().Length);
             Assert.AreEqual("#", attrib1.GetChild(0).GetText());
             Assert.AreEqual("MyAttribute", attrib1.typeReference().GetText());
             Assert.AreEqual("#", attrib2.GetChild(0).GetText());
@@ -72,10 +72,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
             // Get attribute
-            LumaSharpParser.AttributeDeclarationContext attrib = context.attributeDeclaration(0);
+            LumaSharpParser.AttributeReferenceContext attrib = context.attributeReference(0);
 
             // Check for attributes
-            Assert.AreEqual(1, context.attributeDeclaration().Length);
+            Assert.AreEqual(1, context.attributeReference().Length);
             Assert.AreEqual("#", attrib.GetChild(0).GetText());
             Assert.AreEqual("MyAttribute", attrib.typeReference().GetText());
             Assert.AreEqual("(", attrib.GetChild(2).GetText());
@@ -98,10 +98,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
             // Get attribute
-            LumaSharpParser.AttributeDeclarationContext attrib = context.attributeDeclaration(0);
+            LumaSharpParser.AttributeReferenceContext attrib = context.attributeReference(0);
 
             // Check for attributes
-            Assert.AreEqual(1, context.attributeDeclaration().Length);
+            Assert.AreEqual(1, context.attributeReference().Length);
             Assert.AreEqual("#", attrib.GetChild(0).GetText());
             Assert.AreEqual("MyAttribute", attrib.typeReference().GetText());
             Assert.AreEqual("(", attrib.GetChild(2).GetText());
@@ -125,16 +125,16 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
             // Get attribute
-            LumaSharpParser.AttributeDeclarationContext attrib = context.attributeDeclaration(0);
+            LumaSharpParser.AttributeReferenceContext attrib = context.attributeReference(0);
 
             // Check for attributes
-            Assert.AreEqual(1, context.attributeDeclaration().Length);
+            Assert.AreEqual(1, context.attributeReference().Length);
             Assert.AreEqual("#", attrib.GetChild(0).GetText());
             Assert.AreEqual("MyAttribute", attrib.typeReference().GetText());
             Assert.AreEqual("(", attrib.GetChild(2).GetText());
-            Assert.AreEqual("5", attrib.expression(0).GetText());
+            Assert.AreEqual("5", attrib.argumentList().expressionList().expression().GetText());
             Assert.AreEqual(",", attrib.GetChild(4).GetText());
-            Assert.AreEqual("4.5", attrib.expression(1).GetText());
+            Assert.AreEqual("4.5", attrib.argumentList().expressionList().expressionSecondary(0).expression().GetText());
             Assert.AreEqual(")", attrib.GetChild(6).GetText());
         }
 
@@ -154,18 +154,18 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             Assert.AreEqual("Test", context.IDENTIFIER().GetText());
 
             // Get attribute
-            LumaSharpParser.AttributeDeclarationContext attrib = context.attributeDeclaration(0);
+            LumaSharpParser.AttributeReferenceContext attrib = context.attributeReference(0);
 
             // Check for attributes
-            Assert.AreEqual(1, context.attributeDeclaration().Length);
+            Assert.AreEqual(1, context.attributeReference().Length);
             Assert.AreEqual("#", attrib.GetChild(0).GetText());
             Assert.AreEqual("MyAttribute", attrib.typeReference().GetText());
             Assert.AreEqual("(", attrib.GetChild(2).GetText());
-            Assert.AreEqual("5", attrib.expression(0).GetText());
+            Assert.AreEqual("5", attrib.argumentList().expressionList().expression().GetText());
             Assert.AreEqual(",", attrib.GetChild(4).GetText());
-            Assert.AreEqual("4.5", attrib.expression(1).GetText());
+            Assert.AreEqual("4.5", attrib.argumentList().expressionList().expressionSecondary(1).expression().GetText());
             Assert.AreEqual(",", attrib.GetChild(6).GetText());
-            Assert.AreEqual(@"""Hello""", attrib.expression(2).GetText());
+            Assert.AreEqual(@"""Hello""", attrib.argumentList().expressionList().expressionSecondary(2).expression().GetText());
             Assert.AreEqual(")", attrib.GetChild(8).GetText());
         }
     }

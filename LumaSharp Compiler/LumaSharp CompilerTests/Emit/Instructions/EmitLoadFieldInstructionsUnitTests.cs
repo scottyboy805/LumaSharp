@@ -1,10 +1,8 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Emit.Builder;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Runtime;
-using LumaSharp.Runtime.Emit;
+using LumaSharp.Compiler.Emit;
 
 namespace LumaSharp_CompilerTests.Emit.Instructions
 {
@@ -18,8 +16,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.FieldReference("myField", Syntax.VariableReference("myVar"))))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -30,12 +28,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 0);
-            Assert.AreEqual(OpCode.Ld_Loc_0, builder[0].opCode);
-            Assert.AreEqual(OpCode.Ld_Fld, builder[1].opCode);
+            Assert.IsTrue(builder.Count > 0);
+            Assert.AreEqual(OpCode.Ld_Var_0, builder[0].OpCode);
+            Assert.AreEqual(OpCode.Ld_Fld, builder[1].OpCode);
         }
 
         [TestMethod]
@@ -46,9 +44,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "param1", true))
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                Syntax.Return(Syntax.MethodInvoke("Test", Syntax.FieldReference("myField", Syntax.VariableReference("myVar")))
-                .WithArguments(Syntax.VariableReference("myVar"))))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                Syntax.Return(Syntax.MethodInvoke(Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField"), "Test", Syntax.ArgumentList(Syntax.VariableReference("myVar")))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -59,12 +56,12 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Build instructions
-            InstructionBuilder builder = new InstructionBuilder(new BinaryWriter(new MemoryStream()));
-            new MethodBodyBuilder(methodModel.BodyStatements).EmitExecutionObject(builder);
+            BytecodeBuilder builder = new BytecodeBuilder();
+            new MethodBodyBuilder(methodModel.ParameterSymbols.Length, methodModel.BodyStatements).EmitExecutionObject(builder);
 
-            Assert.IsTrue(builder.InstructionIndex > 0);
-            Assert.AreEqual(OpCode.Ld_Loc_0, builder[0].opCode);
-            Assert.AreEqual(OpCode.Ld_Fld_A, builder[1].opCode);
+            Assert.IsTrue(builder.Count > 0);
+            Assert.AreEqual(OpCode.Ld_Var_0, builder[0].OpCode);
+            Assert.AreEqual(OpCode.Ld_Fld_A, builder[1].OpCode);
         }
     }
 }

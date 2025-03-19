@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
-    public enum MethodFlags : uint
+    public enum MetaMethodFlags : ushort
     {
         Export = 1,
         Internal = 2,
@@ -22,34 +22,35 @@ namespace LumaSharp.Runtime.Reflection
     public unsafe class MetaMethod : MetaMember
     {
         // Private
-        private readonly MethodFlags methodFlags = 0;
-        private readonly MemberReference<MetaType> returnTypeReference = null;
+        private readonly MetaMethodFlags methodFlags = 0;
+        private readonly MemberReference<MetaType>[] returnTypeReferences = null;
         private readonly MetaVariable[] parameters = null;
+        private readonly int rva = 0;
 
         // Properties
         public bool IsInitializer
         {
-            get { return (methodFlags & MethodFlags.Initializer) != 0; }
+            get { return (methodFlags & MetaMethodFlags.Initializer) != 0; }
         }
 
         public bool IsAbstract
         {
-            get { return (methodFlags & MethodFlags.Abstract) != 0; }
+            get { return (methodFlags & MetaMethodFlags.Abstract) != 0; }
         }
 
         public bool IsOverride
         {
-            get { return (methodFlags & MethodFlags.Override) != 0; }
+            get { return (methodFlags & MetaMethodFlags.Override) != 0; }
         }
 
         public bool IsGeneric
         {
-            get { return (methodFlags & MethodFlags.Generic) != 0; }
+            get { return (methodFlags & MetaMethodFlags.Generic) != 0; }
         }
 
-        public MetaType ReturnType
+        public MetaType[] ReturnTypes
         {
-            get { return returnTypeReference.Member; }
+            get { return returnTypeReferences.Select(r => r.Member).ToArray(); }
         }
 
         public MetaVariable[] Parameters
@@ -79,17 +80,18 @@ namespace LumaSharp.Runtime.Reflection
         { 
         }
 
-        internal MetaMethod(AppContext context, string name, MethodFlags methodFlags) 
-            : base(context, name, (MemberFlags)methodFlags)
+        internal MetaMethod(AppContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags, MemberReference<MetaType>[] returnTypes, MetaVariable[] parameters) 
+            : base(context, token, name, (MemberFlags)methodFlags)
         {
             this.methodFlags = methodFlags;
+            this.returnTypeReferences = returnTypes;
         }
 
         // Methods
         public object Invoke(object[] args, IntPtr instance = default)
         {
             // Get method handle
-            _MethodHandle* method = (_MethodHandle*)context.methodHandles[MetaToken];
+            _MethodHandle* method = (_MethodHandle*)context.methodHandles[Token];
 
             // Invoke the method
             StackData* stackPtr = InvokeHandle(method, args, instance);
@@ -101,7 +103,7 @@ namespace LumaSharp.Runtime.Reflection
             if ((method->Signature.Flags & _MethodSignatureFlags.HasReturn) != 0)
             {
                 // Unwrap return val
-                StackData.Unwrap(stackPtr, out returnVal, method->Signature.ReturnParameter->TypeHandle.TypeCode);
+                StackData.Unwrap(stackPtr, out returnVal, method->Signature.ReturnParameters[0].TypeHandle.TypeCode);
             }
 
             return returnVal;
@@ -121,7 +123,7 @@ namespace LumaSharp.Runtime.Reflection
         public T Invoke<T>(object[] args, IntPtr instance = default) where T : unmanaged
         {
             // Get method handle
-            _MethodHandle* method = (_MethodHandle*)context.methodHandles[MetaToken];
+            _MethodHandle* method = (_MethodHandle*)context.methodHandles[Token];
 
             // Invoke the method
             StackData* stackPtr = InvokeHandle(method, args, instance);
@@ -136,7 +138,7 @@ namespace LumaSharp.Runtime.Reflection
 
 
                 // Unwrap return val
-                StackData.UnwrapAs(stackPtr, &returnVal, method->Signature.ReturnParameter->TypeHandle.TypeCode);
+                StackData.UnwrapAs(stackPtr, &returnVal, method->Signature.ReturnParameters[0].TypeHandle.TypeCode);
             }
 
             return returnVal;

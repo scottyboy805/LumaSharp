@@ -1,9 +1,9 @@
 ﻿using LumaSharp.Runtime;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class GenericParameterModel : IGenericParameterIdentifierReferenceSymbol
     {
@@ -143,9 +143,9 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return parent.LibrarySymbol; }
         }
 
-        public int SymbolToken
+        public _TokenHandle SymbolToken
         {
-            get { return -1; }
+            get { return default; }
         }
 
         public _TypeHandle TypeHandle

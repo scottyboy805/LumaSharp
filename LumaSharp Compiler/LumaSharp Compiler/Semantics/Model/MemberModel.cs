@@ -1,7 +1,8 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public enum AccessModifier
     {
@@ -19,7 +20,7 @@ namespace LumaSharp_Compiler.Semantics.Model
         private AccessModifier[] accessModifiers = null;
 
         // Internal
-        internal int memberToken = -1;
+        internal _TokenHandle memberToken = default;
 
         // Properties
         public string MemberName
@@ -57,7 +58,7 @@ namespace LumaSharp_Compiler.Semantics.Model
             get { return Model; }
         }
 
-        public int SymbolToken
+        public _TokenHandle SymbolToken
         {
             get { return memberToken; }
         }

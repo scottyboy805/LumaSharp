@@ -11,17 +11,17 @@ namespace LumaSharp.Runtime
     {
         // Internal
         internal _TypeHandle* _anyType = null;
-        internal readonly ConcurrentDictionary<int, IntPtr> typeHandles = new();        // token, _TypeHandle*
-        internal readonly ConcurrentDictionary<int, IntPtr> fieldHandles = new();       // token, _FieldHandle*
-        internal readonly ConcurrentDictionary<int, IntPtr> methodHandles = new();      // token, _MethodHandle*
-        internal readonly ConcurrentDictionary<int, IntPtr> globalMemoryHandles = new();
+        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> typeHandles = new();        // token, _TypeHandle*
+        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> fieldHandles = new();       // token, _FieldHandle*
+        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> methodHandles = new();      // token, _MethodHandle*
+        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> globalMemoryHandles = new();
 
         // Private
         private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
         private Dictionary<int, MetaLibrary> loadedModules = new Dictionary<int, MetaLibrary>();
-        private Dictionary<int, MetaType> loadedTypes = new Dictionary<int, MetaType>();
-        private Dictionary<int, MetaMember> loadedMembers = new Dictionary<int, MetaMember>();       
+        private Dictionary<_TokenHandle, MetaType> loadedTypes = new();
+        private Dictionary<_TokenHandle, MetaMember> loadedMembers = new();       
 
 
         // Constructor
@@ -34,7 +34,7 @@ namespace LumaSharp.Runtime
             foreach(RuntimeTypeCode typeCode in Enum.GetValues<RuntimeTypeCode>())
             {
                 primitivePtr[(int)typeCode] = new _TypeHandle(typeCode);
-                typeHandles[(int)typeCode] = (IntPtr)(&primitivePtr[(int)typeCode]);
+                typeHandles[new _TokenHandle(typeCode)] = (IntPtr)(&primitivePtr[(int)typeCode]);
             }
         }
 
@@ -80,12 +80,12 @@ namespace LumaSharp.Runtime
             MetaLibrary module = new MetaLibrary(stream, moduleName);
             BinaryReader reader = new BinaryReader(stream);
 
-            // Read module
-            module.LoadMetadata(this, reader);
+            //// Read module
+            //module.LoadMetadata(this, reader);
 
-            // Check for executable
-            if(metadataOnly == false)
-                module.LoadExecutable(this, reader);
+            //// Check for executable
+            //if(metadataOnly == false)
+            //    module.LoadExecutable(this, reader);
 
             // Register the module
             loadedModules[module.Token] = module;
@@ -115,7 +115,7 @@ namespace LumaSharp.Runtime
                 && m.ModuleName.Version.Equals(version));
         }
 
-        public MetaMember ResolveMember(int token)
+        public MetaMember ResolveMember(_TokenHandle token)
         {
             // Try to get the member
             MetaMember member;
@@ -131,17 +131,17 @@ namespace LumaSharp.Runtime
             throw new MissingMemberException("Token: " + token);
         }
 
-        public T ResolveMember<T>(int token) where T : MetaMember
+        public T ResolveMember<T>(_TokenHandle token) where T : MetaMember
         {
             return ResolveMember(token) as T;
         }
 
-        public MetaType ResolveType(int token)
+        public MetaType ResolveType(_TokenHandle token)
         {
             throw new NotImplementedException();
         }
 
-        public MetaField ResolveField(int token)
+        public MetaField ResolveField(_TokenHandle token)
         {
             // Try to get the member
             MetaMember member;
@@ -151,7 +151,7 @@ namespace LumaSharp.Runtime
             return member as MetaField;
         }
 
-        public MetaAccessor ResolveAccessor(int token)
+        public MetaAccessor ResolveAccessor(_TokenHandle token)
         {
             // Try to get the member
             MetaMember member;
@@ -161,7 +161,7 @@ namespace LumaSharp.Runtime
             return member as MetaAccessor;
         }
 
-        public MetaMethod ResolveMethod(int token)
+        public MetaMethod ResolveMethod(_TokenHandle token)
         {
             // Try to get the member
             MetaMember member;
@@ -193,11 +193,11 @@ namespace LumaSharp.Runtime
         internal void DefineMember(MetaMember member)
         {
             // Check for already added
-            if (loadedMembers.ContainsKey(member.MetaToken) == true)
-                throw new InvalidOperationException("Member with token already exists: " + member.MetaToken);
+            if (loadedMembers.ContainsKey(member.Token) == true)
+                throw new InvalidOperationException("Member with token already exists: " + member.Token);
 
             // Store member
-            loadedMembers[member.MetaToken] = member;
+            loadedMembers[member.Token] = member;
         }
 
         internal ThreadContext GetCurrentThreadContext()

@@ -1,18 +1,23 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class TypeSyntax : MemberSyntax, IMemberSyntaxContainer
     {
         // Private
-        private SyntaxToken keyword = null;
-        private GenericParameterListSyntax genericParameters = null;
-        private TypeReferenceSyntax[] baseTypeReferences = null;
-        private SyntaxToken colon = null;
-        private SyntaxToken comma = null;
+        private readonly SyntaxToken keyword;
+        private readonly GenericParameterListSyntax genericParameters;
+        private readonly SeparatedListSyntax<TypeReferenceSyntax> baseTypes;
+        private readonly SyntaxToken colon;
+        private readonly SyntaxToken overrideKeyword;
 
-        private BlockSyntax<MemberSyntax> memberBlock = null;
+        private readonly BlockSyntax<MemberSyntax> memberBlock;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
         public override SyntaxToken EndToken
         {
             get { return memberBlock.EndToken; }
@@ -23,7 +28,7 @@ namespace LumaSharp_Compiler.AST
             get { return keyword; }
         }
 
-        public NamespaceName Namespace
+        public SeparatedTokenList Namespace
         {
             get 
             {
@@ -47,13 +52,21 @@ namespace LumaSharp_Compiler.AST
         public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
-            internal set { genericParameters = value; }
         }
 
-        public TypeReferenceSyntax[] BaseTypeReferences
+        public SeparatedListSyntax<TypeReferenceSyntax> BaseTypes
         {
-            get { return baseTypeReferences; }
-            internal set { baseTypeReferences = value; }
+            get { return baseTypes; }
+        }
+
+        public SyntaxToken Colon
+        {
+            get { return colon; }
+        }
+
+        public SyntaxToken Override
+        {
+            get { return overrideKeyword; }
         }
 
         public BlockSyntax<MemberSyntax> MemberBlock
@@ -68,12 +81,12 @@ namespace LumaSharp_Compiler.AST
 
         public int GenericParameterCount
         {
-            get { return HasGenericParameters ? genericParameters.GenericParameterCount : 0; }
+            get { return HasGenericParameters ? genericParameters.Count : 0; }
         }
 
         public int BaseTypeCount
         {
-            get { return HasBaseTypes ? baseTypeReferences.Length : 0; }
+            get { return HasBaseTypes ? baseTypes.Count : 0; }
         }
 
         public int MemberCount
@@ -88,12 +101,22 @@ namespace LumaSharp_Compiler.AST
 
         public bool HasBaseTypes
         {
-            get { return baseTypeReferences != null; }
+            get { return baseTypes != null; }
         }
 
         public bool HasMembers
         {
             get { return memberBlock.HasElements; }
+        }
+
+        public bool IsAttribute
+        {
+            get { return keyword.Kind == SyntaxTokenKind.AttributeKeyword; }
+        }
+
+        public bool IsOverride
+        {
+            get { return overrideKeyword.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -102,26 +125,42 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal TypeSyntax(string identifier)
-            : base(identifier, SyntaxToken.Type(), null)
+        internal TypeSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, bool isOverride, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+            : base(parent, identifier, attributes, accessModifiers)
         {
             // Members
-            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
-            this.colon = SyntaxToken.Colon();
-            this.comma = SyntaxToken.Comma();
-            this.memberBlock = new BlockSyntax<MemberSyntax>();
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.TypeKeyword);
+            this.genericParameters = genericParameters;
+
+            // Check for override
+            if (isOverride == true)
+                this.overrideKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.OverrideKeyword);
+
+            if (baseTypes != null)
+            {
+                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.baseTypes = baseTypes;
+            }
+
+            this.memberBlock = memberBlock;
         }
 
-        internal TypeSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
-            : base(typeDef.IDENTIFIER(), tree, parent, typeDef, typeDef.attributeDeclaration(), typeDef.accessModifier())
+        internal TypeSyntax(SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
+            : base(typeDef.IDENTIFIER(), parent, typeDef.attributeReference(), typeDef.accessModifier())
         {
             // Type keyword
-            this.keyword = new SyntaxToken(typeDef.TYPE());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.TypeKeyword, typeDef.TYPE());
 
             // Get generics
             if (typeDef.genericParameterList() != null)
             {
-                this.genericParameters = new GenericParameterListSyntax(tree, this, typeDef.genericParameterList());
+                this.genericParameters = new GenericParameterListSyntax(this, typeDef.genericParameterList());
+            }
+
+            // Override
+            if(typeDef.OVERRIDE() != null)
+            {
+                this.overrideKeyword = new SyntaxToken(SyntaxTokenKind.OverrideKeyword, typeDef.OVERRIDE());
             }
 
             // Get base
@@ -129,13 +168,17 @@ namespace LumaSharp_Compiler.AST
 
             if (inherit != null)
             {
-                this.baseTypeReferences = inherit.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
+                // Inherit symbol
+                this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, inherit.COLON());
+
+                // Base types
+                this.baseTypes = ExpressionSyntax.List(this, inherit.typeReferenceList());
             }
 
             // Get members
             LumaSharpParser.MemberBlockContext block = typeDef.memberBlock();
 
-            this.memberBlock = new BlockSyntax<MemberSyntax>(tree, this, block);
+            this.memberBlock = new BlockSyntax<MemberSyntax>(this, block);
         }
 
         // Methods
@@ -153,8 +196,13 @@ namespace LumaSharp_Compiler.AST
             // Generics
             if(HasGenericParameters == true)
             {
+                // Generic parameters
                 genericParameters.GetSourceText(writer);
             }
+
+            // Check for override
+            if(IsOverride == true)
+                overrideKeyword.GetSourceText(writer);
 
             // Check for base types
             if(HasBaseTypes == true)
@@ -163,15 +211,7 @@ namespace LumaSharp_Compiler.AST
                 colon.GetSourceText(writer);
 
                 // Base types
-                for(int i = 0; i < baseTypeReferences.Length; i++)
-                {
-                    // Write type
-                    baseTypeReferences[i].GetSourceText(writer);
-
-                    // Comma
-                    if (i < baseTypeReferences.Length - 1)
-                        comma.GetSourceText(writer);
-                }
+                baseTypes.GetSourceText(writer);
             }
 
             // Write block
@@ -183,7 +223,6 @@ namespace LumaSharp_Compiler.AST
             ((IMemberSyntaxContainer)memberBlock).AddMember(member);
 
             // Update hierarchy
-            member.tree = tree;
             member.parent = this;
         }
     }

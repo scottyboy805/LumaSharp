@@ -1,8 +1,8 @@
 ﻿using LumaSharp.Runtime.Reflection;
-using LumaSharp_Compiler.Semantics.Model;
-using System.Reflection.Emit;
+using LumaSharp.Compiler.Semantics.Model;
 using AppContext = LumaSharp.Runtime.AppContext;
-using MethodBuilder = LumaSharp_Compiler.Emit.Builder.MethodBuilder;
+using MethodBuilder = LumaSharp.Compiler.Emit.MethodBuilder;
+using LumaSharp.Compiler.Emit;
 
 namespace LumaSharp_CompilerTests.Emit
 {
@@ -19,11 +19,20 @@ namespace LumaSharp_CompilerTests.Emit
 
             // Create method builder
             MethodBuilder builder = new MethodBuilder(context, model);
-            
+
+
+
+            MetaBuilder metaBuilder = new MetaBuilder(stream);
+            ExecutableBuilder executableBuilder = new ExecutableBuilder(stream);
+
+            // Emit method
+            builder.BuildMemberExecutable(executableBuilder);
+            builder.BuildMemberMeta(metaBuilder);
+
             // Emit to stream
-            BinaryWriter writer = new BinaryWriter(stream);
-            builder.EmitMetaModel(writer);
-            builder.EmitExecutableModel(writer, "current.instructions");
+            //BinaryWriter writer = new BinaryWriter(stream);
+            //builder.EmitMetaModel(writer);
+            //builder.EmitExecutableModel(writer, "current.instructions");
 
 
             stream.Seek(0, SeekOrigin.Begin);

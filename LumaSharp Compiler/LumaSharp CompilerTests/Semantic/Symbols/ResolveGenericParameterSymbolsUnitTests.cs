@@ -1,6 +1,5 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.Semantic.Symbols
@@ -15,7 +14,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("test")
                 .WithMembers(Syntax.Method("test", Syntax.TypeReference("T"))
                 .WithGenericParameters(Syntax.GenericParameter("T"))
-                .WithStatements(Syntax.Return(Syntax.New(Syntax.TypeReference("T"), false)))));
+                .WithBody(Syntax.Return(Syntax.New(Syntax.TypeReference("T"))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -32,7 +31,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("test")
                 .WithGenericParameters(Syntax.GenericParameter("T"))
                 .WithMembers(Syntax.Method("test")                
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("T"), "var"))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference("T"), "var"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -51,7 +50,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Type("Sub")
                 .WithGenericParameters(Syntax.GenericParameter("M"))
                 .WithMembers(Syntax.Method("test")
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("T"), "var1"),
+                .WithBody(Syntax.Variable(Syntax.TypeReference("T"), "var1"),
                 Syntax.Variable(Syntax.TypeReference("M"), "var2")))));
 
             // Create model

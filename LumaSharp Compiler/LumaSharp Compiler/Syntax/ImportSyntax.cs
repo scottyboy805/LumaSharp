@@ -1,24 +1,40 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ImportSyntax : SyntaxNode
     {
         // Private
-        private SyntaxToken keyword = null;
-        private NamespaceName name = null;
-        private SyntaxToken aliasIdentifier = null;
-        private TypeReferenceSyntax aliasTypeReference = null;
-        private SyntaxToken asKeyword = null;
-        private SyntaxToken dot = null;
-        private SyntaxToken semicolon = null;
+        private readonly SyntaxToken keyword;
+        private readonly SeparatedTokenList name;
+        private readonly SyntaxToken aliasIdentifier;
+        private readonly TypeReferenceSyntax aliasTypeReference;
+        private readonly SyntaxToken asKeyword;
+        private readonly SyntaxToken dot;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for alias
+                if (HasAlias == true)
+                    return aliasTypeReference.EndToken;
+
+                return name.EndToken;
+            }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
         }
 
-        public NamespaceName Name
+        public SeparatedTokenList Name
         {
             get { return name; }
         }
@@ -33,9 +49,19 @@ namespace LumaSharp_Compiler.AST
             get { return aliasTypeReference; }
         }
 
+        public SyntaxToken As
+        {
+            get { return asKeyword; }
+        }
+
+        public SyntaxToken Dot
+        {
+            get { return dot; }
+        }
+
         public bool HasAlias
         {
-            get { return aliasIdentifier != null; }
+            get { return aliasIdentifier.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -52,30 +78,35 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal ImportSyntax(string alias, TypeReferenceSyntax aliasType, string[] identifiers)
-            : base(SyntaxToken.Import(), SyntaxToken.Semi())
+        internal ImportSyntax(SyntaxNode parent, string[] identifiers)
+            : base(parent)
         {
-            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
-            this.aliasIdentifier = new SyntaxToken(alias);
-            this.aliasTypeReference = aliasType;
-            this.asKeyword = SyntaxToken.As()
-                .WithLeadingWhitespace(" ")
-                .WithTrailingWhitespace(" ");
-            this.dot = SyntaxToken.Dot();
-            this.name = new NamespaceName(identifiers);
-            this.semicolon = base.EndToken;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ImportKeyword);
+            this.name = new SeparatedTokenList(this, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
+
+            // Add identifiers
+            foreach (string identifier in identifiers)
+                this.name.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol));
         }
 
-        internal ImportSyntax(string[] identifiers)
-            : base(SyntaxToken.Import(), SyntaxToken.Semi())
+        internal ImportSyntax(SyntaxNode parent, string alias, TypeReferenceSyntax aliasType, string[] identifiers)
+            : base(parent)
         {
-            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
-            this.name = new NamespaceName(identifiers);            
-            this.semicolon = base.EndToken;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ImportKeyword);
+            this.aliasIdentifier = Syntax.Identifier(alias);
+            this.asKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.AsKeyword);
+            this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
+
+            this.aliasTypeReference = aliasType;            
+            this.name = new SeparatedTokenList(this, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
+
+            // Add identifiers
+            foreach (string identifier in identifiers)
+                this.name.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol));
         }
 
-        internal ImportSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ImportElementContext import)
-            : base(tree, parent, import)
+        internal ImportSyntax(SyntaxNode parent, LumaSharpParser.ImportElementContext import)
+            : base(parent)
         {
             // Get import options
             LumaSharpParser.ImportStatementContext statement = import.importStatement();
@@ -85,30 +116,25 @@ namespace LumaSharp_Compiler.AST
             if(statement != null)
             {
                 // Get keyword
-                this.keyword = new SyntaxToken(statement.IMPORT());
+                this.keyword = new SyntaxToken(SyntaxTokenKind.ImportKeyword, statement.IMPORT());
 
                 // Get namespace
-                this.name = new NamespaceName(tree, this, statement.namespaceName());
-
-                // Create semi
-                this.semicolon = new SyntaxToken(statement.semi);
+                this.name = new SeparatedTokenList(this, statement.namespaceName());
             }
             else if(alias != null)
             {
-                // Get keyword
-                this.keyword = new SyntaxToken(alias.IMPORT());
+                // Get keywords
+                this.keyword = new SyntaxToken(SyntaxTokenKind.ImportKeyword, alias.IMPORT());
+                this.asKeyword = new SyntaxToken(SyntaxTokenKind.AsKeyword, alias.AS());
 
                 // Get alias
-                this.aliasIdentifier = new SyntaxToken(alias.IDENTIFIER());
+                this.aliasIdentifier = new SyntaxToken(SyntaxTokenKind.Identifier, alias.IDENTIFIER());
 
                 // Get namespace
-                this.name = new NamespaceName(tree, this, alias.namespaceName());
+                this.name = new SeparatedTokenList(this, alias.namespaceName());
                 
                 // Get alias type
-                this.aliasTypeReference = new TypeReferenceSyntax(tree, this, alias.typeReference());
-
-                // Create semi
-                this.semicolon = new SyntaxToken(alias.semi);
+                this.aliasTypeReference = new TypeReferenceSyntax(this, null, alias.typeReference());
             }
         }
 
@@ -141,9 +167,6 @@ namespace LumaSharp_Compiler.AST
                 // Get namespace name
                 name.GetSourceText(writer);
             }
-
-            // End statement
-            semicolon.GetSourceText(writer);
         }        
     }
 }

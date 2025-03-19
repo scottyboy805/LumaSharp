@@ -1,11 +1,12 @@
-﻿
-namespace LumaSharp_Compiler.Semantics
+﻿using LumaSharp.Runtime.Handle;
+
+namespace LumaSharp.Compiler.Semantics
 {
     public interface IReferenceSymbol
     {
         // Properties
         ILibraryReferenceSymbol LibrarySymbol { get; }
 
-        int SymbolToken { get; }
+        _TokenHandle SymbolToken { get; }
     }
 }

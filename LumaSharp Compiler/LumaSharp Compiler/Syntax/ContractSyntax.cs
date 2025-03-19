@@ -1,18 +1,15 @@
 ﻿
-using System.ComponentModel.DataAnnotations;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ContractSyntax : MemberSyntax, IMemberSyntaxContainer
     {
         // Private
-        private SyntaxToken keyword = null;
-        private GenericParameterListSyntax genericParameters = null;
-        private TypeReferenceSyntax[] baseTypeReferences = null;
-        private SyntaxToken colon = null;
-        private SyntaxToken comma = null;
+        private readonly SyntaxToken keyword;
+        private readonly GenericParameterListSyntax genericParameters;
+        private readonly SeparatedListSyntax<TypeReferenceSyntax> baseTypes;
+        private readonly SyntaxToken colon;
 
-        private BlockSyntax<MemberSyntax> memberBlock = null;
+        private readonly BlockSyntax<MemberSyntax> memberBlock;
 
         // Properties
         public override SyntaxToken EndToken
@@ -25,7 +22,7 @@ namespace LumaSharp_Compiler.AST
             get { return keyword; }
         }
 
-        public NamespaceName Namespace
+        public SeparatedTokenList Namespace
         {
             get
             {
@@ -49,13 +46,16 @@ namespace LumaSharp_Compiler.AST
         public GenericParameterListSyntax GenericParameters
         {
             get { return genericParameters; }
-            internal set { genericParameters = value; }
         }
 
-        public TypeReferenceSyntax[] BaseTypeReferences
+        public SeparatedListSyntax<TypeReferenceSyntax> BaseTypes
         {
-            get { return baseTypeReferences; }
-            internal set { baseTypeReferences = value; }
+            get { return baseTypes; }
+        }
+
+        public SyntaxToken Colon
+        {
+            get { return colon; }
         }
 
         public BlockSyntax<MemberSyntax> MemberBlock
@@ -70,12 +70,12 @@ namespace LumaSharp_Compiler.AST
 
         public int GenericParameterCount
         {
-            get { return HasGenericParameters ? genericParameters.GenericParameterCount : 0; }
+            get { return HasGenericParameters ? genericParameters.Count : 0; }
         }
 
         public int BaseTypeCount
         {
-            get { return HasBaseTypes ? baseTypeReferences.Length : 0; }
+            get { return HasBaseTypes ? baseTypes.Count : 0; }
         }
 
         public int MemberCount
@@ -90,7 +90,7 @@ namespace LumaSharp_Compiler.AST
 
         public bool HasBaseTypes
         {
-            get { return baseTypeReferences != null; }
+            get { return baseTypes != null; }
         }
 
         public bool HasMembers
@@ -104,34 +104,31 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        //internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, string identifier)
-        //    : base(identifier, tree, parent)
-        //{
-        //    this.keyword = new SyntaxToken("contract");
-
-        //    this.start = keyword;
-        //    this.end = this.identifier;
-        //}
-
-        internal ContractSyntax(string identifier)
-            : base(identifier, SyntaxToken.Contract(), null)
+        internal ContractSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+            : base(parent, identifier, attributes, accessModifiers)
         {
-            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
-            this.memberBlock = new BlockSyntax<MemberSyntax>();
-            this.colon = SyntaxToken.Colon();
-            this.comma = SyntaxToken.Comma();
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ContractKeyword);
+            this.genericParameters = genericParameter;
+            
+            if(baseTypes != null)
+            {
+                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.baseTypes = baseTypes;
+            }
+
+            this.memberBlock = memberBlock;
         }
 
-        internal ContractSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
-            : base(contractDef.IDENTIFIER(), tree, parent, contractDef, contractDef.attributeDeclaration(), contractDef.accessModifier())
+        internal ContractSyntax(SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
+            : base(contractDef.IDENTIFIER(), parent, contractDef.attributeReference(), contractDef.accessModifier())
         {
             // Contract keyword
-            this.keyword = new SyntaxToken(contractDef.CONTRACT());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.ContractKeyword, contractDef.CONTRACT());
 
             // Get generics
             if (contractDef.genericParameterList() != null)
             {
-                this.genericParameters = new GenericParameterListSyntax(tree, this, contractDef.genericParameterList());
+                this.genericParameters = new GenericParameterListSyntax(this, contractDef.genericParameterList());
             }
             
             // Get base
@@ -139,13 +136,17 @@ namespace LumaSharp_Compiler.AST
 
             if(inherit != null)
             {
-                this.baseTypeReferences = inherit.typeReference().Select(t => new TypeReferenceSyntax(tree, this, t)).ToArray();
+                // Inherit symbol
+                this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, inherit.COLON());
+
+                // Base types
+                this.baseTypes = ExpressionSyntax.List(this, inherit.typeReferenceList());
             }
 
             // Get members
             LumaSharpParser.MemberBlockContext block = contractDef.memberBlock();
 
-            this.memberBlock = new BlockSyntax<MemberSyntax>(tree, this, block);
+            this.memberBlock = new BlockSyntax<MemberSyntax>(this, block);
         }
 
         // Methods
@@ -173,15 +174,7 @@ namespace LumaSharp_Compiler.AST
                 colon.GetSourceText(writer);
 
                 // Base types
-                for(int i = 0; i < baseTypeReferences.Length; i++)
-                {
-                    // Write type
-                    baseTypeReferences[i].GetSourceText(writer);
-
-                    // Comma
-                    if(i <  baseTypeReferences.Length - 1)
-                        comma.GetSourceText(writer);
-                }
+                baseTypes.GetSourceText(writer);
             }
 
             // Write block
@@ -193,7 +186,6 @@ namespace LumaSharp_Compiler.AST
             ((IMemberSyntaxContainer)memberBlock).AddMember(member);
 
             // Update hierarchy
-            member.tree = tree;
             member.parent = this;
         }
     }

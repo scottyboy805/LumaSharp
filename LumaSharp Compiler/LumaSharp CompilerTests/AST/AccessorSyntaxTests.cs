@@ -1,4 +1,4 @@
-﻿using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST
@@ -25,12 +25,12 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.AccessorDeclarationContext context = TestUtils.ParseAccessorDeclaration(input);
 
             // Build AST node
-            AccessorSyntax syntax = new AccessorSyntax(null, null, context);
+            AccessorSyntax syntax = new AccessorSyntax(null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);
             Assert.AreEqual(identifier, syntax.Identifier.Text);
-            Assert.IsTrue(syntax.HasAssignExpression);
+            Assert.IsTrue(syntax.HasLambdaBody);
             Assert.IsFalse(syntax.HasReadBody);
             Assert.IsFalse(syntax.HasWriteBody);
         }
@@ -44,7 +44,7 @@ namespace LumaSharp_CompilerTests.AST
             LumaSharpParser.AccessorDeclarationContext context = TestUtils.ParseAccessorDeclaration(input);
 
             // Build AST node
-            AccessorSyntax syntax = new AccessorSyntax(null, null, context);
+            AccessorSyntax syntax = new AccessorSyntax(null, context);
 
             // Check for valid
             Assert.IsNotNull(syntax);

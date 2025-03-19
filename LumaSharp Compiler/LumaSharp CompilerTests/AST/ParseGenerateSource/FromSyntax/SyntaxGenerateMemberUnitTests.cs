@@ -1,5 +1,4 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
@@ -18,7 +17,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Field("MyField", Syntax.TypeReference("MyType"), 
-                Syntax.Literal(5));
+                Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5)));
 
             // Get expression text
             Assert.AreEqual("MyType MyField=5;", syntax1.GetSourceText());
@@ -36,15 +35,15 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("i32", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"), Syntax.Literal(true));
+            //SyntaxNode syntax1 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"), Syntax.Literal(true));
 
-            // Get expression text
-            Assert.AreEqual("MyType MyAccessor=>true;", syntax1.GetSourceText());
-            Assert.AreEqual("MyType", syntax1.StartToken.Text);
-            Assert.AreEqual(";", syntax1.EndToken.Text);
+            //// Get expression text
+            //Assert.AreEqual("MyType MyAccessor=>true;", syntax1.GetSourceText());
+            //Assert.AreEqual("MyType", syntax1.StartToken.Text);
+            //Assert.AreEqual(";", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"))
-                .WithReadStatement(Syntax.Return(Syntax.Literal(true)));
+                .WithAccessorLambda(Syntax.Return(Syntax.Literal(true)));
 
             // Get expression text
             Assert.AreEqual("MyType MyAccessor=>read:return true;", syntax2.GetSourceText());
@@ -52,7 +51,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"))
-                .WithReadStatements(Syntax.Return(Syntax.Literal(true)));
+                .WithAccessorLambda(Syntax.Return(Syntax.Literal(true)));
 
             // Get expression text
             Assert.AreEqual("MyType MyAccessor=>read:{return true;}", syntax3.GetSourceText());
@@ -60,7 +59,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"))
-                .WithWriteStatement(Syntax.Return(Syntax.Literal(true)));
+                .WithAccessorLambda(Syntax.Return(Syntax.Literal(true)));
 
             // Get expression text
             Assert.AreEqual("MyType MyAccessor=>write:return true;", syntax4.GetSourceText());
@@ -68,7 +67,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax4.EndToken.Text);
 
             SyntaxNode syntax5 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"))
-                .WithWriteStatements(Syntax.Return(Syntax.Literal(true)));
+                .WithAccessorLambda(Syntax.Return(Syntax.Literal(true)));
 
             // Get expression text
             Assert.AreEqual("MyType MyAccessor=>write:{return true;}", syntax5.GetSourceText());
@@ -76,8 +75,9 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
             SyntaxNode syntax6 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"))
-                .WithReadStatements(Syntax.Return(Syntax.Literal(false)))
-                .WithWriteStatements(Syntax.Return(Syntax.Literal(true)));
+                .WithAccessorBody(
+                    Syntax.AccessorBody(AccessorOperation.Read, Syntax.Return(Syntax.Literal(false))),
+                    Syntax.AccessorBody(AccessorOperation.Write, Syntax.Return(Syntax.Literal(true))));
 
             // Get expression text
             Assert.AreEqual("MyType MyAccessor=>read:{return false;}=>write:{return true;}", syntax6.GetSourceText());
@@ -96,7 +96,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithStatements();
+                .WithBody();
 
             // Get expression text
             Assert.AreEqual("i32 MyMethod(){}", syntax1.GetSourceText());
@@ -105,7 +105,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax2 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "MyParam"))
-                .WithStatements();
+                .WithBody();
 
             // Get expression text
             Assert.AreEqual("i32 MyMethod(i32 MyParam){}", syntax2.GetSourceText());
@@ -114,7 +114,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax3 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "MyParam"), Syntax.Parameter(Syntax.TypeReference("MyType"), "Extra"))
-                .WithStatements();
+                .WithBody();
 
             // Get expression text
             Assert.AreEqual("i32 MyMethod(i32 MyParam,MyType Extra){}", syntax3.GetSourceText());

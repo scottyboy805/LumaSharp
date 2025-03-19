@@ -1,22 +1,54 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ParameterSyntax : SyntaxNode
     {
         // Private
-        private TypeReferenceSyntax parameterType = null;
-        private SyntaxToken identifier = null;
-        private ExpressionSyntax assignExpression = null;
-        private SyntaxToken reference = null;
-        private SyntaxToken variableParameterList = null;
-        private int index = 0;
-        private bool byReference = false;
-        private bool variableSizedList = false;
+        private readonly AttributeReferenceSyntax[] attributes;
+        private readonly TypeReferenceSyntax parameterType;
+        private readonly VariableAssignExpressionSyntax assignment;
+        private readonly SyntaxToken identifier;
+        private readonly SyntaxToken enumerable;
+        private readonly int index;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get
+            {
+                // Check for attributes
+                if (HasAttributes == true)
+                    return attributes[0].StartToken;
+
+                // Type
+                return parameterType.StartToken;
+            }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for enumerable
+                if (HasVariableSizedList == true)
+                    return enumerable;
+
+                // Check for assign
+                if (HasAssignment == true)
+                    return assignment.EndToken;
+
+                return identifier;
+            }
+        }
+
         public TypeReferenceSyntax ParameterType
         {
             get { return parameterType; }
+        }
+
+        public VariableAssignExpressionSyntax Assignment
+        {
+            get { return assignment; }
         }
 
         public SyntaxToken Identifier
@@ -24,9 +56,9 @@ namespace LumaSharp_Compiler.AST
             get { return identifier; }
         }
 
-        public ExpressionSyntax AssignExpression
+        public SyntaxToken Enumerable
         {
-            get { return assignExpression; }
+            get { return enumerable; }
         }
 
         public int Index
@@ -34,19 +66,24 @@ namespace LumaSharp_Compiler.AST
             get { return index; }
         }
 
+        public bool HasVariableSizedList
+        {
+            get { return enumerable.Kind != SyntaxTokenKind.Invalid; }
+        }
+
+        public bool HasAttributes
+        {
+            get { return attributes != null; }
+        }
+
+        public bool HasAssignment
+        {
+            get { return assignment != null; }
+        }
+
         public bool IsByReference
         {
-            get { return byReference; }
-        }
-
-        public bool IsVariableSizedList
-        {
-            get { return variableSizedList; }
-        }
-
-        public bool HasAssignExpression
-        {
-            get { return assignExpression != null; }
+            get { return attributes.Any(a => a.AttributeType.Identifier.Text == "in" || a.AttributeType.Identifier.Text == "ref"); }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -57,64 +94,62 @@ namespace LumaSharp_Compiler.AST
                 yield return parameterType;
 
                 // Check for expression
-                if (HasAssignExpression == true)
-                    yield return assignExpression;
+                if (HasAssignment == true)
+                    yield return assignment;
             }
         }
 
         // Constructor
-        internal ParameterSyntax(TypeReferenceSyntax parameterType, string identifier, bool byReference = false, bool variableSizedList = false)
-            : base(parameterType.StartToken, new SyntaxToken(identifier))
+        internal ParameterSyntax(SyntaxNode parent, AttributeReferenceSyntax[] attributes, TypeReferenceSyntax parameterType, string identifier, VariableAssignExpressionSyntax assignment, bool isVariableSizedList)
+            : base(parent)
         {
-            // Param type
+            this.attributes = attributes;
             this.parameterType = parameterType;
-
-            // Identifier
-            this.identifier = new SyntaxToken(identifier)
-                .WithLeadingWhitespace(" ");
+            this.identifier = Syntax.Identifier(identifier);
+            this.assignment = assignment;
 
             // Variable sized
-            this.byReference = byReference;
-            this.reference = SyntaxToken.Reference();
-            this.variableSizedList = variableSizedList;
-            this.variableParameterList = SyntaxToken.VariableParam();
+            if (isVariableSizedList == true)
+                this.enumerable = Syntax.KeywordOrSymbol(SyntaxTokenKind.EnumerableSymbol);
         }
 
-        internal ParameterSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MethodParameterContext paramDef, int index)
-            : base(tree, parent, paramDef)
+        internal ParameterSyntax(SyntaxNode parent, LumaSharpParser.MethodParameterContext paramDef, int index)
+            : base(parent)
         {
             // Index
             this.index = index;
 
             // Param type
-            this.parameterType = new TypeReferenceSyntax(tree, this, paramDef.typeReference());
+            this.parameterType = new TypeReferenceSyntax(this, null, paramDef.typeReference());
 
             // Identifier
-            this.identifier = new SyntaxToken(paramDef.IDENTIFIER());
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, paramDef.IDENTIFIER());
 
             // Check for variable sized
-            this.variableSizedList = paramDef.Stop.Text == "...";
+            if(paramDef.ENUMERABLE() != null)
+                this.enumerable = new SyntaxToken(SyntaxTokenKind.EnumerableSymbol, paramDef.ENUMERABLE());
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
+            // Write attributes
+            if(HasAttributes == true)
+            {
+                foreach(AttributeReferenceSyntax attribute in attributes)
+                    attribute.GetSourceText(writer);
+            }
+
             // Parameter type
             parameterType.GetSourceText(writer);
-
-            // Check for reference
-            if(IsByReference == true)
-            {
-                reference.GetSourceText(writer);
-            }
 
             // Identifier
             identifier.GetSourceText(writer);
 
             // Variable sized list
-            if(variableSizedList == true)
+            if(HasVariableSizedList == true)
             {
-                variableParameterList.GetSourceText(writer);
+                enumerable.GetSourceText(writer);
             }
         }
     }

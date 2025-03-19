@@ -11,21 +11,32 @@ namespace LumaSharp.Runtime.Handle
         VoidCall = 1 << 3,
     }
 
-    public unsafe readonly struct _MethodSignature
+    public unsafe readonly struct _MethodSignatureHandle
     {
         // Public
         public readonly _MethodSignatureFlags Flags;        
         public readonly _VariableHandle* Parameters;
-        public readonly _VariableHandle* ReturnParameter;
+        public readonly _VariableHandle* ReturnParameters;
         public readonly ushort ParameterCount;
+        public readonly ushort ReturnCount;
 
         // Constructor
-        public _MethodSignature(ushort parameterCount, _VariableHandle* parameters, _VariableHandle* returnParameter)
+        public _MethodSignatureHandle(ushort parameterCount, ushort returnCount, _MethodSignatureFlags flags)
+        {
+            this.ParameterCount = parameterCount;
+            this.Flags = flags;
+            this.Parameters = null;
+            this.ReturnCount = returnCount;
+            this.ReturnParameters = null;
+        }
+
+        public _MethodSignatureHandle(ushort parameterCount, ushort returnCount, _VariableHandle* parameters, _VariableHandle* returnParameter)
         {
             this.Flags = 0;
             this.Parameters = parameters;
-            this.ReturnParameter = returnParameter;
+            this.ReturnParameters = returnParameter;
             this.ParameterCount = parameterCount;
+            this.ReturnCount = parameterCount;
         }
     }
 
@@ -37,6 +48,13 @@ namespace LumaSharp.Runtime.Handle
         public readonly ushort VariableCount;
 
         // Constructor
+        public _MethodBodyHandle(ushort maxStack, ushort variableCount)
+        {
+            this.MaxStack = maxStack;
+            this.Variables = null;
+            this.VariableCount = variableCount;
+        }
+
         public _MethodBodyHandle(ushort maxStack, _VariableHandle* variables, ushort variableCount)
         {
             this.MaxStack = maxStack;
@@ -48,15 +66,16 @@ namespace LumaSharp.Runtime.Handle
     public unsafe readonly struct _MethodHandle
     {
         // Internal
-        public readonly int MethodToken;
-        public readonly int DeclaringTypeToken;
-        public readonly _MethodSignature Signature;
+        public readonly _TokenHandle MethodToken;
+        public readonly _TokenHandle DeclaringTypeToken;
+        public readonly _MethodSignatureHandle Signature;
         public readonly _MethodBodyHandle Body;
 
         // Constructor
-        public _MethodHandle(int token, _MethodSignature signature, _MethodBodyHandle body)
+        public _MethodHandle(_TokenHandle methodToken, _TokenHandle declaringTypeToken, _MethodSignatureHandle signature, _MethodBodyHandle body)
         {
-            this.MethodToken = token;
+            this.MethodToken = methodToken;
+            this.DeclaringTypeToken = declaringTypeToken;
             this.Signature = signature;
             this.Body = body;
         }
@@ -90,22 +109,6 @@ namespace LumaSharp.Runtime.Handle
             
             // Execute bytecode
             return __interpreter.ExecuteBytecode(context, method);
-        }
-
-        internal void Write(BinaryWriter writer)
-        {
-            //writer.Write(MethodToken);
-            //writer.Write(MaxStack);
-            //writer.Write(ArgCount);
-            //writer.Write(LocalCount);
-        }
-
-        internal void Read(BinaryReader reader)
-        {
-            //MethodToken = reader.ReadInt32();
-            //MaxStack = reader.ReadUInt16();
-            //ArgCount = reader.ReadUInt16();
-            //LocalCount = reader.ReadUInt16();
         }
     }
 }

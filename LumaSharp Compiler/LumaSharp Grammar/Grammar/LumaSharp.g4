@@ -5,6 +5,7 @@ IMPORT: 'import';
 NAMESPACE: 'namespace';
 TYPE: 'type';
 CONTRACT: 'contract';
+ATTRIBUTE: 'attribute';
 ENUM: 'enum';
 
 // Access modifier keywords
@@ -18,6 +19,7 @@ AS: 'as';
 CONTINUE: 'continue';
 BREAK: 'break';
 RETURN: 'return';
+OVERRIDE: 'override';
 IF: 'if';
 ELSE: 'else';
 ELSEIF: 'elseif';
@@ -25,7 +27,6 @@ TRUE: 'true';
 FALSE: 'false';
 IN: 'in';
 FOR: 'for';
-WHILE: 'while';
 SELECT: 'select';
 MATCH: 'match';
 DEFAULT: 'default';
@@ -38,7 +39,6 @@ WRITE: 'write';
 THIS: 'this';
 BASE: 'base';
 NEW: 'new';
-STACKNEW: 'stacknew';
 
 // Primitive type keywords
 ANY: 'any';
@@ -52,10 +52,33 @@ I32: 'i32';
 U32: 'u32';
 I64: 'i64';
 U64: 'u64';
-FLOAT: 'float';
-DOUBLE: 'double';
+F32: 'f32';
+F64: 'f64';
 STRING: 'string';
 NULL: 'null';
+VOID: 'void';
+
+// Symbols
+LGENERIC: '<';
+RGENERIC: '>';
+LARRAY: '[';
+RARRAY: ']';
+LBLOCK: '{';
+RBLOCK: '}';
+LPAREN: '(';
+RPAREN: ')';
+
+DOT: '.';
+COMMA: ',';
+COLON: ':';
+HASH: '#';
+ASSIGN: '=';
+LAMBDA: '=>';
+ENUMERABLE: '...';
+TERNARY: '?';
+
+RANGEINCLUSIVE: '..=';
+RANGEEXCLUSIVE: '..<';
 
 // Lexer rules
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*;
@@ -72,49 +95,108 @@ COMMENT: '/*' .*? '*/' -> skip;
 
 // Parser rules
 // Compilation unit - root of a source file
-compilationUnit: importElement* rootElement*;
+compilationUnit: 
+	importElement* 
+	rootElement*;
 
 // Import element
-importElement: importStatement | importAlias;
+importElement: 
+	importStatement | 
+	importAlias;
 
 // Root element
-rootElement: namespaceDeclaration | rootMember;
+rootElement: 
+	namespaceDeclaration | 
+	rootMember;
 
 // Import statement
-importStatement: IMPORT namespaceName semi=';';
+importStatement: 
+	IMPORT 
+	namespaceName;
 
 // Import alias
-importAlias: IMPORT IDENTIFIER AS namespaceName '.' typeReference semi=';';
+importAlias: 
+	IMPORT 
+	IDENTIFIER 
+	AS 
+	namespaceName 
+	DOT 
+	typeReference;
 
 
 // ### Declarations
 // Namespace declaration
-namespaceDeclaration: NAMESPACE namespaceName rootMemberBlock;
+namespaceDeclaration: 
+	NAMESPACE 
+	namespaceName;
 
-namespaceName: IDENTIFIER (':' IDENTIFIER)*;
+namespaceName: 
+	IDENTIFIER 
+	namespaceNameSecondary*;
+
+namespaceNameSecondary:
+	COLON
+	IDENTIFIER;
 
 // Type declaration
-typeDeclaration: attributeDeclaration* accessModifier* TYPE IDENTIFIER genericParameterList? inheritParameters? memberBlock;
+typeDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	(TYPE | ATTRIBUTE) 
+	IDENTIFIER 
+	genericParameterList? 
+	OVERRIDE?
+	inheritParameters? 
+	memberBlock;
 
 // Contract declaration
-contractDeclaration: attributeDeclaration* accessModifier* CONTRACT IDENTIFIER genericParameterList? inheritParameters? memberBlock;
+contractDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	CONTRACT 
+	IDENTIFIER 
+	genericParameterList? 
+	inheritParameters? 
+	memberBlock;
 
 // Enum declaration
-enumDeclaration: attributeDeclaration* accessModifier* ENUM IDENTIFIER (':' primitiveType)? enumBlock;
+enumDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	ENUM 
+	IDENTIFIER 
+	(COLON primitiveType)? 
+	enumBlock;
 
 // Enum block
-enumBlock: lblock='{' (enumField (',' enumField)*)? lblock='}';
+enumBlock: 
+	LBLOCK 
+	enumField*
+	RBLOCK;
 
 // Enum field
-enumField: attributeDeclaration* IDENTIFIER fieldAssignment?;
+enumField: 
+	attributeReference* 
+	IDENTIFIER 
+	variableAssignment?
+	COMMA?;
 
 // Declaration block
-rootMember: (typeDeclaration | contractDeclaration | enumDeclaration);
+rootMember: 
+	(typeDeclaration | 
+	contractDeclaration | 
+	enumDeclaration);
 
-rootMemberBlock: '{' rootMember* '}';
+rootMemberBlock: 
+	LBLOCK 
+	rootMember* 
+	RBLOCK;
 
 // Member block
-memberBlock: '{' memberDeclaration* '}';
+memberBlock: 
+	LBLOCK 
+	memberDeclaration* 
+	RBLOCK;
 
 // Member
 memberDeclaration: 
@@ -123,73 +205,206 @@ memberDeclaration:
 	| enumDeclaration 
 	| fieldDeclaration 
 	| accessorDeclaration
-	| methodDeclaration
-	;
+	| methodDeclaration;
 
-// Attribute declaration
-attributeDeclaration: '#' typeReference ('(' (expression (',' expression)*)? ')')?;
+attributeReference: 
+	HASH 
+	typeReference 
+	argumentList?;
 
 // Field declaration
-fieldDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER fieldAssignment? ';';
-
-fieldAssignment: assign='=' expression;
+fieldDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	typeReference 
+	IDENTIFIER 
+	variableAssignment?
+	COMMA?;
 
 // Accessor declaration
-accessorDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER accessorBody;
+accessorDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	typeReference 
+	IDENTIFIER 
+	OVERRIDE?
+	accessorBody;
 
 // Accessor body
 accessorBody: 
-	'=>' expression ';'
-	| accessorWrite accessorRead?
-	| accessorRead accessorWrite?
-	;
+	expressionLambda
+	| accessorReadWrite accessorReadWrite?;	// Allow for 2 but require 1
 
 // Accessor read
-accessorRead: '=>' READ ':' (statement | statementBlock);
-
-// Accessor write
-accessorWrite: '=>' WRITE ':' (statement | statementBlock);
+accessorReadWrite: 
+	LAMBDA 
+	(READ | WRITE)
+	COLON
+	(statement COMMA? | statementBlock);
 
 // Initializer declaration
-initializerDeclaration: attributeDeclaration* accessModifier* THIS '(' methodParameterList? ')';
+initializerDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	THIS 
+	LPAREN 
+	methodParameterList?
+	RPAREN
+	initializerBaseExpression?
+	statementBlock;
+
+initializerBaseExpression:
+	COLON
+	LPAREN
+	expressionList
+	RPAREN;
 
 // Method declaration
-methodDeclaration: attributeDeclaration* accessModifier* typeReference IDENTIFIER genericParameterList? '(' methodParameterList? ')' (';' | statementBlock);
+methodDeclaration: 
+	attributeReference* 
+	accessModifier* 
+	methodReturnList 
+	IDENTIFIER 
+	genericParameterList? 
+	methodParameterList 
+	OVERRIDE?
+	(statementLambda | statementBlock)?;
+
+// Method return list
+methodReturnList:
+	VOID |
+	typeReferenceList;
 
 // Method parameter list
-methodParameterList: methodParameter (',' methodParameter)*;
+methodParameterList: 
+	LPAREN
+	(methodParameter 
+	methodParameterSecondary*)?
+	RPAREN;
 
 // Method parameter
-methodParameter: typeReference IDENTIFIER '...'?;
+methodParameter: 
+	attributeReference*
+	typeReference 
+	IDENTIFIER 
+	ENUMERABLE?
+	(ASSIGN expression)?;
+
+methodParameterSecondary:
+	COMMA
+	methodParameter;
 
 // Access modifiers
-accessModifier: EXPORT | INTERNAL | SPECIALHIDDEN | GLOBAL;
+accessModifier: 
+	EXPORT 
+	| INTERNAL 
+	| SPECIALHIDDEN 
+	| GLOBAL;
+
+
 
 // Generic parameters
-genericParameterList: '<' genericParameter (',' genericParameter)* '>';
+genericParameterList: 
+	LGENERIC						// <
+	genericParameter
+	genericParameterSecondary* 
+	RGENERIC;						// >
 
-genericParameter: IDENTIFIER (':' typeReference (',' typeReference)*)?;
+genericParameter: 
+	IDENTIFIER						// T
+	genericConstraintList?;
+
+genericParameterSecondary:
+	COMMA
+	genericParameter;
+
+genericConstraintList:
+	COLON
+	genericConstraint
+	genericConstraintSecondary*;
+
+genericConstraint:
+	typeReference;
+
+genericConstraintSecondary:
+	COMMA
+	genericConstraint;
+
+
 
 // Generic arguments
-genericArguments: lgen='<' typeReference (',' typeReference)* rgen='>';
+genericArgumentList: 
+	LGENERIC						// <
+	typeReferenceList?
+	RGENERIC;						// >
+
 
 // Array parameters
-arrayParameters: '[' ','? ','? ']';
+arrayParameters: 
+	LARRAY 
+	COMMA? 
+	COMMA? 
+	RARRAY;
 
 // Inheritance
-inheritParameters: ':' typeReference (',' typeReference)*;
+inheritParameters: 
+	COLON 
+	typeReferenceList;
 
 
 // Type reference
-typeReference: (primitiveType | ((IDENTIFIER ':')* parentTypeReference? IDENTIFIER genericArguments?)) arrayParameters? ref='&'?;
-shortTypeReference: IDENTIFIER genericArguments? arrayParameters?;
-parentTypeReference: (shortTypeReference '.')*;
-primitiveType: ANY | BOOL | CHAR | I8 | U8 | I16 | U16 | I32 | U32 | I64 | U64 | FLOAT | DOUBLE | STRING;
+typeReferenceList:
+	typeReference
+	typeReferenceSecondary*;
+
+typeReference: 
+	(primitiveType 
+	| (namespaceName? parentTypeReference* IDENTIFIER genericArgumentList?)) 
+	arrayParameters?;
+
+typeReferenceSecondary:
+	COMMA
+	typeReference;
+
+shortTypeReference: 
+	IDENTIFIER 
+	genericArgumentList? 
+	arrayParameters?;
+
+parentTypeReference: 
+	IDENTIFIER
+	genericArgumentList? 
+	DOT;
+
+primitiveType: 
+	ANY 
+	| BOOL 
+	| CHAR 
+	| I8 
+	| U8 
+	| I16 
+	| U16 
+	| I32 
+	| U32 
+	| I64 
+	| U64 
+	| F32 
+	| F64 
+	| STRING
+	| VOID;
 
 
 
 // ### STATEMENTS
-statementBlock: '{' statement* '}';
+statementBlock: 
+	LBLOCK 
+	statement*
+	RBLOCK;
+
+statementLambda:
+	LAMBDA
+	statement
+	COMMA?;
 
 statement: 
 	  returnStatement
@@ -199,97 +414,155 @@ statement:
 	| localVariableStatement
 	| assignStatement
 	| ifStatement
-	//| foreachStatement
+	| foreachStatement
 	| forStatement
-	//| whileStatement
 	| selectStatement
 	| tryStatement
-	| BREAK ';'
-	| CONTINUE ';';
+	| BREAK
+	| CONTINUE;
 
 // Return statement
-returnStatement: RETURN expression? semi=';';
+returnStatement: 
+	RETURN 
+	expressionList?;
 
 // Invoke statement
-methodInvokeStatement: expression? methodInvokeExpression semi=';';
+methodInvokeStatement: 
+	expression? 
+	methodInvokeExpression;
 
 // Postfix statement
-postfixStatement: expression ('++' | '--') ';';
+postfixStatement: 
+	expression 
+	operand=('++' | '--');
 
 // Local variable statement
-localVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* localVariableAssignment? semi=';';
+localVariableStatement: 
+	typeReference 
+	IDENTIFIER 
+	localVariableSecondary* 
+	variableAssignment?;
 
-localVariableAssignment: assign='=' (expression | lblock='{' expression (',' expression)* rblock='}');
+localVariableSecondary:
+	COMMA
+	IDENTIFIER;
+
+variableAssignment: 
+	ASSIGN 
+	(expression
+	| LBLOCK expressionList RBLOCK);
 
 // Assignment statement
-assignStatement: expression assign=('=' | '+=' | '-=' | '/=' | '*=') expression semi=';';
+assignStatement: expressionList assign=('=' | '+=' | '-=' | '/=' | '*=') expressionList;
 
 // If statement
-ifStatement: IF lparen='(' expression rparen=')' (statement | semi=';' | statementBlock) elseifStatement* elseStatement?;
+ifStatement: 
+	IF 
+	expression
+	(statement | statementBlock) 
+	elseifStatement* 
+	elseStatement?;
 
 // Elseif statement
-elseifStatement: ELSEIF lparen='(' expression rparen=')' (statement | semi=';' | statementBlock);
+elseifStatement: 
+	ELSEIF 
+	expression 
+	(statement | statementBlock);
 
 // Else statement
-elseStatement: ELSE (statement | semi=';' | statementBlock);
-
-// Foreach statement
-//foreachStatement: FOREACH lparen='(' typeReference IDENTIFIER IN expression rparen=')' (statement? semi=';' | statementBlock);
+elseStatement: 
+	ELSE 
+	(statement | statementBlock);
 
 // For statement
-forStatement: FOR lparen='(' forVariableStatement? semiVar=';' expression? semiCond=';' (forIncrementExpression (',' forIncrementExpression)*)? rparen=')' (statement? semi=';' | statementBlock);
-forVariableStatement: typeReference IDENTIFIER (',' IDENTIFIER)* localVariableAssignment?;
-forIncrementExpression: expression;
+forStatement: 
+	FOR
+	localVariableStatement?
+	COLON
+	expression?
+	COLON
+	expressionList?
+	(statement | statementBlock);
 
-// Foreach statement
-foreachStatement: FOR lparen='(' typeReference IDENTIFIER IN (rangeExpression | expression) rparen=')' (statement? semi=';' | statementBlock);
-
-// While statement
-//whileStatement: WHILE '(' expression ')' (statement | ';' | '{' statement* '}');
+foreachStatement: 
+	FOR
+	typeReference 
+	IDENTIFIER 
+	IN 
+	(rangeExpression | expression)
+	(statement | statementBlock);
 
 // Select statement
-selectStatement: SELECT '(' expression ')' '{' (defaultStatement | matchStatement)* '}';
-defaultStatement: DEFAULT ':' (statement | ';' | '{' statement* '}');
-matchStatement: MATCH expression ':' (statement | ';' | '{' statement* '}');
+selectStatement: 
+	SELECT 
+	expression 
+	LBLOCK 
+	(defaultStatement | matchStatement)*
+	RBLOCK;
+
+defaultStatement: 
+	DEFAULT 
+	COLON 
+	(statement | LBLOCK statement* RBLOCK);
+
+matchStatement: 
+	MATCH
+	expression 
+	COLON 
+	(statement | LBLOCK statement* RBLOCK);
 
 // Try statement
-tryStatement: TRY (statement | '{' statement* '}') catchStatement? finallyStatement?;
-catchStatement: CATCH ('(' typeReference ')')? (statement | '{' statement* '}');
-finallyStatement: FINALLY (statement | '{' statement* '}');
+tryStatement: 
+	TRY 
+	(statement | LBLOCK statement* RBLOCK) 
+	catchStatement? 
+	finallyStatement?;
+
+catchStatement: 
+	CATCH (LPAREN typeReference RPAREN)? 
+	(statement | LBLOCK statement* RBLOCK);
+
+finallyStatement: 
+	FINALLY 
+	(statement | LBLOCK statement* RBLOCK);
 
 
 // ### EXPRESSIONS
-expression: //(endExpression | arrayIndexExpression | fieldAccessExpression);
+expressionList:
+	expression
+	expressionSecondary*;
 
-	  unary='-' expression										// Unary minus
-	| unary='!' expression										// not expression
-	| unary='++' expression										// Unary prefix increment
-	| unary='--' expression										// Unary prefix decrement
-	| expression unary='++'										// Unary postfix increment
-	| expression unary='--'										// Unary postfix decrement
-	| expression binary=('*' | '/' | '%') expression			// Multiply expression
-	| expression binary=('+' | '-') expression					// Add expression
-	| expression binary=('>=' | '<=' | '>' | '<') expression	// Compare expression
-	| expression binary=('==' | '!=') expression				// Equals expression
-	| expression binary='&&' expression							// And expression
-	| expression binary='||' expression							// Or expression
-	| expression ternary='?' expression alternate=':' expression			// Ternary expression
-	| IDENTIFIER indexExpression*
-	| endExpression indexExpression*							// Primitives and literals
-	| methodInvokeExpression indexExpression*					// Empty method expression
-	| expression methodInvokeExpression indexExpression*		// Method expression
-	| typeReference methodInvokeExpression indexExpression*		// Global method
-	| expression fieldAccessExpression indexExpression*			// Field expression
-	| typeReference fieldAccessExpression indexExpression*		// Gloabl field
-	| lparen='(' expression lparen=')' indexExpression*			// Paren expression
-	| typeExpression											// Type expression
-	| sizeExpression											// Size expression
-	| newExpression indexExpression*
-	| initializerInvokeExpression indexExpression*
-	| THIS indexExpression*
-	| BASE indexExpression*
-	| typeReference
-	;
+expressionLambda:
+	LAMBDA
+	expression
+	COMMA?;
+
+expression:
+	  unaryPrefix=('-' | '!' | '++' | '--') expression							// Unary prefix decrement
+	| expression unaryPostfix=('++' | '--')				// Unary postfix decrement
+	| expression binary=('*' | '/' | '%') expression				// Multiply expression
+	| expression binary=('>=' | '<=' | '>' | '<' | '==' | '!=') expression					// Add expression
+	| expression binary=('&&' | '||') expression				// And expression
+	| expression TERNARY expression COLON expression
+	| expression indexExpression						// Array index
+	| IDENTIFIER
+	| endExpression										// Primitive and literals
+	| methodInvokeExpression							// Method invoke
+	| fieldAccessExpression								// Field expression
+	| parenExpression									// Paren expression
+	| typeExpression									// Type expression
+	| sizeExpression									// Size expression
+	| newExpression										// New expression
+	| THIS
+	| BASE
+	| typeReference;		
+
+parenExpression:
+	LPAREN expression RPAREN;
+
+expressionSecondary:
+	COMMA
+	expression;
 
 endExpression: 
 	  HEX 
@@ -299,30 +572,50 @@ endExpression:
 	//| IDENTIFIER 
 	| TRUE 
 	| FALSE
-	| NULL
-	;
+	| NULL;
 
-typeExpression: TYPE lparen='(' typeReference rparen=')';
+typeExpression: 
+	TYPE 
+	LPAREN 
+	typeReference 
+	RPAREN;
 
-sizeExpression: SIZE lparen='(' typeReference rparen=')';
+sizeExpression: 
+	SIZE 
+	LPAREN 
+	typeReference 
+	RPAREN;
 
-newExpression: (NEW | STACKNEW) initializerInvokeExpression;
+newExpression: 
+	NEW
+	typeReference
+	argumentList?;
 
 // Array index
-indexExpression: larray='[' expression (',' expression)* rarray=']';
+indexExpression: 
+	LARRAY 
+	expressionList
+	RARRAY;
 
 // Field access
-fieldAccessExpression: dot='.' IDENTIFIER;
+fieldAccessExpression: 
+	DOT 
+	IDENTIFIER;
 
 // Method invoke
-methodInvokeExpression: dot='.'? IDENTIFIER genericArguments? lparen='(' methodArguments? rparen=')';
+methodInvokeExpression: 
+	DOT? 
+	IDENTIFIER 
+	genericArgumentList? 
+	argumentList;
 
-// Method arguments
-methodArguments: methodArgument (',' methodArgument)*;
-methodArgument: '&'? expression;
+// Argument list
+argumentList:
+	LPAREN
+	expressionList? 
+	RPAREN;
 
-// Initializer 
-initializerInvokeExpression: typeReference lparen='(' (expression (',' expression)*)? rparen=')';
-
-
-rangeExpression: expression (rInclusive='..=' | rExclusive='..<') expression;
+rangeExpression: 
+	expression 
+	(RANGEINCLUSIVE | RANGEEXCLUSIVE) 
+	expression;

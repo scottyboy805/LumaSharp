@@ -1,7 +1,7 @@
 ﻿
-using LumaSharp_Compiler.AST;
+using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Reporting
+namespace LumaSharp.Compiler.Reporting
 {
     internal struct CompileMessage : ICompileMessage
     {

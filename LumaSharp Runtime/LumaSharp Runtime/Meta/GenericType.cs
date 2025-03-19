@@ -19,7 +19,7 @@ namespace LumaSharp.Runtime.Reflection
 
         // Constructor
         internal GenericType(AppContext context, string name, MetaType[] genericParameterTypes, MetaTypeFlags typeFlags) 
-            : base(context, name, RuntimeTypeCode.Any, typeFlags | MetaTypeFlags.Generic)
+            : base(context, default, name, RuntimeTypeCode.Any, typeFlags | MetaTypeFlags.Generic)
         {
             this.genericParameterTypes = genericParameterTypes;
         }

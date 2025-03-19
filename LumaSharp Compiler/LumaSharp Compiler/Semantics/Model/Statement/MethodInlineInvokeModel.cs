@@ -1,8 +1,7 @@
-﻿using LumaSharp_Compiler.AST.Statement;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model.Statement
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class MethodInlineInvokeModel : StatementModel
     {

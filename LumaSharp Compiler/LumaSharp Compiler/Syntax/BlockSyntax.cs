@@ -1,14 +1,34 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public class BlockSyntax<T> : SyntaxNode, IMemberSyntaxContainer where T : SyntaxNode
     {
         // Private
-        private SyntaxToken start = null;
-        private SyntaxToken end = null;
-        private List<T> elements = new List<T>();
+        private readonly SyntaxToken lBlock;
+        private readonly SyntaxToken rBlock;
+        private readonly List<T> elements = new();
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return lBlock; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rBlock; }
+        }
+
+        public SyntaxToken LBlock
+        {
+            get { return lBlock; }
+        }
+
+        public SyntaxToken RBlock
+        {
+            get { return rBlock; }
+        }
+
         public IReadOnlyList<T> Elements
         {
             get { return elements; }
@@ -30,21 +50,21 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal BlockSyntax(IEnumerable<T> elements = null)
-            : base(SyntaxToken.LBlock(), SyntaxToken.RBlock())
+        internal BlockSyntax(SyntaxNode parent, IEnumerable<T> elements)
+            : base(parent)
         {
-            start = base.StartToken;
-            end = base.EndToken;
+            this.lBlock = Syntax.KeywordOrSymbol(SyntaxTokenKind.LBlockSymbol);
+            this.rBlock = Syntax.KeywordOrSymbol(SyntaxTokenKind.RBlockSymbol);
 
             if (elements != null)
                 this.elements.AddRange(elements);
         }
 
-        internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.RootMemberBlockContext rootMemberBlock)
-            : base(tree, node, rootMemberBlock)
+        internal BlockSyntax(SyntaxNode node, LumaSharpParser.RootMemberBlockContext rootMemberBlock)
+            : base(node)
         {
-            this.start = new SyntaxToken(rootMemberBlock.Start);
-            this.end = new SyntaxToken(rootMemberBlock.Stop);
+            this.lBlock = new SyntaxToken(SyntaxTokenKind.LBlockSymbol, rootMemberBlock.LBLOCK());
+            this.rBlock = new SyntaxToken(SyntaxTokenKind.RBlockSymbol, rootMemberBlock.RBLOCK());
 
             // Get all members
             LumaSharpParser.RootMemberContext[] members = rootMemberBlock.rootMember();
@@ -53,16 +73,16 @@ namespace LumaSharp_Compiler.AST
             {
                 for (int i = 0; i < members.Length; i++)
                 {
-                    this.elements.Add(MemberSyntax.RootMember(tree, this, members[i]) as T);
+                    this.elements.Add(MemberSyntax.RootMember(this, members[i]) as T);
                 }
             }
         }
 
-        internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
-            : base(tree, parent, memberBlock)
+        internal BlockSyntax(SyntaxNode parent, LumaSharpParser.MemberBlockContext memberBlock)
+            : base(parent)
         {
-            this.start = new SyntaxToken(memberBlock.Start);
-            this.end = new SyntaxToken(memberBlock.Stop);
+            this.lBlock = new SyntaxToken(SyntaxTokenKind.LBlockSymbol, memberBlock.LBLOCK());
+            this.rBlock = new SyntaxToken(SyntaxTokenKind.RBlockSymbol, memberBlock.RBLOCK());
 
             // Get all members
             LumaSharpParser.MemberDeclarationContext[] members = memberBlock.memberDeclaration();
@@ -71,60 +91,42 @@ namespace LumaSharp_Compiler.AST
             {
                 for (int i = 0; i < members.Length; i++)
                 {
-                    this.elements.Add(MemberSyntax.Member(tree, this, members[i]) as T);
+                    this.elements.Add(MemberSyntax.Member(this, members[i]) as T);
                 }
             }
         }
 
-        internal BlockSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax enumType, LumaSharpParser.EnumBlockContext enumBlock)
-            : base(tree, parent, enumBlock)
+        internal BlockSyntax(SyntaxNode parent, TypeReferenceSyntax enumType, LumaSharpParser.EnumBlockContext enumBlock)
+            : base(parent)
         {
-            this.start = new SyntaxToken(enumBlock.Start);
-            this.end = new SyntaxToken(enumBlock.Stop);
-
-            // Get all fields
+            this.lBlock = new SyntaxToken(SyntaxTokenKind.LBlockSymbol, enumBlock.LBLOCK());
+            this.rBlock = new SyntaxToken(SyntaxTokenKind.RBlockSymbol, enumBlock.RBLOCK());
+            
+            // Get primary
             LumaSharpParser.EnumFieldContext[] fields = enumBlock.enumField();
 
             if(fields.Length > 0)
             {
                 for(int i = 0; i < fields.Length; i++)
                 {
-                    this.elements.Add(new FieldSyntax(tree, this, enumType, fields[i]) as T);
+                    this.elements.Add(new FieldSyntax(this, enumType, fields[i]) as T);
                 }
             }
         }
 
-        internal BlockSyntax(SyntaxTree tree, SyntaxNode node, LumaSharpParser.StatementBlockContext statementBlock)
-            : base(tree, node, statementBlock)
+        internal BlockSyntax(SyntaxNode node, LumaSharpParser.StatementBlockContext statementBlock)
+            : base(node)
         {
-            this.start = new SyntaxToken(statementBlock.Start);
-            this.end = new SyntaxToken(statementBlock.Stop);
+            this.lBlock = new SyntaxToken(SyntaxTokenKind.LBlockSymbol, statementBlock.LBLOCK());
+            this.rBlock = new SyntaxToken(SyntaxTokenKind.RBlockSymbol, statementBlock.RBLOCK());
 
             // Get all members
             LumaSharpParser.StatementContext[] members = statementBlock.statement();
 
-            if (members.Length > 0)
+            if (members != null && members.Length > 0)
             {
                 // Add statements
-                this.elements.AddRange(members.Select(s => StatementSyntax.Any(tree, this, s) as T));
-
-                for (int i = 0; i < members.Length; i++)
-                {
-                    //var typeMember = members[i].typeDeclaration();
-                    //var contractMember = members[i].contractDeclaration();
-                    //var enumMember = members[i].enumDeclaration();
-                    //var fieldMember = members[i].fieldDeclaration();
-                    //var methodMember = members[i].methodDeclaration();
-
-                    //// Create type member
-                    //if (typeMember != null)
-                    //    this.elements[i] = new TypeSyntax(typeMember) as T;
-
-                    //// Create contract member
-                    //if (contractMember != null)
-                    //    ;// this.elements[i] = new ContractSyntax(contractMember) as T;
-                }
-
+                this.elements.AddRange(members.Select(s => StatementSyntax.Any(this, s) as T));
             }
         }
 
@@ -132,7 +134,7 @@ namespace LumaSharp_Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Write start
-            writer.Write(start.ToString());
+            lBlock.GetSourceText(writer);
 
             // Write all elements
             for(int i = 0; i < elements.Count; i++)
@@ -141,7 +143,7 @@ namespace LumaSharp_Compiler.AST
             }
 
             // Write end
-            writer.Write(end.ToString());
+            rBlock.GetSourceText(writer);
         }
 
         void IMemberSyntaxContainer.AddMember(MemberSyntax member)

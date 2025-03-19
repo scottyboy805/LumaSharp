@@ -1,8 +1,8 @@
 ﻿
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public abstract class SymbolModel// : ModelNode
     {

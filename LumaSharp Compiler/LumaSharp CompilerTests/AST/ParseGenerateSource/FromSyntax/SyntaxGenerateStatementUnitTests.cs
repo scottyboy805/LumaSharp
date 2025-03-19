@@ -1,5 +1,4 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
@@ -11,7 +10,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateStatement_Assign()
         {
             SyntaxNode syntax = Syntax.Assign(
-                Syntax.VariableReference("myVariable"), Syntax.Literal(5));
+                Syntax.VariableReference("myVariable"), AssignOperation.Assign, Syntax.Literal(5));
 
             // Get expression text
             Assert.AreEqual("myVariable=5;", syntax.GetSourceText());
@@ -52,7 +51,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax2 = Syntax.Condition(
                 Syntax.Literal(true))
-                .WithStatements(Syntax.Break());
+                .WithStatementBlock(Syntax.Break());
 
             // Get expression text
             Assert.AreEqual("if(true){break;}", syntax2.GetSourceText());
@@ -87,7 +86,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .WithAlternate(Syntax.Condition(Syntax.Literal(false))
                     .WithInlineStatement(Syntax.Continue())
                     .WithAlternate(Syntax.Condition()                    
-                .WithInlineStatement(Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.Literal(5)))));
+                .WithInlineStatement(Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Literal(5)))));
 
             Assert.AreEqual("if(true)break;elif(false)continue;else myVar=5;", syntax5 .GetSourceText());
             Assert.AreEqual("if", syntax5.StartToken.Text);
@@ -105,35 +104,35 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax.EndToken.Text);
         }
 
-        [TestMethod]
-        public void GenerateStatement_Foreach()
-        {
-            SyntaxNode syntax0 = Syntax.Foreach(
-                Syntax.TypeReference(PrimitiveType.I32), "number", Syntax.VariableReference("myNumbers"));
+        //[TestMethod]
+        //public void GenerateStatement_Foreach()
+        //{
+        //    SyntaxNode syntax0 = Syntax.Foreach(
+        //        Syntax.TypeReference(PrimitiveType.I32), "number", Syntax.VariableReference("myNumbers"));
 
-            // Get expression text
-            Assert.AreEqual("foreach(i32 number in myNumbers);", syntax0.GetSourceText());
-            Assert.AreEqual("foreach", syntax0.StartToken.Text);
-            Assert.AreEqual(";", syntax0.EndToken.Text);
+        //    // Get expression text
+        //    Assert.AreEqual("foreach(i32 number in myNumbers);", syntax0.GetSourceText());
+        //    Assert.AreEqual("foreach", syntax0.StartToken.Text);
+        //    Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Foreach(
-                Syntax.TypeReference("MyType"), "val", Syntax.FieldReference("myField", Syntax.VariableReference("myLocal")))
-                .WithInlineStatement(Syntax.Break());
+        //    SyntaxNode syntax1 = Syntax.Foreach(
+        //        Syntax.TypeReference("MyType"), "val", Syntax.FieldReference("myField", Syntax.VariableReference("myLocal")))
+        //        .WithInlineStatement(Syntax.Break());
 
-            // Get expression text
-            Assert.AreEqual("foreach(MyType val in myLocal.myField)break;", syntax1.GetSourceText());
-            Assert.AreEqual("foreach", syntax1.StartToken.Text);
-            Assert.AreEqual(";", syntax1.EndToken.Text);
+        //    // Get expression text
+        //    Assert.AreEqual("foreach(MyType val in myLocal.myField)break;", syntax1.GetSourceText());
+        //    Assert.AreEqual("foreach", syntax1.StartToken.Text);
+        //    Assert.AreEqual(";", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Foreach(
-                Syntax.TypeReference("MyType"), "val", Syntax.VariableReference("myLocal"))
-                .WithStatements(Syntax.Assign(Syntax.VariableReference("local"), Syntax.Literal(5)),
-                Syntax.Continue());
+        //    SyntaxNode syntax2 = Syntax.Foreach(
+        //        Syntax.TypeReference("MyType"), "val", Syntax.VariableReference("myLocal"))
+        //        .WithStatements(Syntax.Assign(Syntax.VariableReference("local"), Syntax.Literal(5)),
+        //        Syntax.Continue());
 
-            Assert.AreEqual("foreach(MyType val in myLocal){local=5;continue;}", syntax2.GetSourceText());
-            Assert.AreEqual("foreach", syntax2.StartToken.Text);
-            Assert.AreEqual("}", syntax2.EndToken.Text);
-        }
+        //    Assert.AreEqual("foreach(MyType val in myLocal){local=5;continue;}", syntax2.GetSourceText());
+        //    Assert.AreEqual("foreach", syntax2.StartToken.Text);
+        //    Assert.AreEqual("}", syntax2.EndToken.Text);
+        //}
 
         [TestMethod]
         public void GenerateStatement_For()
@@ -184,7 +183,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax5.EndToken.Text);
 
             SyntaxNode syntax6 = Syntax.For(null, null, null)
-                .WithStatements(Syntax.Break());
+                .WithStatementBlock(Syntax.Break());
 
             // Get expression text
             Assert.AreEqual("for(;;){break;}", syntax6.GetSourceText());
@@ -227,15 +226,14 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyType", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Variable(Syntax.TypeReference("MyType"), "var", Syntax.Literal(5));
+            SyntaxNode syntax2 = Syntax.Variable(Syntax.TypeReference("MyType"), "var", Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5)));
 
             // Get expression text
             Assert.AreEqual("MyType var=5;", syntax2.GetSourceText());
             Assert.AreEqual("MyType", syntax2.StartToken.Text);
             Assert.AreEqual(";", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.Variable(Syntax.TypeReference("MyType"), new string[] { "var1", "var2" }, new ExpressionSyntax[]
-                { Syntax.Literal(5), Syntax.Literal(10) });
+            SyntaxNode syntax3 = Syntax.Variable(Syntax.TypeReference("MyType"), new string[] { "var1", "var2" }, Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5), Syntax.Literal(10)));
 
             // Get expression text
             Assert.AreEqual("MyType var1,var2={5,10}", syntax3.GetSourceText());

@@ -1,34 +1,29 @@
 ﻿
-using Antlr4.Runtime.Tree;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
-    public class AccessorSyntax : MemberSyntax
+    public sealed class AccessorSyntax : MemberSyntax
     {
         // Private
-        private TypeReferenceSyntax accessorType = null;
-        private ExpressionSyntax assignExpression = null;
-        private AccessorBodySyntax readBody = null;
-        private AccessorBodySyntax writeBody = null;
-        private SyntaxToken lambda = null;
-        private SyntaxToken colon = null;
-        private SyntaxToken semicolon = null;
+        private readonly TypeReferenceSyntax accessorType;
+        private readonly AccessorBodySyntax[] accessorBodies;
+        private readonly SyntaxToken overrideKeyword;
 
         // Properties
         public override SyntaxToken EndToken
         {
             get
             {
-                // Check for read
-                if(HasReadBody == true)
-                    return readBody.EndToken;
+                // Check for accessor bodies
+                if (HasAccessorBodies == true)
+                    return accessorBodies[accessorBodies.Length - 1].EndToken;
 
-                // Check for write
-                if(HasWriteBody == true)
-                    return writeBody.EndToken;
-
-                return base.EndToken;
+                return Identifier;
             }
+        }
+
+        public SyntaxToken Override
+        {
+            get { return overrideKeyword; }
         }
 
         public TypeReferenceSyntax AccessorType
@@ -36,37 +31,34 @@ namespace LumaSharp_Compiler.AST
             get { return accessorType; }
         }
 
-        public ExpressionSyntax AssignExpression
+        public AccessorBodySyntax[] AccessorBodies
         {
-            get { return assignExpression; }
-            internal set { assignExpression = value; }
+            get { return accessorBodies; }
         }
 
-        public AccessorBodySyntax ReadBody
+        public bool HasLambdaBody
         {
-            get { return readBody; }
-            internal set { readBody = value; }
-        }
-
-        public AccessorBodySyntax WriteBody
-        {
-            get { return writeBody; }
-            internal set { writeBody = value; }
-        }
-
-        public bool HasAssignExpression
-        {
-            get { return assignExpression != null; }
+            get { return accessorBodies != null && accessorBodies.Any(b => b.Lambda.Kind != SyntaxTokenKind.Invalid); }
         }
 
         public bool HasReadBody
         {
-            get { return readBody != null; }
+            get { return accessorBodies != null && accessorBodies.Any(b => b.IsReadBody); }
         }
 
         public bool HasWriteBody
         {
-            get { return writeBody != null; }
+            get { return accessorBodies != null && accessorBodies.Any(b => b.IsWriteBody); }
+        }
+
+        public bool HasAccessorBodies
+        {
+            get { return accessorBodies != null; }
+        }
+
+        public bool IsOverride
+        {
+            get { return overrideKeyword.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -75,55 +67,47 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal AccessorSyntax(string identifier, TypeReferenceSyntax type, ExpressionSyntax assignExpression)
-            : base(identifier, type.StartToken, SyntaxToken.Semi())
+        internal AccessorSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, AccessorBodySyntax[] accessorBodies, bool isOverride)
+            : base(parent, identifier, attributes, modifiers)
         {
             // Accessor type
             this.accessorType = type;
-            this.assignExpression = assignExpression;
-            this.identifier.WithLeadingWhitespace(" ");
-            this.lambda = SyntaxToken.Lambda();
-            this.colon = SyntaxToken.Colon();
-            this.semicolon = base.EndToken;
+            this.accessorBodies = accessorBodies;
+
+            // Check for override
+            if (isOverride == true)
+                this.overrideKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.OverrideKeyword);
         }
 
-        internal AccessorSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.AccessorDeclarationContext accessorDef)
-            : base(accessorDef.IDENTIFIER(), tree, parent, accessorDef, accessorDef.attributeDeclaration(), accessorDef.accessModifier())
+        internal AccessorSyntax(SyntaxNode parent, LumaSharpParser.AccessorDeclarationContext accessorDef)
+            : base(accessorDef.IDENTIFIER(), parent, accessorDef.attributeReference(), accessorDef.accessModifier())
         {
             // Accessor type
-            this.accessorType = new TypeReferenceSyntax(tree, this, accessorDef.typeReference());
+            this.accessorType = new TypeReferenceSyntax(this, null, accessorDef.typeReference());
+
+            // Override
+            if (accessorDef.OVERRIDE() != null)
+                this.overrideKeyword = new SyntaxToken(SyntaxTokenKind.OverrideKeyword, accessorDef.OVERRIDE());
 
             // Get the body
             LumaSharpParser.AccessorBodyContext body = accessorDef.accessorBody();
 
-            // Check for assigned value
-            LumaSharpParser.ExpressionContext expression = body.expression();
-
-            if (expression != null)
-                this.assignExpression = ExpressionSyntax.Any(tree, this, expression);
-
-            // Check for assigned identifier
-            ITerminalNode identifier = accessorDef.IDENTIFIER();
-
-            if (identifier != null)
-                this.identifier = new SyntaxToken(identifier);
-
-            // Check for read body
-            LumaSharpParser.AccessorReadContext read = body.accessorRead();
-
-            if(read != null)
+            // Check for body
+            if(body != null)
             {
-                this.readBody = new AccessorBodySyntax(tree, this, read);
+                // Check for expression lambda
+                if(body.expressionLambda() != null)
+                {
+                    // Create new lambda body
+                    this.accessorBodies = new [] { new AccessorBodySyntax(parent, body.expressionLambda()) };
+                }
+                else
+                {
+                    // Create all bodies
+                    this.accessorBodies = body.accessorReadWrite().Select(a =>
+                        new AccessorBodySyntax(parent, a)).ToArray();
+                }
             }
-
-            // Check for write body
-            LumaSharpParser.AccessorWriteContext write = body.accessorWrite();
-
-            if(write != null)
-            {
-                this.writeBody = new AccessorBodySyntax(tree, this, write);
-            }
-
         }
 
         // Methods
@@ -138,45 +122,12 @@ namespace LumaSharp_Compiler.AST
             // Identifier
             identifier.GetSourceText(writer);
 
-            // Check for assignments
-            if (HasAssignExpression == true)
+            // Check for bodies
+            if(accessorBodies != null)
             {
-                // Lambda
-                lambda.GetSourceText(writer);
-
-                // Expression
-                assignExpression.GetSourceText(writer);
-
-                // Semi
-                semicolon.GetSourceText(writer);
-            }
-            else if (HasReadBody == true || HasWriteBody == true)
-            {
-                // Check for read
-                if(HasReadBody == true)
-                {
-                    // Lambda
-                    lambda.GetSourceText(writer);
-
-                    // Read
-                    readBody.GetSourceText(writer);
-                }
-
-                // Check for write
-                if(HasWriteBody == true)
-                {
-                    // Lambda
-                    lambda.GetSourceText(writer);
-
-                    // Write
-                    writeBody.GetSourceText(writer);
-                }
-            }
-            else
-            {
-                // No inline or body - empty accessor
-                semicolon.GetSourceText(writer);
-            }            
+                foreach(AccessorBodySyntax accessorBody in accessorBodies)
+                    accessorBody.GetSourceText(writer);
+            }   
         }
     }
 }

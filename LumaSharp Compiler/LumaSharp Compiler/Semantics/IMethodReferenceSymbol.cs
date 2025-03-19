@@ -1,7 +1,7 @@
 ﻿
 using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics
+namespace LumaSharp.Compiler.Semantics
 {
     public interface IMethodReferenceSymbol : IIdentifierReferenceSymbol
     {
@@ -10,7 +10,7 @@ namespace LumaSharp_Compiler.Semantics
 
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
-        ITypeReferenceSymbol ReturnTypeSymbol { get; }
+        ITypeReferenceSymbol[] ReturnTypeSymbols { get; }
 
         IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols { get; }
 
@@ -18,8 +18,8 @@ namespace LumaSharp_Compiler.Semantics
 
         bool IsGlobal { get; }
 
-        bool HasBody { get; }
+        bool IsOverride { get; }
 
-        _MethodHandle MethodHandle { get; }
+        bool HasBody { get; }
     }
 }

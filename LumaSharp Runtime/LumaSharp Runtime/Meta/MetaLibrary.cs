@@ -66,37 +66,37 @@ namespace LumaSharp.Runtime.Reflection
             }
         }
 
-        internal void LoadMetadata(AppContext context, BinaryReader reader)
-        {
-            // Read size
-            int typeCount = reader.ReadInt32();
+        //internal void LoadMetadata(AppContext context, BinaryReader reader)
+        //{
+        //    // Read size
+        //    int typeCount = reader.ReadInt32();
 
-            // Initialize types
-            types = new MetaType[typeCount];
+        //    // Initialize types
+        //    types = new MetaType[typeCount];
 
-            // Read all types
-            for (int i = 0; i < typeCount; i++)
-            {
-                // Create type
-                MetaType type = new MetaType(context);
+        //    // Read all types
+        //    for (int i = 0; i < typeCount; i++)
+        //    {
+        //        // Create type
+        //        MetaType type = new MetaType(context);
 
-                // Read type
-                type.LoadTypeMetadata(reader);
+        //        // Read type
+        //        type.LoadTypeMetadata(reader);
 
-                // Register type
-                types[i] = type;
-            }
-        }
+        //        // Register type
+        //        types[i] = type;
+        //    }
+        //}
 
-        internal void LoadExecutable(AppContext context, BinaryReader reader)
-        {
-            // Read executable types
-            for (int i = 0; i < types.Length; i++)
-            {
-                // Read the executable
-                types[i].LoadTypeExecutable(reader);
-            }
-        }
+        //internal void LoadExecutable(AppContext context, BinaryReader reader)
+        //{
+        //    // Read executable types
+        //    for (int i = 0; i < types.Length; i++)
+        //    {
+        //        // Read the executable
+        //        types[i].LoadTypeExecutable(reader);
+        //    }
+        //}
 
         internal static bool ReadModuleHeader(Stream stream, out MetaLibraryName moduleName, bool throwOnError = true)
         {

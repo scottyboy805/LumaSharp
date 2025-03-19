@@ -1,54 +1,78 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ReturnStatementSyntax : StatementSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
-        private ExpressionSyntax returnExpression = null;
-        private SyntaxToken semicolon = null;
+        private readonly SyntaxToken keyword;
+        private readonly SeparatedListSyntax<ExpressionSyntax> expressions;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for returns
+                if (HasExpressions == true)
+                    return expressions.EndToken;
+
+                return keyword;
+            }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
         }
 
-        public ExpressionSyntax ReturnExpression
+        public SeparatedListSyntax<ExpressionSyntax> Expressions
         {
-            get { return returnExpression; }
+            get { return expressions; }
         }
 
-        public bool HasReturnExpression
+        public bool HasExpressions
         {
-            get { return returnExpression != null; }
+            get { return expressions != null; }
         }
 
         // Constructor
-        internal ReturnStatementSyntax(ExpressionSyntax expression)
-            : base(SyntaxToken.Return())
+        internal ReturnStatementSyntax(SyntaxNode parent, ExpressionSyntax[] expressions)
+            : base(parent)
         {
-            this.keyword = base.StartToken;
-            this.returnExpression = expression;
-            this.semicolon = SyntaxToken.Semi();
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ReturnKeyword);
 
-            // Check for expression
-            if (expression != null)
-                keyword.WithTrailingWhitespace(" ");
+            // Add return expressions
+            if (expressions != null)
+            {
+                // Create expressions
+                this.expressions = new SeparatedListSyntax<ExpressionSyntax>(parent, SyntaxTokenKind.CommaSymbol);
+
+                // Add all
+                for (int i = 0; i < expressions.Length; i++)
+                {
+                    // Add expression with comma
+                    this.expressions.AddElement(expressions[i], Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
+                }
+            }
         }
 
-        internal ReturnStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ReturnStatementContext statement)
-            : base(tree, parent, statement)
+        internal ReturnStatementSyntax(SyntaxNode parent, LumaSharpParser.ReturnStatementContext statement)
+            : base(parent)
         {
             // Keyword
-            this.keyword = new SyntaxToken(statement.RETURN());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.ReturnKeyword, statement.RETURN());
 
-            // Expression
-            if (statement.expression() != null)
-                this.returnExpression = ExpressionSyntax.Any(tree, this, statement.expression());
+            // Expression list
+            LumaSharpParser.ExpressionListContext expressionList = statement.expressionList();
 
-            // Semicolon
-            this.semicolon = new SyntaxToken(statement.semi);
+            // Check for expression list
+            if(expressionList != null)
+                this.expressions = ExpressionSyntax.List(this, expressionList);
         }
 
         // Methods
@@ -58,14 +82,10 @@ namespace LumaSharp_Compiler.AST
             keyword.GetSourceText(writer);
 
             // Return statement
-            if(HasReturnExpression == true)
+            if(HasExpressions == true)
             {
-                returnExpression.GetSourceText(writer);
+                expressions.GetSourceText(writer);
             }
-
-            // End statement
-            semicolon.GetSourceText(writer);
-
         }
     }
 }

@@ -1,7 +1,6 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.Semantic.Reporting
@@ -15,8 +14,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test", Syntax.TypeReference("Test"))
-                .WithAccessModifiers("global")
-                .WithStatements(Syntax.Return(Syntax.This()))));
+                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithBody(Syntax.Return(Syntax.This()))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -31,7 +30,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
-                Syntax.Field("myField", Syntax.TypeReference("Test"), Syntax.This())));
+                Syntax.Field("myField", Syntax.TypeReference("Test"), Syntax.VariableAssignment(AssignOperation.Assign, Syntax.This()))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

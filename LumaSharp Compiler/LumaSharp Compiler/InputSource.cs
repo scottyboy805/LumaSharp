@@ -2,7 +2,7 @@
 using Antlr4.Runtime;
 using System.Text;
 
-namespace LumaSharp_Compiler
+namespace LumaSharp.Compiler
 {
     public sealed class InputSource : IDisposable
     {

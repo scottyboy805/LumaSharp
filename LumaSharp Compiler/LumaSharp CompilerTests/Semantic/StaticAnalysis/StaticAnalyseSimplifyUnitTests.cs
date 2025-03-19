@@ -1,7 +1,5 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.Semantic.StaticAnalysis
@@ -15,7 +13,7 @@ namespace LumaSharp_CompilerTests.Semantic.StaticAnalysis
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test", Syntax.TypeReference(PrimitiveType.I32))
-                .WithStatements(Syntax.Return(Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(10))))));
+                .WithBody(Syntax.Return(Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(10))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -38,7 +36,7 @@ namespace LumaSharp_CompilerTests.Semantic.StaticAnalysis
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test", Syntax.TypeReference(PrimitiveType.I32))
-                .WithStatements(Syntax.Return(Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Binary(Syntax.Literal(10), BinaryOperation.Subtract, Syntax.Literal(2)))))));
+                .WithBody(Syntax.Return(Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Binary(Syntax.Literal(10), BinaryOperation.Subtract, Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

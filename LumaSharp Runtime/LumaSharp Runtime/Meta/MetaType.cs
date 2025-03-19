@@ -1,22 +1,22 @@
-﻿
-using System.Runtime.InteropServices;
+﻿using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
-    public enum MetaTypeFlags : uint
+    public enum MetaTypeFlags : ushort
     {
-        Export = 1,
-        Internal = 2,
-        Hidden = 4,
-        Global = 8,
-        Type = 16,
-        Contract = 32,
-        Enum = 64,
-        Array = 128,
-        Abstract = 256,
-        Override = 512,
-        Generic = 1024,
+        Export = 1 << 1,
+        Internal = 1 << 2,
+        Hidden = 1 << 3,
+        Global =  1 << 4,
+        Type = 1 << 5,
+        Contract = 1 << 6,
+        Enum = 1 << 7,
+        Array = 1 << 8,
+        Abstract = 1 << 9,
+        Override = 1 << 10,
+        Generic = 1 << 11,
+        Copy = 1 << 12,
     }
 
     public unsafe class MetaType : MetaMember
@@ -77,8 +77,8 @@ namespace LumaSharp.Runtime.Reflection
         { 
         }
 
-        protected MetaType(AppContext context, string name, RuntimeTypeCode code, MetaTypeFlags typeFlags)
-            : base(context, name, (MemberFlags)typeFlags)
+        protected MetaType(AppContext context, _TokenHandle token, string name, RuntimeTypeCode code, MetaTypeFlags typeFlags)
+            : base(context, token, name, (MemberFlags)typeFlags)
         {
             this.typeCode = code;
             this.typeFlags = typeFlags;
@@ -145,67 +145,67 @@ namespace LumaSharp.Runtime.Reflection
             }
         }
 
-        internal void LoadTypeMetadata(BinaryReader reader)
-        {
-            // Read member metadata
-            LoadMemberMetadata(reader);
+        //internal void LoadTypeMetadata(BinaryReader reader)
+        //{
+        //    // Read member metadata
+        //    LoadMemberMetadata(reader);
 
-            // Get type flags
-            typeFlags = (MetaTypeFlags)MemberFlags;
+        //    // Get type flags
+        //    typeFlags = (MetaTypeFlags)MemberFlags;
 
-            List<MetaMember> members = new List<MetaMember>();
+        //    List<MetaMember> members = new List<MetaMember>();
 
-            // Read fields
-            int fieldCount = reader.ReadInt32();
+        //    // Read fields
+        //    int fieldCount = reader.ReadInt32();
 
-            // Read all fields
-            for(int i = 0; i < fieldCount; i++)
-            {
-                // Create field
-                MetaField field = new MetaField(context);
+        //    // Read all fields
+        //    for(int i = 0; i < fieldCount; i++)
+        //    {
+        //        // Create field
+        //        MetaField field = new MetaField(context);
 
-                // Read field
-                field.LoadFieldMetadata(reader);
+        //        // Read field
+        //        field.LoadFieldMetadata(reader);
 
-                // Register field
-                members.Add(field);
-            }
+        //        // Register field
+        //        members.Add(field);
+        //    }
 
-            // Read methods
-            int methodCount = reader.ReadInt32();
+        //    // Read methods
+        //    int methodCount = reader.ReadInt32();
 
-            // Read all methods
-            for(int i = 0; i < methodCount; i++)
-            {
-                // Create method
-                MetaMethod method = new MetaMethod(context);
+        //    // Read all methods
+        //    for(int i = 0; i < methodCount; i++)
+        //    {
+        //        // Create method
+        //        MetaMethod method = new MetaMethod(context);
 
-                // Read method
-                method.LoadMethodMetadata(reader);
+        //        // Read method
+        //        method.LoadMethodMetadata(reader);
 
-                // Register method
-                members.Add(method);
-            }
+        //        // Register method
+        //        members.Add(method);
+        //    }
 
-            // Store members
-            this.members = members.ToArray();
-        }
+        //    // Store members
+        //    this.members = members.ToArray();
+        //}
 
-        internal void LoadTypeExecutable(BinaryReader reader)
-        {
-            // Create executable
-            typeExecutable = (_TypeHandle*)NativeMemory.AllocZeroed((nuint)sizeof(_TypeHandle));
+        //internal void LoadTypeExecutable(BinaryReader reader)
+        //{
+        //    // Create executable
+        //    typeExecutable = (_TypeHandle*)NativeMemory.AllocZeroed((nuint)sizeof(_TypeHandle));
 
-            // Read handle
-            typeExecutable->Read(reader);
+        //    // Read handle
+        //    typeExecutable->Read(reader);
 
 
-            // Read all fields
-            foreach(MetaField field in members.OfType<MetaField>())
-            {
-                // Read executable
-                field.LoadFieldExecutable(reader);
-            }
-        }
+        //    // Read all fields
+        //    foreach(MetaField field in members.OfType<MetaField>())
+        //    {
+        //        // Read executable
+        //        field.LoadFieldExecutable(reader);
+        //    }
+        //}
     }
 }

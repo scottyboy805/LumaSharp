@@ -1,7 +1,7 @@
 ﻿using Antlr4.Runtime;
-using LumaSharp_Compiler.AST;
+using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler
+namespace LumaSharp.Compiler
 {
     internal sealed class ParserContext : BaseErrorListener, IDisposable
     {
@@ -86,7 +86,7 @@ namespace LumaSharp_Compiler
 
         public ExpressionSyntax ParseExpression()
         {
-            return ExpressionSyntax.Any(null, null, CreateParser().expression());
+            return ExpressionSyntax.Any(null, CreateParser().expression());
         }
 
         private LumaSharpParser CreateParser()

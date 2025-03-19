@@ -1,8 +1,8 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Reference;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
+using LumaSharp.Compiler.Semantics.Reference;
 
-namespace LumaSharp_Compiler.Semantics.Model.Expression
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class BinaryModel : ExpressionModel
     {
@@ -46,7 +46,7 @@ namespace LumaSharp_Compiler.Semantics.Model.Expression
             {
                 // Check for operator method available
                 if (inferredMethodOperatorSymbol != null)
-                    return inferredMethodOperatorSymbol.ReturnTypeSymbol;
+                    return inferredMethodOperatorSymbol.ReturnTypeSymbols[0];
 
                 return inferredTypeSymbol; 
             }

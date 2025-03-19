@@ -1,8 +1,7 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
-using LumaSharp_Compiler.Semantics.Model.Expression;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model.Statement
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class VariableModel : StatementModel
     {
@@ -40,23 +39,25 @@ namespace LumaSharp_Compiler.Semantics.Model.Statement
             this.syntax = syntax;
 
             // Get models
-            this.variableModels = new LocalOrParameterModel[syntax.IdentifierCount];
+            this.variableModels = new LocalOrParameterModel[syntax.Identifiers.Count];
 
             // Get assign expression models
-            for(int i = 0; i < syntax.IdentifierCount; i++)
+            for(int i = 0; i < syntax.Identifiers.Count; i++)
             {
                 variableModels[i] = new LocalOrParameterModel(syntax, parent as IReferenceSymbol, index, i, index);
             }
 
-            if (syntax.HasAssignExpressions == true)
+            if (syntax.HasAssignment == true)
             {
                 // Get assigns
-                this.assignModels = new AssignModel[syntax.AssignExpressionCount];
+                this.assignModels = new AssignModel[syntax.Assignment.AssignExpressions.Count];
 
                 // Get assign models
-                for (int i = 0; i < syntax.AssignExpressionCount; i++)
+                for (int i = 0; i < syntax.Assignment.AssignExpressions.Count; i++)
                 {
-                    assignModels[i] = new AssignModel(model, this, syntax, new VariableReferenceModel(model, this, new VariableReferenceExpressionSyntax(syntax.Identifiers[i].Text)), ExpressionModel.Any(model, this, syntax.AssignExpressions[i]), index);                    
+                    assignModels[i] = new AssignModel(model, this, syntax, new VariableReferenceModel(model, this, 
+                        new VariableReferenceExpressionSyntax(null, syntax.Identifiers[i].Text)), 
+                        ExpressionModel.Any(model, this, syntax.Assignment.AssignExpressions[i]), index);                    
                 }
             }
         }

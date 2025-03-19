@@ -1,32 +1,48 @@
 ﻿
-using Antlr4.Runtime;
-using LumaSharp_Compiler.AST.Expression;
-using System.Linq.Expressions;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ArrayIndexExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken lArray = null;
-        private SyntaxToken rArray = null;
-        private ExpressionSyntax accessExpression = null;
-        private ExpressionSyntax[] indexExpressions = null;
+        private readonly SyntaxToken lArray;
+        private readonly SyntaxToken rArray;
+        private readonly ExpressionSyntax accessExpression = null;
+        private readonly SeparatedListSyntax<ExpressionSyntax> indexExpressions;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return lArray; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rArray; }
+        }
+
+        public SyntaxToken LArray
+        {
+            get { return lArray; }
+        }
+
+        public SyntaxToken RArray
+        {
+            get { return rArray; }
+        }
+
         public ExpressionSyntax AccessExpression
         {
             get { return accessExpression; }
         }
 
-        public ExpressionSyntax[] IndexExpressions
+        public SeparatedListSyntax<ExpressionSyntax> IndexExpressions
         {
             get { return indexExpressions; }
         }
 
         public int ArrayRank
         {
-            get { return indexExpressions.Length; }
+            get { return indexExpressions.Count; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -36,90 +52,65 @@ namespace LumaSharp_Compiler.AST
                 yield return accessExpression;
 
                 // Get index expressions
-                foreach (SyntaxNode node in indexExpressions)
+                foreach (SyntaxNode node in indexExpressions.Descendants)
                     yield return node;
             }
         }
 
         // Constructor
-        internal ArrayIndexExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.IndexExpressionContext expression)
-            : base(tree, parent, expression)
+        internal ArrayIndexExpressionSyntax(SyntaxNode parent, ExpressionSyntax accessExpression, ExpressionSyntax[] indexExpressions)
+            : base(parent, null)
         {
-            this.lArray = new SyntaxToken(expression.larray);
-            this.rArray = new SyntaxToken(expression.rarray);
+            this.lArray = Syntax.KeywordOrSymbol(SyntaxTokenKind.LArraySymbol);
+            this.rArray = Syntax.KeywordOrSymbol(SyntaxTokenKind.RArraySymbol);
 
-            // Create index expressions
-            this.indexExpressions = expression.expression().Select(e => Any(tree, this, e)).ToArray();
+            this.accessExpression = accessExpression;
+            this.indexExpressions = new SeparatedListSyntax<ExpressionSyntax>(this, SyntaxTokenKind.CommaSymbol);
 
-            // Not sure if ths is correct??
-            this.accessExpression = parent as ExpressionSyntax;
+            foreach (ExpressionSyntax expression in indexExpressions)
+                this.indexExpressions.AddElement(expression, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
         }
 
-        internal ArrayIndexExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(tree, parent, expression)
+        internal ArrayIndexExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
-            // Get index
-            LumaSharpParser.IndexExpressionContext[] indexes = expression.indexExpression();
-            LumaSharpParser.IndexExpressionContext index = indexes[indexes.Length - 1];
+            // Get the index expression
+            LumaSharpParser.IndexExpressionContext indexExpression = expression.indexExpression();
 
+            this.lArray = new SyntaxToken(SyntaxTokenKind.LArraySymbol, indexExpression.LARRAY());
+            this.rArray = new SyntaxToken(SyntaxTokenKind.RArraySymbol, indexExpression.RARRAY());
 
-            this.lArray = new SyntaxToken(index.larray);
-            this.rArray = new SyntaxToken(index.rarray);
+            // Access expression
+            this.accessExpression = ExpressionSyntax.Any(this, expression.expression(0));
 
-            // Create index expressions
-            this.indexExpressions = index.expression().Select(e => Any(tree, this, e)).ToArray();
+            // Get expression list
+            LumaSharpParser.ExpressionListContext expressions = indexExpression.expressionList();
 
-            // Create access expression
-            // Check for nested indexes
-            if(indexes.Length > 1)
+            // Check for any
+            if(indexExpression != null)
             {
-                ArrayIndexExpressionSyntax[] nestedIndexes = new ArrayIndexExpressionSyntax[indexes.Length - 1];
+                // Create list
+                this.indexExpressions = new SeparatedListSyntax<ExpressionSyntax>(this, SyntaxTokenKind.CommaSymbol);
 
-                for(int i = 0; i < indexes.Length; i++)
+                // Add primary
+                this.indexExpressions.AddElement(
+                    ExpressionSyntax.Any(this.indexExpressions, expressions.expression()), null);
+
+
+                // Add secondary
+                LumaSharpParser.ExpressionSecondaryContext[] secondaryExpressions = expressions.expressionSecondary();
+
+                // Add all
+                if(secondaryExpressions != null)
                 {
-
+                    foreach(LumaSharpParser.ExpressionSecondaryContext secondaryExpression in secondaryExpressions)
+                    {
+                        this.indexExpressions.AddElement(
+                            ExpressionSyntax.Any(this.indexExpressions, secondaryExpression.expression()),
+                            new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryExpression.COMMA()));
+                    }
                 }
             }
-
-            // Check for nested index
-            //if (expression.indexExpression() != null)
-            //    this.accessExpression = new ArrayIndexExpressionSyntax(tree, this, expression.indexExpression());
-
-            // Check for identifier
-            if (expression.IDENTIFIER() != null)
-                this.accessExpression = new VariableReferenceExpressionSyntax(tree, this, expression);
-
-            // Check for literal
-            if (expression.endExpression() != null)
-                this.accessExpression = new LiteralExpressionSyntax(tree, this, expression.endExpression());
-
-            // Check for method
-            if (expression.methodInvokeExpression() != null)
-                this.accessExpression = new MethodInvokeExpressionSyntax(tree, this, expression);
-
-            // Check for field
-            if (expression.fieldAccessExpression() != null)
-                this.accessExpression = new FieldAccessorReferenceExpressionSyntax(tree, this, expression);
-
-            // Check for new
-            if(expression.newExpression() != null)
-                this.accessExpression = new NewExpressionSyntax(tree, this, expression.newExpression());
-
-            // Check for initializer
-            if (expression.initializerInvokeExpression() != null)
-                this.accessExpression = new NewExpressionSyntax(tree, this, expression.initializerInvokeExpression());
-
-            // Check for base
-            if (expression.BASE() != null)
-                this.accessExpression = new BaseExpressionSyntax(tree, this, expression);
-
-            // Check for this
-            if(expression.THIS() != null)
-                this.accessExpression = new ThisExpressionSyntax(tree, this, expression);
-
-            // Check for paren
-            if (expression.lparen != null)
-                this.accessExpression = Any(tree, this, expression.expression(0));
         }
 
         // Methods
@@ -129,20 +120,13 @@ namespace LumaSharp_Compiler.AST
             accessExpression.GetSourceText(writer);
 
             // Write larray
-            writer.Write(lArray.ToString());
+            lArray.GetSourceText(writer);
 
             // Write all index
-            for(int i = 0; i < indexExpressions.Length; i++)
-            {
-                indexExpressions[i].GetSourceText(writer);
-
-                // Write comma
-                if(i < indexExpressions.Length - 1) 
-                    writer.Write(", ");
-            }
+            indexExpressions.GetSourceText(writer);
 
             // Write rarray
-            writer.Write(rArray.ToString());
+            rArray.GetSourceText(writer);
         }
     }
 }

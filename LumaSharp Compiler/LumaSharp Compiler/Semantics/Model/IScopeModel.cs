@@ -1,7 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model.Statement;
+﻿using LumaSharp.Compiler.AST;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public interface IScopeModel
     {

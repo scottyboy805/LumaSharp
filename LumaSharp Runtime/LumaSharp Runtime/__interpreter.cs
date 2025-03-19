@@ -380,7 +380,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Fld:
                         {
                             // Get field token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get field handle
@@ -407,7 +407,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Fld_A:
                         {
                             // Get field token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get field handle
@@ -436,7 +436,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Fld_G:
                         {
                             // Get field token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get field handle
@@ -459,7 +459,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Fld_GA:
                         {
                             // Get field token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get field handle
@@ -484,7 +484,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Fld:
                         {
                             // Get field token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get field handle
@@ -510,7 +510,7 @@ namespace LumaSharp.Runtime
                     case OpCode.St_Fld_G:
                         {
                             // Get field token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get field handle
@@ -1923,7 +1923,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Cast_Any:
                         {
                             // Get token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get type handle
@@ -2020,7 +2020,7 @@ namespace LumaSharp.Runtime
                     case OpCode.New:
                         {
                             // Get token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get type handle
@@ -2041,7 +2041,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Call_Virt:
                         {
                             // Get token from instruction
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get method handle
@@ -2151,7 +2151,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Is_Any:
                         {
                             // Get token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get type handle
@@ -2201,7 +2201,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Box_Any:
                         {
                             // Get token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get type handle
@@ -2228,7 +2228,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Unbox_Any:
                         {
                             // Get token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get type handle
@@ -2277,7 +2277,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Type:
                         {
                             // Get type token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get type handle ptr
@@ -2295,7 +2295,7 @@ namespace LumaSharp.Runtime
                     case OpCode.Ld_Func:
                         {
                             // Get method token
-                            int token = *(int*)pc;
+                            _TokenHandle token = *(_TokenHandle*)pc;
                             pc += sizeof(int);
 
                             // Get method handle ptr

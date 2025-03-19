@@ -1,93 +1,82 @@
 ﻿
-using System.Diagnostics;
-
-namespace LumaSharp_Compiler.AST.Statement
+namespace LumaSharp.Compiler.AST
 {
     public sealed class ForStatementSyntax : StatementSyntax
     {
         // Private
-        private SyntaxToken keyword = null;
-        private SyntaxToken lparen = null;
-        private SyntaxToken rparen = null;
-        private VariableDeclarationStatementSyntax forVariable = null;
-        private ExpressionSyntax forCondition = null;
-        private ExpressionSyntax[] forIncrements = null;
-        private StatementSyntax inlineStatement = null;
-        private BlockSyntax<StatementSyntax> blockStatement = null;
-        private SyntaxToken comma = null;
-        private SyntaxToken semicolon = null;
+        private readonly SyntaxToken keyword;
+        private readonly VariableDeclarationStatementSyntax variable;
+        private readonly ExpressionSyntax condition;
+        private readonly SeparatedListSyntax<ExpressionSyntax> increments;
+
+        private readonly StatementSyntax inlineStatement;
+        private readonly BlockSyntax<StatementSyntax> blockStatement;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                // Check for block
+                if (HasBlockStatement == true)
+                    return blockStatement.EndToken;
+
+                // Check for inline
+                if(HasInlineStatement == true)
+                    return inlineStatement.EndToken;
+
+                return SyntaxToken.Invalid;
+            }
+        }
+
         public SyntaxToken Keyword
         {
             get { return keyword; }
         }
 
-        public SyntaxToken LParen
+        public VariableDeclarationStatementSyntax Variable
         {
-            get { return lparen; }
+            get { return variable; }
         }
 
-        public SyntaxToken RParen
+        public ExpressionSyntax Condition
         {
-            get { return rparen; }
+            get { return condition; }
         }
 
-        public VariableDeclarationStatementSyntax ForVariable
+        public SeparatedListSyntax<ExpressionSyntax> Increments
         {
-            get { return forVariable; }
-        }
-
-        public ExpressionSyntax ForCondition
-        {
-            get { return forCondition; }
-        }
-
-        public ExpressionSyntax[] ForIncrements
-        {
-            get { return forIncrements; }
+            get { return increments; }
         }
 
         public StatementSyntax InlineStatement
         {
             get { return inlineStatement; }
-            internal set { inlineStatement = value; }
         }
 
         public BlockSyntax<StatementSyntax> BlockStatement
         {
             get { return blockStatement; }
-            internal set { blockStatement = value; }
         }
 
-        public SyntaxToken Semicolon
-        {
-            get { return semicolon; }
+        public bool HasVariable
+        { 
+            get { return variable != null; }
         }
 
-        public int ForVariableCount
+        public bool HasCondition
         {
-            get { return HasForVariables ? forVariable.IdentifierCount : 0; }
+            get { return condition != null; }
         }
 
-        public int ForIncrementCount
+        public bool HasIncrements
         {
-            get { return HasForIncrements ? forIncrements.Length : 0; }
-        }
-
-        public bool HasForVariables
-        {
-            get { return forVariable != null; }
-        }
-
-        public bool HasForCondition
-        {
-            get { return forCondition != null; }
-        }
-
-        public bool HasForIncrements
-        {
-            get { return forIncrements != null; }
+            get { return increments != null; }
         }
 
         public bool HasInlineStatement
@@ -101,61 +90,48 @@ namespace LumaSharp_Compiler.AST.Statement
         }
 
         // Constructor
-        internal ForStatementSyntax(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, ExpressionSyntax[] increment)
-            : base(SyntaxToken.For())
+        internal ForStatementSyntax(SyntaxNode parent, VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedListSyntax<ExpressionSyntax> increments, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+            : base(parent)
         {
-            this.keyword = base.StartToken;
-            this.forVariable = variable;
-            this.forCondition = condition;
-            this.forIncrements = increment;
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ForKeyword);
+            this.variable = variable;
+            this.condition = condition;
+            this.increments = increments;
 
-            lparen = SyntaxToken.LParen();
-            rparen = SyntaxToken.RParen();
-            comma = SyntaxToken.Comma();
-            semicolon = SyntaxToken.Semi();
+            this.blockStatement = body;
+            this.inlineStatement = inlineStatement;
         }
 
-        internal ForStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ForStatementContext forStatement)
-            : base(tree, parent, forStatement)
+        internal ForStatementSyntax(SyntaxNode parent, LumaSharpParser.ForStatementContext forStatement)
+            : base(parent)
         {
             // Keyword
-            this.keyword = new SyntaxToken(forStatement.FOR());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.ForKeyword, forStatement.FOR());
 
-            // LR paren
-            this.lparen = new SyntaxToken(forStatement.lparen);
-            this.rparen = new SyntaxToken(forStatement.rparen);
+            // For variable
+            if (forStatement.localVariableStatement() != null)
+                this.variable = new VariableDeclarationStatementSyntax(this, forStatement.localVariableStatement());
 
-            // Variables
-            if (forStatement.forVariableStatement() != null)
-                this.forVariable = new VariableDeclarationStatementSyntax(tree, this, forStatement.forVariableStatement(), forStatement.semiVar);
-
-            // Conditions
+            // For condition
             if (forStatement.expression() != null)
-                this.forCondition = ExpressionSyntax.Any(tree, this, forStatement.expression());
+                this.condition = ExpressionSyntax.Any(this, forStatement.expression());
 
-            // Increments
-            LumaSharpParser.ForIncrementExpressionContext[] increments = forStatement.forIncrementExpression();
-
-            if(increments != null && increments.Length > 0)
-            {
-                this.forIncrements = increments.Select(e => ExpressionSyntax.Any(tree, this, e.expression())).ToArray();
-            }
+            // For increments
+            if(forStatement.expressionList() != null)
+                this.increments = ExpressionSyntax.List(this, forStatement.expressionList());    
+                        
 
             // Statement inline
             if(forStatement.statement() != null)
             {
-                this.inlineStatement = Any(tree, this, forStatement.statement());
+                this.inlineStatement = Any(this, forStatement.statement());
             }
 
             // Statement block
             if(forStatement.statementBlock() != null)
             {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(tree, this, forStatement.statementBlock());
+                this.blockStatement = new BlockSyntax<StatementSyntax>(this, forStatement.statementBlock());
             }
-
-            // Semi
-            if (forStatement.semi != null)
-                this.statementEnd = new SyntaxToken(forStatement.semi);
         }
 
         // Methods
@@ -164,43 +140,17 @@ namespace LumaSharp_Compiler.AST.Statement
             // Keyword
             keyword.GetSourceText(writer);
 
-            // LParen
-            lparen.GetSourceText(writer);
+            // Variable
+            if(HasVariable == true)
+                variable.GetSourceText(writer);
 
-            // Variables
-            if (forVariable != null)
-            {
-                forVariable.GetSourceText(writer);
-            }
-            else
-            {
-                // Semi colon
-                semicolon.GetSourceText(writer);
-            }
+            // Foreach condition
+            if(HasCondition == true)
+                condition.GetSourceText(writer);
 
-            // Condition
-            if(forCondition != null)
-            {
-                forCondition.GetSourceText(writer);
-            }
-
-            // Semi colon
-            semicolon.GetSourceText(writer);
-
-            // Increments
-            if(forIncrements != null)
-            {
-                for(int i = 0; i < forIncrements.Length; i++)
-                {
-                    forIncrements[i].GetSourceText(writer);
-
-                    if(i < forIncrements.Length - 1)
-                        comma.GetSourceText(writer);
-                }
-            }
-
-            // RParen
-            rparen.GetSourceText(writer);
+            // For expression
+            if (HasIncrements == true) 
+                increments.GetSourceText(writer);
 
 
             // Check for inline
@@ -212,11 +162,6 @@ namespace LumaSharp_Compiler.AST.Statement
             else if(HasBlockStatement == true)
             {
                 blockStatement.GetSourceText(writer);
-            }
-            // Fall back to empty statement
-            else if(semicolon != null)
-            {
-                semicolon.GetSourceText(writer);
             }
         }
     }

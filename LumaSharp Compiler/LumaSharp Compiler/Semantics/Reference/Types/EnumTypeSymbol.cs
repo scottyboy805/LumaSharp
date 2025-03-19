@@ -1,7 +1,8 @@
 ﻿using LumaSharp.Runtime;
-using LumaSharp_Compiler.AST;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal sealed class EnumTypeSymbol : ITypeReferenceSymbol
     {
@@ -48,7 +49,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         public _TypeHandle TypeHandle => typeHandle;
 
-        public int SymbolToken => 15;
+        public _TokenHandle SymbolToken => new _TokenHandle(TokenKind.TypeReference, 0, 1);
 
         // Constructor
         internal EnumTypeSymbol(ReferenceLibrary runtimeLibrary, ITypeReferenceSymbol baseType)

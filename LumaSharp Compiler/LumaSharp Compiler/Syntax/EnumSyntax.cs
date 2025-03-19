@@ -1,16 +1,21 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class EnumSyntax : MemberSyntax, IMemberSyntaxContainer
     {
         // Private
-        private SyntaxToken keyword = null;
-        private TypeReferenceSyntax underlyingTypeReference = null;
-        private SyntaxToken colon = null;
+        private readonly SyntaxToken keyword;
+        private readonly TypeReferenceSyntax underlyingTypeReference;
+        private readonly SyntaxToken colon;
 
-        private BlockSyntax<FieldSyntax> fieldBlock = null;
+        private readonly BlockSyntax<FieldSyntax> fieldBlock;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
         public override SyntaxToken EndToken
         {
             get { return fieldBlock.EndToken; }
@@ -21,7 +26,12 @@ namespace LumaSharp_Compiler.AST
             get { return keyword; }
         }
 
-        public NamespaceName Namespace
+        public SyntaxToken Colon
+        {
+            get { return colon; }
+        }
+
+        public SeparatedTokenList Namespace
         {
             get
             {
@@ -73,35 +83,40 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal EnumSyntax(string identifier, TypeReferenceSyntax underlyingType)
-            : base(identifier, SyntaxToken.Enum(), null)
+        internal EnumSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax underlyingType, BlockSyntax<FieldSyntax> fieldBlock)
+            : base(parent, identifier, attributes, accessModifiers)
         {
-            this.keyword = base.StartToken.WithTrailingWhitespace(" ");
-            this.underlyingTypeReference = underlyingType;
-            this.fieldBlock = new BlockSyntax<FieldSyntax>();
-            this.colon = SyntaxToken.Colon();
+            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.EnumKeyword);
+
+            if (underlyingType != null)
+            {
+                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.underlyingTypeReference = underlyingType;
+            }
+
+            this.fieldBlock = fieldBlock;
         }
 
-        internal EnumSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
-            : base(enumDef.IDENTIFIER(), tree, parent, enumDef, enumDef.attributeDeclaration(), enumDef.accessModifier())
+        internal EnumSyntax(SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
+            : base(enumDef.IDENTIFIER(), parent, enumDef.attributeReference(), enumDef.accessModifier())
         {
             // Enum keyword
-            this.keyword = new SyntaxToken(enumDef.ENUM());
+            this.keyword = new SyntaxToken(SyntaxTokenKind.EnumKeyword, enumDef.ENUM());
 
             // Enum type
             if (enumDef.primitiveType() != null)
             {
-                this.underlyingTypeReference = new TypeReferenceSyntax(tree, parent, enumDef.primitiveType());
+                this.underlyingTypeReference = new TypeReferenceSyntax(parent, enumDef.primitiveType());
             }
             else
             {
-                this.underlyingTypeReference = new TypeReferenceSyntax(tree, this, PrimitiveType.I32);
+                this.underlyingTypeReference = new TypeReferenceSyntax(this, PrimitiveType.I32);
             }
 
             // Get fields
             LumaSharpParser.EnumBlockContext block = enumDef.enumBlock();
 
-            this.fieldBlock = new BlockSyntax<FieldSyntax>(tree, this, underlyingTypeReference, block);
+            this.fieldBlock = new BlockSyntax<FieldSyntax>(this, underlyingTypeReference, block);
         }
 
         // Methods
@@ -139,7 +154,6 @@ namespace LumaSharp_Compiler.AST
             ((IMemberSyntaxContainer)fieldBlock).AddMember(member);
 
             // Update hierarchy
-            member.tree = tree;
             member.parent = this;
         }
     }

@@ -1,8 +1,9 @@
 ﻿
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Runtime.Handle;
 
-namespace LumaSharp_Compiler.Semantics.Reference
+namespace LumaSharp.Compiler.Semantics.Reference
 {
     internal sealed class ReferenceLibrary : ILibraryReferenceSymbol
     {
@@ -17,7 +18,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
 
         // Private
         private string libraryName = null;
-        private int libraryToken = -1;
+        private _TokenHandle libraryToken = default;
         private List<ITypeReferenceSymbol> rootTypes = new List<ITypeReferenceSymbol>();
         private List<INamespaceReferenceSymbol> namedTypes = new List<INamespaceReferenceSymbol>();
         //private List<NamedTypeCollection> namedTypes = new List<NamedTypeCollection>();
@@ -33,7 +34,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
             get { return this; }
         }
 
-        public int SymbolToken
+        public _TokenHandle SymbolToken
         {
             get { return libraryToken; }
         }
@@ -49,7 +50,7 @@ namespace LumaSharp_Compiler.Semantics.Reference
         }
 
         // Constructor
-        public ReferenceLibrary(string libraryName, int libraryToken = -1)
+        public ReferenceLibrary(string libraryName, _TokenHandle libraryToken = default)
         {
             this.libraryName = libraryName;
             this.libraryToken = libraryToken;
@@ -91,10 +92,10 @@ namespace LumaSharp_Compiler.Semantics.Reference
             declaringNamespace.AddType(namedType);
         }
 
-        public NamespaceModel DeclareNamespace(NamespaceName namespaceName)
+        public NamespaceModel DeclareNamespace(SeparatedTokenList namespaceName)
         {
             // Get the namespace
-            string[] namespaceIdentifiers = namespaceName.Identifiers.Select(i => i.Text).ToArray();
+            string[] namespaceIdentifiers = namespaceName.Select(i => i.Text).ToArray();
 
             // Declare with identifiers
             return DeclareNamespace(namespaceIdentifiers);

@@ -1,8 +1,7 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.Semantics.Reference;
+using LumaSharp.Compiler.Semantics.Reference;
 
 namespace LumaSharp_CompilerTests.Semantic.Symbols
 {

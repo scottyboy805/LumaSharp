@@ -1,7 +1,7 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_Compiler.Semantics.Model
+namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class AccessorModel : MemberModel, IAccessorReferenceSymbol, IIdentifierReferenceSymbol
     {
@@ -23,7 +23,7 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool IsGlobal
         {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.FirstOrDefault(m => m.Text == "global") != null; }
+            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.GlobalKeyword); }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
@@ -47,12 +47,12 @@ namespace LumaSharp_Compiler.Semantics.Model
 
         public bool HasReadBody
         {
-            get { return syntax.HasReadBody; }
+            get { return syntax.AccessorBodies.Any(a => a.IsReadBody == true); }
         }
 
         public bool HasWriteBody
         {
-            get { return syntax.HasWriteBody; }
+            get { return syntax.AccessorBodies.Any(a => a.IsWriteBody == true); }
         }
 
         public override IEnumerable<SymbolModel> Descendants

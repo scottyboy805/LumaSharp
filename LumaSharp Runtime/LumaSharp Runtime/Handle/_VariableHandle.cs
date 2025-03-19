@@ -32,17 +32,5 @@ namespace LumaSharp.Runtime
         {
             return string.Format("_VariableHandle(type = {0}, offset = {1}, size = {2})", TypeHandle.TypeCode, StackOffset, TypeHandle.TypeSize);
         }
-
-        internal void Write(BinaryWriter writer)
-        {
-            TypeHandle.Write(writer);
-            writer.Write(StackOffset);
-        }
-
-        internal void Read(BinaryReader reader)
-        {
-            TypeHandle.Read(reader);
-            //StackOffset = reader.ReadUInt32();
-        }
     }
 }

@@ -1,12 +1,22 @@
 ﻿
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class VariableReferenceExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private SyntaxToken identifier = null;
+        private readonly SyntaxToken identifier;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return identifier; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return identifier; }
+        }
+
         public SyntaxToken Identifier
         {
             get { return identifier; }
@@ -18,16 +28,16 @@ namespace LumaSharp_Compiler.AST
         }
 
         // Constructor
-        internal VariableReferenceExpressionSyntax(string identifier)
-            : base(new SyntaxToken(identifier))
+        internal VariableReferenceExpressionSyntax(SyntaxNode parent, string identifier)
+            : base(parent, null)
         {
-            this.identifier = base.StartToken;
+            this.identifier = Syntax.Identifier(identifier);
         }
 
-        internal VariableReferenceExpressionSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(tree, parent, expression)
+        internal VariableReferenceExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
+            : base(parent, expression)
         {
-            this.identifier = new SyntaxToken(expression.IDENTIFIER());
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, expression.IDENTIFIER());
         }
 
         // Methods

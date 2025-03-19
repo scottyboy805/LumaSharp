@@ -1,4 +1,5 @@
-﻿
+﻿using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
     public class MetaAccessor : MetaMember
@@ -61,8 +62,8 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaAccessor(AppContext context, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
-            : base(context, name, memberFlags)
+        internal MetaAccessor(AppContext context, _TokenHandle token, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
+            : base(context, token, name, memberFlags)
         {
             this.accessorFlags = accessorFlags;
         }

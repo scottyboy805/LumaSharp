@@ -1,9 +1,7 @@
-﻿using LumaSharp_Compiler.AST.Factory;
-using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model.Expression;
-using LumaSharp_Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp_Compiler.Reporting;
+using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp_CompilerTests.Semantic.Reporting
 {
@@ -16,7 +14,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithStatements(Syntax.Assign(Syntax.FieldReference("myField", Syntax.This()), Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.FieldReference(Syntax.This(), "myField"), AssignOperation.Assign, Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -33,7 +31,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
                 Syntax.Type("Test").WithMembers(
                 Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test", Syntax.TypeReference("Test"))
-                .WithStatements(Syntax.Return(Syntax.FieldReference("myField", Syntax.TypeReference("Test"))))));
+                .WithBody(Syntax.Return(Syntax.FieldReference(Syntax.TypeReference("Test"), "myField")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -49,9 +47,9 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers("global"),
+                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test", Syntax.TypeReference("Test"))
-                .WithStatements(Syntax.Return(Syntax.FieldReference("myField", Syntax.This())))));
+                .WithBody(Syntax.Return(Syntax.FieldReference(Syntax.This(), "myField")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -67,10 +65,10 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers("global"),
+                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test", Syntax.TypeReference("Test"))
-                .WithStatements(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Return(Syntax.FieldReference("myField", Syntax.VariableReference("myVar"))))));
+                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                    Syntax.Return(Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -85,7 +83,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
-                Syntax.Field("myField", Syntax.TypeReference("Test"), Syntax.Literal(5))));
+                Syntax.Field("myField", Syntax.TypeReference("Test"), Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5)))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 [assembly: InternalsVisibleTo("LumaSharp CompilerTests")]
 
-namespace LumaSharp_Compiler
+namespace LumaSharp.Compiler
 {
     public class Program
     {

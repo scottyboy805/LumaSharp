@@ -1,6 +1,6 @@
-﻿using LumaSharp_Compiler.AST;
-using LumaSharp_Compiler.Semantics.Model;
-using LumaSharp_Compiler;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Runtime.Reflection;
 using System.Diagnostics;
@@ -44,7 +44,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Emit the method
-            Method method = EmitUtil.GetExecutableMethodOnly(methodModel);
+            MetaMethod method = EmitUtil.GetExecutableMethodOnly(methodModel);
 
             Stopwatch timer = Stopwatch.StartNew();
             // Execute the method
@@ -78,7 +78,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
             Assert.AreEqual(0, model.Report.MessageCount);
 
             // Emit the method
-            Method method = EmitUtil.GetExecutableMethodOnly(methodModel);
+            MetaMethod method = EmitUtil.GetExecutableMethodOnly(methodModel);
 
             Stopwatch timer = Stopwatch.StartNew();
             // Execute the method

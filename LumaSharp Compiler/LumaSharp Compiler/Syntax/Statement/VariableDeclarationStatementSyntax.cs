@@ -1,28 +1,29 @@
 ﻿
-using Antlr4.Runtime;
-
-namespace LumaSharp_Compiler.AST
+namespace LumaSharp.Compiler.AST
 {
     public sealed class VariableDeclarationStatementSyntax : StatementSyntax
     {
         // Private
-        private TypeReferenceSyntax variableType = null;
-        private SyntaxToken[] identifiers = null;
-        private ExpressionSyntax[] assignExpressions = null;
-        private SyntaxToken assign = null;
-        private SyntaxToken lblock = null;
-        private SyntaxToken rblock = null;
+        private readonly TypeReferenceSyntax variableType;
+        private readonly SeparatedTokenList identifiers;
+        private readonly VariableAssignExpressionSyntax assignment;
 
         // Properties
+        public override SyntaxToken StartToken
+        {
+            get { return variableType.StartToken; }
+        }
+
         public override SyntaxToken EndToken
         {
             get
             {
-                if(AssignExpressionCount > 1)
-                {
-                    return rblock;
-                }
-                return base.EndToken;
+                // Check for assignment
+                if (HasAssignment == true)
+                    return assignment.EndToken;
+
+                // Identifier
+                return identifiers.EndToken;
             }
         }
 
@@ -31,132 +32,73 @@ namespace LumaSharp_Compiler.AST
             get { return variableType; }
         }
 
-        public SyntaxToken[] Identifiers
+        public SyntaxToken[] IdentifierNames
+        {
+            get { return identifiers.ToArray(); }
+        }
+
+        public SeparatedTokenList Identifiers
         {
             get { return identifiers; }
         }
 
-        public SyntaxToken Assign
+        public VariableAssignExpressionSyntax Assignment
         {
-            get { return assign; }
+            get { return assignment; }
         }
 
-        public ExpressionSyntax[] AssignExpressions
+        public bool HasAssignment
         {
-            get { return assignExpressions; }
-        }
-
-        public int IdentifierCount
-        {
-            get { return identifiers.Length; }
-        }
-
-        public int AssignExpressionCount
-        {
-            get { return HasAssignExpressions ? identifiers.Length : 0; }
-        }
-
-        public bool HasAssignExpressions
-        {
-            get { return assignExpressions != null; }
+            get { return assignment != null; }
         }
 
         // Constructor
-        //internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, TypeReferenceSyntax variableType, string[] variableNames, ExpressionSyntax[] assignExpressions = null)
-        //    : base(tree, parent, new SyntaxToken(";"))
-        //{
-        //    // Check for incompatible
-        //    if (variableNames != null && variableNames.Length > 0 && assignExpressions != null && variableNames.Length != assignExpressions.Length)
-        //        throw new ArgumentException("Assign expression length must match variable names length");
-
-        //    this.variableType = variableType;
-        //    this.assignExpressions = assignExpressions;
-
-        //    // Setup identifiers
-        //    this.identifiers = new SyntaxToken[variableNames.Length];
-
-        //    for(int i = 0; i < variableNames.Length; i++)
-        //    {
-        //        this.identifiers[i] = new SyntaxToken(variableNames[i]);
-        //    }
-        //}
-
-        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, string[] identifiers, ExpressionSyntax[] assignExpressions)
-            : base(variableType.StartToken)
+        internal VariableDeclarationStatementSyntax(SyntaxNode parent, TypeReferenceSyntax variableType, string[] identifiers, VariableAssignExpressionSyntax assignment)
+            : base(parent)
         {
             this.variableType = variableType;
-            this.identifiers = identifiers.Select(i => new SyntaxToken(i)).ToArray();
-            this.identifiers[0].WithLeadingWhitespace(" ");
+            this.identifiers = new SeparatedTokenList(this, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
+            this.assignment = assignment;
 
-            this.assignExpressions = assignExpressions;
-
-            assign = SyntaxToken.Assign();
-            lblock = SyntaxToken.LBlock();
-            rblock = SyntaxToken.RBlock();
+            // Add identifiers
+            foreach (string identifier in identifiers)
+                this.identifiers.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
         }
 
-        internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.LocalVariableStatementContext local)
-            : base(tree, parent, local)
+        internal VariableDeclarationStatementSyntax(SyntaxNode parent, LumaSharpParser.LocalVariableStatementContext local)
+            : base(parent)
         {
             // Variable type
-            this.variableType = new TypeReferenceSyntax(tree, this, local.typeReference());
+            this.variableType = new TypeReferenceSyntax(this, null, local.typeReference());
 
             // Identifiers
-            this.identifiers = local.IDENTIFIER().Select(i =>  new SyntaxToken(i)).ToArray();
+            this.identifiers = new SeparatedTokenList(this, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
+
+            // Add primary identifier
+            this.identifiers.AddElement(new SyntaxToken(SyntaxTokenKind.Identifier, local.IDENTIFIER()), null);
+
+            // Add secondary identifiers
+            LumaSharpParser.LocalVariableSecondaryContext[] secondaryIdentifiers = local.localVariableSecondary();
+
+            if(secondaryIdentifiers != null)
+            {
+                foreach(LumaSharpParser.LocalVariableSecondaryContext secondaryIdentifier in secondaryIdentifiers)
+                {
+                    this.identifiers.AddElement(
+                        new SyntaxToken(SyntaxTokenKind.Identifier, secondaryIdentifier.IDENTIFIER()),
+                        new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryIdentifier.COMMA()));
+                }
+            }
+
 
             // Get assignment
-            LumaSharpParser.LocalVariableAssignmentContext assignment = local.localVariableAssignment();
+            LumaSharpParser.VariableAssignmentContext assignment = local.variableAssignment();
 
             if (assignment != null)
             {
-                // Assign expressions
-                this.assignExpressions = assignment.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
-
-                // Assign
-                this.assign = new SyntaxToken(assignment.assign);
-
-                // Check for block
-                if (assignment.lblock != null)
-                    this.lblock = new SyntaxToken(assignment.lblock);
-
-                if (assignment.rblock != null)
-                    this.rblock = new SyntaxToken(assignment.rblock);
+                // Create assignment
+                this.assignment = new VariableAssignExpressionSyntax(this, assignment);
             }
-            
-            // Semicolon
-            this.statementEnd = new SyntaxToken(local.semi);
-        }
-
-        internal VariableDeclarationStatementSyntax(SyntaxTree tree, SyntaxNode parent, LumaSharpParser.ForVariableStatementContext forVariable, IToken semi)
-            : base(tree, parent, forVariable)
-        {
-            // Variable type
-            this.variableType = new TypeReferenceSyntax(tree, this, forVariable.typeReference());
-
-            // Identifiers
-            this.identifiers = forVariable.IDENTIFIER().Select(i => new SyntaxToken(i)).ToArray();
-
-            // Get assignment
-            LumaSharpParser.LocalVariableAssignmentContext assignment = forVariable.localVariableAssignment();
-
-            if(assignment != null)
-            {
-                // Assign expressions
-                this.assignExpressions = assignment.expression().Select(e => ExpressionSyntax.Any(tree, this, e)).ToArray();
-
-                // Assign
-                this.assign = new SyntaxToken(assignment.assign);
-
-                // Check for block
-                if(assignment.lblock != null)
-                    this.lblock= new SyntaxToken(assignment.lblock);
-
-                if(assignment.rblock != null)
-                    this.rblock= new SyntaxToken(assignment.rblock);
-            }
-
-            // Semicolon
-            this.statementEnd = new SyntaxToken(semi);
         }
 
         // Methods
@@ -166,55 +108,13 @@ namespace LumaSharp_Compiler.AST
             variableType.GetSourceText(writer);
 
             // Write identifiers
-            for(int i = 0; i < identifiers.Length; i++)
-            {
-                // Identifier
-                identifiers[i].GetSourceText(writer);
-
-                // Separator
-                if(i < identifiers.Length - 1)
-                    writer.Write(",");
-            }
+            identifiers.GetSourceText(writer);
 
             // Check for assignment
-            if (HasAssignExpressions == true)
+            if (HasAssignment == true)
             {
                 // Write assign
-                assign.GetSourceText(writer);
-
-                // Check for multiple assignments
-                if(AssignExpressionCount > 1)
-                {
-                    // Start block
-                    lblock.GetSourceText(writer);
-
-                    // Write all assignments
-                    for(int i = 0; i < assignExpressions.Length; i++)
-                    {
-                        // Write expression
-                        assignExpressions[i].GetSourceText(writer);
-
-                        // Write comma
-                        if(i < assignExpressions.Length - 1)
-                            writer.Write(",");
-                    }
-
-                    // End block
-                    rblock.GetSourceText(writer);
-                }
-                else
-                {
-                    // Write single assignment
-                    assignExpressions[0].GetSourceText(writer);
-
-                    
-                }
-            }
-
-            if (HasAssignExpressions == false || AssignExpressionCount == 1)
-            {
-                // Write semi colon
-                statementEnd.GetSourceText(writer);
+                assignment.GetSourceText(writer);
             }
         }
     }
