@@ -107,6 +107,10 @@ namespace LumaSharp.Compiler.AST
 
         public static ExpressionSyntax Any(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
         {
+            // Check for null
+            if (expression == null)
+                return null;
+
             // Check for index first of all
             if (expression.indexExpression() != null)
                 return new ArrayIndexExpressionSyntax(parent, expression);

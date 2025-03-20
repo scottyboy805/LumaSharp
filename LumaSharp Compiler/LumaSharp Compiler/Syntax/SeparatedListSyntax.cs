@@ -93,7 +93,7 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException("Separator must be of kind: " + separatorKind);
 
             // Check for count
-            if (syntaxList.Count == 0 && separator == null)
+            if (syntaxList.Count > 0 && separator == null)
                 throw new ArgumentException("Separator must be provided for non-zero indexed elements");
 
             // Add to list

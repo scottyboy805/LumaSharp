@@ -1,5 +1,5 @@
-﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler;
+﻿using LumaSharp.Compiler;
+using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LumaSharp_CompilerTests.AST.Parse

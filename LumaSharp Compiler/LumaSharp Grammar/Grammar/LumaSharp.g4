@@ -359,7 +359,7 @@ typeReferenceList:
 
 typeReference: 
 	(primitiveType 
-	| (namespaceName? parentTypeReference* IDENTIFIER genericArgumentList?)) 
+	| ((namespaceName COLON)? parentTypeReference* IDENTIFIER genericArgumentList?)) 
 	arrayParameters?;
 
 typeReferenceSecondary:
@@ -541,21 +541,26 @@ expression:
 	  unaryPrefix=('-' | '!' | '++' | '--') expression							// Unary prefix decrement
 	| expression unaryPostfix=('++' | '--')				// Unary postfix decrement
 	| expression binary=('*' | '/' | '%') expression				// Multiply expression
+	| expression binary=('+' | '-') expression
 	| expression binary=('>=' | '<=' | '>' | '<' | '==' | '!=') expression					// Add expression
 	| expression binary=('&&' | '||') expression				// And expression
 	| expression TERNARY expression COLON expression
 	| expression indexExpression						// Array index
+	
 	| IDENTIFIER
-	| endExpression										// Primitive and literals
-	| methodInvokeExpression							// Method invoke
-	| fieldAccessExpression								// Field expression
+	| expression methodInvokeExpression					// Method invoke
+	| expression fieldAccessExpression					// Field expression
 	| parenExpression									// Paren expression
 	| typeExpression									// Type expression
 	| sizeExpression									// Size expression
 	| newExpression										// New expression
+	| endExpression										// Primitive and literals
 	| THIS
 	| BASE
-	| typeReference;		
+	
+	| typeReference
+	;
+			
 
 parenExpression:
 	LPAREN expression RPAREN;

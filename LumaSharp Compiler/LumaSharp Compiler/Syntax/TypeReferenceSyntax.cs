@@ -315,23 +315,17 @@ namespace LumaSharp.Compiler.AST
                 if(typeRef.namespaceName() != null)
                 {
                     this.namespaceName = new SeparatedTokenList(this, typeRef.namespaceName());
+                    this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, typeRef.COLON());
                 }
 
                 // Get parent type
-                if(typeRef.parentTypeReference() != null)
+                if(typeRef.parentTypeReference() != null && typeRef.parentTypeReference().Length > 0)
                 {
                     this.parentTypes = typeRef.parentTypeReference().Select(p => new ParentTypeReferenceSyntax(this, p)).ToArray();
                 }
 
                 // Identifier
                 this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, typeRef.IDENTIFIER());
-
-
-                // Build namespace
-                if (typeRef.namespaceName() != null)
-                {
-                    this.namespaceName = new SeparatedTokenList(this, typeRef.namespaceName());
-                }
 
 
                 // Get generics

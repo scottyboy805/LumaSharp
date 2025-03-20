@@ -193,7 +193,7 @@ namespace LumaSharp.Compiler.AST
         {
             // Create parser
             ParserContext context = new ParserContext(source);
-
+            
             // Parse expression only
             return context.ParseExpression();
         }

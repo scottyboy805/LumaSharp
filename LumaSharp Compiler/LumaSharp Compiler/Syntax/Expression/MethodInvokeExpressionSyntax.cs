@@ -85,14 +85,16 @@ namespace LumaSharp.Compiler.AST
             : base(parent, null)
         {
             this.identifier = Syntax.Identifier(identifier);
+            this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
             this.accessExpression = accessExpression;
             this.argumentList = arguments;
 
-            if(genericArgumentList != null)
-            {
-                this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
+            if(genericArguments != null)
                 this.genericArgumentList = genericArguments;
-            }
+
+            // Check for arguments
+            if (arguments == null)
+                this.argumentList = new ArgumentListSyntax(this, Array.Empty<ExpressionSyntax>());
         }
 
         internal MethodInvokeExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
