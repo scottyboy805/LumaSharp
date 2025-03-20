@@ -76,9 +76,23 @@ namespace LumaSharp.Compiler.Emit
         public override void BuildMemberExecutable(ExecutableBuilder builder)
         {
             // Build arg and locals
+            List<_VariableHandle> returnHandles = new List<_VariableHandle>();
             List<_VariableHandle> parameterHandles = new List<_VariableHandle>();
             List<_VariableHandle> localHandles = new List<_VariableHandle>();
             uint stackOffset = 0;
+
+            // Process returns
+            for(int i = 0; i < methodModel.ReturnTypeSymbols.Length; i++)
+            {
+                // Add return
+                returnHandles.Add(new _VariableHandle(methodModel.ReturnTypeSymbols[i].TypeHandle, stackOffset));
+
+                // Advance offset
+                stackOffset += returnHandles[returnHandles.Count - 1].TypeHandle.TypeSize;
+            }
+
+            // Reset stack offset for parameter and locals
+            stackOffset = 0;
 
             // Process parameters
             for (int i = 0; i < methodModel.ParameterSymbols.Length; i++)
@@ -122,17 +136,17 @@ namespace LumaSharp.Compiler.Emit
             if (methodModel.HasParameters == false && methodModel.HasReturnTypes == false) signatureFlags |= _MethodSignatureFlags.VoidCall;
 
             // Build the method signature
-            _MethodSignatureHandle signatureHandle = new _MethodSignatureHandle((ushort)parameterHandles.Count, (ushort)localHandles.Count, signatureFlags);
+            _MethodSignatureHandle signatureHandle = new _MethodSignatureHandle((ushort)parameterHandles.Count, (ushort)returnHandles.Count, signatureFlags);
 
             // Build the method body
-            _MethodBodyHandle bodyHandle = new _MethodBodyHandle((ushort)bodyBuilder.MaxStack, (ushort)localHandles.Count);
+            _MethodBodyHandle bodyHandle = new _MethodBodyHandle((ushort)0, (ushort)localHandles.Count, (uint)0);
 
             // Build the method handle
             _MethodHandle methodHandle = new _MethodHandle(methodModel.SymbolToken, methodModel.DeclaringTypeSymbol.SymbolToken, signatureHandle, bodyHandle);
 
 
             // Finally emit the method
-            rva = builder.WriteMethodExecutable(methodHandle, parameterHandles.ToArray(), localHandles.ToArray(), bodyBuilder);
+            rva = builder.WriteMethodExecutable(methodHandle, returnHandles, parameterHandles, localHandles, bodyBuilder);
         }
 
         //public int EmitMetaModel(BinaryWriter writer = null)

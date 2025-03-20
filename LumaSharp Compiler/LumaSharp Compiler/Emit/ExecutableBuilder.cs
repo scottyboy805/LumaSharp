@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp.Runtime.Handle;
+using System.Runtime.InteropServices;
 
 namespace LumaSharp.Compiler.Emit
 {
@@ -37,7 +38,7 @@ namespace LumaSharp.Compiler.Emit
             return rva;
         }
 
-        public int WriteMethodExecutable(_MethodHandle methodHandle, _VariableHandle[] parameterHandles, _VariableHandle[] localHandles, MethodBodyBuilder body)
+        public unsafe int WriteMethodExecutable(_MethodHandle methodHandle, IList<_VariableHandle> returnParameterHandles, IList<_VariableHandle> parameterHandles, IList<_VariableHandle> localHandles, MethodBodyBuilder body)
         {
             // Get the rva - relative virtual address of this method call
             int rva = (int)buffer.Position;
@@ -47,19 +48,19 @@ namespace LumaSharp.Compiler.Emit
             writer.Write(methodHandle.DeclaringTypeToken.MetaToken);
 
             // Signature
-            writer.Write((uint)methodHandle.Signature.Flags);
+            writer.Write((ushort)methodHandle.Signature.Flags);
             writer.Write((ushort)methodHandle.Signature.ParameterCount);
             writer.Write((ushort)methodHandle.Signature.ReturnCount);
+
+            long bodyOffset = buffer.Position;
 
             // Body
             writer.Write((ushort)methodHandle.Body.MaxStack);
             writer.Write((ushort)methodHandle.Body.VariableCount);
+            writer.Write((uint)methodHandle.Body.InstructionsSize);
 
 
-            // Write method body
-            writer.Write(body != null);
-
-            if(body != null)
+            if (body != null)
             {
                 // Create bytecode builder
                 BytecodeBuilder builder = new BytecodeBuilder(buffer);
@@ -69,9 +70,28 @@ namespace LumaSharp.Compiler.Emit
 
                 // Flush
                 buffer.Flush();
+
+                long currentOffset = buffer.Position;
+
+                // Return to update max stack
+                buffer.Seek(bodyOffset, SeekOrigin.Begin);
+
+                // Overwrite body
+                writer.Write((ushort)body.MaxStack);
+                writer.Write((ushort)methodHandle.Body.VariableCount);
+                writer.Write((uint)builder.Size);
+
+                // Return to current
+                buffer.Seek(currentOffset, SeekOrigin.Begin);
             }
 
             // Note that these come after the instructions because it means the rva + methodHandle size is the start of bytecode
+            // Write return variables
+            for(int i = 0; i < methodHandle.Signature.ReturnCount; i++)
+            {
+                WriteVariableExecutable(returnParameterHandles[i]);
+            }
+
             // Write parameter variables
             for(int i = 0; i < methodHandle.Signature.ParameterCount; i++)
             {
@@ -92,14 +112,14 @@ namespace LumaSharp.Compiler.Emit
             WriteTypeReferenceExecutable(variableHandle.TypeHandle);
 
             // Write the offset - Note that the offset can be recalculated by the runtime
-            writer.Write(variableHandle.StackOffset);
+            writer.Write((uint)variableHandle.StackOffset);
         }
 
         private void WriteTypeReferenceExecutable(_TypeHandle typeHandle)
         {
             // Write type token and size - Note that size can be recalculated by the runtime
-            writer.Write(typeHandle.TypeToken.MetaToken);
-            writer.Write(typeHandle.TypeSize);
+            writer.Write((int)typeHandle.TypeToken.MetaToken);
+            writer.Write((uint)typeHandle.TypeSize);
         }
     }
 }

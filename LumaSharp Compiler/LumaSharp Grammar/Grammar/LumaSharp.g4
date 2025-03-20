@@ -548,6 +548,7 @@ expression:
 	| expression indexExpression						// Array index
 	
 	| IDENTIFIER
+	| methodInvokeExpression
 	| expression methodInvokeExpression					// Method invoke
 	| expression fieldAccessExpression					// Field expression
 	| parenExpression									// Paren expression
@@ -609,7 +610,7 @@ fieldAccessExpression:
 
 // Method invoke
 methodInvokeExpression: 
-	DOT
+	DOT?
 	IDENTIFIER 
 	genericArgumentList? 
 	argumentList;

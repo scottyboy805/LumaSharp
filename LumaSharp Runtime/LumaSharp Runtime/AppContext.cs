@@ -190,7 +190,7 @@ namespace LumaSharp.Runtime
         {
         }
 
-        internal void DefineMember(MetaMember member)
+        internal void DefineMetaMember(MetaMember member)
         {
             // Check for already added
             if (loadedMembers.ContainsKey(member.Token) == true)
@@ -198,6 +198,16 @@ namespace LumaSharp.Runtime
 
             // Store member
             loadedMembers[member.Token] = member;
+        }
+
+        internal void DefineExecutableMethod(_MethodHandle* method)
+        {
+            // Check for already added
+            if (methodHandles.ContainsKey(method->MethodToken) == true)
+                throw new InvalidOperationException("Method executable with token already exists: " + method->MethodToken);
+
+            // Store method
+            methodHandles[method->MethodToken] = (IntPtr)method;
         }
 
         internal ThreadContext GetCurrentThreadContext()

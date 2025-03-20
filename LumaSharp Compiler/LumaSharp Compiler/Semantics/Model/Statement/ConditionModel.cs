@@ -55,7 +55,8 @@ namespace LumaSharp.Compiler.Semantics.Model
             this.syntax = syntax;
 
             // Condition
-            this.conditionModel = ExpressionModel.Any(model, this, syntax.Condition);
+            if(syntax.Condition != null)
+                this.conditionModel = ExpressionModel.Any(model, this, syntax.Condition);
 
             // Statements
             BuildSyntaxBlock(syntax);

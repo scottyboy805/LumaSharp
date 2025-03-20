@@ -39,6 +39,8 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
             MethodModel methodModel = model.DescendantsOfType<MethodModel>(true).FirstOrDefault();
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
             Assert.AreEqual(0, model.Report.MessageCount);
@@ -63,15 +65,17 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
                 i32 Method(i32 n)
                 {
                     if(n < 2)
-                        return n;
+                        return n
                     else
-                        return Method(n - 1) + Method(n - 2);        
+                        return Method(n - 1) + Method(n - 2)       
                 }
             }"));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
             MethodModel methodModel = model.DescendantsOfType<MethodModel>(true).FirstOrDefault();
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);

@@ -69,9 +69,14 @@ namespace LumaSharp.Runtime.Reflection
             {
                 foreach(MetaVariable parameter in parameters)
                 {
-                    yield return parameter.ParameterType;
+                    yield return parameter.VariableType;
                 }
             }
+        }
+
+        public int RVA
+        {
+            get { return rva; }
         }
 
         // Constructor
@@ -85,6 +90,7 @@ namespace LumaSharp.Runtime.Reflection
         {
             this.methodFlags = methodFlags;
             this.returnTypeReferences = returnTypes;
+            this.parameters = parameters;
         }
 
         // Methods

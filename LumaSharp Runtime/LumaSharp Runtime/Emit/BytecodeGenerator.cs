@@ -23,6 +23,11 @@ namespace LumaSharp.Runtime.Emit
             get { return maxStack; }
         }
 
+        public int Size
+        {
+            get { return (int)instructionBuffer.Length; }
+        }
+
         // Constructor
         public BytecodeGenerator(MemoryStream buffer = null, bool validateInstructions = true)
         {
@@ -67,10 +72,10 @@ namespace LumaSharp.Runtime.Emit
             void* mem = NativeMemory.Alloc((nuint)instructionBuffer.Length + (uint)sizeof(_MethodHandle));
 
             // Create signature
-            _MethodSignatureHandle signature = new _MethodSignatureHandle((ushort)parameterTypes.Length, (ushort)localTypes.Length, null, null);
+            _MethodSignatureHandle signature = new _MethodSignatureHandle((ushort)parameterTypes.Length, (ushort)0, null, null, 0);
 
             // Create body
-            _MethodBodyHandle body = new _MethodBodyHandle((ushort)maxStack, null, (ushort)localTypes.Length);
+            _MethodBodyHandle body = new _MethodBodyHandle((ushort)maxStack, null, (ushort)localTypes.Length, 0);
 
             // Create method handle
             *(_MethodHandle*)mem = new _MethodHandle(new _TokenHandle(0), new _TokenHandle(0), signature, body);

@@ -3,7 +3,7 @@
 namespace LumaSharp.Runtime.Handle
 {
     [Flags]
-    public enum _MethodSignatureFlags : uint
+    public enum _MethodSignatureFlags : ushort
     {
         HasThis = 1 << 0,
         HasArguments = 1 << 1,
@@ -30,13 +30,13 @@ namespace LumaSharp.Runtime.Handle
             this.ReturnParameters = null;
         }
 
-        public _MethodSignatureHandle(ushort parameterCount, ushort returnCount, _VariableHandle* parameters, _VariableHandle* returnParameter)
+        public _MethodSignatureHandle(ushort parameterCount, ushort returnCount, _VariableHandle* parameters, _VariableHandle* returnParameter, _MethodSignatureFlags flags)
         {
-            this.Flags = 0;
+            this.Flags = flags;
             this.Parameters = parameters;
             this.ReturnParameters = returnParameter;
             this.ParameterCount = parameterCount;
-            this.ReturnCount = parameterCount;
+            this.ReturnCount = returnCount;
         }
     }
 
@@ -46,20 +46,23 @@ namespace LumaSharp.Runtime.Handle
         public readonly ushort MaxStack;        
         public readonly _VariableHandle* Variables; 
         public readonly ushort VariableCount;
+        public readonly uint InstructionsSize;
 
         // Constructor
-        public _MethodBodyHandle(ushort maxStack, ushort variableCount)
+        public _MethodBodyHandle(ushort maxStack, ushort variableCount, uint instructionsSize)
         {
             this.MaxStack = maxStack;
             this.Variables = null;
             this.VariableCount = variableCount;
+            this.InstructionsSize = instructionsSize;
         }
 
-        public _MethodBodyHandle(ushort maxStack, _VariableHandle* variables, ushort variableCount)
+        public _MethodBodyHandle(ushort maxStack, _VariableHandle* variables, ushort variableCount, uint instructionsSize)
         {
             this.MaxStack = maxStack;
             this.Variables = variables;
             this.VariableCount = variableCount;
+            this.InstructionsSize = instructionsSize;
         }
     }
 

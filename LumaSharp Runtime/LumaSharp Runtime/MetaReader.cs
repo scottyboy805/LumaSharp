@@ -9,8 +9,15 @@ namespace LumaSharp.Runtime
         private AppContext appContext = null;
         private BinaryReader reader = null;
 
+        // Constructor
+        internal MetaReader(AppContext appContext, Stream inputStream)
+        {
+            this.appContext = appContext;
+            this.reader = new BinaryReader(inputStream);
+        }
+
         // Methods
-        public MetaMethod ReadMethodMeta()
+        public MetaMethod ReadMethodMeta(bool define = true)
         {
             // Read metadata
             _TokenHandle methodToken = new _TokenHandle(reader.ReadInt32());
@@ -31,7 +38,13 @@ namespace LumaSharp.Runtime
             MetaVariable[] parameters = ReadMethodParameters();
 
             // Build method
-            return new MetaMethod(appContext, methodToken, methodName, methodFlags, returnTypes, parameters);
+            MetaMethod method = new MetaMethod(appContext, methodToken, methodName, methodFlags, returnTypes, parameters);
+
+            // Check for define
+            if(define == true)
+                appContext.DefineMetaMember(method);
+
+            return method;
         }
 
         private MemberReference<MetaType>[] ReadMethodReturnTypes()

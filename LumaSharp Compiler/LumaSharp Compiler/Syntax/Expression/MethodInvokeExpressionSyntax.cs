@@ -117,17 +117,17 @@ namespace LumaSharp.Compiler.AST
             // Create arguments
             this.argumentList = new ArgumentListSyntax(this, method.argumentList());
 
-            if (expression != null)
+            if (expression != null && expression.expression(0) != null)
             {
                 // Create dot
                 dot = new SyntaxToken(SyntaxTokenKind.DotSymbol, method.DOT());
 
                 // Create access expression
-                if (expression.typeReference() != null)
-                {
-                    this.accessExpression = new TypeReferenceSyntax(this, null, expression.typeReference());
-                }
-                else
+                //if (expression.typeReference() != null)
+                //{
+                //    this.accessExpression = new TypeReferenceSyntax(this, null, expression.typeReference());
+                //}
+                //else
                 {
                     this.accessExpression = Any(this, expression.expression(0));
                 }

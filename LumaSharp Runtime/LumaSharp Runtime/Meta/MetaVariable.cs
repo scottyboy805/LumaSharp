@@ -31,7 +31,7 @@ namespace LumaSharp.Runtime.Reflection
             get { return index; }
         }
 
-        public MetaType ParameterType
+        public MetaType VariableType
         {
             get { return variableType.Member; }
         }

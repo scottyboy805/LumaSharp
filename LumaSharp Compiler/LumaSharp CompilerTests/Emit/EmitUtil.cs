@@ -3,6 +3,7 @@ using LumaSharp.Compiler.Semantics.Model;
 using AppContext = LumaSharp.Runtime.AppContext;
 using MethodBuilder = LumaSharp.Compiler.Emit.MethodBuilder;
 using LumaSharp.Compiler.Emit;
+using LumaSharp.Runtime;
 
 namespace LumaSharp_CompilerTests.Emit
 {
@@ -15,15 +16,16 @@ namespace LumaSharp_CompilerTests.Emit
             AppContext context = new AppContext();
 
             // Store method
-            MemoryStream stream = new MemoryStream();
+            MemoryStream metaStream = new MemoryStream();
+            MemoryStream executableStream = new MemoryStream();
 
             // Create method builder
             MethodBuilder builder = new MethodBuilder(context, model);
 
 
 
-            MetaBuilder metaBuilder = new MetaBuilder(stream);
-            ExecutableBuilder executableBuilder = new ExecutableBuilder(stream);
+            MetaBuilder metaBuilder = new MetaBuilder(metaStream);
+            ExecutableBuilder executableBuilder = new ExecutableBuilder(executableStream);
 
             // Emit method
             builder.BuildMemberExecutable(executableBuilder);
@@ -35,21 +37,28 @@ namespace LumaSharp_CompilerTests.Emit
             //builder.EmitExecutableModel(writer, "current.instructions");
 
 
-            stream.Seek(0, SeekOrigin.Begin);
+            metaStream.Seek(0, SeekOrigin.Begin);
             using (Stream fs = File.Create("current.bytecode"))
-                stream.CopyTo(fs);
+                metaStream.CopyTo(fs);
 
             // Return to start
-            stream.Seek(0, SeekOrigin.Begin);
-            BinaryReader reader = new BinaryReader(stream);
+            metaStream.Seek(0, SeekOrigin.Begin);
+            executableStream.Seek(0, SeekOrigin.Begin);
 
             // Read method
-            MetaMethod method = new MetaMethod(context);
-            method.LoadMethodMetadata(reader);
-            method.LoadMethodExecutable(reader);
+            ExecutableReader executableReader = new ExecutableReader(context, executableStream);
+            MetaReader metaReader = new MetaReader(context, metaStream);
 
-            // Define the method
-            context.DefineMember(method);
+            // Read the method
+            MetaMethod method = metaReader.ReadMethodMeta(true);
+
+            // Read the executable
+            unsafe { executableReader.ReadMethodExecutable(method.RVA, true); }
+
+            //MetaMethod method = new MetaMethod(context);
+            //method.LoadMethodMetadata(reader);
+            //method.LoadMethodExecutable(reader);
+
 
             return method;
         }

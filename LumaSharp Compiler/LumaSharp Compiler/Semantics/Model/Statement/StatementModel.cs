@@ -75,7 +75,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
             // Check for condition
             if(syntax is ConditionStatementSyntax)
-                return new ConditionModel(model, parent, syntax as  ConditionStatementSyntax, statementIndex);
+                return new ConditionModel(model, parent, syntax as ConditionStatementSyntax, statementIndex);
 
             // Check for for loop
             if(syntax is ForStatementSyntax)

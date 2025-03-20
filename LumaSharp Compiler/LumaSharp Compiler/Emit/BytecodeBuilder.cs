@@ -64,14 +64,33 @@ namespace LumaSharp.Compiler.Emit
             get { return operations.Count; }
         }
 
+        public int Size
+        {
+            get { return generator.Size; }
+        }
+
         public BytecodeOperation First
         {
-            get { return operations[0]; }
+            get 
+            {
+                // Check for none
+                if (operations.Count == 0)
+                    return new BytecodeOperation(0, OpCode.Nop, OperandType.InlineNone, 0);
+
+                return operations[0]; 
+            }
         }
 
         public BytecodeOperation Last
         {
-            get { return operations[operations.Count - 1]; }
+            get 
+            {
+                // Check for none
+                if (operations.Count == 0)
+                    return new BytecodeOperation(0, OpCode.Nop, OperandType.InlineNone, 0);
+
+                return operations[operations.Count - 1]; 
+            }
         }
 
         public int MaxStack
@@ -217,7 +236,7 @@ namespace LumaSharp.Compiler.Emit
             int offset = CurrentOffset;
 
             // Emit the opcode with operand
-            generator.Emit(code, symbol.SymbolToken.MetaToken);
+            generator.EmitToken(code, symbol.SymbolToken.MetaToken);
 
             // Get the operation
             BytecodeOperation op = new BytecodeOperation(offset, code, OperandType.InlineToken, 4, symbol.SymbolToken);

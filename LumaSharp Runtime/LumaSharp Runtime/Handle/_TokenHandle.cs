@@ -88,6 +88,11 @@ namespace LumaSharp.Runtime.Handle
         }
 
         // Methods
+        public override string ToString()
+        {
+            return MetaToken.ToString();
+        }
+
         public bool IsRuntimeType()
         {
             return Kind >= TokenKind.AnyReference &&
