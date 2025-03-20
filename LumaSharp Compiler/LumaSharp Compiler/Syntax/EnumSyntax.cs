@@ -95,6 +95,10 @@ namespace LumaSharp.Compiler.AST
             }
 
             this.fieldBlock = fieldBlock;
+
+            // Check for null block
+            if (fieldBlock == null)
+                this.fieldBlock = new BlockSyntax<FieldSyntax>(this, Enumerable.Empty<FieldSyntax>());
         }
 
         internal EnumSyntax(SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)

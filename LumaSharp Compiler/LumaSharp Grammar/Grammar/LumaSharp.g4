@@ -609,7 +609,7 @@ fieldAccessExpression:
 
 // Method invoke
 methodInvokeExpression: 
-	DOT? 
+	DOT
 	IDENTIFIER 
 	genericArgumentList? 
 	argumentList;

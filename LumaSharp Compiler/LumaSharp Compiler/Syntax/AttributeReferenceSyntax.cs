@@ -82,7 +82,8 @@ namespace LumaSharp.Compiler.AST
             this.attributeType = new TypeReferenceSyntax(this, null, attribute.typeReference());
 
             // Argument list
-            this.argumentList = new ArgumentListSyntax(this, attribute.argumentList());
+            if(attribute.argumentList() != null)
+                this.argumentList = new ArgumentListSyntax(this, attribute.argumentList());
         }
 
         // Methods

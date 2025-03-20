@@ -82,7 +82,7 @@ namespace LumaSharp.Compiler.AST
 
         public bool HasGenericParameters
         {
-            get { return genericParameters.HasGenericParameters; }
+            get { return genericParameters != null && genericParameters.HasGenericParameters; }
         }
 
         public bool HasParameters

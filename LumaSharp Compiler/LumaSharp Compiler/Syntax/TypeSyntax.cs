@@ -143,6 +143,10 @@ namespace LumaSharp.Compiler.AST
             }
 
             this.memberBlock = memberBlock;
+
+            // Check for null block
+            if (memberBlock == null)
+                this.memberBlock = new BlockSyntax<MemberSyntax>(this, Enumerable.Empty<MemberSyntax>());
         }
 
         internal TypeSyntax(SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)

@@ -174,7 +174,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public bool IsCopy
         {
-            get { return typeSyntax.Attributes.Any(a => a.AttributeType.Identifier.Text == "Copy"); }
+            get { return typeSyntax.Attributes != null ? typeSyntax.Attributes.Any(a => a.AttributeType.Identifier.Text == "Copy") : false; }
         }
 
         public MetaTypeFlags TypeFlags
@@ -500,7 +500,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             {
                 for(int i = 0; i < typeSymbols.Count - 1; i++)
                 {
-                    report.ReportMessage(Code.MultipleBaseTypes, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[0], typeSymbols[i + 1].EvaluatedTypeSymbol);
+                    report.ReportMessage(Code.MultipleBaseTypes, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[0].EvaluatedTypeSymbol, typeSymbols[i + 1].EvaluatedTypeSymbol);
                 }
             }
 
@@ -509,7 +509,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             {
                 for (int i = 0; i < typeSymbols.Count; i++)
                 {
-                    report.ReportMessage(Code.InvalidTypeBaseContract, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[i]);
+                    report.ReportMessage(Code.InvalidTypeBaseContract, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[i].EvaluatedTypeSymbol);
                 }
             }
 

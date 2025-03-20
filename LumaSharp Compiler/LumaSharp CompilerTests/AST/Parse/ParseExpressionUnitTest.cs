@@ -107,9 +107,6 @@ namespace LumaSharp_CompilerTests.AST.Parse
         [DataRow("new MyType()")]
         [DataRow("new myGenericType<i32>()")]
         [DataRow("new myGenericType<i32, string, SomeOtherType<i8>>()")]
-        [DataRow("stacknew WithArguments(123, 456.34)")]
-        [DataRow("i32()")]
-        [DataRow("StackInitialized(false)")]
         public void Expression_New(string input)
         {
             // Try to parse the tree

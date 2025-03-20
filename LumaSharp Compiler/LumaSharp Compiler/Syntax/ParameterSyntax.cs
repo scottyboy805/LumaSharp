@@ -83,7 +83,7 @@ namespace LumaSharp.Compiler.AST
 
         public bool IsByReference
         {
-            get { return attributes.Any(a => a.AttributeType.Identifier.Text == "in" || a.AttributeType.Identifier.Text == "ref"); }
+            get { return attributes != null && attributes.Any(a => a.AttributeType.Identifier.Text == "in" || a.AttributeType.Identifier.Text == "ref"); }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants

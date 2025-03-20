@@ -1,4 +1,5 @@
 ﻿using LumaSharp.Compiler.AST;
+using System.Text;
 
 namespace LumaSharp.Compiler.Reporting
 {
@@ -28,6 +29,17 @@ namespace LumaSharp.Compiler.Reporting
         }
 
         // Methods
+        public override string ToString()
+        {
+            StringBuilder builder = new StringBuilder();
+
+            // Process all
+            foreach(CompileMessage message in messages)
+                builder.AppendLine(message.ToString());
+
+            return builder.ToString();
+        }
+
         public void ReportMessage(Code id, MessageSeverity severity, SyntaxSource source, params object[] args)
         {
             Dictionary<Code, string> messageSet;

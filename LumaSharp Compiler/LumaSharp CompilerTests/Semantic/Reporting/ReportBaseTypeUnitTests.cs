@@ -17,6 +17,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.InvalidSelfBaseType, model.Report.Messages.First().Code);
@@ -31,6 +33,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -47,6 +51,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.MultipleBaseTypes, model.Report.Messages.First().Code);
@@ -62,6 +68,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.FirstBaseType, model.Report.Messages.First().Code);
@@ -75,6 +83,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -91,6 +101,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.InvalidEnumBaseContract, model.Report.Messages.First().Code);
@@ -105,6 +117,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);

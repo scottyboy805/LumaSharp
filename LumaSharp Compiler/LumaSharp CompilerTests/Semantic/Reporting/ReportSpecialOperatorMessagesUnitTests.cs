@@ -20,6 +20,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -37,6 +39,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -56,6 +60,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -73,6 +79,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -92,6 +100,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
@@ -109,6 +119,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -125,6 +137,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -144,6 +158,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectVoidParameter, model.Report.Messages.First().Code);
@@ -162,6 +178,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -178,6 +196,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -196,6 +216,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -216,6 +238,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -234,6 +258,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -251,6 +277,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -271,6 +299,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -289,6 +319,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -306,6 +338,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -326,6 +360,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -344,6 +380,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -361,6 +399,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -381,6 +421,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -399,6 +441,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -416,6 +460,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -436,6 +482,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -454,6 +502,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -471,6 +521,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -491,6 +543,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -508,6 +562,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -527,6 +583,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -544,6 +602,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -564,6 +624,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -581,6 +643,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -600,6 +664,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -617,6 +683,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -637,6 +705,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -654,6 +724,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -673,6 +745,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -690,6 +764,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -710,6 +786,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
@@ -727,6 +805,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -746,6 +826,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
@@ -763,6 +845,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);

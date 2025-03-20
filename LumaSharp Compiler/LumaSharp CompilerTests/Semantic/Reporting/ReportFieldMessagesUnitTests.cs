@@ -19,6 +19,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.FieldAccessorNotFound, model.Report.Messages.First().Code);
@@ -35,6 +37,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -53,6 +57,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
@@ -73,6 +79,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
+            Console.WriteLine(model.Report);
+
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);
             Assert.AreEqual((int)Code.FieldRequiresType, model.Report.Messages.First().Code);
@@ -87,6 +95,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+
+            Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.Report.MessageCount);

@@ -67,6 +67,10 @@ namespace LumaSharp.Compiler.Semantics.Model
             if(syntax is VariableReferenceExpressionSyntax)
                 return new VariableReferenceModel(model, parent, syntax as VariableReferenceExpressionSyntax);
 
+            // Check for variable assign
+            //if(syntax is VariableAssignExpressionSyntax)
+            //    return new AssignModel(model, parent, syntax as )
+
             // Check for field
             if(syntax is FieldReferenceExpressionSyntax)
                 return new FieldAccessorReferenceModel(model, parent, syntax as FieldReferenceExpressionSyntax);
@@ -87,7 +91,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             if (syntax is NewExpressionSyntax)
                 return new NewModel(model, parent, syntax as NewExpressionSyntax);
 
-            throw new NotSupportedException("Specified syntax is not supported");
+            throw new NotSupportedException("Specified syntax is not supported: " + syntax.GetType());
         }
     }
 }

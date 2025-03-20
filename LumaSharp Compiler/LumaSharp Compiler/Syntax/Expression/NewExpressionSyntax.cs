@@ -89,7 +89,7 @@ namespace LumaSharp.Compiler.AST
             }
 
             // New type
-            this.newType = new TypeReferenceSyntax(this, expression, expression.typeReference());
+            this.newType = new TypeReferenceSyntax(this, expression, newExpression.typeReference());
 
             // Init arguments
             LumaSharpParser.ArgumentListContext argumentList = newExpression.argumentList();

@@ -114,13 +114,13 @@ namespace LumaSharp.Compiler.Reporting
             { Code.TypeArrayPrimitive, "Cannot apply array indexing to built in type `{0}`" },
 
             { Code.IdentifierNotFound, "The identifier `{0}` does not exist in the current context" },
-            { Code.IdentifierUsedBeforeDeclared, "The identifier `{0}` cannot be accessed before it is declared" },
+            { Code.IdentifierUsedBeforeDeclared, "The identifier `{0}` cannot be used before it is declared" },
             { Code.MultipleLocalIdentifiers, "The local identifier `{0}` is defined multiple times" },
             { Code.MultipleParameterIdentifiers, "The parameter identifier `{0}` is defined multiple times" },
 
             { Code.FieldAccessorNotFound, "The field or accessor `{0}` is not defined on the type `{1}`" },
             { Code.FieldRequiresInstance, "The field `{0}` must be accessed via an instance" },
-            { Code.FieldRequiresType, "The field `{0}` is marked as global must be accessed via a type qualifier" },
+            { Code.FieldRequiresType, "The field `{0}` is marked as global and must be accessed via a type qualifier" },
             { Code.FieldReadOnly, "The field `{0}` is marked as read only and cannot be assigned after initialization" },
 
             { Code.AccessorRequiresInstance, "The accessor `{0}` must be accessed via an instance" },
@@ -141,12 +141,12 @@ namespace LumaSharp.Compiler.Reporting
             { Code.OperatorIncorrectParameter, "Operator `{0}` does not have the correct parameter type. Expected `{1}`" },
 
             { Code.InvalidSelfBaseType, "Inheritance cycle detected for base type `{0}`" },
-            { Code.InvalidSelfBaseContract, "Inheritance cycle detected for base contract `{0}`" },
+            { Code.InvalidSelfBaseContract, "Inheritance cycle detected for base contract implementation `{0}`" },
             { Code.InvalidEnumBaseType, "Enum type `{0}` cannot be used as a base type" },
-            { Code.InvalidEnumBaseContract, "Enum type `{0}` cannot be used as a base contract" },
-            { Code.InvalidTypeBaseContract, "Type `{0}` cannot be used as a base contract" },
+            { Code.InvalidEnumBaseContract, "Enum type `{0}` cannot be used as a base contract implementation" },
+            { Code.InvalidTypeBaseContract, "Type `{0}` cannot be used as a base contract implementation" },
             { Code.MultipleBaseTypes, "Cannot have multiple base types `{0}` and `{1}`" },
-            { Code.FirstBaseType, "Base type `{0}` must come before any contract declarations" },
+            { Code.FirstBaseType, "Base type `{0}` must come before any contract implementations" },
 
             { Code.InvalidPrimitiveGenericConstraint, "Primitive type `{0}` cannot be used as a generic constraint" },
 
