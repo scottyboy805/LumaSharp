@@ -92,7 +92,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
         [DataRow("i32.Clamp(123)")]
         [DataRow("string.Clamp(123, someVar)")]
         [DataRow("someVariable.Clamp()")]
-        [DataRow("SomeType<i32>.Clamp()")]
+        [DataRow("SomeType<i32>.Clamp()", "Type")]
         public void Expression_Method(string input)
         {
             // Try to parse the tree

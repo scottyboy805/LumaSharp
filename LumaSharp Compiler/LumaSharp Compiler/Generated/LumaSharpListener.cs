@@ -741,15 +741,15 @@ public interface ILumaSharpListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitExpressionSecondary([NotNull] LumaSharpParser.ExpressionSecondaryContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.literalExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterEndExpression([NotNull] LumaSharpParser.EndExpressionContext context);
+	void EnterLiteralExpression([NotNull] LumaSharpParser.LiteralExpressionContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.literalExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitEndExpression([NotNull] LumaSharpParser.EndExpressionContext context);
+	void ExitLiteralExpression([NotNull] LumaSharpParser.LiteralExpressionContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeExpression"/>.
 	/// </summary>

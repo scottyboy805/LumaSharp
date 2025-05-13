@@ -58,14 +58,7 @@ namespace LumaSharp.Compiler.AST
             this.dot = new SyntaxToken(SyntaxTokenKind.DotSymbol, expression.fieldAccessExpression().DOT());
 
             // Create access expression
-            if (expression.typeReference() != null)
-            {
-                this.accessExpression = new TypeReferenceSyntax(this, null, expression.typeReference());
-            }
-            else
-            {
-                this.accessExpression = Any(this, expression.expression(0));
-            }
+            this.accessExpression = Any(this, expression.expression(0));
         }
 
         // Methods

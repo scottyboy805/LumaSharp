@@ -888,17 +888,17 @@ public partial class LumaSharpBaseListener : ILumaSharpListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitExpressionSecondary([NotNull] LumaSharpParser.ExpressionSecondaryContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// Enter a parse tree produced by <see cref="LumaSharpParser.literalExpression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterEndExpression([NotNull] LumaSharpParser.EndExpressionContext context) { }
+	public virtual void EnterLiteralExpression([NotNull] LumaSharpParser.LiteralExpressionContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// Exit a parse tree produced by <see cref="LumaSharpParser.literalExpression"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitEndExpression([NotNull] LumaSharpParser.EndExpressionContext context) { }
+	public virtual void ExitLiteralExpression([NotNull] LumaSharpParser.LiteralExpressionContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LumaSharpParser.typeExpression"/>.
 	/// <para>The default implementation does nothing.</para>

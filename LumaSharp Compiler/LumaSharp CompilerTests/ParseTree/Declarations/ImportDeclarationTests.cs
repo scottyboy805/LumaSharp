@@ -8,7 +8,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         [TestMethod]
         public void Import()
         {
-            string input = "import Collections;";
+            string input = "import Collections";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
@@ -22,7 +22,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         [TestMethod]
         public void ImportNested()
         {
-            string input = "import Collections:Generic;";
+            string input = "import Collections:Generic";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
@@ -37,7 +37,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         [TestMethod]
         public void ImportNestedMultiple()
         {
-            string input = "import Collections:Generic:Async;";
+            string input = "import Collections:Generic:Async";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
@@ -53,7 +53,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         [TestMethod]
         public void ImportMultiple()
         {
-            string input = "import Collections; import Collections:Generic;";
+            string input = "import Collections import Collections:Generic";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
@@ -63,14 +63,14 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             // Check for namespace name
             Assert.AreEqual("Collections", imports[0].importStatement().namespaceName().IDENTIFIER().GetText());
 
-            Assert.AreEqual("Collections", imports[1].importStatement().namespaceName().namespaceNameSecondary(0).IDENTIFIER().GetText());
-            Assert.AreEqual("Generic", imports[1].importStatement().namespaceName().namespaceNameSecondary(1).IDENTIFIER().GetText());
+            Assert.AreEqual("Collections", imports[1].importStatement().namespaceName().IDENTIFIER().GetText());
+            Assert.AreEqual("Generic", imports[1].importStatement().namespaceName().namespaceNameSecondary(0).IDENTIFIER().GetText());
         }
 
         [TestMethod]
         public void ImportAlias()
         {
-            string input = "import C as Collections.List;";
+            string input = "import C as Collections.List";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type
@@ -86,7 +86,7 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
         [TestMethod]
         public void ImportAliasNested()
         {
-            string input = "import C as Collections:Generic.List;";
+            string input = "import C as Collections:Generic.List";
             LumaSharpParser.CompilationUnitContext context = TestUtils.ParseInputString(input);
 
             // Check for root type

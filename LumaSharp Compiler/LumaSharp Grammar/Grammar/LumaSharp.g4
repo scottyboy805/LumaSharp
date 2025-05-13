@@ -1,6 +1,6 @@
 grammar LumaSharp;
 
-// Lexer keywords
+// Type keywords
 IMPORT: 'import';
 NAMESPACE: 'namespace';
 TYPE: 'type';
@@ -90,7 +90,6 @@ WS: [ \t\r\n]+ -> channel(HIDDEN);
 
 // This rule is optional and will be used to ignore comments
 COMMENT: '/*' .*? '*/' -> skip;
-
 
 
 // Parser rules
@@ -538,8 +537,15 @@ expressionLambda:
 	COMMA?;
 
 expression:
-	  unaryPrefix=('-' | '!' | '++' | '--') expression							// Unary prefix decrement
+	  
+	 expression methodInvokeExpression					// Method invoke
+	| expression fieldAccessExpression					// Field expression
+	| methodInvokeExpression
+	| typeReference
+
+	| unaryPrefix=('-' | '!' | '++' | '--') expression							// Unary prefix decrement
 	| expression unaryPostfix=('++' | '--')				// Unary postfix decrement
+	
 	| expression binary=('*' | '/' | '%') expression				// Multiply expression
 	| expression binary=('+' | '-') expression
 	| expression binary=('>=' | '<=' | '>' | '<' | '==' | '!=') expression					// Add expression
@@ -548,18 +554,15 @@ expression:
 	| expression indexExpression						// Array index
 	
 	| IDENTIFIER
-	| methodInvokeExpression
-	| expression methodInvokeExpression					// Method invoke
-	| expression fieldAccessExpression					// Field expression
+	
+	
 	| parenExpression									// Paren expression
 	| typeExpression									// Type expression
 	| sizeExpression									// Size expression
 	| newExpression										// New expression
-	| endExpression										// Primitive and literals
+	| literalExpression									// Primitive and literals
 	| THIS
 	| BASE
-	
-	| typeReference
 	;
 			
 
@@ -570,7 +573,7 @@ expressionSecondary:
 	COMMA
 	expression;
 
-endExpression: 
+literalExpression: 
 	  HEX 
 	| INT decorator=('U' | 'L' | 'UL')? 
 	| DECIMAL decorator=('F' | 'D')? 
@@ -602,6 +605,7 @@ indexExpression:
 	LARRAY 
 	expressionList
 	RARRAY;
+		
 
 // Field access
 fieldAccessExpression: 
@@ -610,7 +614,7 @@ fieldAccessExpression:
 
 // Method invoke
 methodInvokeExpression: 
-	DOT?
+	Dot?
 	IDENTIFIER 
 	genericArgumentList? 
 	argumentList;

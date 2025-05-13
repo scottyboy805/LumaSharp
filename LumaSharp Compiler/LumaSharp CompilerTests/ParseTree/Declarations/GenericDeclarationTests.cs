@@ -23,10 +23,9 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
-            Assert.AreEqual(3, generics.ChildCount);
-            Assert.AreEqual("<", generics.GetChild(0).GetText());
-            Assert.AreEqual("T", generics.GetChild(1).GetText());
-            Assert.AreEqual(">", generics.GetChild(2).GetText());
+            Assert.AreEqual("<", generics.LGENERIC().GetText());
+            Assert.AreEqual("T", generics.genericParameter().GetText());
+            Assert.AreEqual(">", generics.RGENERIC().GetText());
         }
 
         [TestMethod]
@@ -47,12 +46,11 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
-            Assert.AreEqual(5, generics.ChildCount);
-            Assert.AreEqual("<", generics.GetChild(0).GetText());
-            Assert.AreEqual("T0", generics.GetChild(1).GetText());
-            Assert.AreEqual(",", generics.GetChild(2).GetText());
-            Assert.AreEqual("T1", generics.GetChild(3).GetText());
-            Assert.AreEqual(">", generics.GetChild(4).GetText());
+            Assert.AreEqual("<", generics.LGENERIC().GetText());
+            Assert.AreEqual("T0", generics.genericParameter().GetText());
+            Assert.AreEqual(",", generics.genericParameterSecondary()[0].COMMA().GetText());
+            Assert.AreEqual("T1", generics.genericParameterSecondary()[0].genericParameter().GetText());
+            Assert.AreEqual(">", generics.RGENERIC().GetText());
         }
 
         [TestMethod]
@@ -73,14 +71,13 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
-            Assert.AreEqual(7, generics.ChildCount);
-            Assert.AreEqual("<", generics.GetChild(0).GetText());
-            Assert.AreEqual("T0", generics.GetChild(1).GetText());
-            Assert.AreEqual(",", generics.GetChild(2).GetText());
-            Assert.AreEqual("T1", generics.GetChild(3).GetText());
-            Assert.AreEqual(",", generics.GetChild(4).GetText());
-            Assert.AreEqual("T2", generics.GetChild(5).GetText());
-            Assert.AreEqual(">", generics.GetChild(6).GetText());
+            Assert.AreEqual("<", generics.LGENERIC().GetText());
+            Assert.AreEqual("T0", generics.genericParameter().GetText());
+            Assert.AreEqual(",", generics.genericParameterSecondary()[0].COMMA().GetText());
+            Assert.AreEqual("T1", generics.genericParameterSecondary()[0].genericParameter().GetText());
+            Assert.AreEqual(",", generics.genericParameterSecondary()[1].COMMA().GetText());
+            Assert.AreEqual("T2", generics.genericParameterSecondary()[1].genericParameter().GetText());
+            Assert.AreEqual(">", generics.RGENERIC().GetText());
         }
 
         [TestMethod]

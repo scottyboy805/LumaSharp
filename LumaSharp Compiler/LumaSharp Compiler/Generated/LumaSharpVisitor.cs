@@ -458,11 +458,11 @@ public interface ILumaSharpVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitExpressionSecondary([NotNull] LumaSharpParser.ExpressionSecondaryContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.literalExpression"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEndExpression([NotNull] LumaSharpParser.EndExpressionContext context);
+	Result VisitLiteralExpression([NotNull] LumaSharpParser.LiteralExpressionContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.typeExpression"/>.
 	/// </summary>

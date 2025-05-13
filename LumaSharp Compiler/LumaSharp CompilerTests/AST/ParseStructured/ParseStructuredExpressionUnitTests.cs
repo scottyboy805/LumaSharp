@@ -64,6 +64,7 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
         }
 
         [DataTestMethod]
+        [TestMethod]
         [DataRow("i32.myMethod()", typeof(TypeReferenceSyntax))]
         [DataRow("my.Field.Final()", typeof(FieldReferenceExpressionSyntax))]
         [DataRow("my.Method(a).Final()", typeof(MethodInvokeExpressionSyntax))]

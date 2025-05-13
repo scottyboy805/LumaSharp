@@ -96,6 +96,7 @@ HEX=95
 LITERAL=96
 WS=97
 COMMENT=98
+Dot=99
 '++'=1
 '--'=2
 '+='=3

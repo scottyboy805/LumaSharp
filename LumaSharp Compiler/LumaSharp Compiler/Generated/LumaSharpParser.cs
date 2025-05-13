@@ -49,7 +49,7 @@ public partial class LumaSharpParser : Parser {
 		LARRAY=76, RARRAY=77, LBLOCK=78, RBLOCK=79, LPAREN=80, RPAREN=81, DOT=82, 
 		COMMA=83, COLON=84, HASH=85, ASSIGN=86, LAMBDA=87, ENUMERABLE=88, TERNARY=89, 
 		RANGEINCLUSIVE=90, RANGEEXCLUSIVE=91, IDENTIFIER=92, INT=93, DECIMAL=94, 
-		HEX=95, LITERAL=96, WS=97, COMMENT=98;
+		HEX=95, LITERAL=96, WS=97, COMMENT=98, Dot=99;
 	public const int
 		RULE_compilationUnit = 0, RULE_importElement = 1, RULE_rootElement = 2, 
 		RULE_importStatement = 3, RULE_importAlias = 4, RULE_namespaceDeclaration = 5, 
@@ -74,7 +74,7 @@ public partial class LumaSharpParser : Parser {
 		RULE_selectStatement = 60, RULE_defaultStatement = 61, RULE_matchStatement = 62, 
 		RULE_tryStatement = 63, RULE_catchStatement = 64, RULE_finallyStatement = 65, 
 		RULE_expressionList = 66, RULE_expressionLambda = 67, RULE_expression = 68, 
-		RULE_parenExpression = 69, RULE_expressionSecondary = 70, RULE_endExpression = 71, 
+		RULE_parenExpression = 69, RULE_expressionSecondary = 70, RULE_literalExpression = 71, 
 		RULE_typeExpression = 72, RULE_sizeExpression = 73, RULE_newExpression = 74, 
 		RULE_indexExpression = 75, RULE_fieldAccessExpression = 76, RULE_methodInvokeExpression = 77, 
 		RULE_argumentList = 78, RULE_rangeExpression = 79;
@@ -97,7 +97,7 @@ public partial class LumaSharpParser : Parser {
 		"elseifStatement", "elseStatement", "forStatement", "foreachStatement", 
 		"selectStatement", "defaultStatement", "matchStatement", "tryStatement", 
 		"catchStatement", "finallyStatement", "expressionList", "expressionLambda", 
-		"expression", "parenExpression", "expressionSecondary", "endExpression", 
+		"expression", "parenExpression", "expressionSecondary", "literalExpression", 
 		"typeExpression", "sizeExpression", "newExpression", "indexExpression", 
 		"fieldAccessExpression", "methodInvokeExpression", "argumentList", "rangeExpression"
 	};
@@ -128,7 +128,7 @@ public partial class LumaSharpParser : Parser {
 		"RGENERIC", "LARRAY", "RARRAY", "LBLOCK", "RBLOCK", "LPAREN", "RPAREN", 
 		"DOT", "COMMA", "COLON", "HASH", "ASSIGN", "LAMBDA", "ENUMERABLE", "TERNARY", 
 		"RANGEINCLUSIVE", "RANGEEXCLUSIVE", "IDENTIFIER", "INT", "DECIMAL", "HEX", 
-		"LITERAL", "WS", "COMMENT"
+		"LITERAL", "WS", "COMMENT", "Dot"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);
 
@@ -3793,7 +3793,7 @@ public partial class LumaSharpParser : Parser {
 			State = 571;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321844223L) != 0)) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681320447L) != 0)) {
 				{
 				{
 				State = 568;
@@ -4449,12 +4449,12 @@ public partial class LumaSharpParser : Parser {
 			case NULL:
 			case VOID:
 			case LPAREN:
-			case DOT:
 			case IDENTIFIER:
 			case INT:
 			case DECIMAL:
 			case HEX:
 			case LITERAL:
+			case Dot:
 				{
 				State = 623;
 				expression(0);
@@ -4875,7 +4875,7 @@ public partial class LumaSharpParser : Parser {
 			State = 666;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -31512003184950906L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321827839L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -31512003184950906L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681304063L) != 0)) {
 				{
 				State = 665;
 				expression(0);
@@ -5186,7 +5186,7 @@ public partial class LumaSharpParser : Parser {
 				State = 707;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321844223L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681320447L) != 0)) {
 					{
 					{
 					State = 704;
@@ -5282,7 +5282,7 @@ public partial class LumaSharpParser : Parser {
 				State = 721;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321844223L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681320447L) != 0)) {
 					{
 					{
 					State = 718;
@@ -5376,7 +5376,7 @@ public partial class LumaSharpParser : Parser {
 				State = 733;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321844223L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681320447L) != 0)) {
 					{
 					{
 					State = 730;
@@ -5503,7 +5503,7 @@ public partial class LumaSharpParser : Parser {
 				State = 757;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321844223L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681320447L) != 0)) {
 					{
 					{
 					State = 754;
@@ -5591,7 +5591,7 @@ public partial class LumaSharpParser : Parser {
 				State = 769;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321844223L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & -30842709841280634L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681320447L) != 0)) {
 					{
 					{
 					State = 766;
@@ -5760,6 +5760,12 @@ public partial class LumaSharpParser : Parser {
 		public IToken unaryPrefix;
 		public IToken binary;
 		public IToken unaryPostfix;
+		[System.Diagnostics.DebuggerNonUserCode] public MethodInvokeExpressionContext methodInvokeExpression() {
+			return GetRuleContext<MethodInvokeExpressionContext>(0);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public TypeReferenceContext typeReference() {
+			return GetRuleContext<TypeReferenceContext>(0);
+		}
 		[System.Diagnostics.DebuggerNonUserCode] public ExpressionContext[] expression() {
 			return GetRuleContexts<ExpressionContext>();
 		}
@@ -5767,9 +5773,6 @@ public partial class LumaSharpParser : Parser {
 			return GetRuleContext<ExpressionContext>(i);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode IDENTIFIER() { return GetToken(LumaSharpParser.IDENTIFIER, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public MethodInvokeExpressionContext methodInvokeExpression() {
-			return GetRuleContext<MethodInvokeExpressionContext>(0);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public ParenExpressionContext parenExpression() {
 			return GetRuleContext<ParenExpressionContext>(0);
 		}
@@ -5782,23 +5785,20 @@ public partial class LumaSharpParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public NewExpressionContext newExpression() {
 			return GetRuleContext<NewExpressionContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public EndExpressionContext endExpression() {
-			return GetRuleContext<EndExpressionContext>(0);
+		[System.Diagnostics.DebuggerNonUserCode] public LiteralExpressionContext literalExpression() {
+			return GetRuleContext<LiteralExpressionContext>(0);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode THIS() { return GetToken(LumaSharpParser.THIS, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode BASE() { return GetToken(LumaSharpParser.BASE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public TypeReferenceContext typeReference() {
-			return GetRuleContext<TypeReferenceContext>(0);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode RGENERIC() { return GetToken(LumaSharpParser.RGENERIC, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LGENERIC() { return GetToken(LumaSharpParser.LGENERIC, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TERNARY() { return GetToken(LumaSharpParser.TERNARY, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(LumaSharpParser.COLON, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public IndexExpressionContext indexExpression() {
-			return GetRuleContext<IndexExpressionContext>(0);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public FieldAccessExpressionContext fieldAccessExpression() {
 			return GetRuleContext<FieldAccessExpressionContext>(0);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public IndexExpressionContext indexExpression() {
+			return GetRuleContext<IndexExpressionContext>(0);
 		}
 		public ExpressionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -5846,6 +5846,18 @@ public partial class LumaSharpParser : Parser {
 			case 1:
 				{
 				State = 788;
+				methodInvokeExpression();
+				}
+				break;
+			case 2:
+				{
+				State = 789;
+				typeReference();
+				}
+				break;
+			case 3:
+				{
+				State = 790;
 				_localctx.unaryPrefix = TokenStream.LT(1);
 				_la = TokenStream.LA(1);
 				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 390L) != 0)) ) {
@@ -5855,68 +5867,56 @@ public partial class LumaSharpParser : Parser {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 789;
-				expression(20);
-				}
-				break;
-			case 2:
-				{
-				State = 790;
-				Match(IDENTIFIER);
-				}
-				break;
-			case 3:
-				{
 				State = 791;
-				methodInvokeExpression();
+				expression(16);
 				}
 				break;
 			case 4:
 				{
 				State = 792;
-				parenExpression();
+				Match(IDENTIFIER);
 				}
 				break;
 			case 5:
 				{
 				State = 793;
-				typeExpression();
+				parenExpression();
 				}
 				break;
 			case 6:
 				{
 				State = 794;
-				sizeExpression();
+				typeExpression();
 				}
 				break;
 			case 7:
 				{
 				State = 795;
-				newExpression();
+				sizeExpression();
 				}
 				break;
 			case 8:
 				{
 				State = 796;
-				endExpression();
+				newExpression();
 				}
 				break;
 			case 9:
 				{
 				State = 797;
-				Match(THIS);
+				literalExpression();
 				}
 				break;
 			case 10:
 				{
 				State = 798;
-				Match(BASE);
+				Match(THIS);
 				}
 				break;
 			case 11:
 				{
 				State = 799;
-				typeReference();
+				Match(BASE);
 				}
 				break;
 			}
@@ -5938,7 +5938,7 @@ public partial class LumaSharpParser : Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						PushNewRecursionContext(_localctx, _startState, RULE_expression);
 						State = 802;
-						if (!(Precpred(Context, 18))) throw new FailedPredicateException(this, "Precpred(Context, 18)");
+						if (!(Precpred(Context, 14))) throw new FailedPredicateException(this, "Precpred(Context, 14)");
 						State = 803;
 						_localctx.binary = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -5950,7 +5950,7 @@ public partial class LumaSharpParser : Parser {
 						    Consume();
 						}
 						State = 804;
-						expression(19);
+						expression(15);
 						}
 						break;
 					case 2:
@@ -5958,7 +5958,7 @@ public partial class LumaSharpParser : Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						PushNewRecursionContext(_localctx, _startState, RULE_expression);
 						State = 805;
-						if (!(Precpred(Context, 17))) throw new FailedPredicateException(this, "Precpred(Context, 17)");
+						if (!(Precpred(Context, 13))) throw new FailedPredicateException(this, "Precpred(Context, 13)");
 						State = 806;
 						_localctx.binary = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -5970,7 +5970,7 @@ public partial class LumaSharpParser : Parser {
 						    Consume();
 						}
 						State = 807;
-						expression(18);
+						expression(14);
 						}
 						break;
 					case 3:
@@ -5978,7 +5978,7 @@ public partial class LumaSharpParser : Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						PushNewRecursionContext(_localctx, _startState, RULE_expression);
 						State = 808;
-						if (!(Precpred(Context, 16))) throw new FailedPredicateException(this, "Precpred(Context, 16)");
+						if (!(Precpred(Context, 12))) throw new FailedPredicateException(this, "Precpred(Context, 12)");
 						State = 809;
 						_localctx.binary = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -5990,7 +5990,7 @@ public partial class LumaSharpParser : Parser {
 						    Consume();
 						}
 						State = 810;
-						expression(17);
+						expression(13);
 						}
 						break;
 					case 4:
@@ -5998,7 +5998,7 @@ public partial class LumaSharpParser : Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						PushNewRecursionContext(_localctx, _startState, RULE_expression);
 						State = 811;
-						if (!(Precpred(Context, 15))) throw new FailedPredicateException(this, "Precpred(Context, 15)");
+						if (!(Precpred(Context, 11))) throw new FailedPredicateException(this, "Precpred(Context, 11)");
 						State = 812;
 						_localctx.binary = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -6010,7 +6010,7 @@ public partial class LumaSharpParser : Parser {
 						    Consume();
 						}
 						State = 813;
-						expression(16);
+						expression(12);
 						}
 						break;
 					case 5:
@@ -6018,7 +6018,7 @@ public partial class LumaSharpParser : Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						PushNewRecursionContext(_localctx, _startState, RULE_expression);
 						State = 814;
-						if (!(Precpred(Context, 14))) throw new FailedPredicateException(this, "Precpred(Context, 14)");
+						if (!(Precpred(Context, 10))) throw new FailedPredicateException(this, "Precpred(Context, 10)");
 						State = 815;
 						Match(TERNARY);
 						State = 816;
@@ -6026,7 +6026,7 @@ public partial class LumaSharpParser : Parser {
 						State = 817;
 						Match(COLON);
 						State = 818;
-						expression(15);
+						expression(11);
 						}
 						break;
 					case 6:
@@ -6034,8 +6034,28 @@ public partial class LumaSharpParser : Parser {
 						_localctx = new ExpressionContext(_parentctx, _parentState);
 						PushNewRecursionContext(_localctx, _startState, RULE_expression);
 						State = 820;
-						if (!(Precpred(Context, 19))) throw new FailedPredicateException(this, "Precpred(Context, 19)");
+						if (!(Precpred(Context, 20))) throw new FailedPredicateException(this, "Precpred(Context, 20)");
 						State = 821;
+						methodInvokeExpression();
+						}
+						break;
+					case 7:
+						{
+						_localctx = new ExpressionContext(_parentctx, _parentState);
+						PushNewRecursionContext(_localctx, _startState, RULE_expression);
+						State = 822;
+						if (!(Precpred(Context, 19))) throw new FailedPredicateException(this, "Precpred(Context, 19)");
+						State = 823;
+						fieldAccessExpression();
+						}
+						break;
+					case 8:
+						{
+						_localctx = new ExpressionContext(_parentctx, _parentState);
+						PushNewRecursionContext(_localctx, _startState, RULE_expression);
+						State = 824;
+						if (!(Precpred(Context, 15))) throw new FailedPredicateException(this, "Precpred(Context, 15)");
+						State = 825;
 						_localctx.unaryPostfix = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
 						if ( !(_la==T__0 || _la==T__1) ) {
@@ -6047,26 +6067,6 @@ public partial class LumaSharpParser : Parser {
 						}
 						}
 						break;
-					case 7:
-						{
-						_localctx = new ExpressionContext(_parentctx, _parentState);
-						PushNewRecursionContext(_localctx, _startState, RULE_expression);
-						State = 822;
-						if (!(Precpred(Context, 13))) throw new FailedPredicateException(this, "Precpred(Context, 13)");
-						State = 823;
-						indexExpression();
-						}
-						break;
-					case 8:
-						{
-						_localctx = new ExpressionContext(_parentctx, _parentState);
-						PushNewRecursionContext(_localctx, _startState, RULE_expression);
-						State = 824;
-						if (!(Precpred(Context, 10))) throw new FailedPredicateException(this, "Precpred(Context, 10)");
-						State = 825;
-						methodInvokeExpression();
-						}
-						break;
 					case 9:
 						{
 						_localctx = new ExpressionContext(_parentctx, _parentState);
@@ -6074,7 +6074,7 @@ public partial class LumaSharpParser : Parser {
 						State = 826;
 						if (!(Precpred(Context, 9))) throw new FailedPredicateException(this, "Precpred(Context, 9)");
 						State = 827;
-						fieldAccessExpression();
+						indexExpression();
 						}
 						break;
 					}
@@ -6204,7 +6204,7 @@ public partial class LumaSharpParser : Parser {
 		return _localctx;
 	}
 
-	public partial class EndExpressionContext : ParserRuleContext {
+	public partial class LiteralExpressionContext : ParserRuleContext {
 		public IToken decorator;
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode HEX() { return GetToken(LumaSharpParser.HEX, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode INT() { return GetToken(LumaSharpParser.INT, 0); }
@@ -6213,33 +6213,33 @@ public partial class LumaSharpParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TRUE() { return GetToken(LumaSharpParser.TRUE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode FALSE() { return GetToken(LumaSharpParser.FALSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NULL() { return GetToken(LumaSharpParser.NULL, 0); }
-		public EndExpressionContext(ParserRuleContext parent, int invokingState)
+		public LiteralExpressionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
 		}
-		public override int RuleIndex { get { return RULE_endExpression; } }
+		public override int RuleIndex { get { return RULE_literalExpression; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
 			ILumaSharpListener typedListener = listener as ILumaSharpListener;
-			if (typedListener != null) typedListener.EnterEndExpression(this);
+			if (typedListener != null) typedListener.EnterLiteralExpression(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
 			ILumaSharpListener typedListener = listener as ILumaSharpListener;
-			if (typedListener != null) typedListener.ExitEndExpression(this);
+			if (typedListener != null) typedListener.ExitLiteralExpression(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			ILumaSharpVisitor<TResult> typedVisitor = visitor as ILumaSharpVisitor<TResult>;
-			if (typedVisitor != null) return typedVisitor.VisitEndExpression(this);
+			if (typedVisitor != null) return typedVisitor.VisitLiteralExpression(this);
 			else return visitor.VisitChildren(this);
 		}
 	}
 
 	[RuleVersion(0)]
-	public EndExpressionContext endExpression() {
-		EndExpressionContext _localctx = new EndExpressionContext(Context, State);
-		EnterRule(_localctx, 142, RULE_endExpression);
+	public LiteralExpressionContext literalExpression() {
+		LiteralExpressionContext _localctx = new LiteralExpressionContext(Context, State);
+		EnterRule(_localctx, 142, RULE_literalExpression);
 		int _la;
 		try {
 			State = 853;
@@ -6636,7 +6636,7 @@ public partial class LumaSharpParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ArgumentListContext argumentList() {
 			return GetRuleContext<ArgumentListContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DOT() { return GetToken(LumaSharpParser.DOT, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode Dot() { return GetToken(LumaSharpParser.Dot, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public GenericArgumentListContext genericArgumentList() {
 			return GetRuleContext<GenericArgumentListContext>(0);
 		}
@@ -6674,10 +6674,10 @@ public partial class LumaSharpParser : Parser {
 			State = 878;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			if (_la==DOT) {
+			if (_la==Dot) {
 				{
 				State = 877;
-				Match(DOT);
+				Match(Dot);
 				}
 			}
 
@@ -6750,7 +6750,7 @@ public partial class LumaSharpParser : Parser {
 			State = 888;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -31512003184950906L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 8321827839L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & -31512003184950906L) != 0) || ((((_la - 64)) & ~0x3f) == 0 && ((1L << (_la - 64)) & 42681304063L) != 0)) {
 				{
 				State = 887;
 				expressionList();
@@ -6846,21 +6846,21 @@ public partial class LumaSharpParser : Parser {
 	}
 	private bool expression_sempred(ExpressionContext _localctx, int predIndex) {
 		switch (predIndex) {
-		case 0: return Precpred(Context, 18);
-		case 1: return Precpred(Context, 17);
-		case 2: return Precpred(Context, 16);
-		case 3: return Precpred(Context, 15);
-		case 4: return Precpred(Context, 14);
-		case 5: return Precpred(Context, 19);
-		case 6: return Precpred(Context, 13);
-		case 7: return Precpred(Context, 10);
+		case 0: return Precpred(Context, 14);
+		case 1: return Precpred(Context, 13);
+		case 2: return Precpred(Context, 12);
+		case 3: return Precpred(Context, 11);
+		case 4: return Precpred(Context, 10);
+		case 5: return Precpred(Context, 20);
+		case 6: return Precpred(Context, 19);
+		case 7: return Precpred(Context, 15);
 		case 8: return Precpred(Context, 9);
 		}
 		return true;
 	}
 
 	private static int[] _serializedATN = {
-		4,1,98,897,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,99,897,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,28,
@@ -7129,19 +7129,19 @@ public partial class LumaSharpParser : Parser {
 		3,140,70,0,777,776,1,0,0,0,778,781,1,0,0,0,779,777,1,0,0,0,779,780,1,0,
 		0,0,780,133,1,0,0,0,781,779,1,0,0,0,782,783,5,87,0,0,783,785,3,136,68,
 		0,784,786,5,83,0,0,785,784,1,0,0,0,785,786,1,0,0,0,786,135,1,0,0,0,787,
-		788,6,68,-1,0,788,789,7,6,0,0,789,801,3,136,68,20,790,801,5,92,0,0,791,
-		801,3,154,77,0,792,801,3,138,69,0,793,801,3,144,72,0,794,801,3,146,73,
-		0,795,801,3,148,74,0,796,801,3,142,71,0,797,801,5,55,0,0,798,801,5,56,
-		0,0,799,801,3,80,40,0,800,787,1,0,0,0,800,790,1,0,0,0,800,791,1,0,0,0,
-		800,792,1,0,0,0,800,793,1,0,0,0,800,794,1,0,0,0,800,795,1,0,0,0,800,796,
-		1,0,0,0,800,797,1,0,0,0,800,798,1,0,0,0,800,799,1,0,0,0,801,830,1,0,0,
-		0,802,803,10,18,0,0,803,804,7,7,0,0,804,829,3,136,68,19,805,806,10,17,
-		0,0,806,807,7,8,0,0,807,829,3,136,68,18,808,809,10,16,0,0,809,810,7,9,
-		0,0,810,829,3,136,68,17,811,812,10,15,0,0,812,813,7,10,0,0,813,829,3,136,
-		68,16,814,815,10,14,0,0,815,816,5,89,0,0,816,817,3,136,68,0,817,818,5,
-		84,0,0,818,819,3,136,68,15,819,829,1,0,0,0,820,821,10,19,0,0,821,829,7,
-		4,0,0,822,823,10,13,0,0,823,829,3,150,75,0,824,825,10,10,0,0,825,829,3,
-		154,77,0,826,827,10,9,0,0,827,829,3,152,76,0,828,802,1,0,0,0,828,805,1,
+		788,6,68,-1,0,788,801,3,154,77,0,789,801,3,80,40,0,790,791,7,6,0,0,791,
+		801,3,136,68,16,792,801,5,92,0,0,793,801,3,138,69,0,794,801,3,144,72,0,
+		795,801,3,146,73,0,796,801,3,148,74,0,797,801,3,142,71,0,798,801,5,55,
+		0,0,799,801,5,56,0,0,800,787,1,0,0,0,800,789,1,0,0,0,800,790,1,0,0,0,800,
+		792,1,0,0,0,800,793,1,0,0,0,800,794,1,0,0,0,800,795,1,0,0,0,800,796,1,
+		0,0,0,800,797,1,0,0,0,800,798,1,0,0,0,800,799,1,0,0,0,801,830,1,0,0,0,
+		802,803,10,14,0,0,803,804,7,7,0,0,804,829,3,136,68,15,805,806,10,13,0,
+		0,806,807,7,8,0,0,807,829,3,136,68,14,808,809,10,12,0,0,809,810,7,9,0,
+		0,810,829,3,136,68,13,811,812,10,11,0,0,812,813,7,10,0,0,813,829,3,136,
+		68,12,814,815,10,10,0,0,815,816,5,89,0,0,816,817,3,136,68,0,817,818,5,
+		84,0,0,818,819,3,136,68,11,819,829,1,0,0,0,820,821,10,20,0,0,821,829,3,
+		154,77,0,822,823,10,19,0,0,823,829,3,152,76,0,824,825,10,15,0,0,825,829,
+		7,4,0,0,826,827,10,9,0,0,827,829,3,150,75,0,828,802,1,0,0,0,828,805,1,
 		0,0,0,828,808,1,0,0,0,828,811,1,0,0,0,828,814,1,0,0,0,828,820,1,0,0,0,
 		828,822,1,0,0,0,828,824,1,0,0,0,828,826,1,0,0,0,829,832,1,0,0,0,830,828,
 		1,0,0,0,830,831,1,0,0,0,831,137,1,0,0,0,832,830,1,0,0,0,833,834,5,80,0,
@@ -7157,7 +7157,7 @@ public partial class LumaSharpParser : Parser {
 		147,1,0,0,0,865,866,5,57,0,0,866,868,3,80,40,0,867,869,3,156,78,0,868,
 		867,1,0,0,0,868,869,1,0,0,0,869,149,1,0,0,0,870,871,5,76,0,0,871,872,3,
 		132,66,0,872,873,5,77,0,0,873,151,1,0,0,0,874,875,5,82,0,0,875,876,5,92,
-		0,0,876,153,1,0,0,0,877,879,5,82,0,0,878,877,1,0,0,0,878,879,1,0,0,0,879,
+		0,0,876,153,1,0,0,0,877,879,5,99,0,0,878,877,1,0,0,0,878,879,1,0,0,0,879,
 		880,1,0,0,0,880,882,5,92,0,0,881,883,3,72,36,0,882,881,1,0,0,0,882,883,
 		1,0,0,0,883,884,1,0,0,0,884,885,3,156,78,0,885,155,1,0,0,0,886,888,5,80,
 		0,0,887,889,3,132,66,0,888,887,1,0,0,0,888,889,1,0,0,0,889,890,1,0,0,0,

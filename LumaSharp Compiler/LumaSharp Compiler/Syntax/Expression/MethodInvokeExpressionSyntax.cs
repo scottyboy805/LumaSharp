@@ -6,7 +6,6 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly ExpressionSyntax accessExpression;
         private readonly SyntaxToken identifier;
-        private readonly SyntaxToken dot;
         private readonly GenericArgumentListSyntax genericArgumentList;
         private readonly ArgumentListSyntax argumentList;
 
@@ -29,11 +28,6 @@ namespace LumaSharp.Compiler.AST
         public SyntaxToken Identifier
         {
             get { return identifier; }
-        }
-
-        public SyntaxToken Dot
-        {
-            get { return dot; }
         }
 
         public GenericArgumentListSyntax GenericArgumentList
@@ -85,7 +79,6 @@ namespace LumaSharp.Compiler.AST
             : base(parent, null)
         {
             this.identifier = Syntax.Identifier(identifier);
-            this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
             this.accessExpression = accessExpression;
             this.argumentList = arguments;
 
@@ -119,9 +112,6 @@ namespace LumaSharp.Compiler.AST
 
             if (expression != null && expression.expression(0) != null)
             {
-                // Create dot
-                dot = new SyntaxToken(SyntaxTokenKind.DotSymbol, method.DOT());
-
                 // Create access expression
                 //if (expression.typeReference() != null)
                 //{
@@ -143,7 +133,7 @@ namespace LumaSharp.Compiler.AST
                 accessExpression.GetSourceText(writer);
 
                 // Write dot 
-                dot.GetSourceText(writer);
+                //dot.GetSourceText(writer);
             }
 
             // Write method name

@@ -745,7 +745,7 @@ public partial class LumaSharpBaseVisitor<Result> : AbstractParseTreeVisitor<Res
 	/// <return>The visitor result.</return>
 	public virtual Result VisitExpressionSecondary([NotNull] LumaSharpParser.ExpressionSecondaryContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="LumaSharpParser.endExpression"/>.
+	/// Visit a parse tree produced by <see cref="LumaSharpParser.literalExpression"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -753,7 +753,7 @@ public partial class LumaSharpBaseVisitor<Result> : AbstractParseTreeVisitor<Res
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitEndExpression([NotNull] LumaSharpParser.EndExpressionContext context) { return VisitChildren(context); }
+	public virtual Result VisitLiteralExpression([NotNull] LumaSharpParser.LiteralExpressionContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="LumaSharpParser.typeExpression"/>.
 	/// <para>

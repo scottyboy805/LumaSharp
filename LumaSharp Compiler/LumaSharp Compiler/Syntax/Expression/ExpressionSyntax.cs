@@ -144,7 +144,7 @@ namespace LumaSharp.Compiler.AST
                 return new NewExpressionSyntax(parent, expression);
 
             // Check for end
-            if (expression.endExpression() != null)
+            if (expression.literalExpression() != null)
                 return new LiteralExpressionSyntax(parent, expression);
 
             // Check for bracketed

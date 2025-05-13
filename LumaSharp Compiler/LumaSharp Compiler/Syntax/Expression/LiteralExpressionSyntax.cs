@@ -56,7 +56,7 @@ namespace LumaSharp.Compiler.AST
         internal LiteralExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
             : base(parent, expression)
         {
-            LumaSharpParser.EndExpressionContext end = expression.endExpression();
+            LumaSharpParser.LiteralExpressionContext end = expression.literalExpression();
 
             // Create value
             this.value = new SyntaxToken(SyntaxTokenKind.Literal, end.Start);

@@ -10,8 +10,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Expressions
         {
             string input = "MyIdentifier.myField";
             LumaSharpParser.ExpressionContext context = TestUtils.ParseInputStringExpression(input);
-            LumaSharpParser.FieldAccessExpressionContext field = context.GetChild<LumaSharpParser.FieldAccessExpressionContext>(0);
+            LumaSharpParser.FieldAccessExpressionContext field = context.fieldAccessExpression();
 
+            Console.WriteLine(context.GetChild(0).GetType());
+            Console.WriteLine(context.GetType());
             // Check for valid
             Assert.IsNotNull(context);
             Assert.IsNotNull(field);

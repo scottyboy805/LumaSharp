@@ -72,9 +72,9 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
 
             Assert.IsNotNull(generics);
             Assert.AreEqual(3, generics.ChildCount);
-            Assert.AreEqual("<", generics.GetChild(0).GetText());
-            Assert.AreEqual("T", generics.GetChild(1).GetText());
-            Assert.AreEqual(">", generics.GetChild(2).GetText());
+            Assert.AreEqual("<", generics.LGENERIC().GetText());
+            Assert.AreEqual("T", generics.genericParameter().GetText());
+            Assert.AreEqual(">", generics.RGENERIC().GetText());
         }
 
         [TestMethod]
@@ -95,12 +95,11 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.GenericParameterListContext generics = context.genericParameterList();
 
             Assert.IsNotNull(generics);
-            Assert.AreEqual(5, generics.ChildCount);
-            Assert.AreEqual("<", generics.GetChild(0).GetText());
-            Assert.AreEqual("T0", generics.GetChild(1).GetText());
-            Assert.AreEqual(",", generics.GetChild(2).GetText());
-            Assert.AreEqual("T1", generics.GetChild(3).GetText());
-            Assert.AreEqual(">", generics.GetChild(4).GetText());
+            Assert.AreEqual("<", generics.LGENERIC().GetText());
+            Assert.AreEqual("T0", generics.genericParameter().GetText());
+            Assert.AreEqual(",", generics.genericParameterSecondary()[0].COMMA().GetText());
+            Assert.AreEqual("T1", generics.genericParameterSecondary()[0].genericParameter().GetText());
+            Assert.AreEqual(">", generics.RGENERIC().GetText());
         }
 
         [TestMethod]
@@ -121,9 +120,8 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.InheritParametersContext inherit = context.inheritParameters();
 
             Assert.IsNotNull(inherit);
-            Assert.AreEqual(2, inherit.ChildCount);
-            Assert.AreEqual(":", inherit.GetChild(0).GetText());
-            Assert.AreEqual("CBase", inherit.GetChild(1).GetText());
+            Assert.AreEqual(":", inherit.COLON().GetText());
+            Assert.AreEqual("CBase", inherit.typeReferenceList().typeReference().GetText());
         }
 
         [TestMethod]
@@ -144,11 +142,10 @@ namespace LumaSharp_CompilerTests.ParseTree.Declarations
             LumaSharpParser.InheritParametersContext inherit = context.inheritParameters();
 
             Assert.IsNotNull(inherit);
-            Assert.AreEqual(4, inherit.ChildCount);
-            Assert.AreEqual(":", inherit.GetChild(0).GetText());
-            Assert.AreEqual("CBase1", inherit.GetChild(1).GetText());
-            Assert.AreEqual(",", inherit.GetChild(2).GetText());
-            Assert.AreEqual("CBase2", inherit.GetChild(3).GetText());
+            Assert.AreEqual(":", inherit.COLON().GetText());
+            Assert.AreEqual("CBase1", inherit.typeReferenceList().typeReference().GetText());
+            Assert.AreEqual(",", inherit.typeReferenceList().typeReferenceSecondary()[0].COMMA().GetText());
+            Assert.AreEqual("CBase2", inherit.typeReferenceList().typeReferenceSecondary()[0].typeReference().GetText());
         }
     }
 }
