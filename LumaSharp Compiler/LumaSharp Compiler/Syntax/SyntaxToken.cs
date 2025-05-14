@@ -7,6 +7,11 @@ namespace LumaSharp.Compiler.AST
     {
         Invalid = 0,
 
+        LineComment,
+        BlockCommentStart,
+        BlockCommentEnd,
+        CommentText,
+
         Identifier,
         Literal,
         LiteralDescriptor,
@@ -89,8 +94,21 @@ namespace LumaSharp.Compiler.AST
     public readonly struct SyntaxToken
     {
         // Private
+        private static readonly SyntaxTokenKind StartSymbol = Enum.GetValues<SyntaxTokenKind>()
+                .First(e => e.ToString().Contains("Symbol"));
+        private static readonly SyntaxTokenKind EndSymbol = Enum.GetValues<SyntaxTokenKind>()
+                .Last(e => e.ToString().Contains("Symbol"));
+        private static readonly SyntaxTokenKind StartKeyword = Enum.GetValues<SyntaxTokenKind>()
+                .First(e => e.ToString().Contains("Keyword"));
+        private static readonly SyntaxTokenKind EndKeyword = Enum.GetValues<SyntaxTokenKind>()
+                .Last(e => e.ToString().Contains("Keyword"));
+
         private static readonly Dictionary<SyntaxTokenKind, string> syntaxTokenStrings = new()
         {
+            { SyntaxTokenKind.LineComment, "//" },
+            { SyntaxTokenKind.BlockCommentStart, "/*" },
+            { SyntaxTokenKind.BlockCommentEnd, "*/" },
+
             { SyntaxTokenKind.LGenericSymbol, "<" },
             { SyntaxTokenKind.RGenericSymbol, ">" },
             { SyntaxTokenKind.LArraySymbol, "[" },
@@ -186,6 +204,10 @@ namespace LumaSharp.Compiler.AST
             get { return source; }
         }
 
+        public bool IsKeyword => IsKeywordKind(kind);
+        public bool IsSymbol => IsSymbolKind(kind);
+        public bool IsLiteral => IsLiteralKind(kind);
+
         // Constructor
         internal SyntaxToken(SyntaxTokenKind kind, SyntaxSource source = default)
         {
@@ -233,6 +255,38 @@ namespace LumaSharp.Compiler.AST
         public override string ToString()
         {
             return text;
+        }
+
+        public static string GetText(SyntaxTokenKind kind)
+        {
+            string val;
+            syntaxTokenStrings.TryGetValue(kind, out val);
+            return val;
+        }
+
+        public static IEnumerable<SyntaxTokenKind> GetSymbols()
+        {
+            return Enum.GetValues<SyntaxTokenKind>().Where(IsSymbolKind);
+        }
+
+        public static IEnumerable<SyntaxTokenKind> GetKeywords()
+        {
+            return Enum.GetValues<SyntaxTokenKind>().Where(IsKeywordKind);
+        }
+
+        public static bool IsSymbolKind(SyntaxTokenKind kind)
+        {
+            return kind >= StartSymbol && kind <= EndSymbol;
+        }
+
+        public static bool IsKeywordKind(SyntaxTokenKind kind)
+        {
+            return kind >= StartKeyword && kind <= EndKeyword;
+        }
+
+        public static bool IsLiteralKind(SyntaxTokenKind kind)
+        {
+            return kind == SyntaxTokenKind.Literal;
         }
     }
 }
