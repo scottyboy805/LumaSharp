@@ -15,9 +15,37 @@ namespace LumaSharp.Compiler.AST
         Identifier,
         Literal,
         LiteralDescriptor,
-        UnaryOperator,
-        BinaryOperator,
-        AssignOperator,
+        //UnaryOperator,
+        //BinaryOperator,
+        //AssignOperator,
+
+        AssignSymbol,
+        AssignPlusSymbol,
+        AssignMinusSymbol,
+        AssignMultiplySymbol,
+        AssignDivideSymbol,
+
+        OrSymbol,
+        AndSymbol,
+        BitwiseOrSymbol,
+        BitwiseXOrSymbol,
+        BitwiseAndSymbol,
+        EqualitySymbol,
+        NonEqualitySymbol,
+        LessSymbol,
+        LessEqualSymbol,
+        GreaterSymbol,
+        GreaterEqualSymbol,
+        BitShiftLeftSymbol,
+        BitShiftRightSymbol,
+        AddSymbol,
+        SubtractSymbol,
+        MultiplySymbol,
+        DivideSymbol,
+        ModulusSymbol,
+        PlusPlusSymbol,
+        MinusMinusSymbol,
+        NotSymbol,
 
         LGenericSymbol,
         RGenericSymbol,
@@ -31,6 +59,7 @@ namespace LumaSharp.Compiler.AST
         DotSymbol,
         CommaSymbol,
         ColonSymbol,
+        SemicolonSymbol,
         HashSymbol,
         LambdaSymbol,
         EnumerableSymbol,
@@ -71,7 +100,6 @@ namespace LumaSharp.Compiler.AST
         OverrideKeyword,
         IfKeyword,
         ElseKeyword,
-        ElseifKeyword,
         TrueKeyword,
         FalseKeyword,
         NullKeyword,
@@ -83,7 +111,8 @@ namespace LumaSharp.Compiler.AST
         TryKeyword,
         CatchKeyword,
         FinallyKeyword,
-        SizeKeyword,
+        TypeofKeyword,
+        SizeofKeyword,
         ReadKeyword,
         WriteKeyword,
         ThisKeyword,
@@ -109,6 +138,34 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.BlockCommentStart, "/*" },
             { SyntaxTokenKind.BlockCommentEnd, "*/" },
 
+            { SyntaxTokenKind.AssignSymbol, "=" },
+            { SyntaxTokenKind.AssignPlusSymbol, "+=" },
+            { SyntaxTokenKind.AssignMinusSymbol, "-=" },
+            { SyntaxTokenKind.AssignMultiplySymbol, "*=" },
+            { SyntaxTokenKind.AssignDivideSymbol, "/=" },
+
+            { SyntaxTokenKind.OrSymbol, "||" },
+            { SyntaxTokenKind.AndSymbol, "&&" },
+            { SyntaxTokenKind.BitwiseOrSymbol, "|" },
+            { SyntaxTokenKind.BitwiseXOrSymbol, "^" },
+            { SyntaxTokenKind.BitwiseAndSymbol, "&" },
+            { SyntaxTokenKind.EqualitySymbol, "==" },
+            { SyntaxTokenKind.NonEqualitySymbol, "!=" },
+            { SyntaxTokenKind.LessSymbol, "<" },              // Handled below by LGeneric - don't include duplicates
+            { SyntaxTokenKind.GreaterSymbol, ">" },           // Handled below by RGeneric - don't include duplicates
+            { SyntaxTokenKind.LessEqualSymbol, "<=" },
+            { SyntaxTokenKind.GreaterEqualSymbol, ">=" },
+            { SyntaxTokenKind.BitShiftLeftSymbol, "<<" },
+            { SyntaxTokenKind.BitShiftRightSymbol, ">>" },
+            { SyntaxTokenKind.AddSymbol, "+" },
+            { SyntaxTokenKind.SubtractSymbol, "-" },
+            { SyntaxTokenKind.MultiplySymbol, "*" },
+            { SyntaxTokenKind.DivideSymbol, "/" },
+            { SyntaxTokenKind.ModulusSymbol, "%" },
+            { SyntaxTokenKind.PlusPlusSymbol, "++" },
+            { SyntaxTokenKind.MinusMinusSymbol, "--" },
+            { SyntaxTokenKind.NotSymbol, "!" },
+
             { SyntaxTokenKind.LGenericSymbol, "<" },
             { SyntaxTokenKind.RGenericSymbol, ">" },
             { SyntaxTokenKind.LArraySymbol, "[" },
@@ -121,6 +178,7 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.DotSymbol, "." },
             { SyntaxTokenKind.CommaSymbol, "," },
             { SyntaxTokenKind.ColonSymbol, ":" },
+            { SyntaxTokenKind.SemicolonSymbol, ";" },
             { SyntaxTokenKind.HashSymbol, "#" },
             { SyntaxTokenKind.LambdaSymbol, "=>" },
             { SyntaxTokenKind.EnumerableSymbol, "..." },
@@ -161,7 +219,6 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.OverrideKeyword, "override" },
             { SyntaxTokenKind.IfKeyword, "if" },
             { SyntaxTokenKind.ElseKeyword, "else" },
-            { SyntaxTokenKind.ElseifKeyword, "elseif" },
             { SyntaxTokenKind.TrueKeyword, "true" },
             { SyntaxTokenKind.FalseKeyword, "false" },
             { SyntaxTokenKind.NullKeyword, "null" },
@@ -173,7 +230,8 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.TryKeyword, "try" },
             { SyntaxTokenKind.CatchKeyword, "catch" },
             { SyntaxTokenKind.FinallyKeyword, "finally" },
-            { SyntaxTokenKind.SizeKeyword, "size" },
+            { SyntaxTokenKind.TypeofKeyword, "typeof" },
+            { SyntaxTokenKind.SizeofKeyword, "sizeof" },
             { SyntaxTokenKind.ReadKeyword, "read" },
             { SyntaxTokenKind.WriteKeyword, "write" },
             { SyntaxTokenKind.ThisKeyword, "this" },
@@ -207,6 +265,11 @@ namespace LumaSharp.Compiler.AST
         public bool IsKeyword => IsKeywordKind(kind);
         public bool IsSymbol => IsSymbolKind(kind);
         public bool IsLiteral => IsLiteralKind(kind);
+        public bool IsPrimitiveType => IsPrimitiveTypeKind(kind);
+        public bool IsAccessModifier => IsAccessModifierKind(kind);
+        public bool IsBinaryOperand => IsBinaryOperandKind(kind);
+        public bool IsUnaryOperand => IsUnaryOperandKind(kind);
+        public bool IsAssign => IsAssignKind(kind);
 
         // Constructor
         internal SyntaxToken(SyntaxTokenKind kind, SyntaxSource source = default)
@@ -287,6 +350,101 @@ namespace LumaSharp.Compiler.AST
         public static bool IsLiteralKind(SyntaxTokenKind kind)
         {
             return kind == SyntaxTokenKind.Literal;
+        }
+
+        public static bool IsPrimitiveTypeKind(SyntaxTokenKind kind)
+        {
+            switch(kind)
+            {
+                case SyntaxTokenKind.AnyKeyword:
+                case SyntaxTokenKind.BoolKeyword:
+                case SyntaxTokenKind.I8Keyword:
+                case SyntaxTokenKind.U8Keyword:
+                case SyntaxTokenKind.I16Keyword:
+                case SyntaxTokenKind.U16Keyword:
+                case SyntaxTokenKind.I32Keyword:
+                case SyntaxTokenKind.U32Keyword:
+                case SyntaxTokenKind.I64Keyword:
+                case SyntaxTokenKind.U64Keyword:
+                case SyntaxTokenKind.F32Keyword:
+                case SyntaxTokenKind.F64Keyword:
+                case SyntaxTokenKind.StringKeyword:
+                case SyntaxTokenKind.VoidKeyword:
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsAccessModifierKind(SyntaxTokenKind kind)
+        {
+            switch(kind)
+            {
+                case SyntaxTokenKind.ExportKeyword:
+                case SyntaxTokenKind.GlobalKeyword:
+                case SyntaxTokenKind.HiddenKeyword:
+                case SyntaxTokenKind.InternalKeyword:
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsBinaryOperandKind(SyntaxTokenKind kind)
+        {
+            switch(kind)
+            {
+                case SyntaxTokenKind.OrSymbol:
+                case SyntaxTokenKind.AndSymbol:
+                case SyntaxTokenKind.BitwiseOrSymbol:
+                case SyntaxTokenKind.BitwiseXOrSymbol:
+                case SyntaxTokenKind.BitwiseAndSymbol:
+                case SyntaxTokenKind.EqualitySymbol:
+                case SyntaxTokenKind.NonEqualitySymbol:
+                case SyntaxTokenKind.LessSymbol:
+                case SyntaxTokenKind.LessEqualSymbol:
+                case SyntaxTokenKind.GreaterSymbol:
+                case SyntaxTokenKind.GreaterEqualSymbol:
+                case SyntaxTokenKind.BitShiftLeftSymbol:
+                case SyntaxTokenKind.BitShiftRightSymbol:
+                case SyntaxTokenKind.AddSymbol:
+                case SyntaxTokenKind.SubtractSymbol:
+                case SyntaxTokenKind.MultiplySymbol:
+                case SyntaxTokenKind.DivideSymbol:
+                case SyntaxTokenKind.ModulusSymbol:
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsUnaryOperandKind(SyntaxTokenKind kind)
+        {
+            switch(kind)
+            {
+                case SyntaxTokenKind.PlusPlusSymbol:
+                case SyntaxTokenKind.MinusMinusSymbol:
+                case SyntaxTokenKind.NotSymbol:
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsAssignKind(SyntaxTokenKind kind)
+        {
+            switch(kind)
+            {
+                case SyntaxTokenKind.AssignSymbol:
+                case SyntaxTokenKind.AssignPlusSymbol:
+                case SyntaxTokenKind.AssignMinusSymbol:
+                case SyntaxTokenKind.AssignMultiplySymbol:
+                case SyntaxTokenKind.AssignDivideSymbol:
+                    return true;
+            }
+            return false;
+        }
+
+        // Support implicit conversion for identifiers only
+        public static implicit operator SyntaxToken(string identifier)
+        {
+            return new SyntaxToken(SyntaxTokenKind.Identifier, identifier);
         }
     }
 }

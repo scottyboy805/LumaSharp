@@ -17,7 +17,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField")))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"), 
+                        Syntax.VariableAssignment(Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField"))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -13,10 +13,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("string _MyType123", "_MyType123")]
         public void Field(string input, string identifier)
         {
-            LumaSharpParser.FieldDeclarationContext context = TestUtils.ParseFieldDeclaration(input);
-
             // Build AST node
-            FieldSyntax syntax = new FieldSyntax(null, context);
+            FieldSyntax syntax = TestUtils.ParseFieldDeclaration(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);

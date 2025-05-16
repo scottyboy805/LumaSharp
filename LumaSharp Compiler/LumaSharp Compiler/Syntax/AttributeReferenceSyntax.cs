@@ -9,11 +9,7 @@ namespace LumaSharp.Compiler.AST
         private readonly ArgumentListSyntax argumentList;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return hash; }
-        }
-
+        public override SyntaxToken StartToken => hash;
         public override SyntaxToken EndToken
         {
             get
@@ -27,20 +23,9 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public SyntaxToken Hash
-        {
-            get { return hash; }
-        }
-
-        public TypeReferenceSyntax AttributeType
-        {
-            get { return attributeType; }
-        }
-
-        public ArgumentListSyntax ArgumentList
-        {
-            get { return argumentList; }
-        }
+        public SyntaxToken Hash => hash;
+        public TypeReferenceSyntax AttributeType => attributeType;
+        public ArgumentListSyntax ArgumentList => argumentList;
 
         public bool HasArgumentList
         {
@@ -64,26 +49,23 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AttributeReferenceSyntax(SyntaxNode parent, TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
-            : base(parent)
+        internal AttributeReferenceSyntax(TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.HashSymbol),
+                  attributeType,
+                  argumentList)
         {
-            this.hash = Syntax.KeywordOrSymbol(SyntaxTokenKind.HashSymbol);
-            this.attributeType = attributeType;
-            this.argumentList = argumentList;
         }
 
-        internal AttributeReferenceSyntax(SyntaxNode parent, LumaSharpParser.AttributeReferenceContext attribute)
-            : base(parent)
+        internal AttributeReferenceSyntax(SyntaxToken hashToken, TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
         {
-            // Get hash
-            this.hash = new SyntaxToken(SyntaxTokenKind.HashSymbol, attribute.HASH());
+            // Check token
+            if(hashToken.Kind != SyntaxTokenKind.HashSymbol)
+                throw new ArgumentException(nameof(hashToken) + " must be of kind: " + SyntaxTokenKind.HashSymbol);
 
-            // Type reference
-            this.attributeType = new TypeReferenceSyntax(this, null, attribute.typeReference());
-
-            // Argument list
-            if(attribute.argumentList() != null)
-                this.argumentList = new ArgumentListSyntax(this, attribute.argumentList());
+            this.hash = hashToken;
+            this.attributeType = attributeType;
+            this.argumentList = argumentList;
         }
 
         // Methods

@@ -1,10 +1,8 @@
 ﻿using Antlr4.Runtime;
-using System;
-using System.Collections.Generic;
+using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Parser;
+using LumaSharp.Compiler.Reporting;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LumaSharp_CompilerTests
 {
@@ -42,48 +40,14 @@ namespace LumaSharp_CompilerTests
             return context;
         }
 
-        public static LumaSharpParser.StatementContext ParseInputStringStatement(string input)
+        public static StatementSyntax ParseInputStringStatement(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.StatementContext context = parser.statement();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseStatement();
         }
 
-        public static LumaSharpParser.ExpressionContext ParseInputStringExpression(string input)
+        public static ExpressionSyntax ParseInputStringExpression(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.ExpressionContext context = parser.expression();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseExpression();
         }
 
         public static LumaSharpParser.NamespaceDeclarationContext ParseNamespaceDeclaration(string input)
@@ -108,158 +72,62 @@ namespace LumaSharp_CompilerTests
             return context;
         }
 
-        public static LumaSharpParser.MemberDeclarationContext ParseMemberDeclaration(string input)
+        public static MemberSyntax ParseMemberDeclaration(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.MemberDeclarationContext context = parser.memberDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseMember();
         }
 
-        public static LumaSharpParser.TypeDeclarationContext ParseTypeDeclaration(string input)
+        public static TypeSyntax ParseTypeDeclaration(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.TypeDeclarationContext context = parser.typeDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseTypeDeclaration();
         }
 
-        public static LumaSharpParser.ContractDeclarationContext ParseContractDeclaration(string input)
+        public static ContractSyntax ParseContractDeclaration(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.ContractDeclarationContext context = parser.contractDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseContractDeclaration();
         }
 
-        public static LumaSharpParser.EnumDeclarationContext ParseEnumDeclaration(string input)
+        public static EnumSyntax ParseEnumDeclaration(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.EnumDeclarationContext context = parser.enumDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseEnumDeclaration();
         }
 
-        public static LumaSharpParser.FieldDeclarationContext ParseFieldDeclaration(string input)
+        public static FieldSyntax ParseFieldDeclaration(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.FieldDeclarationContext context = parser.fieldDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseFieldDeclaration();
         }
 
-        public static LumaSharpParser.AccessorDeclarationContext ParseAccessorDeclaration(string input)
+        public static AccessorSyntax ParseAccessorDeclaration(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.AccessorDeclarationContext context = parser.accessorDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
+            return CreateStringParser(input).ParseAccessorDeclaration();
         }
 
-        public static LumaSharpParser.TypeReferenceContext ParseTypeReference(string input)
+        public static TypeReferenceSyntax ParseTypeReference(string input)
         {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
+            return CreateStringParser(input).ParseTypeReference();
+        }
 
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
+        private static ASTParser CreateStringParser(string input)
+        {
+            // Create the report
+            CompileReport report = new CompileReport();
 
-            // Run program
-            LumaSharpParser.TypeReferenceContext context = parser.typeReference();
+            // Create the text view
+            TextView textView = new TextView(new StringReader(input));
+            
+            // Create the token parser
+            TokenParser tokenParser = new TokenParser(textView);
 
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
+            // Create parser
+            ASTParser parser = new ASTParser(tokenParser.GetEnumerator(), report);
+
+            // Check for errors
+            foreach(ICompileMessage message in report.Messages)
             {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
+                Debug.WriteLine(message);
             }
 
-            return context;
+            return parser;
         }
     }
 }

@@ -10,7 +10,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateStatement_Assign()
         {
             SyntaxNode syntax = Syntax.Assign(
-                Syntax.VariableReference("myVariable"), AssignOperation.Assign, Syntax.Literal(5));
+                Syntax.VariableReference("myVariable"),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5)));
 
             // Get expression text
             Assert.AreEqual("myVariable=5;", syntax.GetSourceText());
@@ -33,7 +34,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateStatement_Condition()
         {
             SyntaxNode syntax0 = Syntax.Condition(
-                Syntax.Binary(Syntax.VariableReference("myVariable"), BinaryOperation.Equal, Syntax.VariableReference("myOtherVariable")));
+                Syntax.Binary(Syntax.VariableReference("myVariable"), Syntax.Token(SyntaxTokenKind.EqualitySymbol), Syntax.VariableReference("myOtherVariable")));
 
             // Get expression text
             Assert.AreEqual("if(myVariable==myOtherVariable);", syntax0.GetSourceText());
@@ -86,7 +87,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .WithAlternate(Syntax.Condition(Syntax.Literal(false))
                     .WithInlineStatement(Syntax.Continue())
                     .WithAlternate(Syntax.Condition()                    
-                .WithInlineStatement(Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Literal(5)))));
+                .WithInlineStatement(Syntax.Assign(Syntax.VariableReference("myVar"),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             Assert.AreEqual("if(true)break;elif(false)continue;else myVar=5;", syntax5 .GetSourceText());
             Assert.AreEqual("if", syntax5.StartToken.Text);
@@ -158,7 +160,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("for", syntax2.StartToken.Text);
             Assert.AreEqual(";", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.For(null, null, Syntax.Binary(Syntax.VariableReference("i"), BinaryOperation.Add, Syntax.Literal(2)));
+            SyntaxNode syntax3 = Syntax.For(null, null, Syntax.Binary(Syntax.VariableReference("i"), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(2)));
 
             // Get expression text
             Assert.AreEqual("for(;;i+2);", syntax3.GetSourceText());
@@ -166,7 +168,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.For(Syntax.Variable(Syntax.TypeReference("MyType"), "myVar"), 
-                Syntax.Literal(true), Syntax.Binary(Syntax.VariableReference("i"), BinaryOperation.Add, Syntax.Literal(2)));
+                Syntax.Literal(true), Syntax.Binary(Syntax.VariableReference("i"), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(2)));
 
             // Get expression text
             Assert.AreEqual("for(MyType myVar;true;i+2);", syntax4.GetSourceText());
@@ -226,14 +228,14 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("MyType", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Variable(Syntax.TypeReference("MyType"), "var", Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5)));
+            SyntaxNode syntax2 = Syntax.Variable(Syntax.TypeReference("MyType"), "var", Syntax.VariableAssignment(Syntax.Literal(5)));
 
             // Get expression text
             Assert.AreEqual("MyType var=5;", syntax2.GetSourceText());
             Assert.AreEqual("MyType", syntax2.StartToken.Text);
             Assert.AreEqual(";", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.Variable(Syntax.TypeReference("MyType"), new string[] { "var1", "var2" }, Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5), Syntax.Literal(10)));
+            SyntaxNode syntax3 = Syntax.Variable(Syntax.TypeReference("MyType"), new SyntaxToken[] { "var1", "var2" }, Syntax.VariableAssignment(Syntax.Literal(5), Syntax.Literal(10)));
 
             // Get expression text
             Assert.AreEqual("MyType var1,var2={5,10}", syntax3.GetSourceText());

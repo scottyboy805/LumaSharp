@@ -93,7 +93,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Condition(Syntax.Binary(Syntax.Literal(2), BinaryOperation.Equal, Syntax.Literal(4))))));
+                .WithBody(Syntax.Condition(Syntax.Binary(Syntax.Literal(2), Syntax.Token(SyntaxTokenKind.EqualitySymbol), Syntax.Literal(4))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -121,7 +121,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Condition(Syntax.Binary(Syntax.Literal(2), BinaryOperation.NotEqual, Syntax.Literal(4))))));
+                .WithBody(Syntax.Condition(Syntax.Binary(Syntax.Literal(2), Syntax.Token(SyntaxTokenKind.NonEqualitySymbol), Syntax.Literal(4))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

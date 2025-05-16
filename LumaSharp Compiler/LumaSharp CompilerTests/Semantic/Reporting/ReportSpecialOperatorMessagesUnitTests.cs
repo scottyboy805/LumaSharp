@@ -33,7 +33,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_equal", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -53,7 +53,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_equal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -73,7 +73,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_equal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -93,7 +93,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_equal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Bool), "b"))
                 .WithBody()));
 
@@ -132,7 +132,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_hash", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithBody()));
 
             // Create model
@@ -152,7 +152,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_hash", Syntax.TypeReference(PrimitiveType.I32))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "par"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithBody()));
 
             // Create model
@@ -191,7 +191,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_string", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithBody()));
 
             // Create model
@@ -211,7 +211,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_string", Syntax.TypeReference("string"))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "par"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithBody()));
 
             // Create model
@@ -251,7 +251,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_add", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -271,7 +271,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_add", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -312,7 +312,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_subtract", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -332,7 +332,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_subtract", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -373,7 +373,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_multiply", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -393,7 +393,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_multiply", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -434,7 +434,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_divide", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -454,7 +454,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_divide", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -495,7 +495,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_negate", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "par"))
                 .WithBody()));
 
@@ -515,7 +515,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_negate", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"))
                 .WithBody()));
 
@@ -556,7 +556,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_greater", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -576,7 +576,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_greater", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -596,7 +596,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_greater", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -637,7 +637,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_greaterequal", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -657,7 +657,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_greaterequal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -677,7 +677,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_greaterequal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -718,7 +718,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_less", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -738,7 +738,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_less", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -758,7 +758,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_less", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -799,7 +799,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_lessequal", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 
@@ -819,7 +819,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_lessequal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "a"))
                 .WithBody()));
 
@@ -839,7 +839,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("op_lessequal", Syntax.TypeReference(PrimitiveType.Bool))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "a"), Syntax.Parameter(Syntax.TypeReference("Test"), "b"))
                 .WithBody()));
 

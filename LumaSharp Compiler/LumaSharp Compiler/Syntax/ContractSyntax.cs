@@ -104,15 +104,15 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ContractSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
-            : base(parent, identifier, attributes, accessModifiers)
+        internal ContractSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+            : base(identifier, attributes, accessModifiers)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ContractKeyword);
+            this.keyword = Syntax.Token(SyntaxTokenKind.ContractKeyword);
             this.genericParameters = genericParameter;
             
             if(baseTypes != null)
             {
-                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
                 this.baseTypes = baseTypes;
             }
 
@@ -121,36 +121,6 @@ namespace LumaSharp.Compiler.AST
             // Check for null block
             if(memberBlock == null)
                 this.memberBlock = new BlockSyntax<MemberSyntax>(this, Enumerable.Empty<MemberSyntax>());
-        }
-
-        internal ContractSyntax(SyntaxNode parent, LumaSharpParser.ContractDeclarationContext contractDef)
-            : base(contractDef.IDENTIFIER(), parent, contractDef.attributeReference(), contractDef.accessModifier())
-        {
-            // Contract keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.ContractKeyword, contractDef.CONTRACT());
-
-            // Get generics
-            if (contractDef.genericParameterList() != null)
-            {
-                this.genericParameters = new GenericParameterListSyntax(this, contractDef.genericParameterList());
-            }
-            
-            // Get base
-            LumaSharpParser.InheritParametersContext inherit = contractDef.inheritParameters();
-
-            if(inherit != null)
-            {
-                // Inherit symbol
-                this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, inherit.COLON());
-
-                // Base types
-                this.baseTypes = ExpressionSyntax.List(this, inherit.typeReferenceList());
-            }
-
-            // Get members
-            LumaSharpParser.MemberBlockContext block = contractDef.memberBlock();
-
-            this.memberBlock = new BlockSyntax<MemberSyntax>(this, block);
         }
 
         // Methods

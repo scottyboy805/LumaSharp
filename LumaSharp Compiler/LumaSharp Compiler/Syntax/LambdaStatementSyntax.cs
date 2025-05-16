@@ -52,24 +52,25 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal LambdaStatementSyntax(SyntaxNode parent, StatementSyntax statement)
-            : base(parent)
-        {
-            this.lambda = Syntax.KeywordOrSymbol(SyntaxTokenKind.LambdaSymbol);
-            this.statement = statement;
+        internal LambdaStatementSyntax(StatementSyntax statement)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.LambdaSymbol),
+                  statement)
+        { 
         }
 
-        internal LambdaStatementSyntax(SyntaxNode parent, LumaSharpParser.StatementLambdaContext lambda)
-            : base(parent)
+        internal LambdaStatementSyntax(SyntaxToken lambda, StatementSyntax statement)
         {
-            // Lambda
-            this.lambda = new SyntaxToken(SyntaxTokenKind.LambdaSymbol, lambda.LAMBDA());
+            // Check kind
+            if(lambda.Kind != SyntaxTokenKind.LambdaSymbol)
+                throw new ArgumentException(nameof(lambda) + " must be of kind: " + SyntaxTokenKind.LambdaSymbol);
 
-            // Statement
-            this.statement = StatementSyntax.Any(this, lambda.statement());
+            // Check null
+            if(statement == null)
+                throw new ArgumentNullException(nameof(statement));
 
-            // Comma
-            this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, lambda.COMMA());
+            this.lambda = lambda;
+            this.statement = statement;
         }
 
         // Methods

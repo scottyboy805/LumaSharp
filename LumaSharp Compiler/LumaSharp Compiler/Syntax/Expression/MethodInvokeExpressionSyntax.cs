@@ -75,55 +75,14 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodInvokeExpressionSyntax(SyntaxNode parent, string identifier, ExpressionSyntax accessExpression, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments)
-            : base(parent, null)
+        internal MethodInvokeExpressionSyntax(SyntaxToken identifier, ExpressionSyntax accessExpression, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments)
         {
-            this.identifier = Syntax.Identifier(identifier);
+            this.identifier = identifier;
             this.accessExpression = accessExpression;
+            this.genericArgumentList = genericArguments;
             this.argumentList = arguments;
-
-            if(genericArguments != null)
-                this.genericArgumentList = genericArguments;
-
-            // Check for arguments
-            if (arguments == null)
-                this.argumentList = new ArgumentListSyntax(this, Array.Empty<ExpressionSyntax>());
         }
-
-        internal MethodInvokeExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            // Get invoke
-            LumaSharpParser.MethodInvokeExpressionContext method = expression.methodInvokeExpression();
-
-            // Identifier
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, method.IDENTIFIER());
-
-            // Generic arguments
-            LumaSharpParser.GenericArgumentListContext generics = method.genericArgumentList();
-
-            if (generics != null)
-            {
-                this.genericArgumentList = new GenericArgumentListSyntax(this, generics);
-            }
-
-            // Create arguments
-            this.argumentList = new ArgumentListSyntax(this, method.argumentList());
-
-            if (expression != null && expression.expression(0) != null)
-            {
-                // Create access expression
-                //if (expression.typeReference() != null)
-                //{
-                //    this.accessExpression = new TypeReferenceSyntax(this, null, expression.typeReference());
-                //}
-                //else
-                {
-                    this.accessExpression = Any(this, expression.expression(0));
-                }
-            }
-        }
-
+        
         // Methods
         public override void GetSourceText(TextWriter writer)
         {

@@ -28,18 +28,20 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal BaseExpressionSyntax(SyntaxNode parent)
-            : base(parent, null)
+        internal BaseExpressionSyntax()
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.BaseKeyword))
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.BaseKeyword);
         }
 
-        internal BaseExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
+        internal BaseExpressionSyntax(SyntaxToken keyword)
         {
-            keyword = new SyntaxToken(SyntaxTokenKind.BaseKeyword, expression.BASE());
-        }
+            // Check for this
+            if (keyword.Kind != SyntaxTokenKind.BaseKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.BaseKeyword);
 
+            this.keyword = keyword;
+        }
 
         // Methods
         public override void GetSourceText(TextWriter writer)

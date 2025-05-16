@@ -67,8 +67,8 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AccessorSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, AccessorBodySyntax[] accessorBodies, bool isOverride)
-            : base(parent, identifier, attributes, modifiers)
+        internal AccessorSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, AccessorBodySyntax[] accessorBodies, bool isOverride)
+            : base(identifier, attributes, modifiers)
         {
             // Accessor type
             this.accessorType = type;
@@ -76,38 +76,7 @@ namespace LumaSharp.Compiler.AST
 
             // Check for override
             if (isOverride == true)
-                this.overrideKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.OverrideKeyword);
-        }
-
-        internal AccessorSyntax(SyntaxNode parent, LumaSharpParser.AccessorDeclarationContext accessorDef)
-            : base(accessorDef.IDENTIFIER(), parent, accessorDef.attributeReference(), accessorDef.accessModifier())
-        {
-            // Accessor type
-            this.accessorType = new TypeReferenceSyntax(this, null, accessorDef.typeReference());
-
-            // Override
-            if (accessorDef.OVERRIDE() != null)
-                this.overrideKeyword = new SyntaxToken(SyntaxTokenKind.OverrideKeyword, accessorDef.OVERRIDE());
-
-            // Get the body
-            LumaSharpParser.AccessorBodyContext body = accessorDef.accessorBody();
-
-            // Check for body
-            if(body != null)
-            {
-                // Check for expression lambda
-                if(body.expressionLambda() != null)
-                {
-                    // Create new lambda body
-                    this.accessorBodies = new [] { new AccessorBodySyntax(parent, body.expressionLambda()) };
-                }
-                else
-                {
-                    // Create all bodies
-                    this.accessorBodies = body.accessorReadWrite().Select(a =>
-                        new AccessorBodySyntax(parent, a)).ToArray();
-                }
-            }
+                this.overrideKeyword = Syntax.Token(SyntaxTokenKind.OverrideKeyword);
         }
 
         // Methods

@@ -69,33 +69,27 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal NewExpressionSyntax(SyntaxNode parent, TypeReferenceSyntax newType, ArgumentListSyntax arguments)
-            : base(parent, null)
+        internal NewExpressionSyntax(TypeReferenceSyntax newType, ArgumentListSyntax arguments)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.NewKeyword),
+                  newType,
+                  arguments)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.NewKeyword);
-            this.newType = newType;
-            this.arguments = arguments;
         }
 
-        internal NewExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
+        internal NewExpressionSyntax(SyntaxToken keyword, TypeReferenceSyntax newType, ArgumentListSyntax arguments)
         {
-            LumaSharpParser.NewExpressionContext newExpression = expression.newExpression();
+            // Check kind
+            if(keyword.Kind != SyntaxTokenKind.NewKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " +  SyntaxTokenKind.NewKeyword);
 
-            // Keyword
-            if (newExpression.NEW() != null)
-            {
-                this.keyword = new SyntaxToken(SyntaxTokenKind.NewKeyword, newExpression.NEW());
-            }
+            // Check for null
+            if(arguments == null)
+                throw new ArgumentNullException(nameof(arguments));
 
-            // New type
-            this.newType = new TypeReferenceSyntax(this, expression, newExpression.typeReference());
-
-            // Init arguments
-            LumaSharpParser.ArgumentListContext argumentList = newExpression.argumentList();
-
-            if(argumentList != null)
-                this.arguments = new ArgumentListSyntax(this, argumentList);
+            this.keyword = keyword;
+            this.newType = newType;
+            this.arguments = arguments;
         }
 
         // Methods

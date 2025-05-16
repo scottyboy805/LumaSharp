@@ -16,7 +16,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Equal, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"), 
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.EqualitySymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -45,7 +46,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.NotEqual, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"), 
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.NonEqualitySymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -74,7 +76,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -101,7 +104,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(2L))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(2L)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -130,7 +134,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(2UL))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(2UL)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -162,7 +167,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Subtract, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.SubtractSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -191,7 +197,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Multiply, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.MultiplySymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -220,7 +227,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Divide, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.DivideSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -249,7 +257,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Greater, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.GreaterSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -278,7 +287,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.GreaterEqual, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.GreaterEqualSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -307,7 +317,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.Less, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.LessSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -336,7 +347,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), AssignOperation.Assign, Syntax.Binary(Syntax.Literal(5), BinaryOperation.LessEqual, Syntax.Literal(2))))));
+                    Syntax.Assign(Syntax.VariableReference("myVar"),
+                        Syntax.VariableAssignment(Syntax.Binary(Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.LessSymbol), Syntax.Literal(2)))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

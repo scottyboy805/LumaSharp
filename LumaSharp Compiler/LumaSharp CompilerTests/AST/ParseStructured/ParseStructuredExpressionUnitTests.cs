@@ -8,19 +8,19 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
     public class ParseStructuredExpressionUnitTests
     {
         [DataTestMethod]
-        [DataRow("size(i32)", typeof(TypeReferenceSyntax))]
-        [DataRow("size(string)", typeof(TypeReferenceSyntax))]
-        [DataRow("size(bool)", typeof(TypeReferenceSyntax))]
-        [DataRow("size(MyType<i8>)", typeof(TypeReferenceSyntax))]
+        [DataRow("sizeof(i32)", typeof(TypeReferenceSyntax))]
+        [DataRow("sizeof(string)", typeof(TypeReferenceSyntax))]
+        [DataRow("sizeof(bool)", typeof(TypeReferenceSyntax))]
+        [DataRow("sizeof(MyType<i8>)", typeof(TypeReferenceSyntax))]
         public void StructuredExpression_Size(string input, Type expressionType)
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(SizeExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(SizeofExpressionSyntax));
 
-            Assert.IsInstanceOfType(((SizeExpressionSyntax)expression).TypeReference, expressionType);
+            Assert.IsInstanceOfType(((SizeofExpressionSyntax)expression).TypeReference, expressionType);
         }
 
         [DataTestMethod]
@@ -34,9 +34,9 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(TypeExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(TypeofExpressionSyntax));
 
-            Assert.IsInstanceOfType(((TypeExpressionSyntax)expression).TypeReference, expressionType);
+            Assert.IsInstanceOfType(((TypeofExpressionSyntax)expression).TypeReference, expressionType);
         }
 
         [DataTestMethod]

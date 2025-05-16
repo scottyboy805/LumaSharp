@@ -125,20 +125,20 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal TypeSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, bool isOverride, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
-            : base(parent, identifier, attributes, accessModifiers)
+        internal TypeSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, bool isOverride, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+            : base(identifier, attributes, accessModifiers)
         {
             // Members
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.TypeKeyword);
+            this.keyword = Syntax.Token(SyntaxTokenKind.TypeKeyword);
             this.genericParameters = genericParameters;
 
             // Check for override
             if (isOverride == true)
-                this.overrideKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.OverrideKeyword);
+                this.overrideKeyword = Syntax.Token(SyntaxTokenKind.OverrideKeyword);
 
             if (baseTypes != null)
             {
-                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
                 this.baseTypes = baseTypes;
             }
 
@@ -147,42 +147,6 @@ namespace LumaSharp.Compiler.AST
             // Check for null block
             if (memberBlock == null)
                 this.memberBlock = new BlockSyntax<MemberSyntax>(this, Enumerable.Empty<MemberSyntax>());
-        }
-
-        internal TypeSyntax(SyntaxNode parent, LumaSharpParser.TypeDeclarationContext typeDef)
-            : base(typeDef.IDENTIFIER(), parent, typeDef.attributeReference(), typeDef.accessModifier())
-        {
-            // Type keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.TypeKeyword, typeDef.TYPE());
-
-            // Get generics
-            if (typeDef.genericParameterList() != null)
-            {
-                this.genericParameters = new GenericParameterListSyntax(this, typeDef.genericParameterList());
-            }
-
-            // Override
-            if(typeDef.OVERRIDE() != null)
-            {
-                this.overrideKeyword = new SyntaxToken(SyntaxTokenKind.OverrideKeyword, typeDef.OVERRIDE());
-            }
-
-            // Get base
-            LumaSharpParser.InheritParametersContext inherit = typeDef.inheritParameters();
-
-            if (inherit != null)
-            {
-                // Inherit symbol
-                this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, inherit.COLON());
-
-                // Base types
-                this.baseTypes = ExpressionSyntax.List(this, inherit.typeReferenceList());
-            }
-
-            // Get members
-            LumaSharpParser.MemberBlockContext block = typeDef.memberBlock();
-
-            this.memberBlock = new BlockSyntax<MemberSyntax>(this, block);
         }
 
         // Methods

@@ -78,65 +78,40 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ImportSyntax(SyntaxNode parent, string[] identifiers)
-            : base(parent)
+        internal ImportSyntax(SeparatedTokenList importName)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.ImportKeyword),
+                  importName)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ImportKeyword);
-            this.name = new SeparatedTokenList(this, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
-
-            // Add identifiers
-            foreach (string identifier in identifiers)
-                this.name.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol));
         }
 
-        internal ImportSyntax(SyntaxNode parent, string alias, TypeReferenceSyntax aliasType, string[] identifiers)
-            : base(parent)
+        internal ImportSyntax(SyntaxToken keyword, SeparatedTokenList importName)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ImportKeyword);
-            this.aliasIdentifier = Syntax.Identifier(alias);
-            this.asKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.AsKeyword);
-            this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
+            // Check kind
+            if(keyword.Kind != SyntaxTokenKind.ImportKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ImportKeyword);
 
-            this.aliasTypeReference = aliasType;            
-            this.name = new SeparatedTokenList(this, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
+            // Check null
+            if(importName == null)
+                throw new ArgumentNullException(nameof(importName));
 
-            // Add identifiers
-            foreach (string identifier in identifiers)
-                this.name.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol));
+            this.keyword = keyword;
+            this.name = importName;
         }
 
-        internal ImportSyntax(SyntaxNode parent, LumaSharpParser.ImportElementContext import)
-            : base(parent)
-        {
-            // Get import options
-            LumaSharpParser.ImportStatementContext statement = import.importStatement();
-            LumaSharpParser.ImportAliasContext alias = import.importAlias();
+        //internal ImportSyntax(SyntaxToken keyword, SyntaxToken aliasIdentifier, SyntaxToken asKeyword, SeparatedTokenList importName)
+        //{
+        //    // Check kind
+        //    if (keyword.Kind != SyntaxTokenKind.ImportKeyword)
+        //        throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ImportKeyword);
 
-            // Check for statement
-            if(statement != null)
-            {
-                // Get keyword
-                this.keyword = new SyntaxToken(SyntaxTokenKind.ImportKeyword, statement.IMPORT());
+        //    // Check null
+        //    if (importName == null)
+        //        throw new ArgumentNullException(nameof(importName));
 
-                // Get namespace
-                this.name = new SeparatedTokenList(this, statement.namespaceName());
-            }
-            else if(alias != null)
-            {
-                // Get keywords
-                this.keyword = new SyntaxToken(SyntaxTokenKind.ImportKeyword, alias.IMPORT());
-                this.asKeyword = new SyntaxToken(SyntaxTokenKind.AsKeyword, alias.AS());
-
-                // Get alias
-                this.aliasIdentifier = new SyntaxToken(SyntaxTokenKind.Identifier, alias.IDENTIFIER());
-
-                // Get namespace
-                this.name = new SeparatedTokenList(this, alias.namespaceName());
-                
-                // Get alias type
-                this.aliasTypeReference = new TypeReferenceSyntax(this, null, alias.typeReference());
-            }
-        }
+        //    this.keyword = keyword;
+        //    this.name = importName;
+        //}
 
         // Methods
         public override void GetSourceText(TextWriter writer)

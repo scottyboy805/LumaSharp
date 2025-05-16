@@ -13,7 +13,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -30,7 +30,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -47,7 +47,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.HiddenKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.HiddenKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -64,7 +64,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -82,7 +82,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -99,7 +99,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -116,7 +116,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.HiddenKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.HiddenKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -133,7 +133,7 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.InternalKeyword))));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.InternalKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

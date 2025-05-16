@@ -88,18 +88,17 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ConditionStatementSyntax(SyntaxNode parent, ExpressionSyntax condition, bool isAlternate, ConditionStatementSyntax alternate, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
-            : base(parent)
+        internal ConditionStatementSyntax(ExpressionSyntax condition, bool isAlternate, ConditionStatementSyntax alternate, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
         {
             if (condition != null)
             {
-                this.keyword = isAlternate == false
-                    ? Syntax.KeywordOrSymbol(SyntaxTokenKind.IfKeyword)
-                    : Syntax.KeywordOrSymbol(SyntaxTokenKind.ElseifKeyword);
+                //this.keyword = isAlternate == false
+                //    ? Syntax.KeywordOrSymbol(SyntaxTokenKind.IfKeyword)
+                //    : Syntax.KeywordOrSymbol(SyntaxTokenKind.ElseifKeyword);
             }
             else
             {
-                this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ElseKeyword);
+                this.keyword = Syntax.Token(SyntaxTokenKind.ElseKeyword);
             }
 
             // Condition
@@ -108,82 +107,6 @@ namespace LumaSharp.Compiler.AST
 
             this.blockStatement = body;
             this.inlineStatement = inlineStatement;
-        }
-
-        internal ConditionStatementSyntax(SyntaxNode parent, LumaSharpParser.IfStatementContext condition)
-            : base(parent)
-        {
-            // Keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.IfKeyword, condition.IF());
-
-            // Condition
-            this.condition = ExpressionSyntax.Any(this, condition.expression());
-
-            // Statement inline
-            if(condition.statement() != null)
-            {
-                this.inlineStatement = Any(this, condition.statement());
-            }
-
-            // Statement block
-            if(condition.statementBlock() != null)
-            {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(this, condition.statementBlock());
-            }
-
-            // Get alternate
-            if(condition.elseifStatement() != null)
-            {
-                //alternate = new ConditionStatementSyntax(this, condition.elseifStatement());
-            }
-            if(condition.elseStatement() != null)
-            {
-                alternate = new ConditionStatementSyntax(this, condition.elseStatement());
-            }
-        }
-
-        internal ConditionStatementSyntax(SyntaxNode parent, LumaSharpParser.ElseifStatementContext alternate)
-            : base(parent)
-        {
-            // Keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.ElseifKeyword, alternate.ELSEIF());
-
-            // Condition
-            this.condition = ExpressionSyntax.Any(this, alternate.expression());
-
-            // Statement inline
-            if (alternate.statement() != null)
-            {
-                this.inlineStatement = Any(this, alternate.statement());
-            }
-
-            // Statement block
-            if (alternate.statementBlock() != null)
-            {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(this, alternate.statementBlock());
-            }
-
-
-            // Get alternate
-        }
-
-        internal ConditionStatementSyntax(SyntaxNode parent, LumaSharpParser.ElseStatementContext alternate)
-            : base(parent)
-        {
-            // Keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.ElseKeyword, alternate.ELSE());
-
-            // Statement inline
-            if(alternate.statement() != null)
-            {
-                this.inlineStatement = Any(this, alternate.statement());
-            }
-
-            // Statement block
-            if(alternate.statementBlock() != null)
-            {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(this, alternate.statementBlock());
-            }
         }
 
         // Methods

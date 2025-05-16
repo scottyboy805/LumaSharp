@@ -24,16 +24,8 @@ namespace LumaSharp.Compiler.AST
 
         // Constructor
         internal MethodInvokeStatementSyntax(SyntaxNode parent, MethodInvokeExpressionSyntax invokeExpression)
-            : base(parent)
         {
             this.invokeExpression = invokeExpression;
-        }
-
-        internal MethodInvokeStatementSyntax(SyntaxNode parent, LumaSharpParser.MethodInvokeStatementContext invoke)
-            : base(parent)
-        {
-            // Get invoke
-            this.invokeExpression = new MethodInvokeExpressionSyntax(this, invoke.expression());
         }
 
         // Methods

@@ -1,6 +1,4 @@
-﻿using Antlr4.Runtime.Tree;
-using LumaSharp.Runtime.Reflection;
-
+﻿
 namespace LumaSharp.Compiler.AST
 {
     public enum PrimitiveType : byte
@@ -9,6 +7,7 @@ namespace LumaSharp.Compiler.AST
         Any = 1,
         Bool,
         Char,
+        String,
         I8,
         U8,
         I16,
@@ -31,30 +30,11 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken dot;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return identifier; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return dot; }
-        }
-
-        public SyntaxToken Identifier
-        {
-            get { return identifier; }
-        }
-
-        public GenericArgumentListSyntax GenericArguments
-        {
-            get { return genericArguments; }
-        }
-
-        public SyntaxToken Dot
-        {
-            get { return dot; }
-        }
+        public override SyntaxToken StartToken => identifier;
+        public override SyntaxToken EndToken => dot;
+        public SyntaxToken Identifier => identifier;
+        public GenericArgumentListSyntax GenericArguments => genericArguments;
+        public SyntaxToken Dot => dot;
 
         public int GenericArgumentCount
         {
@@ -78,26 +58,26 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ParentTypeReferenceSyntax(SyntaxNode parent, string identifier, GenericArgumentListSyntax genericArguments)
-            : base(parent)
+        internal ParentTypeReferenceSyntax(SyntaxToken identifier, GenericArgumentListSyntax genericArguments)
+            : this(
+                  identifier,
+                  genericArguments,
+                  new SyntaxToken(SyntaxTokenKind.DotSymbol))
         {
-            this.identifier = Syntax.Identifier(identifier);
-            this.genericArguments = genericArguments;
-            this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
         }
 
-        internal ParentTypeReferenceSyntax(SyntaxNode parent, LumaSharpParser.ParentTypeReferenceContext parentType)
-            : base(parent)
+        internal ParentTypeReferenceSyntax(SyntaxToken identifier, GenericArgumentListSyntax genericArguments, SyntaxToken dot)
         {
-            // Identifier
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, parentType.IDENTIFIER());
+            // Check kind
+            if (identifier.Kind != SyntaxTokenKind.Identifier)
+                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.Identifier);
 
-            // Generic
-            if (parentType.genericArgumentList() != null)
-                this.genericArguments = new GenericArgumentListSyntax(this, parentType.genericArgumentList());
+            if (dot.Kind != SyntaxTokenKind.DotSymbol)
+                throw new ArgumentException(nameof(dot) + " must be of kind: " + SyntaxTokenKind.DotSymbol);
 
-            // Dot
-            this.dot = new SyntaxToken(SyntaxTokenKind.DotSymbol, parentType.DOT());
+            this.identifier = identifier;
+            this.genericArguments = genericArguments;
+            this.dot = dot;
         }
 
         // Methods
@@ -247,7 +227,6 @@ namespace LumaSharp.Compiler.AST
 
         // Constructor
         internal TypeReferenceSyntax(MemberSyntax fromMember)
-            : base(null, null)
         {
             // Check for type
             if (fromMember is TypeSyntax)
@@ -274,72 +253,48 @@ namespace LumaSharp.Compiler.AST
                 throw new NotSupportedException("Cannot create type reference from non-type member: " + fromMember);
         }
 
-        internal TypeReferenceSyntax(SyntaxNode parent, PrimitiveType primitive)
-            : base(parent, null)
+        internal TypeReferenceSyntax(PrimitiveType primitive, ArrayParametersSyntax arrayParameters)
         {
-            this.identifier = Syntax.Identifier(primitive.ToString().ToLower());
+            this.identifier = new SyntaxToken(primitive switch
+            {
+                PrimitiveType.Void => SyntaxTokenKind.VoidKeyword,
+                PrimitiveType.Bool => SyntaxTokenKind.BoolKeyword,
+                PrimitiveType.Char => SyntaxTokenKind.CharKeyword,
+                PrimitiveType.String => SyntaxTokenKind.StringKeyword,
+                PrimitiveType.I8 => SyntaxTokenKind.I8Keyword,
+                PrimitiveType.U8 => SyntaxTokenKind.U8Keyword,
+                PrimitiveType.I16 => SyntaxTokenKind.I16Keyword,
+                PrimitiveType.U16 => SyntaxTokenKind.U16Keyword,
+                PrimitiveType.I32 => SyntaxTokenKind.I32Keyword,
+                PrimitiveType.U32 => SyntaxTokenKind.U32Keyword,
+                PrimitiveType.I64 => SyntaxTokenKind.I64Keyword,
+                PrimitiveType.U64 => SyntaxTokenKind.U64Keyword,
+                PrimitiveType.F32 => SyntaxTokenKind.F32Keyword,
+                PrimitiveType.F64 => SyntaxTokenKind.F64Keyword,
+                PrimitiveType.Any => SyntaxTokenKind.AnyKeyword,
+
+                _ => throw new NotSupportedException(primitive.ToString()),
+            });
+            this.arrayParameters = arrayParameters;
         }
 
-        internal TypeReferenceSyntax(SyntaxNode parent, SeparatedTokenList namespaceName, ParentTypeReferenceSyntax[] parentTypes, string identifier, GenericArgumentListSyntax genericArguments, ArrayParametersSyntax arrayParameters)
-            : base(parent, null)
+        internal TypeReferenceSyntax(SyntaxToken primitiveToken, ArrayParametersSyntax arrayParameters)
         {
-            this.identifier = Syntax.Identifier(identifier);
+            this.identifier = primitiveToken;
+            this.arrayParameters = arrayParameters;
+        }
+
+        internal TypeReferenceSyntax(SeparatedTokenList namespaceName, ParentTypeReferenceSyntax[] parentTypes, SyntaxToken identifier, GenericArgumentListSyntax genericArguments, ArrayParametersSyntax arrayParameters)
+        {
+            // Check kind
+            if(identifier.Kind != SyntaxTokenKind.Identifier)
+                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.Identifier);
+
+            this.identifier = identifier;
             this.namespaceName = namespaceName;
             this.parentTypes = parentTypes;
             this.genericArguments = genericArguments;
             this.arrayParameters = arrayParameters;
-        }
-
-        internal TypeReferenceSyntax(SyntaxNode parent, LumaSharpParser.PrimitiveTypeContext typeRef)
-            : base(parent, null)
-        {
-            // Identifier
-            this.identifier = GetPrimitiveType(typeRef);
-        }
-
-        internal TypeReferenceSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression, LumaSharpParser.TypeReferenceContext typeRef)
-            : base(parent, expression)
-        {
-            // Check for primitive
-            LumaSharpParser.PrimitiveTypeContext primitive = typeRef.primitiveType();
-            LumaSharpParser.ArrayParametersContext array = typeRef.arrayParameters();
-
-            if (primitive != null)
-            {
-                // Create primitive identifier
-                this.identifier = GetPrimitiveType(primitive);
-            }
-            else
-            {
-                // Namespace
-                if(typeRef.namespaceName() != null)
-                {
-                    this.namespaceName = new SeparatedTokenList(this, typeRef.namespaceName());
-                    this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, typeRef.COLON());
-                }
-
-                // Get parent type
-                if(typeRef.parentTypeReference() != null && typeRef.parentTypeReference().Length > 0)
-                {
-                    this.parentTypes = typeRef.parentTypeReference().Select(p => new ParentTypeReferenceSyntax(this, p)).ToArray();
-                }
-
-                // Identifier
-                this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, typeRef.IDENTIFIER());
-
-
-                // Get generics
-                if (typeRef.genericArgumentList() != null)
-                {
-                    this.genericArguments = new GenericArgumentListSyntax(this, typeRef.genericArgumentList());
-                }
-            }
-
-            // Check for array
-            if (array != null)
-            {
-                this.arrayParameters = new ArrayParametersSyntax(this, array);
-            }
         }
 
         // Methods

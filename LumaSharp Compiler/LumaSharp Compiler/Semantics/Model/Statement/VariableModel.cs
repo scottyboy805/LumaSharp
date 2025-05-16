@@ -56,7 +56,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                 for (int i = 0; i < syntax.Assignment.AssignExpressions.Count; i++)
                 {
                     assignModels[i] = new AssignModel(model, this, syntax, new VariableReferenceModel(model, this, 
-                        new VariableReferenceExpressionSyntax(null, syntax.Identifiers[i].Text)), 
+                        new VariableReferenceExpressionSyntax(syntax.Identifiers[i])), 
                         ExpressionModel.Any(model, this, syntax.Assignment.AssignExpressions[i]), index);                    
                 }
             }

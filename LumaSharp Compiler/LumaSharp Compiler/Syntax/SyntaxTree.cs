@@ -1,4 +1,5 @@
-﻿using LumaSharp.Compiler.Reporting;
+﻿using LumaSharp.Compiler.Parser;
+using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -73,72 +74,8 @@ namespace LumaSharp.Compiler.AST
 
         // Constructor
         internal SyntaxTree()
-            : base(null) 
         {
             this.rootElements = new List<SyntaxNode>();
-        }
-
-        internal SyntaxTree(LumaSharpParser.CompilationUnitContext unit)
-            : base(null)
-        {
-            // Get root members
-            LumaSharpParser.ImportElementContext[] importElements = unit.importElement();
-            LumaSharpParser.RootElementContext[] rootElements = unit.rootElement();
-
-            if ((importElements != null && importElements.Length > 0) || (rootElements != null && rootElements.Length > 0))
-            {
-                // Create collection
-                this.rootElements = new List<SyntaxNode>();
-            }
-
-            // Process all import elements
-            if(importElements != null)
-            {
-                for(int i = 0; i < importElements.Length; i++)
-                {
-                    // Create import
-                    this.rootElements.Add(new ImportSyntax(this, importElements[i]));
-                }
-            }
-
-            // Process all root elements
-            if (rootElements != null)
-            {
-                for (int i = 0; i < rootElements.Length; i++)
-                {
-                    this.rootElements.Add(MemberSyntax.RootElement(this, rootElements[i]));
-
-                    //// Get namespace or root member
-                    //LumaSharpParser.NamespaceDeclarationContext namespaceElement = rootElements[i].namespaceDeclaration();
-                    //LumaSharpParser.RootMemberContext rootMemberElement = rootElements[i].rootMember();
-
-                    //// Check for namespace
-                    //if (namespaceElement != null)
-                    //{
-                    //    // Create namespace
-                    //    this.rootElements.Add(new NamespaceSyntax(this, this, namespaceElement));
-                    //}
-                    //else if (rootMemberElement != null)
-                    //{
-                    //    // Get all valid members
-                    //    LumaSharpParser.TypeDeclarationContext typeDef = rootMemberElement.typeDeclaration();
-                    //    LumaSharpParser.ContractDeclarationContext contractDef = rootMemberElement.contractDeclaration();
-                    //    LumaSharpParser.EnumDeclarationContext enumDef = rootMemberElement.enumDeclaration();
-
-                    //    // Check for type
-                    //    if (typeDef != null)
-                    //        this.rootElements.Add(new TypeSyntax(this, this, typeDef));
-
-                    //    // Check for contract
-                    //    if (contractDef != null)
-                    //        this.rootElements.Add(new ContractSyntax(this, this, contractDef));
-
-                    //    // Check for enum
-                    //    if (enumDef != null)
-                    //        this.rootElements.Add(new EnumSyntax(this, this, enumDef));
-                    //}
-                }
-            }
         }
 
         // Methods
@@ -177,11 +114,12 @@ namespace LumaSharp.Compiler.AST
 
         public static SyntaxTree Parse(InputSource source)
         {
+            throw new NotImplementedException();
             // Create parser
-            ParserContext context = new ParserContext(source);
+            //ParserContext context = new ParserContext(source);
 
-            // Parse syntax tree
-            return context.ParseCompilationUnit();
+            //// Parse syntax tree
+            //return context.ParseCompilationUnit();
         }
 
         public static SyntaxTree ParseStatement()
@@ -191,11 +129,14 @@ namespace LumaSharp.Compiler.AST
 
         public static ExpressionSyntax ParseExpression(InputSource source)
         {
-            // Create parser
-            ParserContext context = new ParserContext(source);
+            return new ASTParser(new TokenParser(new TextView(source.Reader)).GetEnumerator(), new CompileReport())
+                .ParseExpression();
+
+            //// Create parser
+            //ParserContext context = new ParserContext(source);
             
-            // Parse expression only
-            return context.ParseExpression();
+            //// Parse expression only
+            //return context.ParseExpression();
         }
     }
 }

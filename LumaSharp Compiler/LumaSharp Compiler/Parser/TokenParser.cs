@@ -16,7 +16,7 @@ namespace LumaSharp.Compiler.Parser
             .OrderByDescending(s => s.Text.Length).ToArray();
     
         private readonly StringBuilder builder = new();
-        private readonly TextView view;
+        private readonly TextView source;
 
         private IEnumerator<SyntaxToken> enumerator;
 
@@ -27,7 +27,7 @@ namespace LumaSharp.Compiler.Parser
             if(textView == null)
                 throw new ArgumentNullException(nameof(textView));
 
-            this.view = textView;
+            this.source = textView;
             this.builder = new();
         }
 
@@ -52,10 +52,10 @@ namespace LumaSharp.Compiler.Parser
             SyntaxToken previous = SyntaxToken.Invalid;
 
             // Read all tokens with minimal lookahead
-            while(view.EOF == false)
+            while(source.EOF == false)
             {
                 // Get leading trivia
-                string leadingTrivia = ReadLeadingTrivia(view.Position == 0);
+                string leadingTrivia = ReadLeadingTrivia(source.Position == 0);
 
                 // ### COMMENT - Check for line or block comment
                 if (MatchCommentStart(out SyntaxToken commentStart) == true)
@@ -107,7 +107,7 @@ namespace LumaSharp.Compiler.Parser
                 else
                 {
                     // Try to recover from parser error
-                    throw new Exception("Parser error: " + view.Peek());
+                    throw new Exception("Parser error: " + source.Peek());
                 }
             }
         }
@@ -115,22 +115,22 @@ namespace LumaSharp.Compiler.Parser
         #region Trivia
         private string ReadLeadingTrivia(bool isStart)
         {
-            while(view.EOF == false)
+            while(source.EOF == false)
             {
                 // Get current char
-                char current = view.Peek();
+                char current = source.Peek();
 
                 // Check for leading whitespace
                 if(IsWhiteSpaceTrivia(current) == true)
                 {
                     builder.Append(current);
-                    view.Consume();
+                    source.Consume();
                 }
                 // Check for any other whitespace for starting token only
                 else if(isStart == true && IsEndLineTrivia(current) == true)
                 {
                     builder.Append(current);
-                    view.Consume();
+                    source.Consume();
                 }
                 else
                 {
@@ -154,16 +154,16 @@ namespace LumaSharp.Compiler.Parser
 
         private string ReadTrailingTrivia()
         {
-            while (view.EOF == false)
+            while (source.EOF == false)
             {
                 // Get current char
-                char current = view.Peek();
+                char current = source.Peek();
 
                 // Check for whitespace or end line
                 if(IsWhiteSpaceTrivia(current) == true || IsEndLineTrivia(current) == true)
                 {
                     builder.Append(current);
-                    view.Consume();
+                    source.Consume();
                 }
                 else
                 {
@@ -199,10 +199,10 @@ namespace LumaSharp.Compiler.Parser
         private bool MatchCommentStart(out SyntaxToken commentSymbol)
         {            
             // Check for line comment
-            if (MatchString(view, lineCommentStart) == true)
+            if (MatchString(source, lineCommentStart) == true)
             {
                 // Consume those characters
-                view.Consume(lineCommentStart.Length);
+                source.Consume(lineCommentStart.Length);
 
                 // Create the token
                 commentSymbol = new SyntaxToken(SyntaxTokenKind.LineComment);
@@ -210,10 +210,10 @@ namespace LumaSharp.Compiler.Parser
             }
 
             // Check for block comment
-            if (MatchString(view, blockCommentStart) == true)
+            if (MatchString(source, blockCommentStart) == true)
             {
                 // Consume those characters
-                view.Consume(blockCommentStart.Length);
+                source.Consume(blockCommentStart.Length);
 
                 // Create the token
                 commentSymbol = new SyntaxToken(SyntaxTokenKind.BlockCommentStart);
@@ -227,10 +227,10 @@ namespace LumaSharp.Compiler.Parser
         private SyntaxToken MatchCommentText(string commentEndString)
         {
             // Read until end of line or stream
-            while (view.EOF == false && MatchString(view, commentEndString) == false)
+            while (source.EOF == false && MatchString(source, commentEndString) == false)
             {
                 // Get the next comment character
-                builder.Append(view.Consume());
+                builder.Append(source.Consume());
             }
 
             // Create the symbol
@@ -243,35 +243,35 @@ namespace LumaSharp.Compiler.Parser
 
         private SyntaxToken MatchCommentEnd(string commentEndString)
         {
-            if (MatchString(view, commentEndString) == false)
+            if (MatchString(source, commentEndString) == false)
                 throw new Exception("Invalid comment state");
 
-            view.Consume(commentEndString.Length);
+            source.Consume(commentEndString.Length);
             return new SyntaxToken(SyntaxTokenKind.BlockCommentEnd);
         }
 
         private bool MatchLiteral(out SyntaxToken literal)
         {
             // Check for quote
-            if (view.Peek() == '"')
+            if (source.Peek() == '"')
             {
                 // Create trivia for starting quote?
-                view.Consume();
+                source.Consume();
 
                 // Read until end of stream or quote
-                while(view.EOF == false && view.Peek() != '"')
+                while(source.EOF == false && source.Peek() != '"')
                 {
                     // Append the literal
-                    builder.Append(view.Consume());
+                    builder.Append(source.Consume());
                 }
 
                 // Create trivial for ending quote
-                if (view.Peek() != '"')
+                if (source.Peek() != '"')
                 {
                     // Expected end quote
                 }
 
-                view.Consume();
+                source.Consume();
 
                 // Build the literal
                 literal = new SyntaxToken(SyntaxTokenKind.Literal, builder.ToString());
@@ -288,7 +288,7 @@ namespace LumaSharp.Compiler.Parser
         private bool MatchKeyword(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken keyword)
         {
             // Check for start of doc, white space, end of block comment, or delimiting symbol to start the keyword
-            if (view.Position > 0 
+            if (source.Position > 0 
                 && string.IsNullOrEmpty(leadingTrivia) == true 
                 && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd 
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
@@ -301,20 +301,20 @@ namespace LumaSharp.Compiler.Parser
             foreach(SyntaxToken keywordToken in keywords)
             {
                 // Try to match
-                if(MatchString(view, keywordToken.Text) == true)
+                if(MatchString(source, keywordToken.Text) == true)
                 {
                     // Get the consume length
                     int length = keywordToken.Text.Length;
 
                     // Check for end delimiting symbols
-                    char end = view.Peek(length);
+                    char end = source.Peek(length);
 
                     // Check for end of stream, white space, comment start or delimiting symbol
                     // At the end of a keyword we must have either whitespace, end of stream or a valid delimiting character such as a symbol or number
                     if(end != '\0' 
                         && IsWhiteSpaceTrivia(end) == false 
-                        && MatchString(view, lineCommentStart, length) == false 
-                        && MatchString(view, blockCommentStart, length) == false 
+                        && MatchString(source, lineCommentStart, length) == false 
+                        && MatchString(source, blockCommentStart, length) == false 
                         && IsKeywordDelimiterCharacter(end) == false)
                     {
                         // Make be an identifier that starts with a keyword
@@ -322,7 +322,7 @@ namespace LumaSharp.Compiler.Parser
                     }
 
                     // Now we are certain that it is a keyword with suitable delimiters, so consume the keyword
-                    view.Consume(length);
+                    source.Consume(length);
 
                     // Update token
                     keyword = keywordToken;
@@ -338,7 +338,7 @@ namespace LumaSharp.Compiler.Parser
         private bool MatchSymbol(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken symbol)
         {
             // Check for start of doc, white space, end of block comment, or delimiting symbol to start the keyword
-            if (view.Position > 0
+            if (source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
                 && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsSymbolDelimiterCharacter(previousToken.Text.Last()) == false))
@@ -351,20 +351,20 @@ namespace LumaSharp.Compiler.Parser
             foreach (SyntaxToken symbolToken in symbols)
             {
                 // Try to match
-                if (MatchString(view, symbolToken.Text) == true)
+                if (MatchString(source, symbolToken.Text) == true)
                 {
                     // Get the consume length
                     int length = symbolToken.Text.Length;
 
                     // Check for end delimiting symbols
-                    char end = view.Peek(length);
+                    char end = source.Peek(length);
 
                     // Check for end of stream, white space, comment start or delimiting symbol
                     // At the end of a symbol we must have either whitespace, end of stream or a valid delimiting character such as a symbol or number
                     if (end != '\0'
                         && IsWhiteSpaceTrivia(end) == false
-                        && MatchString(view, lineCommentStart, length) == false
-                        && MatchString(view, blockCommentStart, length) == false
+                        && MatchString(source, lineCommentStart, length) == false
+                        && MatchString(source, blockCommentStart, length) == false
                         && IsSymbolDelimiterCharacter(end) == false)
                     {
                         // Make be an identifier that starts with a keyword
@@ -372,7 +372,7 @@ namespace LumaSharp.Compiler.Parser
                     }
 
                     // Now we are certain that it is a symbol with suitable delimiters, so consume the symbol
-                    view.Consume(length);
+                    source.Consume(length);
 
                     // Update token
                     symbol = symbolToken;
@@ -388,7 +388,7 @@ namespace LumaSharp.Compiler.Parser
         private bool MatchNumber(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken number)
         {
             // Require whitespace or symbol before number
-            if(view.Position > 0
+            if(source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
                 && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
@@ -398,26 +398,26 @@ namespace LumaSharp.Compiler.Parser
             }
 
             // Get first char
-            char first = view.Peek();
+            char first = source.Peek();
 
             // Check for first number or decimal ('.5' is acceptable)
             if (char.IsNumber(first) == true || first == '.')
             {
                 // Consume first value
-                builder.Append(view.Consume());
+                builder.Append(source.Consume());
 
                 // Check for decimal point consumed
                 bool consumedDecimal = first == '.';
 
                 // Consume all remaining digits
-                while(char.IsDigit(view.Peek()) == true || (consumedDecimal == false && view.Peek() == '.'))
+                while(char.IsDigit(source.Peek()) == true || (consumedDecimal == false && source.Peek() == '.'))
                 {
                     // Set flag
-                    if (view.Peek() == '.')
+                    if (source.Peek() == '.')
                         consumedDecimal = true;
 
                     // Append the character
-                    builder.Append(view.Consume());
+                    builder.Append(source.Consume());
                 }
 
                 // Build the full number string
@@ -436,7 +436,7 @@ namespace LumaSharp.Compiler.Parser
         private bool MatchIdentifier(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken identifier)
         {
             // Require whitespace or symbol before identifier
-            if (view.Position > 0
+            if (source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
                 && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
@@ -446,20 +446,20 @@ namespace LumaSharp.Compiler.Parser
             }
 
             // Get first character
-            char first = view.Peek();
+            char first = source.Peek();
 
             // Require letter or underscore to start an identifier
             if(char.IsLetter(first) == true || first == '_')
             {
                 // Read thr first character
-                builder.Append(view.Consume());
+                builder.Append(source.Consume());
 
                 // Read all supported characters
-                while(view.EOF == false
-                    && (char.IsLetterOrDigit(view.Peek()) == true || view.Peek() == '_'))
+                while(source.EOF == false
+                    && (char.IsLetterOrDigit(source.Peek()) == true || source.Peek() == '_'))
                 {
                     // Append the character
-                    builder.Append(view.Consume());
+                    builder.Append(source.Consume());
                 }
 
                 // Create the token

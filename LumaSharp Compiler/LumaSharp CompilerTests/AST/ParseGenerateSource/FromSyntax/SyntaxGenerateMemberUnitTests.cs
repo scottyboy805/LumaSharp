@@ -17,7 +17,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Field("MyField", Syntax.TypeReference("MyType"), 
-                Syntax.VariableAssignment(AssignOperation.Assign, Syntax.Literal(5)));
+                Syntax.VariableAssignment(Syntax.Literal(5)));
 
             // Get expression text
             Assert.AreEqual("MyType MyField=5;", syntax1.GetSourceText());

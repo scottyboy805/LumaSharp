@@ -8,8 +8,11 @@ namespace LumaSharp.Compiler.AST
         private readonly TypeReferenceSyntax parameterType;
         private readonly VariableAssignExpressionSyntax assignment;
         private readonly SyntaxToken identifier;
-        private readonly SyntaxToken enumerable;
+        private readonly SyntaxToken? enumerable;
         private readonly int index;
+
+        // Internal
+        internal static readonly ParameterSyntax Error = new();
 
         // Properties
         public override SyntaxToken StartToken
@@ -30,8 +33,8 @@ namespace LumaSharp.Compiler.AST
             get
             {
                 // Check for enumerable
-                if (HasVariableSizedList == true)
-                    return enumerable;
+                if (enumerable != null)
+                    return enumerable.Value;
 
                 // Check for assign
                 if (HasAssignment == true)
@@ -56,7 +59,7 @@ namespace LumaSharp.Compiler.AST
             get { return identifier; }
         }
 
-        public SyntaxToken Enumerable
+        public SyntaxToken? Enumerable
         {
             get { return enumerable; }
         }
@@ -64,11 +67,6 @@ namespace LumaSharp.Compiler.AST
         public int Index
         {
             get { return index; }
-        }
-
-        public bool HasVariableSizedList
-        {
-            get { return enumerable.Kind != SyntaxTokenKind.Invalid; }
         }
 
         public bool HasAttributes
@@ -100,34 +98,29 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ParameterSyntax(SyntaxNode parent, AttributeReferenceSyntax[] attributes, TypeReferenceSyntax parameterType, string identifier, VariableAssignExpressionSyntax assignment, bool isVariableSizedList)
-            : base(parent)
+        private ParameterSyntax()
         {
-            this.attributes = attributes;
-            this.parameterType = parameterType;
-            this.identifier = Syntax.Identifier(identifier);
-            this.assignment = assignment;
-
-            // Variable sized
-            if (isVariableSizedList == true)
-                this.enumerable = Syntax.KeywordOrSymbol(SyntaxTokenKind.EnumerableSymbol);
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
         }
 
-        internal ParameterSyntax(SyntaxNode parent, LumaSharpParser.MethodParameterContext paramDef, int index)
-            : base(parent)
+        internal ParameterSyntax(AttributeReferenceSyntax[] attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignExpressionSyntax assignment, SyntaxToken? enumerable)
         {
-            // Index
-            this.index = index;
+            // Check null
+            if (parameterType == null)
+                throw new ArgumentNullException(nameof(parameterType));
 
-            // Param type
-            this.parameterType = new TypeReferenceSyntax(this, null, paramDef.typeReference());
+            // Check kind
+            if(identifier.Kind != SyntaxTokenKind.Identifier)
+                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.Identifier);
 
-            // Identifier
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, paramDef.IDENTIFIER());
+            if(enumerable != null && enumerable.Value.Kind != SyntaxTokenKind.EnumerableSymbol)
+                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.EnumerableSymbol.ToString());
 
-            // Check for variable sized
-            if(paramDef.ENUMERABLE() != null)
-                this.enumerable = new SyntaxToken(SyntaxTokenKind.EnumerableSymbol, paramDef.ENUMERABLE());
+            this.attributes = attributes;
+            this.parameterType = parameterType;
+            this.identifier = identifier;
+            this.assignment = assignment;
+            this.enumerable = enumerable;
         }
 
         // Methods
@@ -147,9 +140,9 @@ namespace LumaSharp.Compiler.AST
             identifier.GetSourceText(writer);
 
             // Variable sized list
-            if(HasVariableSizedList == true)
+            if(enumerable != null)
             {
-                enumerable.GetSourceText(writer);
+                enumerable.Value.GetSourceText(writer);
             }
         }
     }

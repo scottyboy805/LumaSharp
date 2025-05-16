@@ -14,7 +14,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32)),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.This(), "myMethod"), AssignOperation.Assign, Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.This(), "myMethod"),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -34,9 +35,10 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword)),
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod"), AssignOperation.Assign, Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod"),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -59,7 +61,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(
-                    Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5))), AssignOperation.Assign, Syntax.Literal(5)))));
+                    Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5))),
+                        Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -81,7 +84,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "arg")),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.New(Syntax.TypeReference("Test")))), AssignOperation.Assign, Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.New(Syntax.TypeReference("Test")))),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -104,7 +108,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg0"),
                 Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Any), "arg1")),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal("Hello"))), AssignOperation.Assign, Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal("Hello"))),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

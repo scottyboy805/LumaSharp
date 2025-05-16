@@ -57,31 +57,14 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal TernaryExpressionSyntax(SyntaxNode parent, ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression)
-            : base(parent, null)
+        internal TernaryExpressionSyntax(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression)
         {
             this.condition = condition;
             this.trueExpression = trueExpression;
             this.falseExpression = falseExpression;
 
-            ternary = Syntax.KeywordOrSymbol(SyntaxTokenKind.TernarySymbol);
-            colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
-        }
-
-        internal TernaryExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            // Condition
-            this.condition = Any(this, expression.expression(0));
-
-            // True expression
-            this.trueExpression = Any(this, expression.expression(1));
-
-            // False expression
-            this.falseExpression = Any(this, expression.expression(2));
-
-            ternary = new SyntaxToken(SyntaxTokenKind.TernarySymbol, expression.TERNARY());
-            colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, expression.COLON());
+            ternary = Syntax.Token(SyntaxTokenKind.TernarySymbol);
+            colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
         }
 
         // Methods

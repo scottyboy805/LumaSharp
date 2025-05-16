@@ -83,14 +83,14 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal EnumSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax underlyingType, BlockSyntax<FieldSyntax> fieldBlock)
-            : base(parent, identifier, attributes, accessModifiers)
+        internal EnumSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax underlyingType, BlockSyntax<FieldSyntax> fieldBlock)
+            : base(identifier, attributes, accessModifiers)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.EnumKeyword);
+            this.keyword = Syntax.Token(SyntaxTokenKind.EnumKeyword);
 
             if (underlyingType != null)
             {
-                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
                 this.underlyingTypeReference = underlyingType;
             }
 
@@ -99,28 +99,6 @@ namespace LumaSharp.Compiler.AST
             // Check for null block
             if (fieldBlock == null)
                 this.fieldBlock = new BlockSyntax<FieldSyntax>(this, Enumerable.Empty<FieldSyntax>());
-        }
-
-        internal EnumSyntax(SyntaxNode parent, LumaSharpParser.EnumDeclarationContext enumDef)
-            : base(enumDef.IDENTIFIER(), parent, enumDef.attributeReference(), enumDef.accessModifier())
-        {
-            // Enum keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.EnumKeyword, enumDef.ENUM());
-
-            // Enum type
-            if (enumDef.primitiveType() != null)
-            {
-                this.underlyingTypeReference = new TypeReferenceSyntax(parent, enumDef.primitiveType());
-            }
-            else
-            {
-                this.underlyingTypeReference = new TypeReferenceSyntax(this, PrimitiveType.I32);
-            }
-
-            // Get fields
-            LumaSharpParser.EnumBlockContext block = enumDef.enumBlock();
-
-            this.fieldBlock = new BlockSyntax<FieldSyntax>(this, underlyingTypeReference, block);
         }
 
         // Methods

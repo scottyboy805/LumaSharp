@@ -80,48 +80,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignExpressionSyntax fieldAssignment)
-            : base(parent, identifier, attributes, accessModifiers)
+        internal FieldSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignExpressionSyntax fieldAssignment)
+            : base(identifier, attributes, accessModifiers)
         {
             this.fieldType = fieldType;
             this.fieldAssignment = fieldAssignment;
-        }
-
-        internal FieldSyntax(SyntaxNode node, LumaSharpParser.FieldDeclarationContext fieldDef)
-            : base(fieldDef.IDENTIFIER(), node, fieldDef.attributeReference(), fieldDef.accessModifier())
-        {
-            // Create type reference
-            this.fieldType = new TypeReferenceSyntax(this, null, fieldDef.typeReference());
-
-            // Check for assign
-            LumaSharpParser.VariableAssignmentContext assignment = fieldDef.variableAssignment();
-
-            if(assignment != null)
-            {
-                this.fieldAssignment = new VariableAssignExpressionSyntax(this, assignment);
-            }
-
-            // Comma
-            if(fieldDef.COMMA() != null)
-                this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, fieldDef.COMMA());
-        }
-
-        internal FieldSyntax(SyntaxNode parent, TypeReferenceSyntax enumType, LumaSharpParser.EnumFieldContext enumField)
-            : base(enumField.IDENTIFIER(), parent, enumField.attributeReference(), null)
-        {
-            // Create field type
-            this.fieldType = enumType;
-
-            // Check for assignment
-            LumaSharpParser.VariableAssignmentContext assignment = enumField.variableAssignment();
-
-            if(assignment != null)
-            {
-                this.fieldAssignment = new VariableAssignExpressionSyntax(this, assignment);
-            }
-
-            // Comma
-            this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, enumField.COMMA());
         }
 
         // Methods

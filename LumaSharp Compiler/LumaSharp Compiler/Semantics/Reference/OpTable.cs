@@ -326,7 +326,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                     case SpecialOperator.OpString:
                         {
                             // Resolve string symbol
-                            ITypeReferenceSymbol stringSymbol = provider.ResolveTypeSymbol(null, Syntax.TypeReference("string"));
+                            ITypeReferenceSymbol stringSymbol = provider.ResolveTypeSymbol(null, Syntax.TypeReference(PrimitiveType.String));
 
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.Any && returnTypeSymbol != stringSymbol)

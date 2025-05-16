@@ -34,24 +34,25 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal NamespaceSyntax(SyntaxNode parent, string[] identifiers)
-            : base(parent)
+        internal NamespaceSyntax(SeparatedTokenList name)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.NamespaceKeyword),
+                  name)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.NamespaceKeyword);
-            this.name = new SeparatedTokenList(this, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
-
-            foreach (string identifier in identifiers)
-                this.name.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol));
         }
 
-        internal NamespaceSyntax(SyntaxNode parent, LumaSharpParser.NamespaceDeclarationContext namespaceDef) 
-            : base(parent)
+        internal NamespaceSyntax(SyntaxToken keyword, SeparatedTokenList name)
         {
-            // Get keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.NamespaceKeyword, namespaceDef.NAMESPACE());
+            // Check kind
+            if(keyword.Kind != SyntaxTokenKind.NamespaceKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.NamespaceKeyword);
 
-            // Create name
-            this.name = new SeparatedTokenList(this, namespaceDef.namespaceName());
+            // Check for null
+            if(name == null)
+                throw new ArgumentNullException(nameof(name));
+
+            this.keyword = keyword;
+            this.name = name;
         }
 
         // Methods

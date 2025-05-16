@@ -26,30 +26,11 @@ namespace LumaSharp.Compiler.AST
         private readonly ExpressionSyntax right;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return left.StartToken; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return right.EndToken; }
-        }
-
-        public SyntaxToken Operation
-        {
-            get { return operation; }
-        }
-
-        public ExpressionSyntax Left
-        {
-            get { return left; }
-        }
-
-        public ExpressionSyntax Right
-        {
-            get { return right; }
-        }
+        public override SyntaxToken StartToken => left.StartToken;
+        public override SyntaxToken EndToken => right.EndToken;
+        public SyntaxToken Operation => operation;
+        public ExpressionSyntax Left => left;
+        public ExpressionSyntax Right => right;
 
         public BinaryOperation BinaryOperation
         {
@@ -86,25 +67,22 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal BinaryExpressionSyntax(SyntaxNode parent, ExpressionSyntax left, BinaryOperation op, ExpressionSyntax right)
-            : base(parent, null)
+        internal BinaryExpressionSyntax(ExpressionSyntax left, SyntaxToken op, ExpressionSyntax right)
         {
+            // Check null
+            if(left == null)
+                throw new ArgumentNullException(nameof(left));
+
+            if(right == null)
+                throw new ArgumentNullException(nameof(right));
+
+            // Check for binary
+            if (op.IsBinaryOperand == false)
+                throw new ArgumentException(nameof(op) + " must be a valid binary operator");
+
             this.left = left;
             this.right = right;
-            this.operation = Syntax.BinaryOp(op);
-        }
-
-        internal BinaryExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            // Op
-            this.operation = new SyntaxToken(SyntaxTokenKind.BinaryOperator, expression.binary);
-
-            // Get left
-            this.left = Any(this, expression.expression(0));
-
-            // Get right
-            this.right = Any(this, expression.expression(1));
+            this.operation = op;
         }
 
         // Methods

@@ -80,30 +80,19 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal UnaryExpressionSyntax(SyntaxNode parent, UnaryOperation op, ExpressionSyntax expression)
-            : base(parent, null)
+        internal UnaryExpressionSyntax(ExpressionSyntax expression, SyntaxToken op, bool isPrefix)
         {
-            this.operation = Syntax.UnaryOp(op);
+            // Check for null
+            if (expression == null)
+                throw new ArgumentNullException(nameof(expression));
+
+            // Check for unary
+            if (op.IsUnaryOperand == false)
+                throw new ArgumentException(nameof(op) + " must be a valid unary operator");
+
+            this.operation = op;
             this.expression = expression;
-            this.isPrefix = op != UnaryOperation.PostfixAdd && op != UnaryOperation.PostfixSubtract;
-        }
-
-        internal UnaryExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            this.expression = ExpressionSyntax.Any(this, expression.expression(0));
-
-            // Check for prefix
-            if(expression.unaryPrefix != null)
-            {
-                this.operation = new SyntaxToken(SyntaxTokenKind.UnaryOperator, expression.unaryPrefix);
-                this.isPrefix = true;
-            }
-            else
-            {
-                this.operation = new SyntaxToken(SyntaxTokenKind.UnaryOperator, expression.unaryPostfix);
-                this.isPrefix = false;
-            }
+            this.isPrefix = isPrefix;
         }
 
         // Methods

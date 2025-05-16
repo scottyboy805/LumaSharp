@@ -34,50 +34,26 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ArgumentListSyntax(SyntaxNode parent, ExpressionSyntax[] argumentExpressions)
-            : base(parent, SyntaxTokenKind.CommaSymbol)
+        internal ArgumentListSyntax(SeparatedListSyntax<ExpressionSyntax> argumentExpressions)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.LParenSymbol),
+                  argumentExpressions,
+                  new SyntaxToken(SyntaxTokenKind.RParenSymbol))
         {
-            lParen = Syntax.KeywordOrSymbol(SyntaxTokenKind.LParenSymbol);
-            rParen = Syntax.KeywordOrSymbol(SyntaxTokenKind.RParenSymbol);
-
-            foreach (ExpressionSyntax expression in argumentExpressions)
-                AddElement(expression, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
         }
 
-        internal ArgumentListSyntax(SyntaxNode parent, LumaSharpParser.ArgumentListContext arguments)
-            : base(parent, SyntaxTokenKind.CommaSymbol)
+        internal ArgumentListSyntax(SyntaxToken lParen, SeparatedListSyntax<ExpressionSyntax> argumentExpressions, SyntaxToken rParen)
+            : base(argumentExpressions)
         {
-            lParen = new SyntaxToken(SyntaxTokenKind.LParenSymbol, arguments.LPAREN());
-            rParen = new SyntaxToken(SyntaxTokenKind.RParenSymbol, arguments.RPAREN());
+            // Check kind
+            if (lParen.Kind != SyntaxTokenKind.LParenSymbol)
+                throw new ArgumentException(nameof(lParen) + " must be of kind: " + SyntaxTokenKind.LParenSymbol);
 
-            // Get expression reference list
-            LumaSharpParser.ExpressionListContext expressionList = arguments.expressionList();
+            if(rParen.Kind != SyntaxTokenKind.RParenSymbol)
+                throw new ArgumentException(nameof(rParen) + " must be of kind: " + SyntaxTokenKind.RParenSymbol);
 
-            if(expressionList != null)
-            {
-                // Add primary element
-                LumaSharpParser.ExpressionContext primaryExpressionArgument = expressionList.expression();
-
-                // Check for primary
-                if (primaryExpressionArgument != null)
-                    AddElement(ExpressionSyntax.Any(this, primaryExpressionArgument), null);
-
-
-                // Add secondary elements
-                LumaSharpParser.ExpressionSecondaryContext[] secondaryExpressionArguments = expressionList.expressionSecondary();
-
-                // Check for secondary
-                if(secondaryExpressionArguments != null)
-                {
-                    // Process all additional expressions
-                    foreach(LumaSharpParser.ExpressionSecondaryContext secondaryExpressionArgument in secondaryExpressionArguments)
-                    {
-                        AddElement(
-                            ExpressionSyntax.Any(this, secondaryExpressionArgument.expression()),
-                            new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryExpressionArgument.COMMA()));
-                    }
-                }
-            }
+            this.lParen = lParen;
+            this.rParen = rParen;
         }
 
         // Methods

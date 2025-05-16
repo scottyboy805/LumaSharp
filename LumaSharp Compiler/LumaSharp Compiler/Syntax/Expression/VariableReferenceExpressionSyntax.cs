@@ -28,16 +28,13 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal VariableReferenceExpressionSyntax(SyntaxNode parent, string identifier)
-            : base(parent, null)
+        internal VariableReferenceExpressionSyntax(SyntaxToken identifier)
         {
-            this.identifier = Syntax.Identifier(identifier);
-        }
+            // Check kind
+            if(identifier.Kind != SyntaxTokenKind.Identifier)
+                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.Identifier);
 
-        internal VariableReferenceExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, expression.IDENTIFIER());
+            this.identifier = identifier;
         }
 
         // Methods

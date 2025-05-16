@@ -47,7 +47,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(TypeExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(TypeofExpressionSyntax));
         }
 
         [DataTestMethod]
@@ -58,7 +58,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(SizeExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(SizeofExpressionSyntax));
         }
 
         [DataTestMethod]

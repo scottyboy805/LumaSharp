@@ -46,7 +46,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             : base(model, parent, syntax, statementIndex)
         {
             //this.syntax = syntax;
-            this.operationToken = syntax.Assign;
+            this.operationToken = syntax.AssignExpression.Assign;
             this.left = syntax.Left.Select(l => ExpressionModel.Any(model, this, l)).ToArray();
             this.right = syntax.Right.Select(r => ExpressionModel.Any(model, this, r)).ToArray();
         }

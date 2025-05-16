@@ -162,7 +162,8 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myArg", true))
-                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"), AssignOperation.Assign, Syntax.Literal(5)))));
+                .WithBody(Syntax.Assign(Syntax.VariableReference("myArg"),
+                    Syntax.VariableAssignment(Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

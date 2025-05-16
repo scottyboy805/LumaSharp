@@ -8,11 +8,7 @@ namespace LumaSharp.Compiler.AST
         private readonly SeparatedListSyntax<ExpressionSyntax> expressions;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
+        public override SyntaxToken StartToken => keyword;
         public override SyntaxToken EndToken
         {
             get
@@ -25,15 +21,8 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public SyntaxToken Keyword
-        {
-            get { return keyword; }
-        }
-
-        public SeparatedListSyntax<ExpressionSyntax> Expressions
-        {
-            get { return expressions; }
-        }
+        public SyntaxToken Keyword => keyword;
+        public SeparatedListSyntax<ExpressionSyntax> Expressions => expressions;
 
         public bool HasExpressions
         {
@@ -41,38 +30,28 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ReturnStatementSyntax(SyntaxNode parent, ExpressionSyntax[] expressions)
-            : base(parent)
+        internal ReturnStatementSyntax(SeparatedListSyntax<ExpressionSyntax> expressions)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.ReturnKeyword),
+                  expressions,
+                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ReturnKeyword);
-
-            // Add return expressions
-            if (expressions != null)
-            {
-                // Create expressions
-                this.expressions = new SeparatedListSyntax<ExpressionSyntax>(parent, SyntaxTokenKind.CommaSymbol);
-
-                // Add all
-                for (int i = 0; i < expressions.Length; i++)
-                {
-                    // Add expression with comma
-                    this.expressions.AddElement(expressions[i], Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
-                }
-            }
         }
 
-        internal ReturnStatementSyntax(SyntaxNode parent, LumaSharpParser.ReturnStatementContext statement)
-            : base(parent)
+        internal ReturnStatementSyntax(SyntaxToken keyword, SeparatedListSyntax<ExpressionSyntax> expressions, SyntaxToken semicolon)
+            : base(semicolon)
         {
-            // Keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.ReturnKeyword, statement.RETURN());
+            // Check kind
+            if(keyword.Kind != SyntaxTokenKind.ReturnKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ReturnKeyword);
 
-            // Expression list
-            LumaSharpParser.ExpressionListContext expressionList = statement.expressionList();
+            // Check kind
+            if (semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
 
-            // Check for expression list
-            if(expressionList != null)
-                this.expressions = ExpressionSyntax.List(this, expressionList);
+
+            this.keyword = keyword;
+            this.expressions = expressions;
         }
 
         // Methods

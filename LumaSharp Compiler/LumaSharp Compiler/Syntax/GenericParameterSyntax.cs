@@ -9,12 +9,11 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken colon;
         private readonly int index;
 
-        // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return identifier; }
-        }
+        // Internal
+        internal static readonly GenericParameterSyntax Error = new();
 
+        // Properties
+        public override SyntaxToken StartToken => identifier;
         public override SyntaxToken EndToken
         {
             get
@@ -27,96 +26,34 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public SyntaxToken Identifier
-        {
-            get { return identifier; }
-        }
-
-        public SeparatedListSyntax<TypeReferenceSyntax> ConstraintTypes
-        {
-            get { return genericConstraints; }
-        }
-
-        public int Index
-        {
-            get { return index; }
-        }
-
-        public int ConstraintTypeCount
-        {
-            get { return HasConstraintTypes ? genericConstraints.Count : 0; }
-        }
-
-        public bool HasConstraintTypes
-        {
-            get { return genericConstraints != null; }
-        }
-
-        internal override IEnumerable<SyntaxNode> Descendants
-        {
-            get { return genericConstraints.Descendants; }
-        }
+        public SyntaxToken Identifier => identifier;
+        public SeparatedListSyntax<TypeReferenceSyntax> ConstraintTypes => genericConstraints;
+        public int Index => index;
+        public int ConstraintTypeCount => HasConstraintTypes ? genericConstraints.Count : 0;
+        public bool HasConstraintTypes => genericConstraints != null;
+        internal override IEnumerable<SyntaxNode> Descendants => genericConstraints != null 
+            ? genericConstraints.Descendants 
+            : Enumerable.Empty<SyntaxNode>();
 
         // Constructor
-        internal GenericParameterSyntax(SyntaxNode parent, string identifier, int index, TypeReferenceSyntax[] constraintTypes)
-            : base(parent)
+        private GenericParameterSyntax()
         {
-            // Identifier
-            this.identifier = Syntax.Identifier(identifier);
-            this.index = index;
-
-            if (genericConstraints != null)
-            {
-                this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
-                this.genericConstraints = new SeparatedListSyntax<TypeReferenceSyntax>(this, SyntaxTokenKind.CommaSymbol);
-
-                // Constrain types
-                foreach (TypeReferenceSyntax constraintType in constraintTypes)
-                    this.genericConstraints.AddElement(constraintType, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
-            }
+            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
         }
 
-        internal GenericParameterSyntax(SyntaxNode parent, LumaSharpParser.GenericParameterContext paramDef, int index)
-            : base(parent)
+        internal GenericParameterSyntax(SyntaxToken identifier, int index, SyntaxToken colon, SeparatedListSyntax<TypeReferenceSyntax> contraintTypes)
         {
-            // Identifier
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, paramDef.IDENTIFIER());
+            // Check kind
+            if (identifier.Kind != SyntaxTokenKind.Identifier)
+                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.Identifier);
 
-            // Assigned index in list
+            if (colon.Kind != SyntaxTokenKind.Invalid && colon.Kind != SyntaxTokenKind.ColonSymbol)
+                throw new ArgumentException(nameof(colon) + " must be of kind: " + SyntaxTokenKind.ColonSymbol);
+
+            this.identifier = identifier;
             this.index = index;
-
-            // Constraint types
-            LumaSharpParser.GenericConstraintListContext constraints = paramDef.genericConstraintList();
-
-            if(constraints != null)
-            {
-                // Create constraints
-                this.genericConstraints = new SeparatedListSyntax<TypeReferenceSyntax>(this, SyntaxTokenKind.CommaSymbol);
-
-                // Get colon
-                this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, constraints.COLON());
-
-
-                // Get primary constraint
-                LumaSharpParser.GenericConstraintContext primaryConstraint = constraints.genericConstraint();
-
-                this.genericConstraints.AddElement(new TypeReferenceSyntax(genericConstraints, null, primaryConstraint.typeReference()), null);
-
-
-                // Get secondary constraints
-                LumaSharpParser.GenericConstraintSecondaryContext[] secondaryConstraints = constraints.genericConstraintSecondary();
-
-                if(secondaryConstraints != null)
-                {
-                    // Process all constrains
-                    foreach(LumaSharpParser.GenericConstraintSecondaryContext secondaryConstraint in secondaryConstraints)
-                    {
-                        this.genericConstraints.AddElement(
-                            new TypeReferenceSyntax(genericConstraints, null, secondaryConstraint.genericConstraint().typeReference()),
-                            new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryConstraint.COMMA()));
-                    }
-                }
-            }
+            this.colon = colon;
+            this.genericConstraints = contraintTypes;
         }
 
         // Methods

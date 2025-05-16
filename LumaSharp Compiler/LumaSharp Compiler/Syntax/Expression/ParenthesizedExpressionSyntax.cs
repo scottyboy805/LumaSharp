@@ -1,56 +1,66 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class ParameterListSyntax : SeparatedListSyntax<ParameterSyntax>
+    public sealed class ParenthesizedExpressionSyntax : ExpressionSyntax
     {
         // Private
         private readonly SyntaxToken lParen;
         private readonly SyntaxToken rParen;
+        private readonly ExpressionSyntax expression;
 
         // Properties
         public override SyntaxToken StartToken => lParen;
         public override SyntaxToken EndToken => rParen;
+
         public SyntaxToken LParen => lParen;
         public SyntaxToken RParen => rParen;
+        public ExpressionSyntax Expression => expression;
 
-        public bool HasParameters
+        internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return Count > 0; }
+            get
+            {
+                yield return expression;
+            }
         }
 
         // Constructor
-        internal ParameterListSyntax(SeparatedListSyntax<ParameterSyntax> parameters)
+        internal ParenthesizedExpressionSyntax(ExpressionSyntax expression)
             : this(
                   new SyntaxToken(SyntaxTokenKind.LParenSymbol),
-                  parameters,
+                  expression,
                   new SyntaxToken(SyntaxTokenKind.RParenSymbol))
         {
-        }
+        }                  
 
-        internal ParameterListSyntax(SyntaxToken lParen, SeparatedListSyntax<ParameterSyntax> parameters, SyntaxToken rParen)
-            : base(parameters)
+        internal ParenthesizedExpressionSyntax(SyntaxToken lParen, ExpressionSyntax expression, SyntaxToken rParen)
         {
-            // Check kind
+            // Check paren
             if(lParen.Kind != SyntaxTokenKind.LParenSymbol)
                 throw new ArgumentException(nameof(lParen) + " must be of kind: " + SyntaxTokenKind.LParenSymbol);
 
             if(rParen.Kind != SyntaxTokenKind.RParenSymbol)
                 throw new ArgumentException(nameof(rParen) + " must be of kind: " + SyntaxTokenKind.RParenSymbol);
 
+            // Check null
+            if(expression == null)
+                throw new ArgumentNullException(nameof(expression));
+
             this.lParen = lParen;
             this.rParen = rParen;
+            this.expression = expression;
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            // Parameter start
+            // LParen
             lParen.GetSourceText(writer);
 
-            // Parameters
-            base.GetSourceText(writer);
+            // Expression
+            expression.GetSourceText(writer);
 
-            // Parameter end
+            // RParen
             rParen.GetSourceText(writer);
         }
     }

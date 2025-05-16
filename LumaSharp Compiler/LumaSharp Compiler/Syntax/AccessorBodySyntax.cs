@@ -103,69 +103,25 @@ namespace LumaSharp.Compiler.AST
 
         // Constructor
         internal AccessorBodySyntax(SyntaxNode parent, AccessorOperation op, StatementSyntax inlineBody)
-            : base(parent)
         {
-            this.lambda = Syntax.KeywordOrSymbol(SyntaxTokenKind.LambdaSymbol);
+            this.lambda = Syntax.Token(SyntaxTokenKind.LambdaSymbol);
             this.keyword = op == AccessorOperation.Read
-                ? Syntax.KeywordOrSymbol(SyntaxTokenKind.ReadKeyword)
-                : Syntax.KeywordOrSymbol(SyntaxTokenKind.WriteKeyword);
-            this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                ? Syntax.Token(SyntaxTokenKind.ReadKeyword)
+                : Syntax.Token(SyntaxTokenKind.WriteKeyword);
+            this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
 
             this.inlineBody = inlineBody;
         }
 
         internal AccessorBodySyntax(SyntaxNode parent, AccessorOperation op, BlockSyntax<StatementSyntax> bodyBlock)
-            : base(parent)
         {
-            this.lambda = Syntax.KeywordOrSymbol(SyntaxTokenKind.LambdaSymbol);
+            this.lambda = Syntax.Token(SyntaxTokenKind.LambdaSymbol);
             this.keyword = op == AccessorOperation.Read
-                ? Syntax.KeywordOrSymbol(SyntaxTokenKind.ReadKeyword)
-                : Syntax.KeywordOrSymbol(SyntaxTokenKind.WriteKeyword);
-            this.colon = Syntax.KeywordOrSymbol(SyntaxTokenKind.ColonSymbol);
+                ? Syntax.Token(SyntaxTokenKind.ReadKeyword)
+                : Syntax.Token(SyntaxTokenKind.WriteKeyword);
+            this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
 
             this.blockBody = bodyBlock;
-        }
-
-        internal AccessorBodySyntax(SyntaxNode parent, LumaSharpParser.ExpressionLambdaContext lambda)
-            : base(parent)
-        {
-            // Get the lambda
-            this.lambda = new SyntaxToken(SyntaxTokenKind.LambdaSymbol, lambda.LAMBDA());
-
-            // Get expression
-            this.inlineBody = new ReturnStatementSyntax(this, 
-                new[] { ExpressionSyntax.Any(this, lambda.expression()) });
-
-            // Get comma
-            if (lambda.COMMA() != null)
-                this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, lambda.COMMA());            
-        }
-
-        internal AccessorBodySyntax(SyntaxNode parent, LumaSharpParser.AccessorReadWriteContext readWrite)
-            : base(parent)
-        {
-            // Get lambda
-            this.lambda = new SyntaxToken(SyntaxTokenKind.LambdaSymbol, readWrite.LAMBDA());
-
-            // Get keyword
-            this.keyword = readWrite.READ() != null
-                ? new SyntaxToken(SyntaxTokenKind.ReadKeyword, readWrite.READ())
-                : new SyntaxToken(SyntaxTokenKind.WriteKeyword, readWrite.WRITE());
-
-            // Get colon
-            this.colon = new SyntaxToken(SyntaxTokenKind.ColonSymbol, readWrite.COLON());
-
-            // Get comma
-            if (readWrite.COMMA() != null)
-                this.comma = new SyntaxToken(SyntaxTokenKind.CommaSymbol, readWrite.COMMA());
-
-            // Statement
-            if (readWrite.statement() != null)
-                this.inlineBody = StatementSyntax.Any(this, readWrite.statement());
-
-            // Statement block
-            if (readWrite.statementBlock() != null)
-                this.blockBody = new BlockSyntax<StatementSyntax>(this, readWrite.statementBlock());
         }
 
         public override void GetSourceText(TextWriter writer)

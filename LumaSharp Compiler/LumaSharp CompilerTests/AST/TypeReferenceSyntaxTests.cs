@@ -23,10 +23,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("char")]
         public void Primitive(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -54,14 +52,12 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("char[]")]
         public void Primitive_Array_1(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
-            Assert.AreEqual(input.TrimEnd('[',']'), syntax.Identifier.Text);
+            Assert.AreEqual(input.TrimEnd('[', ']'), syntax.Identifier.Text);
             Assert.IsTrue(syntax.IsPrimitiveType);
             Assert.IsFalse(syntax.HasNamespace);
             Assert.IsFalse(syntax.IsNested);
@@ -86,10 +82,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("char[,]")]
         public void Primitive_Array_2(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -118,10 +112,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("char[,,]")]
         public void Primitive_Array_3(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -150,10 +142,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("char[,]&")]
         public void Primitive_Array_2_Ref(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -182,10 +172,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("char[,,]&")]
         public void Primitive_Array_3_Ref(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -207,10 +195,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("_MyType123")]
         public void UserType(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -228,10 +214,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType", "MyType", 3)]
         public void UserType_Namespace(string input, string identifier, int namespaceDepth)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -250,10 +234,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyParentType<i8, float, SomeOther>.MyType2<Something>.MyType3<string>.MyType", "MyType", 3)]
         public void UserType_Nested(string input, string identifier, int nestedDepth)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -276,10 +258,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyType<SomeType.OtherType<i8, i16>, Other<MyType>>", "MyType", 2)]
         public void UserType_Generic(string input, string identifier, int genericArguments)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -297,10 +277,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("AnotherUserType[]")]
         public void UserType_Array_1(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -318,10 +296,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("AnotherUserType[,]")]
         public void UserType_Array_2(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -339,10 +315,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("AnotherUserType[,,]")]
         public void UserType_Array_3(string input)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -361,10 +335,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType<double, string, Type<i8, i16>>", "MyType", 3, 3)]
         public void UserType_Namespace_Generic(string input, string identifier, int namespaceDepth, int genericArguments)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -384,10 +356,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType[]", "MyType", 3)]
         public void UserType_Namespace_Array_1(string input, string identifier, int namespaceDepth)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -407,10 +377,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType[,]", "MyType", 3)]
         public void UserType_Namespace_Array_2(string input, string identifier, int namespaceDepth)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -430,10 +398,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("MyNamespace1:MyNamespace2:MyNamespace3:MyType[,,]", "MyType", 3)]
         public void UserType_Namespace_Array_3(string input, string identifier, int namespaceDepth)
         {
-            LumaSharpParser.TypeReferenceContext context = TestUtils.ParseTypeReference(input);
-
             // Build AST node
-            TypeReferenceSyntax syntax = new TypeReferenceSyntax(null, null, context);
+            TypeReferenceSyntax syntax = TestUtils.ParseTypeReference(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);

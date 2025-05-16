@@ -28,16 +28,19 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ThisExpressionSyntax(SyntaxNode parent)
-            : base(parent, null)
+        internal ThisExpressionSyntax()
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.ThisKeyword))
         {
-            keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ThisKeyword);
         }
 
-        internal ThisExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
+        internal ThisExpressionSyntax(SyntaxToken thisToken)
         {
-            keyword = new SyntaxToken(SyntaxTokenKind.ThisKeyword, expression.THIS());
+            // Check for this
+            if (thisToken.Kind != SyntaxTokenKind.ThisKeyword)
+                throw new ArgumentException(nameof(thisToken) + " must be of kind: " + SyntaxTokenKind.ThisKeyword);
+
+            keyword = thisToken;
         }
                 
 

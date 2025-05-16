@@ -12,7 +12,7 @@ namespace LumaSharp.Compiler
         private string documentPath = "";
 
         // Properties
-
+        public TextReader Reader => reader;
 
         // Constructor
         private InputSource(TextReader reader, string name = null, string path = null)

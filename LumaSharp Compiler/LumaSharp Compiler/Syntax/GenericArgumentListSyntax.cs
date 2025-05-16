@@ -8,25 +8,10 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken rGeneric;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return lGeneric; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return rGeneric; }
-        }
-
-        public SyntaxToken LGeneric
-        {
-            get { return lGeneric; }
-        }
-
-        public SyntaxToken RGeneric
-        {
-            get { return rGeneric; }
-        }
+        public override SyntaxToken StartToken => lGeneric;
+        public override SyntaxToken EndToken => rGeneric;
+        public SyntaxToken LGeneric => lGeneric;
+        public SyntaxToken RGeneric => rGeneric;
 
         public bool HasGenericArguments
         {
@@ -34,50 +19,26 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal GenericArgumentListSyntax(SyntaxNode parent, TypeReferenceSyntax[] genericArguments)
-            : base(parent, SyntaxTokenKind.CommaSymbol)
+        internal GenericArgumentListSyntax(SeparatedListSyntax<TypeReferenceSyntax> genericArguments)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.LGenericSymbol),
+                  genericArguments,
+                  new SyntaxToken(SyntaxTokenKind.RGenericSymbol))
         {
-            this.lGeneric = Syntax.KeywordOrSymbol(SyntaxTokenKind.LGenericSymbol);
-            this.rGeneric = Syntax.KeywordOrSymbol(SyntaxTokenKind.RGenericSymbol);
-
-            foreach (TypeReferenceSyntax genericArgument in genericArguments)
-                AddElement(genericArgument, Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
         }
 
-        internal GenericArgumentListSyntax(SyntaxNode parent, LumaSharpParser.GenericArgumentListContext generics)
-            : base(parent, SyntaxTokenKind.CommaSymbol)
+        internal GenericArgumentListSyntax(SyntaxToken lGeneric, SeparatedListSyntax<TypeReferenceSyntax> genericArguments, SyntaxToken rGeneric)
+            : base(genericArguments)
         {
-            lGeneric = new SyntaxToken(SyntaxTokenKind.LGenericSymbol, generics.LGENERIC());
-            rGeneric = new SyntaxToken(SyntaxTokenKind.RGenericSymbol, generics.RGENERIC());
+            // Check kind
+            if(lGeneric.Kind != SyntaxTokenKind.LGenericSymbol)
+                throw new ArgumentException(nameof(lGeneric) + " must be of kind: " + SyntaxTokenKind.LGenericSymbol);
 
-            // Get type reference list
-            LumaSharpParser.TypeReferenceListContext typeList = generics.typeReferenceList();
+            if(rGeneric.Kind != SyntaxTokenKind.RGenericSymbol)
+                throw new ArgumentException(nameof(rGeneric) + " must be of kind: " + SyntaxTokenKind.RGenericSymbol);
 
-            if (typeList != null)
-            {
-                // Add primary element
-                LumaSharpParser.TypeReferenceContext primaryTypeArgument = typeList.typeReference();
-
-                // Check for primary
-                if (primaryTypeArgument != null)
-                    AddElement(new TypeReferenceSyntax(this, null, primaryTypeArgument), null);
-
-
-                // Add secondary elements
-                LumaSharpParser.TypeReferenceSecondaryContext[] secondaryTypeArguments = typeList.typeReferenceSecondary();
-
-                // Check for secondary
-                if(secondaryTypeArguments != null)
-                {
-                    // Process all additional type arguments
-                    foreach(LumaSharpParser.TypeReferenceSecondaryContext secondaryTypeArgument in secondaryTypeArguments)
-                    {
-                        AddElement(
-                            new TypeReferenceSyntax(this, null, secondaryTypeArgument.typeReference()),
-                            new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryTypeArgument.COMMA()));
-                    }
-                }
-            }
+            this.lGeneric = lGeneric;
+            this.rGeneric = rGeneric;
         }
 
         // Methods

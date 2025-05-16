@@ -58,7 +58,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSource
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(TypeExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(TypeofExpressionSyntax));
 
             // Get expression text
             Assert.AreEqual(input, expression.GetSourceText());

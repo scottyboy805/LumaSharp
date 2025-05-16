@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class SizeModel : ExpressionModel
     {
         // Private
-        private SizeExpressionSyntax syntax = null;
+        private SizeofExpressionSyntax syntax = null;
         private TypeReferenceModel typeModel = null;
         private ITypeReferenceSymbol returnSymbol = null;
 
@@ -37,7 +37,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public SizeModel(SemanticModel model, SymbolModel parent, SizeExpressionSyntax syntax)
+        public SizeModel(SemanticModel model, SymbolModel parent, SizeofExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;

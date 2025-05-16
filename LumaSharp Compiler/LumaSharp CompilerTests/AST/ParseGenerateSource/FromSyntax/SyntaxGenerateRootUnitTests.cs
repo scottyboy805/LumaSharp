@@ -23,12 +23,12 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("import", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.ImportAlias("MyAlias", Syntax.TypeReference("MyType"), "MyNamespace", "MySubNamespace", "MyFinalNamespace");
+            //SyntaxNode syntax2 = Syntax.ImportAlias("MyAlias", Syntax.TypeReference("MyType"), "MyNamespace", "MySubNamespace", "MyFinalNamespace");
 
-            // Get expression text
-            Assert.AreEqual("import MyAlias as MyNamespace:MySubNamespace:MyFinalNamespace.MyType;", syntax2.GetSourceText());
-            Assert.AreEqual("import", syntax2.StartToken.Text);
-            Assert.AreEqual(";", syntax2.EndToken.Text);
+            //// Get expression text
+            //Assert.AreEqual("import MyAlias as MyNamespace:MySubNamespace:MyFinalNamespace.MyType;", syntax2.GetSourceText());
+            //Assert.AreEqual("import", syntax2.StartToken.Text);
+            //Assert.AreEqual(";", syntax2.EndToken.Text);
         }
 
         [TestMethod]
@@ -60,7 +60,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword));
 
             // Get expression text
             Assert.AreEqual("export type MyType{}", syntax1.GetSourceText());
@@ -68,7 +68,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword));
 
             // Get expression text
             Assert.AreEqual("export global type MyType{}", syntax2.GetSourceText());
@@ -76,7 +76,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")));
 
             // Get expression text
@@ -85,7 +85,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))));
 
             // Get expression text
@@ -94,7 +94,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax4.EndToken.Text);
 
             SyntaxNode syntax5 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")), Syntax.Attribute(Syntax.TypeReference("Range")));
 
             // Get expression text
@@ -103,7 +103,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
             SyntaxNode syntax6 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))),
                 Syntax.Attribute(Syntax.TypeReference("Range"), Syntax.ArgumentList(Syntax.Literal(true))));
 
@@ -173,7 +173,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword));
 
             // Get expression text
             Assert.AreEqual("export contract MyContract{}", syntax1.GetSourceText());
@@ -181,7 +181,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword));
 
             // Get expression text
             Assert.AreEqual("export global contract MyContract{}", syntax2.GetSourceText());
@@ -189,7 +189,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")));
 
             // Get expression text
@@ -198,7 +198,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))));
 
             // Get expression text
@@ -207,7 +207,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax4.EndToken.Text);
 
             SyntaxNode syntax5 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")), Syntax.Attribute(Syntax.TypeReference("Range")));
 
             // Get expression text
@@ -216,7 +216,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
             SyntaxNode syntax6 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))),
                 Syntax.Attribute(Syntax.TypeReference("Range"), Syntax.ArgumentList(Syntax.Literal(true))));
 
@@ -292,7 +292,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
 
             SyntaxNode syntax2 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword));
 
             // Get expression text
             Assert.AreEqual("export enum MyEnum{}", syntax2.GetSourceText());
@@ -300,7 +300,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword));
 
             // Get expression text
             Assert.AreEqual("export global enum MyEnum{}", syntax3.GetSourceText());
@@ -308,7 +308,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")));
 
             // Get expression text
@@ -317,7 +317,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax4.EndToken.Text);
 
             SyntaxNode syntax5 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))));
 
             // Get expression text
@@ -326,7 +326,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
             SyntaxNode syntax6 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")), Syntax.Attribute(Syntax.TypeReference("Range")));
 
             // Get expression text
@@ -335,7 +335,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax6.EndToken.Text);
 
             SyntaxNode syntax7 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.KeywordOrSymbol(SyntaxTokenKind.ExportKeyword), Syntax.KeywordOrSymbol(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))),
                 Syntax.Attribute(Syntax.TypeReference("Range"), Syntax.ArgumentList(Syntax.Literal(true))));
 

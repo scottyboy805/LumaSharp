@@ -53,52 +53,18 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal VariableDeclarationStatementSyntax(SyntaxNode parent, TypeReferenceSyntax variableType, string[] identifiers, VariableAssignExpressionSyntax assignment)
-            : base(parent)
+        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, SeparatedTokenList identifiers, VariableAssignExpressionSyntax assignment)
         {
+            // Check for null
+            if (variableType == null)
+                throw new ArgumentNullException(nameof(variableType));
+
+            if(identifiers == null)
+                throw new ArgumentNullException(nameof(identifiers));
+
             this.variableType = variableType;
-            this.identifiers = new SeparatedTokenList(this, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
+            this.identifiers = identifiers;
             this.assignment = assignment;
-
-            // Add identifiers
-            foreach (string identifier in identifiers)
-                this.identifiers.AddElement(Syntax.Identifier(identifier), Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
-        }
-
-        internal VariableDeclarationStatementSyntax(SyntaxNode parent, LumaSharpParser.LocalVariableStatementContext local)
-            : base(parent)
-        {
-            // Variable type
-            this.variableType = new TypeReferenceSyntax(this, null, local.typeReference());
-
-            // Identifiers
-            this.identifiers = new SeparatedTokenList(this, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
-
-            // Add primary identifier
-            this.identifiers.AddElement(new SyntaxToken(SyntaxTokenKind.Identifier, local.IDENTIFIER()), null);
-
-            // Add secondary identifiers
-            LumaSharpParser.LocalVariableSecondaryContext[] secondaryIdentifiers = local.localVariableSecondary();
-
-            if(secondaryIdentifiers != null)
-            {
-                foreach(LumaSharpParser.LocalVariableSecondaryContext secondaryIdentifier in secondaryIdentifiers)
-                {
-                    this.identifiers.AddElement(
-                        new SyntaxToken(SyntaxTokenKind.Identifier, secondaryIdentifier.IDENTIFIER()),
-                        new SyntaxToken(SyntaxTokenKind.CommaSymbol, secondaryIdentifier.COMMA()));
-                }
-            }
-
-
-            // Get assignment
-            LumaSharpParser.VariableAssignmentContext assignment = local.variableAssignment();
-
-            if (assignment != null)
-            {
-                // Create assignment
-                this.assignment = new VariableAssignExpressionSyntax(this, assignment);
-            }
         }
 
         // Methods

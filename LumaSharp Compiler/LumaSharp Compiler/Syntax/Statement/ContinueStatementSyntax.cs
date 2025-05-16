@@ -7,32 +7,30 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken keyword;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return keyword; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return keyword; }
-        }
-
-        public SyntaxToken Keyword
-        {
-            get { return keyword; }
-        }
+        public override SyntaxToken StartToken => keyword;
+        public override SyntaxToken EndToken => Semicolon;
+        public SyntaxToken Keyword => keyword;
 
         // Constructor
-        internal ContinueStatementSyntax(SyntaxNode parent)
-            : base(parent)
+        internal ContinueStatementSyntax()
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.ContinueKeyword),
+                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ContinueKeyword);
         }
 
-        internal ContinueStatementSyntax(SyntaxNode parent, LumaSharpParser.StatementContext statement)
-            : base(parent)
+        internal ContinueStatementSyntax(SyntaxToken keyword, SyntaxToken semicolon)
+            : base(semicolon)
         {
-            keyword = new SyntaxToken(SyntaxTokenKind.ContinueKeyword, statement.CONTINUE());
+            // Check kind
+            if (keyword.Kind != SyntaxTokenKind.ContinueKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ContinueKeyword);
+
+            // Check kind
+            if (semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
+
+            this.keyword = keyword;
         }
 
         // Methods

@@ -6,6 +6,13 @@ namespace LumaSharp.Compiler.Reporting
     // Type
     public enum Code
     {
+        UnexpectedToken = 100,
+        ExpectedToken = 101,
+        ExpectedIdentifier = 102,
+        ExpectedType = 103,
+        ExpectedExpression = 104,
+        ExprectedStatement = 105,
+
         InvalidConversion = 331,
 
         InvalidOperation = 401,
@@ -88,6 +95,12 @@ namespace LumaSharp.Compiler.Reporting
         public static readonly Dictionary<Code, string> errors = new Dictionary<Code, string>
         {
             // Lexer
+            { Code.UnexpectedToken, "Unexpected '{0}'" },
+            { Code.ExpectedToken, "Expected '{0}'" },
+            { Code.ExpectedIdentifier, "Expected identifier" },
+            { Code.ExpectedType, "Expected type" },
+            { Code.ExpectedExpression, "Expected expression" },
+            { Code.ExprectedStatement, "Expected statement" },
 
             // Syntax
 

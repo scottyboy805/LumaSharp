@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class TypeTokenModel : ExpressionModel
     {
         // Private
-        private TypeExpressionSyntax syntax = null;
+        private TypeofExpressionSyntax syntax = null;
         private TypeReferenceModel typeTokenModel = null;
 
         // Properties
@@ -31,7 +31,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public TypeTokenModel(SemanticModel model, SymbolModel parent, TypeExpressionSyntax syntax)
+        public TypeTokenModel(SemanticModel model, SymbolModel parent, TypeofExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;

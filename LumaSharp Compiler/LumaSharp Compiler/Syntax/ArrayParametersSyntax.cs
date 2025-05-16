@@ -9,35 +9,12 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken[] separators;
 
         // Properties
-        public override SyntaxToken StartToken
-        {
-            get { return lArray; }
-        }
-
-        public override SyntaxToken EndToken
-        {
-            get { return rArray; }
-        }
-
-        public SyntaxToken LArray
-        {
-            get { return lArray; }
-        }
-
-        public SyntaxToken RArray
-        {
-            get { return rArray; }
-        }
-
-        public SyntaxToken[] Separators
-        {
-            get { return separators; }
-        }
-
-        public int Rank
-        {
-            get { return separators.Length + 1; }
-        }
+        public override SyntaxToken StartToken => lArray;
+        public override SyntaxToken EndToken => rArray;
+        public SyntaxToken LArray => lArray;
+        public SyntaxToken RArray => rArray;
+        public SyntaxToken[] Separators => separators;
+        public int Rank => separators != null ? separators.Length + 1 : 1;
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
@@ -45,32 +22,43 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ArrayParametersSyntax(SyntaxNode parent, int rank)
-            : base(parent)
+        internal ArrayParametersSyntax(int rank)
+            : this(
+                  Enumerable.Repeat(
+                    new SyntaxToken(SyntaxTokenKind.CommaSymbol), rank)
+                    .ToArray())
         {
-            if (rank < 1)
-                throw new ArgumentException("Rank must be greater than 0");
-
-            // Check for invalid rank
-            if (rank > 2)
-                throw new ArgumentException("Rank cannot be greater than 2");
-
-            this.lArray = Syntax.KeywordOrSymbol(SyntaxTokenKind.LArraySymbol);
-            this.rArray = Syntax.KeywordOrSymbol(SyntaxTokenKind.RArraySymbol);
-            this.separators = new SyntaxToken[rank - 1];
-
-            for (int i = 0; i < rank - 1; i++)
-                this.separators[i] = Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol);
         }
 
-        internal ArrayParametersSyntax(SyntaxNode node, LumaSharpParser.ArrayParametersContext array)
-            : base(node)
+        internal ArrayParametersSyntax(SyntaxToken[] separators)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.LArraySymbol),
+                  separators,
+                  new SyntaxToken(SyntaxTokenKind.RArraySymbol))
         {
-            this.lArray = new SyntaxToken(SyntaxTokenKind.LArraySymbol, array.LARRAY());
-            this.rArray = new SyntaxToken(SyntaxTokenKind.RArraySymbol, array.RARRAY());
+        }
 
-            // Get separators
-            this.separators = array.COMMA().Select(c => new SyntaxToken(SyntaxTokenKind.CommaSymbol, c)).ToArray();
+        internal ArrayParametersSyntax(SyntaxToken lArray, SyntaxToken[] separators, SyntaxToken rArray)
+        {
+            // Check for invalid rank
+            if (separators != null)
+            {
+                // Check for rank too high
+                if (separators.Length > 1)
+                    throw new ArgumentException("Rank cannot be greater than 2");
+
+                // Check for invalid separators
+                foreach (SyntaxToken separator in separators)
+                {
+                    // Require commas
+                    if (separator.Kind != SyntaxTokenKind.CommaSymbol)
+                        throw new ArgumentException("Separator must be of kind: " + SyntaxTokenKind.CommaSymbol);
+                }
+            }
+
+            this.lArray = lArray;
+            this.rArray = rArray;
+            this.separators = separators;
         }
 
         // Methods

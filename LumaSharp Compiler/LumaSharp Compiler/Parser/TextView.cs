@@ -29,6 +29,10 @@ namespace LumaSharp.Compiler.Parser
         // Constructor
         public TextView(TextReader reader, int bufferSize = 1024)
         {
+            // Check for null
+            if(reader == null)
+                throw new ArgumentNullException(nameof(reader));
+
             this.reader = reader;
             this.buffer = new char[bufferSize];
         }

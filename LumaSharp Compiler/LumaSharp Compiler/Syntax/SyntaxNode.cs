@@ -7,16 +7,8 @@ namespace LumaSharp.Compiler.AST
         internal SyntaxNode parent = null;
 
         // Properties
-        public virtual SyntaxTree SyntaxTree
-        {
-            get { return parent.SyntaxTree; }
-        }
-
-        public SyntaxNode Parent
-        {
-            get { return parent; }
-            internal set { parent = value; }
-        }
+        public virtual SyntaxTree SyntaxTree => parent.SyntaxTree;
+        public SyntaxNode Parent => parent;
 
         public abstract SyntaxToken StartToken { get; }
 
@@ -25,9 +17,8 @@ namespace LumaSharp.Compiler.AST
         internal abstract IEnumerable<SyntaxNode> Descendants { get; }
 
         // Constructor
-        protected SyntaxNode(SyntaxNode parent)
+        protected SyntaxNode()
         {
-            this.parent = parent;
         }
 
         // Methods

@@ -201,7 +201,7 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_Binary()
         {
             SyntaxNode syntax0 = Syntax.Binary(
-                Syntax.Literal(5), BinaryOperation.Add, Syntax.Literal(10));
+                Syntax.Literal(5), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(10));
 
             // Get expression text
             Assert.AreEqual("5+10", syntax0.GetSourceText());

@@ -459,12 +459,12 @@ namespace LumaSharp.Compiler.Semantics.Model
                 {
                     if (baseTypesSymbols == null)
                     {
-                        baseTypesSymbols = new TypeReferenceModel[] { new TypeReferenceModel(Model, this, Syntax.TypeReference(newBaseName)) };
+                        baseTypesSymbols = new TypeReferenceModel[] { new TypeReferenceModel(Model, this, Syntax.TypeReference(Syntax.Identifier(newBaseName))) };
                     }
                     else
                     {
                         List<TypeReferenceModel> baseModels = new List<TypeReferenceModel>(baseTypesSymbols);
-                        baseModels.Insert(0, new TypeReferenceModel(Model, this, Syntax.TypeReference(newBaseName)));
+                        baseModels.Insert(0, new TypeReferenceModel(Model, this, Syntax.TypeReference(Syntax.Identifier(newBaseName))));
 
                         baseTypesSymbols = baseModels.ToArray();
                     }

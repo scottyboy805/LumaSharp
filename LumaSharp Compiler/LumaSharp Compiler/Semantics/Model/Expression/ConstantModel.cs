@@ -125,7 +125,8 @@ namespace LumaSharp.Compiler.Semantics.Model
             if (constantType == ConstantType.LiteralString)
             {
                 // Resolve symbol
-                this.constantTypeSymbol = provider.ResolveTypeSymbol(null, Syntax.TypeReference("string"));
+                this.constantTypeSymbol = provider.ResolveTypeSymbol(null, 
+                    Syntax.TypeReference(PrimitiveType.String));
             }
             else
             {

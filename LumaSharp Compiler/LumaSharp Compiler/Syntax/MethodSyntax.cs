@@ -9,7 +9,7 @@ namespace LumaSharp.Compiler.AST
         private readonly ParameterListSyntax parameters;
         private readonly BlockSyntax<StatementSyntax> body;
         private readonly LambdaStatementSyntax lambdaStatement;
-        private readonly SyntaxToken overrideKeyword;
+        private readonly SyntaxToken? overrideKeyword;
 
         // Properties
         public override SyntaxToken StartToken
@@ -42,15 +42,15 @@ namespace LumaSharp.Compiler.AST
                     return lambdaStatement.EndToken;
 
                 // Check for override
-                if (IsOverride == true)
-                    return overrideKeyword;
+                if (overrideKeyword != null)
+                    return overrideKeyword.Value;
 
                 // Parameter
                 return parameters.EndToken;
             }
         }
 
-        public SyntaxToken Override
+        public SyntaxToken? Override
         {
             get { return overrideKeyword; }
         }
@@ -100,93 +100,19 @@ namespace LumaSharp.Compiler.AST
             get { return LambdaStatement != null; }
         }
 
-        public bool IsOverride
-        {
-            get { return overrideKeyword.Kind != SyntaxTokenKind.Invalid; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants => throw new NotImplementedException();
 
         // Constructor
-        internal MethodSyntax(SyntaxNode parent, string identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedListSyntax<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, bool isOverride, BlockSyntax<StatementSyntax> body, LambdaStatementSyntax lambda)
-            : base(parent, identifier, attributes, accessModifiers)
+        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedListSyntax<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? isOverride, BlockSyntax<StatementSyntax> body, LambdaStatementSyntax lambda)
+            : base(identifier, attributes, accessModifiers)
         {
             this.returnTypes = returnTypes;
             this.genericParameters = genericParameters;
             this.parameters = parameters;
-
-            // Check for override
-            if (isOverride == true)
-                this.overrideKeyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.OverrideKeyword);
+            this.overrideKeyword = isOverride;
 
             this.body = body;
             this.lambdaStatement = lambda;
-
-            // Ensure return
-            if (returnTypes == null)
-            {
-                this.returnTypes = new SeparatedListSyntax<TypeReferenceSyntax>(this, SyntaxTokenKind.CommaSymbol);
-                this.returnTypes.AddElement(Syntax.TypeReference(PrimitiveType.Void), Syntax.KeywordOrSymbol(SyntaxTokenKind.CommaSymbol));
-            }
-
-            // Ensure parameters
-            if (parameters == null)
-                this.parameters = new ParameterListSyntax(this, (ParameterSyntax[])null);
-        }
-
-        internal MethodSyntax(SyntaxNode parent, LumaSharpParser.MethodDeclarationContext methodDef)
-            : base(methodDef.IDENTIFIER(), parent, methodDef.attributeReference(), methodDef.accessModifier())
-        {
-            // Get return
-            LumaSharpParser.MethodReturnListContext methodReturn = methodDef.methodReturnList();
-
-            // Check for void type
-            if(methodReturn.VOID() != null)
-            {
-                this.returnTypes = new SeparatedListSyntax<TypeReferenceSyntax>(this, SyntaxTokenKind.CommaSymbol);
-                this.returnTypes.AddElement(new TypeReferenceSyntax(null, PrimitiveType.Void), null);
-            }
-            else
-            {
-                // Get type list
-                this.returnTypes = ExpressionSyntax.List(this, methodReturn.typeReferenceList());
-            }
-
-            // Generics
-            if (methodDef.genericParameterList() != null)
-            {
-                this.genericParameters = new GenericParameterListSyntax(this, methodDef.genericParameterList());
-            }
-
-            // Parameters
-            if (methodDef.methodParameterList() != null)
-            {
-                this.parameters = new ParameterListSyntax(this, methodDef.methodParameterList());
-            }
-
-            // Override
-            if (methodDef.OVERRIDE() != null)
-            {
-                this.overrideKeyword = new SyntaxToken(SyntaxTokenKind.OverrideKeyword, methodDef.OVERRIDE());
-            }
-
-            // Create body
-            LumaSharpParser.StatementBlockContext bodyBlock = methodDef.statementBlock();
-
-            // Check for body 
-            if(bodyBlock != null)
-            {
-                this.body = new BlockSyntax<StatementSyntax>(this, bodyBlock);
-            }
-
-            // Create for lambda
-            LumaSharpParser.StatementLambdaContext lambdaStatement = methodDef.statementLambda();
-
-            // Check for lambda
-            if(lambdaStatement != null)
-            {
-                this.lambdaStatement = new LambdaStatementSyntax(this, lambdaStatement);
-            }
         }
 
         // Methods
@@ -203,6 +129,12 @@ namespace LumaSharp.Compiler.AST
 
             // Parameter list
             parameters.GetSourceText(writer);
+
+            // Override
+            if(overrideKeyword != null)
+            {
+                overrideKeyword.Value.GetSourceText(writer);
+            }
 
             // Body
             if(HasBody == true)

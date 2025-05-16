@@ -16,9 +16,8 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                         .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myParam"))
                         .WithBody(
                             Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
-                            Syntax.Assign(
-                                Syntax.VariableReference("myVar"), AssignOperation.Assign,
-                                Syntax.Literal(5)))));
+                            Syntax.Assign(Syntax.VariableReference("myVar"),
+                                Syntax.VariableAssignment(Syntax.Literal(5))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

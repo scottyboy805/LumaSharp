@@ -1,5 +1,4 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -62,49 +61,35 @@ namespace LumaSharp.Compiler.AST
             get { return tokenList.Count; }
         }
 
+        public bool HasTrailingSeparator
+        {
+            get
+            {
+                if (tokenList.Count > 0)
+                    return tokenList[tokenList.Count - 1].separator.Kind != SyntaxTokenKind.Invalid;
+
+                return false;
+            }
+        }
+
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get { yield break; }
         }
 
         // Constructor
-        internal SeparatedTokenList(SyntaxNode parent, SyntaxTokenKind separatorKind, SyntaxTokenKind? tokenKind)
-            : base(parent)
+        internal SeparatedTokenList(SyntaxTokenKind separatorKind, SyntaxTokenKind? tokenKind)
         {
             this.separatorKind = separatorKind;
             this.tokenKind = tokenKind;
         }
 
-        internal SeparatedTokenList(SyntaxNode parent, SyntaxToken[] items, SyntaxTokenKind separatorKind, SyntaxTokenKind? tokenKind)
-            : this(parent, separatorKind, tokenKind)
+        internal SeparatedTokenList(SyntaxToken[] items, SyntaxTokenKind separatorKind, SyntaxTokenKind? tokenKind)
+            : this(separatorKind, tokenKind)
         {
             // Add all with separator
             foreach (SyntaxToken item in items)
                 AddElement(item, new SyntaxToken(separatorKind));
-        }
-
-        internal SeparatedTokenList(SyntaxNode parent, LumaSharpParser.NamespaceNameContext name)
-            : base(parent)
-        {
-            this.separatorKind = SyntaxTokenKind.ColonSymbol;
-            this.tokenKind = SyntaxTokenKind.Identifier;
-
-            // Add identifier
-            AddElement(new SyntaxToken(SyntaxTokenKind.Identifier, name.IDENTIFIER()), null);
-
-            // Add secondary
-            LumaSharpParser.NamespaceNameSecondaryContext[] secondaryNamespaceNames = name.namespaceNameSecondary();
-
-            // Check for valid
-            if (secondaryNamespaceNames != null)
-            {
-                foreach (LumaSharpParser.NamespaceNameSecondaryContext secondaryNamespaceName in secondaryNamespaceNames)
-                {
-                    AddElement(
-                        new SyntaxToken(SyntaxTokenKind.Identifier, secondaryNamespaceName.IDENTIFIER()),
-                        new SyntaxToken(SyntaxTokenKind.ColonSymbol, secondaryNamespaceName.COLON()));
-                }
-            }
         }
 
         // Methods
@@ -142,6 +127,10 @@ namespace LumaSharp.Compiler.AST
                 // Get syntax source
                 tokenList[i].token.GetSourceText(writer);
             }
+
+            // Check for trailing separator
+            if (HasTrailingSeparator == true)
+                tokenList[tokenList.Count - 1].separator.GetSourceText(writer);
         }
 
         public IEnumerator<SyntaxToken> GetEnumerator()

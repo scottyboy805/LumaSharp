@@ -46,24 +46,17 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal LiteralExpressionSyntax(SyntaxNode parent, SyntaxToken value, SyntaxToken? descriptor = null)
-            : base(parent, null)
+        internal LiteralExpressionSyntax(SyntaxToken value, SyntaxToken? descriptor = null)
         {
+            // Check kind
+            if(value.Kind != SyntaxTokenKind.Literal)
+                throw new ArgumentException(nameof(value) + " must be of kind: " + SyntaxTokenKind.Literal);
+
+            if (descriptor != null && descriptor.Value.Kind != SyntaxTokenKind.LiteralDescriptor)
+                throw new ArgumentException(nameof(descriptor) + " must be of kind: " + SyntaxTokenKind.LiteralDescriptor);
+
             this.value = value;
             this.descriptor = descriptor != null ? descriptor.Value : default;
-        }
-
-        internal LiteralExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            LumaSharpParser.LiteralExpressionContext end = expression.literalExpression();
-
-            // Create value
-            this.value = new SyntaxToken(SyntaxTokenKind.Literal, end.Start);
-
-            // Create descriptor
-            if (end.Start != end.Stop)
-                this.descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, end.Stop);
         }
 
         // Methods

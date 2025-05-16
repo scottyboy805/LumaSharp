@@ -61,7 +61,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public bool IsOverride
         {
-            get { return methodSyntax.IsOverride; }
+            get { return methodSyntax.Override != null; }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
@@ -132,7 +132,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public bool HasOverride
         {
-            get { return methodSyntax.IsOverride; }
+            get { return methodSyntax.Override != null; }
         }
 
         public bool HasBody
@@ -229,7 +229,9 @@ namespace LumaSharp.Compiler.Semantics.Model
                 {
                     // Create local model
                     LocalOrParameterModel localModel = new LocalOrParameterModel(
-                        Syntax.Parameter(Syntax.TypeReference(declaringType.TypeSyntax), "this"),
+                        Syntax.Parameter(
+                            Syntax.TypeReference(declaringType.TypeSyntax),
+                            Syntax.Identifier("this")),
                         this, 0);
 
                     // Create implicit `this` parameter at position 0

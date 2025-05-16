@@ -32,7 +32,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.VariableReference("var"), AssignOperation.Assign, Syntax.Literal(5)),
+                .WithBody(Syntax.Assign(Syntax.VariableReference("var"),
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))),
                 Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "var"))));
 
             // Create model

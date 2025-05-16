@@ -1,7 +1,7 @@
 ﻿
 //namespace LumaSharp.Compiler.AST
 //{
-//    public sealed class ForeachConditionSyntax : SyntaxNode
+//    public sealed class ForeachStatementSyntax : SyntaxNode
 //    {
 //        // Private
 //        private readonly TypeReferenceSyntax typeReference;

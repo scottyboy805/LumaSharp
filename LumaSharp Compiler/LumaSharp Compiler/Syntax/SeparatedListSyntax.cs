@@ -69,20 +69,30 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal SeparatedListSyntax(SyntaxNode parent, T[] items, SyntaxToken separator)
-            : base(parent)
+        protected SeparatedListSyntax(SeparatedListSyntax<T> other)
         {
-            this.separatorKind = separator.Kind;
-
-            // Add all with separator
-            foreach (T item in items)
-                AddElement(item, separator);
+            this.separatorKind = other.separatorKind;
+            this.syntaxList = other.syntaxList != null
+                ? other.syntaxList.ToList()
+                : new();
         }
 
-        internal SeparatedListSyntax(SyntaxNode parent, SyntaxTokenKind separatorKind)
-            : base(parent)
+        internal SeparatedListSyntax(SyntaxTokenKind separatorKind)
         {
             this.separatorKind = separatorKind;
+        }
+
+        internal SeparatedListSyntax(SyntaxTokenKind separatorKind, T[] syntaxList)
+        {
+            this.separatorKind = separatorKind;
+            this.syntaxList = new();
+
+            for(int i = 0; i < syntaxList.Length; i++)
+            {
+                AddElement(syntaxList[i], i < syntaxList.Length - 1
+                    ? new SyntaxToken(separatorKind)
+                    : null);
+            }
         }
 
         // Methods

@@ -40,25 +40,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal FieldReferenceExpressionSyntax(SyntaxNode parent, string identifier, ExpressionSyntax accessExpression)
-            : base(parent, null)
+        internal FieldReferenceExpressionSyntax(SyntaxToken identifier, ExpressionSyntax accessExpression)
         {
-            this.identifier = Syntax.Identifier(identifier);
+            this.identifier = identifier;
             this.accessExpression = accessExpression;
-            this.dot = Syntax.KeywordOrSymbol(SyntaxTokenKind.DotSymbol);
-        }
-
-        internal FieldReferenceExpressionSyntax(SyntaxNode parent, LumaSharpParser.ExpressionContext expression)
-            : base(parent, expression)
-        {
-            // Identifier
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, expression.fieldAccessExpression().IDENTIFIER());
-
-            // Dot
-            this.dot = new SyntaxToken(SyntaxTokenKind.DotSymbol, expression.fieldAccessExpression().DOT());
-
-            // Create access expression
-            this.accessExpression = Any(this, expression.expression(0));
+            this.dot = Syntax.Token(SyntaxTokenKind.DotSymbol);
         }
 
         // Methods

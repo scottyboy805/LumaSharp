@@ -13,10 +13,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("type _MyType123{}", "_MyType123")]
         public void UserType(string input, string identifier)
         {
-            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
-
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(null, context);
+            TypeSyntax syntax = TestUtils.ParseTypeDeclaration(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -36,10 +34,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("global hidden type MyType123{}", "MyType123", 2)]
         public void UserType_AccessModifier(string input, string identifier, int modifierCount)
         {
-            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
-
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(null, context);
+            TypeSyntax syntax = TestUtils.ParseTypeDeclaration(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -58,10 +54,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("type _MyType123<T0, T1, T2, T3>{}", "_MyType123", 4)]
         public void UserType_Generic(string input, string identifier, int genericCount)
         {
-            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
-
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(null, context);
+            TypeSyntax syntax = TestUtils.ParseTypeDeclaration(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -82,10 +76,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("type MyType : MyBase<i8>{}", "MyType", 1)]
         public void UserType_BaseType(string input, string identifier, int baseCount)
         {
-            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
-
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(null, context);
+            TypeSyntax syntax = TestUtils.ParseTypeDeclaration(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);
@@ -105,10 +97,8 @@ namespace LumaSharp_CompilerTests.AST
         [DataRow("type _MyType123{type A{} contract B{} i32 field; i32 accessor => 5; i32 method() { return 5;}}", "_MyType123", 5)]
         public void UserType_Member(string input, string identifier, int memberCount)
         {
-            LumaSharpParser.TypeDeclarationContext context = TestUtils.ParseTypeDeclaration(input);
-
             // Build AST node
-            TypeSyntax syntax = new TypeSyntax(null, context);
+            TypeSyntax syntax = TestUtils.ParseTypeDeclaration(input);
 
             // Check for valid
             Assert.IsNotNull(syntax);

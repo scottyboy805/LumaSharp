@@ -90,48 +90,26 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ForStatementSyntax(SyntaxNode parent, VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedListSyntax<ExpressionSyntax> increments, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
-            : base(parent)
+        internal ForStatementSyntax(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedListSyntax<ExpressionSyntax> increments, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.ForKeyword),
+                  variable,
+                  condition,
+                  increments,
+                  body,
+                  inlineStatement)
         {
-            this.keyword = Syntax.KeywordOrSymbol(SyntaxTokenKind.ForKeyword);
+        }
+
+        internal ForStatementSyntax(SyntaxToken keyword, VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedListSyntax<ExpressionSyntax> increments, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+        {
+            this.keyword = keyword;
             this.variable = variable;
             this.condition = condition;
             this.increments = increments;
 
             this.blockStatement = body;
             this.inlineStatement = inlineStatement;
-        }
-
-        internal ForStatementSyntax(SyntaxNode parent, LumaSharpParser.ForStatementContext forStatement)
-            : base(parent)
-        {
-            // Keyword
-            this.keyword = new SyntaxToken(SyntaxTokenKind.ForKeyword, forStatement.FOR());
-
-            // For variable
-            if (forStatement.localVariableStatement() != null)
-                this.variable = new VariableDeclarationStatementSyntax(this, forStatement.localVariableStatement());
-
-            // For condition
-            if (forStatement.expression() != null)
-                this.condition = ExpressionSyntax.Any(this, forStatement.expression());
-
-            // For increments
-            if(forStatement.expressionList() != null)
-                this.increments = ExpressionSyntax.List(this, forStatement.expressionList());    
-                        
-
-            // Statement inline
-            if(forStatement.statement() != null)
-            {
-                this.inlineStatement = Any(this, forStatement.statement());
-            }
-
-            // Statement block
-            if(forStatement.statementBlock() != null)
-            {
-                this.blockStatement = new BlockSyntax<StatementSyntax>(this, forStatement.statementBlock());
-            }
         }
 
         // Methods
