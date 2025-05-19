@@ -91,10 +91,14 @@ namespace LumaSharp.Compiler.Parser
                     yield return previous = symbol;
                 }
                 // ### NUMBER - Check for numeric value delimited by whitespace or letter
-                else if (MatchNumber(leadingTrivia, previous, out SyntaxToken number) == true)
+                else if (MatchNumber(leadingTrivia, previous, out SyntaxToken number, out SyntaxToken descriptor) == true)
                 {
                     // Get the symbol
                     yield return previous = number;
+
+                    // Check for descriptor
+                    if(descriptor.Kind != SyntaxTokenKind.Invalid)
+                        yield return previous = descriptor;
                 }
                 // ### IDENTIFIER - Check for identifier name
                 else if (MatchIdentifier(leadingTrivia, previous, out SyntaxToken identifier) == true)
@@ -385,15 +389,17 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
-        private bool MatchNumber(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken number)
+        private bool MatchNumber(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken number, out SyntaxToken descriptor)
         {
+            descriptor = default;
+
             // Require whitespace or symbol before number
-            if(source.Position > 0
+            if (source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
                 && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
-                number = default;
+                number = default;                
                 return false;
             }
 
@@ -422,6 +428,41 @@ namespace LumaSharp.Compiler.Parser
 
                 // Build the full number string
                 number = new SyntaxToken(SyntaxTokenKind.Literal, builder.ToString());
+
+                // Check for descriptor
+                // Unsigned
+                if(source.Peek() == 'U' || source.Peek() == 'u')
+                {
+                    // Check for following L
+                    if(source.Peek(1) == 'L' || source.Peek(1) == 'l')
+                    {
+                        source.Consume(2);
+                        descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL");
+                    }
+                    else
+                    {
+                        source.Consume();
+                        descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U");
+                    }
+                }
+                // Long
+                else if(source.Peek() == 'L' || source.Peek() == 'l')
+                {
+                    source.Consume();
+                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L");
+                }
+                // Float
+                else if(source.Peek() == 'F' || source.Peek() == 'f')
+                {
+                    source.Consume();
+                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "F");
+                }
+                // Double
+                else if(source.Peek() == 'D' || source.Peek() == 'd')
+                {
+                    source.Consume();
+                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "D");
+                }
 
                 // Recycle builder
                 builder.Clear();

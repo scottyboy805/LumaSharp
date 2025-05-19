@@ -8,42 +8,40 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
     public class ParseStructuredExpressionUnitTests
     {
         [DataTestMethod]
-        [DataRow("sizeof(i32)", typeof(TypeReferenceSyntax))]
-        [DataRow("sizeof(string)", typeof(TypeReferenceSyntax))]
-        [DataRow("sizeof(bool)", typeof(TypeReferenceSyntax))]
-        [DataRow("sizeof(MyType<i8>)", typeof(TypeReferenceSyntax))]
-        public void StructuredExpression_Size(string input, Type expressionType)
+        [DataRow("sizeof(i32)")]
+        [DataRow("sizeof(string)")]
+        [DataRow("sizeof(bool)")]
+        [DataRow("sizeof(MyType<i8>)")]
+        public void StructuredExpression_Sizeof(string input)
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(SizeofExpressionSyntax));
-
-            Assert.IsInstanceOfType(((SizeofExpressionSyntax)expression).TypeReference, expressionType);
+            Assert.IsNotNull(((SizeofExpressionSyntax)expression).TypeReference);
         }
 
         [DataTestMethod]
-        [DataRow("type(i32)", typeof(TypeReferenceSyntax))]
-        [DataRow("type(string)", typeof(TypeReferenceSyntax))]
-        [DataRow("type(bool)", typeof(TypeReferenceSyntax))]
-        [DataRow("type(MyType<i8>)", typeof(TypeReferenceSyntax))]
-        public void StructuredExpression_Type(string input, Type expressionType)
+        [DataRow("typeof(i32)")]
+        [DataRow("typeof(string)")]
+        [DataRow("typeof(bool)")]
+        [DataRow("typeof(MyType<i8>)")]
+        public void StructuredExpression_Typeof(string input)
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(TypeofExpressionSyntax));
-
-            Assert.IsInstanceOfType(((TypeofExpressionSyntax)expression).TypeReference, expressionType);
+            Assert.IsNotNull(((TypeofExpressionSyntax)expression).TypeReference);
         }
 
         [DataTestMethod]
         [DataRow("i32.myField", typeof(TypeReferenceSyntax))]
-        [DataRow("my.Field.Final", typeof(FieldReferenceExpressionSyntax))]
+        [DataRow("my.Field.Final", typeof(MemberAccessExpressionSyntax))]
         [DataRow("my.Method(a).Final", typeof(MethodInvokeExpressionSyntax))]
-        [DataRow("my.Array[0].Final", typeof(ArrayIndexExpressionSyntax))]
+        [DataRow("my.Array[0].Final", typeof(IndexExpressionSyntax))]
         [DataRow(@"""Hello World"".Length", typeof(LiteralExpressionSyntax))]
         [DataRow("1234.Final", typeof(LiteralExpressionSyntax))]
         [DataRow("(43 + 24).Final", typeof(BinaryExpressionSyntax))]
@@ -58,17 +56,17 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(FieldReferenceExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(MemberAccessExpressionSyntax));
 
-            Assert.IsInstanceOfType(((FieldReferenceExpressionSyntax)expression).AccessExpression, expressionType);
+            Assert.IsInstanceOfType(((MemberAccessExpressionSyntax)expression).AccessExpression, expressionType);
         }
 
         [DataTestMethod]
         [TestMethod]
         [DataRow("i32.myMethod()", typeof(TypeReferenceSyntax))]
-        [DataRow("my.Field.Final()", typeof(FieldReferenceExpressionSyntax))]
+        [DataRow("my.Field.Final()", typeof(MemberAccessExpressionSyntax))]
         [DataRow("my.Method(a).Final()", typeof(MethodInvokeExpressionSyntax))]
-        [DataRow("my.Array[0].Final(123)", typeof(ArrayIndexExpressionSyntax))]
+        [DataRow("my.Array[0].Final(123)", typeof(IndexExpressionSyntax))]
         [DataRow(@"""Hello World"".Length()", typeof(LiteralExpressionSyntax))]
         [DataRow("1234.Final()", typeof(LiteralExpressionSyntax))]
         [DataRow("(43 + 24).Final()", typeof(BinaryExpressionSyntax))]
@@ -89,9 +87,9 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
         }
 
         [DataTestMethod]
-        [DataRow("my.Field[0]", typeof(FieldReferenceExpressionSyntax))]
+        [DataRow("my.Field[0]", typeof(MemberAccessExpressionSyntax))]
         [DataRow("my.Method(a)[0]", typeof(MethodInvokeExpressionSyntax))]
-        [DataRow("my.Array[0][0, 1]", typeof(ArrayIndexExpressionSyntax))]
+        [DataRow("my.Array[0][0, 1]", typeof(IndexExpressionSyntax))]
         [DataRow(@"""Hello World""[0, 1]", typeof(LiteralExpressionSyntax))]
         [DataRow("1234[1]", typeof(LiteralExpressionSyntax))]
         [DataRow("(43 + 24)[1]", typeof(BinaryExpressionSyntax))]
@@ -105,9 +103,9 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(ArrayIndexExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(IndexExpressionSyntax));
 
-            Assert.IsInstanceOfType(((ArrayIndexExpressionSyntax)expression).AccessExpression, expressionType);
+            Assert.IsInstanceOfType(((IndexExpressionSyntax)expression).AccessExpression, expressionType);
         }
     }
 }

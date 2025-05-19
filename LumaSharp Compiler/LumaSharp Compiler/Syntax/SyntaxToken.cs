@@ -47,8 +47,6 @@ namespace LumaSharp.Compiler.AST
         MinusMinusSymbol,
         NotSymbol,
 
-        LGenericSymbol,
-        RGenericSymbol,
         LArraySymbol,
         RArraySymbol,
         LBlockSymbol,
@@ -166,8 +164,6 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.MinusMinusSymbol, "--" },
             { SyntaxTokenKind.NotSymbol, "!" },
 
-            { SyntaxTokenKind.LGenericSymbol, "<" },
-            { SyntaxTokenKind.RGenericSymbol, ">" },
             { SyntaxTokenKind.LArraySymbol, "[" },
             { SyntaxTokenKind.RArraySymbol, "]" },
             { SyntaxTokenKind.LBlockSymbol, "{" },
@@ -349,7 +345,15 @@ namespace LumaSharp.Compiler.AST
 
         public static bool IsLiteralKind(SyntaxTokenKind kind)
         {
-            return kind == SyntaxTokenKind.Literal;
+            switch (kind)
+            {
+                case SyntaxTokenKind.Literal:
+                case SyntaxTokenKind.TrueKeyword:
+                case SyntaxTokenKind.FalseKeyword:
+                case SyntaxTokenKind.NullKeyword:
+                    return true;
+            }
+            return false;
         }
 
         public static bool IsPrimitiveTypeKind(SyntaxTokenKind kind)

@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
+using System.Text;
 
 namespace LumaSharp.Compiler.Parser
 {
@@ -11,34 +12,234 @@ namespace LumaSharp.Compiler.Parser
         /// it simply hands off to parse in order of precedence.
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax ParseExpression() => ParseLogicalOrExpression();
-        private ExpressionSyntax ParseLogicalOrExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.OrSymbol, ParseLogicalAndExpression);
-        private ExpressionSyntax ParseLogicalAndExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.AndSymbol, ParseBitwiseOrExpression);
-        private ExpressionSyntax ParseBitwiseOrExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.BitwiseOrSymbol, ParseBitwiseXOrExpression);
-        private ExpressionSyntax ParseBitwiseXOrExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.BitwiseXOrSymbol, ParseBitwiseAndExpression);
-        private ExpressionSyntax ParseBitwiseAndExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.BitwiseAndSymbol, ParseEqualityExpression);
-        private ExpressionSyntax ParseEqualityExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.EqualitySymbol || o == SyntaxTokenKind.NonEqualitySymbol, ParseRelationalExpression);
-        private ExpressionSyntax ParseRelationalExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.LessSymbol || o == SyntaxTokenKind.LessEqualSymbol || o == SyntaxTokenKind.GreaterSymbol || o == SyntaxTokenKind.GreaterEqualSymbol, ParseBitShiftExpression);
-        private ExpressionSyntax ParseBitShiftExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.BitShiftLeftSymbol || o == SyntaxTokenKind.BitShiftRightSymbol, ParseAdditiveExpression);
-        private ExpressionSyntax ParseAdditiveExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.AddSymbol || o == SyntaxTokenKind.SubtractSymbol, ParseMultiplicativeExpression);
-        private ExpressionSyntax ParseMultiplicativeExpression() => ParseBinaryExpression(o => o == SyntaxTokenKind.MultiplySymbol || o == SyntaxTokenKind.DivideSymbol || o == SyntaxTokenKind.ModulusSymbol, ParseUnaryExpression);
+        internal ExpressionSyntax ParseExpression()
+        {
+            // Parse root expression
+            ExpressionSyntax expr = ParseLogicalOrBinaryExpression();
 
-        private ExpressionSyntax ParseBinaryExpression(Func<SyntaxTokenKind, bool> isOperand, Func<ExpressionSyntax> parseChildExpression)
+            // Array indexing which can apply to any leaf expression - will be checked semantically later
+            // Check for valid expression
+            if (expr != null)
+            {
+                // Handle array index for expression or just return the input expression
+                expr = ParseIndexExpression(expr);
+
+                // Handle member access for expression or just return the input expression
+                expr = ParseMemberAccessExpression(expr);
+
+                // Handle ternary
+                expr = ParseTernaryExpression(expr);
+            }
+            // Finally get the expression
+            return expr;
+        }
+
+        private ExpressionSyntax ParseLogicalOrBinaryExpression()
         {
             // Parse and
-            ExpressionSyntax expr = parseChildExpression();
-            
-            // Check for or operator
-            while (isOperand(tokens.PeekKind()) == true)
+            ExpressionSyntax expr = ParseLogicalAndBinaryExpression();
+
+            // Check for or token
+            while(tokens.PeekKind() == SyntaxTokenKind.OrSymbol)
             {
                 // Consume the operator
                 SyntaxToken operandToken = tokens.Consume();
 
-                // Parse and
-                ExpressionSyntax right = parseChildExpression();
+                // Parse right
+                ExpressionSyntax right = ParseLogicalAndBinaryExpression();
 
                 // Create binary
-                expr = new BinaryExpressionSyntax(expr, operandToken, right);
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseLogicalAndBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseBitwiseXOrBinaryExpression();
+
+            // Check for and token
+            while (tokens.PeekKind() == SyntaxTokenKind.AndSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseBitwiseXOrBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseBitwiseOrBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseBitwiseXOrBinaryExpression();
+
+            // Check for or token
+            while (tokens.PeekKind() == SyntaxTokenKind.BitwiseOrSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseBitwiseXOrBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseBitwiseXOrBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseBitwiseAndBinaryExpression();
+
+            // Check for xor token
+            while (tokens.PeekKind() == SyntaxTokenKind.BitwiseXOrSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseBitwiseAndBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseBitwiseAndBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseEqualityBinaryExpression();
+
+            // Check for and token
+            while (tokens.PeekKind() == SyntaxTokenKind.BitwiseAndSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseEqualityBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseEqualityBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseRelationalBinaryExpression();
+
+            // Check for '==' '!=' tokens
+            while (tokens.PeekKind() == SyntaxTokenKind.EqualitySymbol || tokens.PeekKind() == SyntaxTokenKind.NonEqualitySymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseRelationalBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseRelationalBinaryExpression()
+        {
+            int expressionStart = tokens.Position;
+
+            // Parse and
+            ExpressionSyntax expr = ParseBitShiftBinaryExpression();
+
+            // Handle ambiguity between less than and open generics
+            if(LooksLikeGenericArgumentList() == true)
+            {
+                // Retrace back to start of expression and now try and parse it as a generic type reference
+                tokens.Retrace(expressionStart);
+                expr = ParseTypeReference();
+            }
+
+            // Check for '<' '<=' '>' '>=' tokens
+            while (tokens.PeekKind() == SyntaxTokenKind.LessSymbol || tokens.PeekKind() == SyntaxTokenKind.LessEqualSymbol || tokens.PeekKind() == SyntaxTokenKind.GreaterSymbol || tokens.PeekKind() == SyntaxTokenKind.GreaterEqualSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseBitShiftBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseBitShiftBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseAdditiveBinaryExpression();
+
+            // Check for '<<' '>>' tokens
+            while (tokens.PeekKind() == SyntaxTokenKind.BitShiftLeftSymbol || tokens.PeekKind() == SyntaxTokenKind.BitShiftRightSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseAdditiveBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseAdditiveBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseMultiplicativeBinaryExpression();
+
+            // Check for '+' '-' tokens
+            while (tokens.PeekKind() == SyntaxTokenKind.AddSymbol || tokens.PeekKind() == SyntaxTokenKind.SubtractSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseMultiplicativeBinaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseMultiplicativeBinaryExpression()
+        {
+            // Parse and
+            ExpressionSyntax expr = ParseUnaryExpression();
+
+            // Check for '+' '-' tokens
+            while (tokens.PeekKind() == SyntaxTokenKind.MultiplySymbol || tokens.PeekKind() == SyntaxTokenKind.DivideSymbol || tokens.PeekKind() == SyntaxTokenKind.ModulusSymbol)
+            {
+                // Consume the operator
+                SyntaxToken operandToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseUnaryExpression();
+
+                // Create binary
+                return new BinaryExpressionSyntax(expr, operandToken, right);
             }
             return expr;
         }
@@ -93,7 +294,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lParen = tokens.Consume();
 
                 // Begin parsing from top down once again
-                expr = ParseLogicalOrExpression();
+                expr = ParseExpression();
 
                 // Expect closing paren
                 if(tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
@@ -125,6 +326,10 @@ namespace LumaSharp.Compiler.Parser
                 // Check for sizeof
                 if (expr == null)
                     expr = ParseSizeofExpression();
+
+                // Check for new
+                if (expr == null)
+                    expr = ParseNewExpression();
             }
 
             // ### Loosely defined rules - Can be matched in multiple cases so order of evaluation is important
@@ -142,38 +347,122 @@ namespace LumaSharp.Compiler.Parser
                     expr = ParseTypeReference();
             }
 
-            // Array indexing which can apply to any leaf expression - will be checked semantically later
             // Check for valid expression
             if(expr != null)
             {
-                // Handle array index for expression
-                if(tokens.PeekKind() == SyntaxTokenKind.LArraySymbol)
-                {
-                    // Consume the array start
-                    SyntaxToken lArray = tokens.Consume();
-
-                    // Parse expression list
-                    SeparatedListSyntax<ExpressionSyntax> indexExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol);
-
-                    // Expect array end
-                    if(tokens.ConsumeExpect(SyntaxTokenKind.RArraySymbol, out SyntaxToken rArray) == false)
-                    {
-                        // Expected ']'
-                        report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
-                        return RecoverFromExpressionError();
-                    }
-
-                    // Apply indexing
-                    expr = new ArrayIndexExpressionSyntax(expr, lArray, indexExpressions, rArray);
-                }
-
                 // Finally get the expression
                 return expr;
             }
 
             // Unexpected token - no valid expression was found
-            report.ReportMessage(Code.UnexpectedToken, MessageSeverity.Error, tokens.Peek().Source, tokens.PeekKind());
+            report.ReportMessage(Code.UnexpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(tokens.PeekKind()));
             return RecoverFromExpressionError();
+        }
+
+        private ExpressionSyntax ParseIndexExpression(ExpressionSyntax expr)
+        {
+            // Handle array index for expression
+            while (tokens.PeekKind() == SyntaxTokenKind.LArraySymbol)
+            {
+                // Consume the array start
+                SyntaxToken lArray = tokens.Consume();
+
+                // Parse expression list
+                SeparatedListSyntax<ExpressionSyntax> indexExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RArraySymbol);
+
+                // Expect array end
+                if (tokens.ConsumeExpect(SyntaxTokenKind.RArraySymbol, out SyntaxToken rArray) == false)
+                {
+                    // Expected ']'
+                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
+                    return RecoverFromExpressionError();
+                }
+
+                // Apply indexing
+                expr = new IndexExpressionSyntax(expr, lArray, indexExpressions, rArray);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseTernaryExpression(ExpressionSyntax expr)
+        {
+            // Handle ternary
+            while(tokens.PeekKind() == SyntaxTokenKind.TernarySymbol)
+            {
+                // Consume the token
+                SyntaxToken ternary = tokens.Consume();
+
+                // Parse expression
+                ExpressionSyntax trueExpr = ParseExpression();
+
+                // Require ternary alternate
+                if(tokens.ConsumeExpect(SyntaxTokenKind.ColonSymbol, out SyntaxToken colon) == false)
+                {
+                    // Expected ':'
+                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.ColonSymbol));
+                    return RecoverFromExpressionError();
+                }
+
+                // Parse other expression
+                ExpressionSyntax falseExpr = ParseExpression();
+
+                // Create ternary
+                expr = new TernaryExpressionSyntax(expr, ternary, trueExpr, colon, falseExpr);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseMemberAccessExpression(ExpressionSyntax expr)
+        {
+            // Parse member access chain
+            while (tokens.PeekKind() == SyntaxTokenKind.DotSymbol)
+            {
+                // Consume the dot
+                SyntaxToken dot = tokens.Consume();
+
+                // Expect identifier
+                if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
+                {
+                    // Expected identifier
+                    report.ReportMessage(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    return RecoverFromExpressionError();
+                }
+
+                // Create the member access expression
+                MemberAccessExpressionSyntax accessExpression = new MemberAccessExpressionSyntax(expr, dot, identifier);
+
+                // Check for generic arguments
+                GenericArgumentListSyntax genericArguments = ParseGenericArgumentList();
+
+                // Check for arguments
+                ArgumentListSyntax arguments = ParseArgumentList();
+
+                // Check for method
+                if (genericArguments != null || arguments != null)
+                {
+                    // Argument list is required even if it is empty
+                    if (arguments == null)
+                    {
+                        // Expected '('
+                        report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.LParenSymbol));
+                        return RecoverFromExpressionError();
+                    }
+
+                    // Create the invoke expression
+                    expr = new MethodInvokeExpressionSyntax(accessExpression, genericArguments, arguments);
+                }
+                // Must be a non-invokable member
+                else
+                {
+                    // We can just update to the access expression here
+                    expr = accessExpression;
+                }
+
+                // Finally we can parse array indexing on the member at this point
+                // Calling once again after parsing the member allows us to support syntax like variable[0].member[1][2]
+                expr = ParseIndexExpression(expr);
+            }
+            return expr;
         }
 
         internal ThisExpressionSyntax ParseThisExpression()
@@ -332,6 +621,15 @@ namespace LumaSharp.Compiler.Parser
 
                 // Create the literal
                 return new LiteralExpressionSyntax(literal, descriptor);
+            }
+            // Check for keyword literal
+            else if(tokens.PeekKind() == SyntaxTokenKind.TrueKeyword || tokens.PeekKind() == SyntaxTokenKind.FalseKeyword || tokens.PeekKind() == SyntaxTokenKind.NullKeyword)
+            {
+                // Consume the token
+                SyntaxToken keywordLiteral = tokens.Consume();
+
+                // Create the literal
+                return new LiteralExpressionSyntax(keywordLiteral);
             }
             return null;
         }

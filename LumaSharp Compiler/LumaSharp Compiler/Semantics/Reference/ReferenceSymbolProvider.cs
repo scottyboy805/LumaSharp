@@ -219,7 +219,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
 
 
-        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldReferenceExpressionSyntax reference)
+        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, MemberAccessExpressionSyntax reference)
         {
             // Check for type
             if (context is ITypeReferenceSymbol typeReference)

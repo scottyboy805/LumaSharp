@@ -71,8 +71,10 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         protected SeparatedListSyntax(SeparatedListSyntax<T> other)
         {
-            this.separatorKind = other.separatorKind;
-            this.syntaxList = other.syntaxList != null
+            this.separatorKind = other != null
+                ? other.separatorKind
+                : SyntaxTokenKind.Invalid;
+            this.syntaxList = other != null && other.syntaxList != null
                 ? other.syntaxList.ToList()
                 : new();
         }
@@ -102,9 +104,9 @@ namespace LumaSharp.Compiler.AST
             if (separator != null && separator.Value.Kind != separatorKind)
                 throw new ArgumentException("Separator must be of kind: " + separatorKind);
 
-            // Check for count
-            if (syntaxList.Count > 0 && separator == null)
-                throw new ArgumentException("Separator must be provided for non-zero indexed elements");
+            //// Check for count
+            //if (syntaxList.Count > 0 && separator == null)
+            //    throw new ArgumentException("Separator must be provided for non-zero indexed elements");
 
             // Add to list
             syntaxList.Add(new SyntaxSeparatedElement

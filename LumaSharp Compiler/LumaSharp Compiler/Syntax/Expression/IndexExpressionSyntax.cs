@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class ArrayIndexExpressionSyntax : ExpressionSyntax
+    public sealed class IndexExpressionSyntax : ExpressionSyntax
     {
         // Private
         private readonly SyntaxToken lArray;
@@ -58,7 +58,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ArrayIndexExpressionSyntax(ExpressionSyntax accessExpression, SeparatedListSyntax<ExpressionSyntax> indexExpressions)
+        internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SeparatedListSyntax<ExpressionSyntax> indexExpressions)
             : this(
                   accessExpression,
                   new SyntaxToken(SyntaxTokenKind.LArraySymbol),
@@ -67,7 +67,7 @@ namespace LumaSharp.Compiler.AST
         { 
         }
 
-        internal ArrayIndexExpressionSyntax(ExpressionSyntax accessExpression, SyntaxToken lArray, SeparatedListSyntax<ExpressionSyntax> indexExpressions, SyntaxToken rArray)
+        internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SyntaxToken lArray, SeparatedListSyntax<ExpressionSyntax> indexExpressions, SyntaxToken rArray)
         {
             // Check for null
             if(accessExpression == null)

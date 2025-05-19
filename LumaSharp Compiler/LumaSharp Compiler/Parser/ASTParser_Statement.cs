@@ -196,7 +196,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken returnToken = tokens.Consume();
 
                 // Check for optional expression list
-                SeparatedListSyntax<ExpressionSyntax> returnExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol);
+                SeparatedListSyntax<ExpressionSyntax> returnExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.SemicolonSymbol);
 
                 // Require semicolon
                 if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)

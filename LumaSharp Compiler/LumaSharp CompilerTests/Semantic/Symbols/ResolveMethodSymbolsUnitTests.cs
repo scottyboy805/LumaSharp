@@ -14,7 +14,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32)),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.This(), "myMethod"),
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.This(), "myMethod")),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
@@ -37,7 +37,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
                 .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod"),
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod")),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
@@ -61,7 +61,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(
-                    Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5))),
+                    Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod"), Syntax.ArgumentList(Syntax.Literal(5))),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
@@ -84,7 +84,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "arg")),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.New(Syntax.TypeReference("Test")))),
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod"), Syntax.ArgumentList(Syntax.New(Syntax.TypeReference("Test")))),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
@@ -108,7 +108,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg0"),
                 Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Any), "arg1")),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.TypeReference("Test"), "myMethod", Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal("Hello"))),
+                .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal("Hello"))),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model

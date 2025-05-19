@@ -21,9 +21,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal GenericArgumentListSyntax(SeparatedListSyntax<TypeReferenceSyntax> genericArguments)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LGenericSymbol),
+                  new SyntaxToken(SyntaxTokenKind.LessSymbol),
                   genericArguments,
-                  new SyntaxToken(SyntaxTokenKind.RGenericSymbol))
+                  new SyntaxToken(SyntaxTokenKind.GreaterSymbol))
         {
         }
 
@@ -31,11 +31,11 @@ namespace LumaSharp.Compiler.AST
             : base(genericArguments)
         {
             // Check kind
-            if(lGeneric.Kind != SyntaxTokenKind.LGenericSymbol)
-                throw new ArgumentException(nameof(lGeneric) + " must be of kind: " + SyntaxTokenKind.LGenericSymbol);
+            if(lGeneric.Kind != SyntaxTokenKind.LessSymbol)
+                throw new ArgumentException(nameof(lGeneric) + " must be of kind: " + SyntaxTokenKind.LessSymbol);
 
-            if(rGeneric.Kind != SyntaxTokenKind.RGenericSymbol)
-                throw new ArgumentException(nameof(rGeneric) + " must be of kind: " + SyntaxTokenKind.RGenericSymbol);
+            if(rGeneric.Kind != SyntaxTokenKind.GreaterSymbol)
+                throw new ArgumentException(nameof(rGeneric) + " must be of kind: " + SyntaxTokenKind.GreaterSymbol);
 
             this.lGeneric = lGeneric;
             this.rGeneric = rGeneric;

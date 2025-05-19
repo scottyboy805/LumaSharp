@@ -72,8 +72,8 @@ namespace LumaSharp.Compiler.Semantics.Model
             //    return new AssignModel(model, parent, syntax as )
 
             // Check for field
-            if(syntax is FieldReferenceExpressionSyntax)
-                return new FieldAccessorReferenceModel(model, parent, syntax as FieldReferenceExpressionSyntax);
+            if(syntax is MemberAccessExpressionSyntax)
+                return new FieldAccessorReferenceModel(model, parent, syntax as MemberAccessExpressionSyntax);
 
             // Check for method
             if (syntax is MethodInvokeExpressionSyntax)

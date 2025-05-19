@@ -78,7 +78,7 @@ namespace LumaSharp.Compiler.AST
         public static LiteralExpressionSyntax Literal(string val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, "\"" + val + "\""));
         public static LiteralExpressionSyntax Literal(bool val) => new LiteralExpressionSyntax(new SyntaxToken(val == true ? SyntaxTokenKind.TrueKeyword : SyntaxTokenKind.FalseKeyword, val.ToString().ToLower()));
         
-        public static ArrayIndexExpressionSyntax ArrayIndex(ExpressionSyntax accessExpression, params ExpressionSyntax[] indexExpressions) => new ArrayIndexExpressionSyntax(accessExpression, new(SyntaxTokenKind.CommaSymbol, indexExpressions));
+        public static IndexExpressionSyntax ArrayIndex(ExpressionSyntax accessExpression, params ExpressionSyntax[] indexExpressions) => new IndexExpressionSyntax(accessExpression, new(SyntaxTokenKind.CommaSymbol, indexExpressions));
         public static BaseExpressionSyntax Base() => new BaseExpressionSyntax();
         public static ThisExpressionSyntax This() => new ThisExpressionSyntax();
         public static TypeofExpressionSyntax TypeOp(TypeReferenceSyntax typeReference) => new TypeofExpressionSyntax(typeReference);
@@ -86,15 +86,15 @@ namespace LumaSharp.Compiler.AST
         public static VariableAssignExpressionSyntax VariableAssignment(params ExpressionSyntax[] assignExpressions) => new VariableAssignExpressionSyntax(new(SyntaxTokenKind.CommaSymbol, assignExpressions));
         public static VariableAssignExpressionSyntax VariableAssignment(SyntaxToken assignOp, params ExpressionSyntax[] assignExpressions) => new VariableAssignExpressionSyntax(assignOp, new(SyntaxTokenKind.CommaSymbol, assignExpressions));
         public static VariableReferenceExpressionSyntax VariableReference(SyntaxToken identifier) => new VariableReferenceExpressionSyntax(identifier);
-        public static FieldReferenceExpressionSyntax FieldReference(ExpressionSyntax accessExpression, SyntaxToken identifier) => new FieldReferenceExpressionSyntax(identifier, accessExpression);
-        public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, SyntaxToken identifier, ArgumentListSyntax arguments, GenericArgumentListSyntax genericArguments = null) => new MethodInvokeExpressionSyntax(identifier, accessExpression, genericArguments, arguments);
+        public static MemberAccessExpressionSyntax MemberReference(ExpressionSyntax accessExpression, SyntaxToken identifier) => new MemberAccessExpressionSyntax(accessExpression, identifier);
+        public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, ArgumentListSyntax arguments, GenericArgumentListSyntax genericArguments = null) => new MethodInvokeExpressionSyntax(accessExpression, genericArguments, arguments);
         public static NewExpressionSyntax New(TypeReferenceSyntax newType, ArgumentListSyntax arguments = null) => new NewExpressionSyntax(newType, arguments);
         public static TernaryExpressionSyntax Ternary(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression) => new TernaryExpressionSyntax(condition, trueExpression, falseExpression);
         public static UnaryExpressionSyntax UnaryPrefix(SyntaxToken op, ExpressionSyntax expression) => new UnaryExpressionSyntax(expression, op, true);
         public static UnaryExpressionSyntax UnaryPostfix(SyntaxToken op, ExpressionSyntax expression) => new UnaryExpressionSyntax(expression, op, false);
         public static BinaryExpressionSyntax Binary(ExpressionSyntax left, SyntaxToken op, ExpressionSyntax right) => new BinaryExpressionSyntax(left, op, right);
-        public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, SyntaxToken identifier, ArgumentListSyntax arguments = null) => new MethodInvokeExpressionSyntax(identifier, accessExpression, null, arguments);
-        public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, SyntaxToken identifier, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments = null) => new MethodInvokeExpressionSyntax(identifier, accessExpression, genericArguments, arguments);
+        public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, ArgumentListSyntax arguments = null) => new MethodInvokeExpressionSyntax(accessExpression, null, arguments);
+        public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments = null) => new MethodInvokeExpressionSyntax(accessExpression, genericArguments, arguments);
         #endregion
 
 

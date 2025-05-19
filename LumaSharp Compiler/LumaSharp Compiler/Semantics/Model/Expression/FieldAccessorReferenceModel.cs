@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class FieldAccessorReferenceModel : ExpressionModel
     {
         // Private
-        private FieldReferenceExpressionSyntax syntax = null;
+        private MemberAccessExpressionSyntax syntax = null;
         private ExpressionModel accessModel = null;
         private IIdentifierReferenceSymbol fieldAccessorIdentifierSymbol = null;
 
@@ -66,7 +66,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public FieldAccessorReferenceModel(SemanticModel model, SymbolModel parent, FieldReferenceExpressionSyntax syntax)
+        public FieldAccessorReferenceModel(SemanticModel model, SymbolModel parent, MemberAccessExpressionSyntax syntax)
             : base(model, parent, syntax)
         {
             this.syntax = syntax;

@@ -16,7 +16,7 @@ namespace LumaSharp.Compiler.Semantics
 
         IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference);
 
-        IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, FieldReferenceExpressionSyntax reference);
+        IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, MemberAccessExpressionSyntax reference);
 
         IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference, ITypeReferenceSymbol[] argumentTypes = null);
     }

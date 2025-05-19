@@ -14,7 +14,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 Syntax.Type("Test")
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference(PrimitiveType.I32)),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.FieldReference(Syntax.This(), "myField"),
+                .WithBody(Syntax.Assign(Syntax.MemberReference(Syntax.This(), "myField"),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
             // Create model
@@ -37,7 +37,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.FieldReference(Syntax.VariableReference("myVar"), "myField"),
+                    Syntax.Assign(Syntax.MemberReference(Syntax.VariableReference("myVar"), "myField"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.VariableReference("myVar"))))));
 
             // Create model
@@ -61,7 +61,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
                 .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
-                    Syntax.Assign(Syntax.FieldReference(Syntax.TypeReference("Test"), "myField"),
+                    Syntax.Assign(Syntax.MemberReference(Syntax.TypeReference("Test"), "myField"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.VariableReference("myVar"))))));
 
             // Create model

@@ -36,9 +36,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal GenericParameterListSyntax(SeparatedListSyntax<GenericParameterSyntax> genericParameters)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LGenericSymbol),
+                  new SyntaxToken(SyntaxTokenKind.LessSymbol),
                   genericParameters,
-                  new SyntaxToken(SyntaxTokenKind.RGenericSymbol))
+                  new SyntaxToken(SyntaxTokenKind.GreaterSymbol))
         {
         }
 

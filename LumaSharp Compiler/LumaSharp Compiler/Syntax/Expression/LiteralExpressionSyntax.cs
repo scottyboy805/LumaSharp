@@ -49,8 +49,8 @@ namespace LumaSharp.Compiler.AST
         internal LiteralExpressionSyntax(SyntaxToken value, SyntaxToken? descriptor = null)
         {
             // Check kind
-            if(value.Kind != SyntaxTokenKind.Literal)
-                throw new ArgumentException(nameof(value) + " must be of kind: " + SyntaxTokenKind.Literal);
+            if(value.IsLiteral == false)
+                throw new ArgumentException(nameof(value) + " must be a valid literal");
 
             if (descriptor != null && descriptor.Value.Kind != SyntaxTokenKind.LiteralDescriptor)
                 throw new ArgumentException(nameof(descriptor) + " must be of kind: " + SyntaxTokenKind.LiteralDescriptor);

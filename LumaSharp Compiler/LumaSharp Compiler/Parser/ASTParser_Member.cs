@@ -99,7 +99,7 @@ namespace LumaSharp.Compiler.Parser
                     inheritToken = tokens.Consume();
 
                     // Expect separated type inheritance list
-                    inheritTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol);
+                    inheritTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.LBlockSymbol);
                 }
 
                 // Parse members
@@ -169,7 +169,7 @@ namespace LumaSharp.Compiler.Parser
             SyntaxToken[] modifiers = ParseAccessModifiers();
 
             // Parse method return values
-            SeparatedListSyntax<TypeReferenceSyntax> returnTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol);
+            SeparatedListSyntax<TypeReferenceSyntax> returnTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
 
             // Check for return types available
             if(returnTypes != null)

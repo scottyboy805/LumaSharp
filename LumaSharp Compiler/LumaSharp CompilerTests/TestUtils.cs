@@ -42,12 +42,12 @@ namespace LumaSharp_CompilerTests
 
         public static StatementSyntax ParseInputStringStatement(string input)
         {
-            return CreateStringParser(input).ParseStatement();
+            return CreateParser(input, p => p.ParseStatement());
         }
 
         public static ExpressionSyntax ParseInputStringExpression(string input)
         {
-            return CreateStringParser(input).ParseExpression();
+            return CreateParser(input, p => p.ParseExpression());
         }
 
         public static LumaSharpParser.NamespaceDeclarationContext ParseNamespaceDeclaration(string input)
@@ -74,40 +74,40 @@ namespace LumaSharp_CompilerTests
 
         public static MemberSyntax ParseMemberDeclaration(string input)
         {
-            return CreateStringParser(input).ParseMember();
+            return CreateParser(input, p => p.ParseMember());
         }
 
         public static TypeSyntax ParseTypeDeclaration(string input)
         {
-            return CreateStringParser(input).ParseTypeDeclaration();
+            return CreateParser(input, p => p.ParseTypeDeclaration());
         }
 
         public static ContractSyntax ParseContractDeclaration(string input)
         {
-            return CreateStringParser(input).ParseContractDeclaration();
+            return CreateParser(input, p => p.ParseContractDeclaration());
         }
 
         public static EnumSyntax ParseEnumDeclaration(string input)
         {
-            return CreateStringParser(input).ParseEnumDeclaration();
+            return CreateParser(input, p => p.ParseEnumDeclaration());
         }
 
         public static FieldSyntax ParseFieldDeclaration(string input)
         {
-            return CreateStringParser(input).ParseFieldDeclaration();
+            return CreateParser(input, p => p.ParseFieldDeclaration());
         }
 
         public static AccessorSyntax ParseAccessorDeclaration(string input)
         {
-            return CreateStringParser(input).ParseAccessorDeclaration();
+            return CreateParser(input, p => p.ParseAccessorDeclaration());
         }
 
         public static TypeReferenceSyntax ParseTypeReference(string input)
         {
-            return CreateStringParser(input).ParseTypeReference();
+            return CreateParser(input, p => p.ParseTypeReference());
         }
 
-        private static ASTParser CreateStringParser(string input)
+        private static T CreateParser<T>(string input, Func<ASTParser, T> parse) where T : SyntaxNode
         {
             // Create the report
             CompileReport report = new CompileReport();
@@ -121,13 +121,16 @@ namespace LumaSharp_CompilerTests
             // Create parser
             ASTParser parser = new ASTParser(tokenParser.GetEnumerator(), report);
 
+            // Try to parse
+            T result = parse(parser);
+
             // Check for errors
             foreach(ICompileMessage message in report.Messages)
             {
                 Debug.WriteLine(message);
             }
 
-            return parser;
+            return result;
         }
     }
 }

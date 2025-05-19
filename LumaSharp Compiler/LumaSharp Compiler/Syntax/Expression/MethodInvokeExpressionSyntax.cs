@@ -5,7 +5,6 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly ExpressionSyntax accessExpression;
-        private readonly SyntaxToken identifier;
         private readonly GenericArgumentListSyntax genericArgumentList;
         private readonly ArgumentListSyntax argumentList;
 
@@ -20,14 +19,25 @@ namespace LumaSharp.Compiler.AST
             get { return argumentList.EndToken; }
         }
 
+        public SyntaxToken Identifier
+        {
+            get
+            {
+                // Check for member
+                if (accessExpression is MemberAccessExpressionSyntax memberAccess)
+                    return memberAccess.Identifier;
+
+                // Check for variable
+                if(accessExpression is VariableReferenceExpressionSyntax variableReference)
+                    return variableReference.Identifier;
+
+                throw new InvalidOperationException("Access expression is not valid");
+            }
+        }
+
         public ExpressionSyntax AccessExpression
         {
             get { return accessExpression; }
-        }
-
-        public SyntaxToken Identifier
-        {
-            get { return identifier; }
         }
 
         public GenericArgumentListSyntax GenericArgumentList
@@ -75,9 +85,12 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodInvokeExpressionSyntax(SyntaxToken identifier, ExpressionSyntax accessExpression, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments)
+        internal MethodInvokeExpressionSyntax(ExpressionSyntax accessExpression, GenericArgumentListSyntax genericArguments, ArgumentListSyntax arguments)
         {
-            this.identifier = identifier;
+            // Check for null
+            if(accessExpression == null)
+                throw new ArgumentNullException(nameof(accessExpression));
+
             this.accessExpression = accessExpression;
             this.genericArgumentList = genericArguments;
             this.argumentList = arguments;
@@ -86,17 +99,8 @@ namespace LumaSharp.Compiler.AST
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            if (accessExpression != null)
-            {
-                // Write access
-                accessExpression.GetSourceText(writer);
-
-                // Write dot 
-                //dot.GetSourceText(writer);
-            }
-
-            // Write method name
-            writer.Write(identifier.ToString());
+            // Write access
+            accessExpression.GetSourceText(writer);
 
             // Write generics
             if(HasGenericArguments == true)

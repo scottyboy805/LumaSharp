@@ -40,8 +40,8 @@ namespace LumaSharp_CompilerTests.AST.Parse
         }
 
         [DataTestMethod]
-        [DataRow("type(i32)")]
-        public void Expression_Type(string input)
+        [DataRow("typeof(i32)")]
+        public void Expression_Typeof(string input)
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
@@ -51,8 +51,8 @@ namespace LumaSharp_CompilerTests.AST.Parse
         }
 
         [DataTestMethod]
-        [DataRow("size(i32)")]
-        public void Expression_Size(string input)
+        [DataRow("sizeof(i32)")]
+        public void Expression_Sizeof(string input)
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
@@ -83,7 +83,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(FieldReferenceExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(MemberAccessExpressionSyntax));
         }
 
         [DataTestMethod]
@@ -92,7 +92,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
         [DataRow("i32.Clamp(123)")]
         [DataRow("string.Clamp(123, someVar)")]
         [DataRow("someVariable.Clamp()")]
-        [DataRow("SomeType<i32>.Clamp()", "Type")]
+        [DataRow("SomeType<i32>.Clamp()")]
         public void Expression_Method(string input)
         {
             // Try to parse the tree
@@ -110,7 +110,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
         public void Expression_New(string input)
         {
             // Try to parse the tree
-            ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
+            ExpressionSyntax expression = TestUtils.ParseInputStringExpression(input);
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(NewExpressionSyntax));
@@ -136,7 +136,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
-
+            
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(LiteralExpressionSyntax));
         }
@@ -157,7 +157,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
         [DataRow("4 + 2")]
         [DataRow("a - b")]
         [DataRow("true % false")]
-        [DataRow("45.2F - 84.2FD")]
+        [DataRow("45.2F - 84.2D")]
         public void Expression_Binary(string input)
         {
             // Try to parse the tree
@@ -182,7 +182,7 @@ namespace LumaSharp_CompilerTests.AST.Parse
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
 
             Assert.IsNotNull(expression);
-            Assert.IsInstanceOfType(expression, typeof(ArrayIndexExpressionSyntax));
+            Assert.IsInstanceOfType(expression, typeof(IndexExpressionSyntax));
         }
     }
 }

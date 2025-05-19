@@ -58,13 +58,39 @@ namespace LumaSharp.Compiler.AST
 
         // Constructor
         internal TernaryExpressionSyntax(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression)
+            : this(
+                  condition,
+                  new SyntaxToken(SyntaxTokenKind.TernarySymbol),
+                  trueExpression,
+                  new SyntaxToken(SyntaxTokenKind.ColonSymbol),
+                  falseExpression)
         {
-            this.condition = condition;
-            this.trueExpression = trueExpression;
-            this.falseExpression = falseExpression;
+        }
 
-            ternary = Syntax.Token(SyntaxTokenKind.TernarySymbol);
-            colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
+        internal TernaryExpressionSyntax(ExpressionSyntax condition, SyntaxToken ternary, ExpressionSyntax trueExpression, SyntaxToken colon, ExpressionSyntax falseExpression)
+        {
+            // Check for null
+            if(condition == null)
+                throw new ArgumentNullException(nameof(condition));
+
+            if(trueExpression == null)
+                throw new ArgumentNullException(nameof(trueExpression));
+
+            if(falseExpression == null)
+                throw new ArgumentNullException(nameof(falseExpression));
+
+            // Check kind
+            if (ternary.Kind != SyntaxTokenKind.TernarySymbol)
+                throw new ArgumentException(nameof(ternary) + " must be of kind: " + SyntaxTokenKind.TernarySymbol);
+
+            if(colon.Kind != SyntaxTokenKind.ColonSymbol)
+                throw new ArgumentException(nameof(colon) + " must be of kind: " + SyntaxTokenKind.ColonSymbol);
+
+            this.condition = condition;
+            this.ternary = ternary;
+            this.trueExpression = trueExpression;
+            this.colon = colon;
+            this.falseExpression = falseExpression;
         }
 
         // Methods

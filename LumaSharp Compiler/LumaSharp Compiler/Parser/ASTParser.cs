@@ -161,19 +161,19 @@ namespace LumaSharp.Compiler.Parser
         internal GenericParameterListSyntax ParseGenericParameterList()
         {
             // Check for generic
-            if(tokens.PeekKind() == SyntaxTokenKind.LGenericSymbol)
+            if(tokens.PeekKind() == SyntaxTokenKind.LessSymbol)
             {
                 // Consume the generic
                 SyntaxToken lGeneric = tokens.Consume();
 
                 // Parse generic parameters
-                SeparatedListSyntax<GenericParameterSyntax> genericParameters = ParseSeparatedSyntaxList(ParseGenericParameter, SyntaxTokenKind.CommaSymbol);
+                SeparatedListSyntax<GenericParameterSyntax> genericParameters = ParseSeparatedSyntaxList(ParseGenericParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
 
                 // Consume the r generic
-                if (tokens.ConsumeExpect(SyntaxTokenKind.RGenericSymbol, out SyntaxToken rGeneric) == false)
+                if (tokens.ConsumeExpect(SyntaxTokenKind.GreaterSymbol, out SyntaxToken rGeneric) == false)
                 {
                     // Expected '>'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RGenericSymbol));
+                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
                     return RecoverFromGenericParameterListError();
                 }
 
@@ -203,7 +203,7 @@ namespace LumaSharp.Compiler.Parser
                 colonToken = tokens.Consume();
 
                 // Expect generic constraint list
-                genericConstraints = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol);
+                genericConstraints = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.CommaSymbol);
 
                 // Check for null
                 if(genericConstraints == null)
@@ -217,22 +217,79 @@ namespace LumaSharp.Compiler.Parser
             return new GenericParameterSyntax(identifier, index, colonToken, genericConstraints);
         }
 
+        internal bool LooksLikeGenericArgumentList()
+        {
+            int initialPos = tokens.Position;
+            int depth = 0;
+
+            // Look ahead 16 tokens
+            while(tokens.EOF == false && tokens.Position < initialPos + 16)
+            {
+                // Get the next token
+                SyntaxToken token = tokens.Consume();
+
+                // Check kind
+                switch (token.Kind)
+                {
+                    case SyntaxTokenKind.LessSymbol:
+                        {
+                            depth++;
+                            break;
+                        }
+                    case SyntaxTokenKind.GreaterSymbol:
+                        {
+                            depth--;
+
+                            // Check for balanced
+                            if(depth == 0)
+                            {
+                                // Check for common tokens following generic arguments closing
+                                bool isLikelyGeneric = (tokens.PeekKind() == SyntaxTokenKind.DotSymbol || tokens.PeekKind() == SyntaxTokenKind.LParenSymbol || tokens.PeekKind() == SyntaxTokenKind.Identifier);
+
+                                // Retrace and then return
+                                tokens.Retrace(initialPos);
+                                return isLikelyGeneric;
+                            }
+                            break;
+                        }
+                    case SyntaxTokenKind.CommaSymbol:
+                        {
+                            continue;
+                        }
+
+                    default:
+                        {
+                            // Check for binary or unary operator
+                            if (token.IsBinaryOperand == true || token.IsUnaryOperand == true || token.IsLiteral == true)
+                            {
+                                tokens.Retrace(initialPos);
+                                return false;
+                            }
+                            break;
+                        }
+                }                
+            }
+
+            tokens.Retrace(initialPos);
+            return false;
+        }
+
         internal GenericArgumentListSyntax ParseGenericArgumentList()
         {
             // Check for generic
-            if(tokens.PeekKind() == SyntaxTokenKind.LGenericSymbol)
+            if(tokens.PeekKind() == SyntaxTokenKind.LessSymbol)
             {
                 // Consume the generic
                 SyntaxToken lGeneric = tokens.Consume();
 
                 // Parse generic type references
-                SeparatedListSyntax<TypeReferenceSyntax> genericTypeArguments = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol);
+                SeparatedListSyntax<TypeReferenceSyntax> genericTypeArguments = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
 
                 // Expect r generic
-                if (tokens.ConsumeExpect(SyntaxTokenKind.RGenericSymbol, out SyntaxToken rGeneric) == false)
+                if (tokens.ConsumeExpect(SyntaxTokenKind.GreaterSymbol, out SyntaxToken rGeneric) == false)
                 {
                     // Expected '>'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RGenericSymbol));
+                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
                     return RecoverFromGenericArgumentListError();
                 }
 
@@ -251,7 +308,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lParen = tokens.Consume();
 
                 // Parse the parameter list
-                SeparatedListSyntax<ParameterSyntax> parameters = ParseSeparatedSyntaxList(ParseParameter, SyntaxTokenKind.CommaSymbol);
+                SeparatedListSyntax<ParameterSyntax> parameters = ParseSeparatedSyntaxList(ParseParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
 
                 // Expect rParen
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
@@ -313,7 +370,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lParen = tokens.Consume();
 
                 // Parse the arguments
-                SeparatedListSyntax<ExpressionSyntax> expressionArguments = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol);
+                SeparatedListSyntax<ExpressionSyntax> expressionArguments = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
 
                 // Expect rParen
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
@@ -402,13 +459,17 @@ namespace LumaSharp.Compiler.Parser
             return new TypeReferenceSyntax(namespaceName, parentTypes, identifier, genericArguments, arrayParameters);
         }
 
-        internal SeparatedListSyntax<T> ParseSeparatedSyntaxList<T>(Func<T> parseSyntaxElement, SyntaxTokenKind separatorKind) where T : SyntaxNode
+        internal SeparatedListSyntax<T> ParseSeparatedSyntaxList<T>(Func<T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
         {
-            return ParseSeparatedSyntaxList((i) => parseSyntaxElement(), separatorKind);
+            return ParseSeparatedSyntaxList((i) => parseSyntaxElement(), separatorKind, endTokenKind);
         }
 
-        internal SeparatedListSyntax<T> ParseSeparatedSyntaxList<T>(Func<int, T> parseSyntaxElement, SyntaxTokenKind separatorKind) where T : SyntaxNode
+        internal SeparatedListSyntax<T> ParseSeparatedSyntaxList<T>(Func<int, T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
         {
+            // Check for end
+            if (tokens.PeekKind() == endTokenKind)
+                return null;
+
             // Store index
             int index = 0;
 
@@ -419,9 +480,9 @@ namespace LumaSharp.Compiler.Parser
             if (syntaxReference != null)
             {
                 // Get the separator
-                SyntaxToken separator = tokens.PeekKind() == separatorKind
+                SyntaxToken? separator = tokens.PeekKind() == separatorKind
                     ? tokens.Consume()
-                    : default;
+                    : (SyntaxToken?)null; // Nasty cast required otherwise separator is initialized to some weird corrupt value
 
                 // Create the syntax list
                 SeparatedListSyntax<T> syntaxReferenceList = new(separatorKind);
@@ -430,12 +491,12 @@ namespace LumaSharp.Compiler.Parser
                 syntaxReferenceList.AddElement(syntaxReference, separator);
 
                 // Repeat for all other elements
-                while ((syntaxReference = parseSyntaxElement(index++)) != null)
+                while (separator != null && tokens.PeekKind() != endTokenKind && (syntaxReference = parseSyntaxElement(index++)) != null)
                 {
                     // Get the separator
                     separator = tokens.PeekKind() == separatorKind
                         ? tokens.Consume()
-                        : default;
+                        : (SyntaxToken?)null;
 
                     // Add the additional reference
                     syntaxReferenceList.AddElement(syntaxReference, separator);
@@ -448,7 +509,7 @@ namespace LumaSharp.Compiler.Parser
         private ArrayParametersSyntax RecoverFromArrayParameterError()
         {
             // An error occurred while parsing a array parameters - To recover we should consume all tokens until we reach a rArray or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RGenericSymbol)
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
                 tokens.Consume();
 
             // Consume the rArray
@@ -462,7 +523,7 @@ namespace LumaSharp.Compiler.Parser
         private GenericParameterListSyntax RecoverFromGenericParameterListError()
         {
             // An error occurred while parsing a generic parameter list - To recover we should consume all tokens until we reach a rgeneric or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RGenericSymbol)
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
                 tokens.Consume();
 
             // Consume the rParen
@@ -476,7 +537,7 @@ namespace LumaSharp.Compiler.Parser
         private GenericParameterSyntax RecoverFromGenericParameterError()
         {
             // An error occurred while parsing a generic parameter - To recover we should consume all tokens until we reach a comma, closing generic or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.CommaSymbol && tokens.PeekKind() != SyntaxTokenKind.RGenericSymbol)
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.CommaSymbol && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
                 tokens.Consume();
 
             // Always null - just means we can return from calling control easily
@@ -510,7 +571,7 @@ namespace LumaSharp.Compiler.Parser
         private GenericArgumentListSyntax RecoverFromGenericArgumentListError()
         {
             // An error occurred while parsing a generic argument list - To recover we should consume all tokens until we reach a rGeneric or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RGenericSymbol)
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
                 tokens.Consume();
 
             // Consume the rParen
