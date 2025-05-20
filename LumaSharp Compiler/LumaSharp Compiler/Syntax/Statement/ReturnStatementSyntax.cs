@@ -5,10 +5,14 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SyntaxToken keyword;
-        private readonly SeparatedListSyntax<ExpressionSyntax> expressions;
+        private readonly SeparatedSyntaxList<ExpressionSyntax> expressions;
 
         // Properties
-        public override SyntaxToken StartToken => keyword;
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
         public override SyntaxToken EndToken
         {
             get
@@ -21,8 +25,15 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public SyntaxToken Keyword => keyword;
-        public SeparatedListSyntax<ExpressionSyntax> Expressions => expressions;
+        public SyntaxToken Keyword
+        {
+            get { return keyword; }
+        }
+
+        public SeparatedSyntaxList<ExpressionSyntax> Expressions
+        {
+            get { return expressions; }
+        }
 
         public bool HasExpressions
         {
@@ -30,7 +41,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ReturnStatementSyntax(SeparatedListSyntax<ExpressionSyntax> expressions)
+        internal ReturnStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> expressions)
             : this(
                   new SyntaxToken(SyntaxTokenKind.ReturnKeyword),
                   expressions,
@@ -38,7 +49,7 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal ReturnStatementSyntax(SyntaxToken keyword, SeparatedListSyntax<ExpressionSyntax> expressions, SyntaxToken semicolon)
+        internal ReturnStatementSyntax(SyntaxToken keyword, SeparatedSyntaxList<ExpressionSyntax> expressions, SyntaxToken semicolon)
             : base(semicolon)
         {
             // Check kind
@@ -52,6 +63,9 @@ namespace LumaSharp.Compiler.AST
 
             this.keyword = keyword;
             this.expressions = expressions;
+
+            // Set parent
+            expressions.parent = this;
         }
 
         // Methods

@@ -22,8 +22,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.IdentifierNotFound, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.IdentifierNotFound, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -41,8 +41,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.MultipleParameterIdentifiers, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.MultipleParameterIdentifiers, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -61,8 +61,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(2, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.MultipleParameterIdentifiers, model.Report.Messages.First().Code);
+            Assert.AreEqual(2, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.MultipleParameterIdentifiers, model.Report.Diagnostics.First().Code);
         }
     }
 }

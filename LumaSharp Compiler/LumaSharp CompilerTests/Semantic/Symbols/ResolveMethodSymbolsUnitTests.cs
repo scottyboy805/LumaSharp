@@ -26,7 +26,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
             Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
             Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -49,7 +49,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
             Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
             Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -73,7 +73,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
             Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
             Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -96,7 +96,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
             Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
             Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -120,7 +120,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
             Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
             Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
     }
 }

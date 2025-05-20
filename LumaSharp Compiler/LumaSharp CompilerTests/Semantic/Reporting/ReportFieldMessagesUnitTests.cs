@@ -23,8 +23,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.FieldAccessorNotFound, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.FieldAccessorNotFound, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -42,8 +42,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.FieldRequiresInstance, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.FieldRequiresInstance, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -62,8 +62,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.FieldRequiresType, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.FieldRequiresType, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -83,8 +83,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.FieldRequiresType, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.FieldRequiresType, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -100,8 +100,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidConversion, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidConversion, model.Report.Diagnostics.First().Code);
         }
     }
 }

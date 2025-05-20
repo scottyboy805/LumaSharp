@@ -5,6 +5,6 @@ namespace LumaSharp.Compiler.Reporting
     public interface ICompileReportProvider : ICompileReport
     {
         // Methods
-        void ReportMessage(Code id, MessageSeverity severity, SyntaxSource source, params object[] args);
+        void ReportDiagnostic(Code id, MessageSeverity severity, SyntaxSource source, params object[] args);
     }
 }

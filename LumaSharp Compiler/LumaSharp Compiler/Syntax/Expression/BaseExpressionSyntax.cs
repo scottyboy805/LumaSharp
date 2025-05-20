@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class BaseExpressionSyntax : ExpressionSyntax
@@ -48,6 +50,11 @@ namespace LumaSharp.Compiler.AST
         {
             // Write source
             keyword.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitBaseExpression(this);
         }
     }
 }

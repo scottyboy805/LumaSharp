@@ -6,26 +6,26 @@ namespace LumaSharp.Compiler.Reporting
     internal sealed class CompileReport : ICompileReportProvider
     {
         // Private
-        private List<CompileMessage> messages = new List<CompileMessage>();
+        private List<CompileDiagnostic> diagnostics = new List<CompileDiagnostic>();
 
         // Properties
-        public IEnumerable<ICompileMessage> Messages
+        public IEnumerable<ICompileDiagnostic> Diagnostics
         {
             get
             {
-                foreach(CompileMessage message in messages)
+                foreach(CompileDiagnostic message in diagnostics)
                     yield return message;
             }
         }
 
-        public int MessageCount
+        public int DiagnosticCount
         {
-            get { return messages.Count; }
+            get { return diagnostics.Count; }
         }
 
-        public bool HasAnyMessages
+        public bool HasAnyDiagnostics
         {
-            get { return messages.Count > 0; }
+            get { return diagnostics.Count > 0; }
         }
 
         // Methods
@@ -34,13 +34,13 @@ namespace LumaSharp.Compiler.Reporting
             StringBuilder builder = new StringBuilder();
 
             // Process all
-            foreach(CompileMessage message in messages)
+            foreach(CompileDiagnostic message in diagnostics)
                 builder.AppendLine(message.ToString());
 
             return builder.ToString();
         }
 
-        public void ReportMessage(Code id, MessageSeverity severity, SyntaxSource source, params object[] args)
+        public void ReportDiagnostic(Code id, MessageSeverity severity, SyntaxSource source, params object[] args)
         {
             Dictionary<Code, string> messageSet;
 
@@ -66,7 +66,7 @@ namespace LumaSharp.Compiler.Reporting
             // Build error string
             try
             {
-                messages.Add(new CompileMessage((int)id, severity, source,
+                diagnostics.Add(new CompileDiagnostic((int)id, severity, source,
                     string.Format(message, args)));
             }
             catch(FormatException)
@@ -75,22 +75,22 @@ namespace LumaSharp.Compiler.Reporting
             }
         }
 
-        public IEnumerable<ICompileMessage> GetMessages(MessageSeverity severity)
+        public IEnumerable<ICompileDiagnostic> GetDiagnostics(MessageSeverity severity)
         {
-            return messages.Where(m => m.Severity == severity)
-                .Cast<ICompileMessage>();
+            return diagnostics.Where(m => m.Severity == severity)
+                .Cast<ICompileDiagnostic>();
         }
 
-        public bool HasMessages(MessageSeverity severity)
+        public bool HasDiagnostics(MessageSeverity severity)
         {
-            return messages.Any(m => m.Severity == severity);
+            return diagnostics.Any(m => m.Severity == severity);
         }
 
         public void Combine(ICompileReportProvider fromReport)
         {
-            foreach(CompileMessage message in fromReport.Messages)
+            foreach(CompileDiagnostic message in fromReport.Diagnostics)
             {
-                messages.Add(message);
+                diagnostics.Add(message);
             }
         }
     }

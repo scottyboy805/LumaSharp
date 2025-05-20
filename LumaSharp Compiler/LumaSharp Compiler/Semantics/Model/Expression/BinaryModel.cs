@@ -97,7 +97,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
             catch(NotSupportedException)
             {
-                report.ReportMessage(Code.InvalidOperation, MessageSeverity.Error, syntax.Operation.Source);
+                report.ReportDiagnostic(Code.InvalidOperation, MessageSeverity.Error, syntax.Operation.Source);
                 return;
             }
 
@@ -134,7 +134,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     // Check for invalid
                     if(opReturnType == 0)
                     {
-                        report.ReportMessage(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Source, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
+                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Source, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
                     }
                     else
                     {
@@ -149,7 +149,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     if(leftTypeCode != PrimitiveType.Any)
                     {
                         // We know that built in primitive types cannot support operation on user types
-                        report.ReportMessage(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Source, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
+                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Source, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
                     }
                     else
                     {

@@ -30,7 +30,7 @@ namespace LumaSharp.Compiler.AST
         public static AccessorBodySyntax AccessorBody(AccessorOperation op, BlockSyntax<StatementSyntax> block) => new AccessorBodySyntax(null, op, block);
         public static AccessorSyntax Accessor(SyntaxToken identifier, TypeReferenceSyntax accessorType) => new AccessorSyntax(identifier, null, null, accessorType, null, false);
 
-        public static MethodSyntax Method(SyntaxToken identifier, TypeReferenceSyntax returnType) => new MethodSyntax(identifier, null, null, new SeparatedListSyntax<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol, new[] { returnType }), null, null, null, null, null);
+        public static MethodSyntax Method(SyntaxToken identifier, TypeReferenceSyntax returnType) => new MethodSyntax(identifier, null, null, new SeparatedSyntaxList<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol, new[] { returnType }), null, null, null, null, null);
         public static MethodSyntax Method(SyntaxToken identifier) => new MethodSyntax(identifier, null, null, null, null, null, null, null, null);
         #endregion
 
@@ -60,12 +60,12 @@ namespace LumaSharp.Compiler.AST
         public static AssignStatementSyntax Assign(ExpressionSyntax left, VariableAssignExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, new[] { left }), variableAssign);
         public static AssignStatementSyntax Assign(ExpressionSyntax[] left, VariableAssignExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, left), variableAssign);
         public static BreakStatementSyntax Break() => new BreakStatementSyntax();
-        public static ConditionStatementSyntax Condition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(condition, false, null, null, null);
+        public static ConditionStatementSyntax Condition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(Token(SyntaxTokenKind.IfKeyword), condition, null, new EmptyStatementSyntax());
         public static ContinueStatementSyntax Continue() => new ContinueStatementSyntax();
-        public static ForStatementSyntax For(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, params ExpressionSyntax[] increments) => new ForStatementSyntax(variable, condition, new(SyntaxTokenKind.CommaSymbol, increments), null, null);
+        public static ForStatementSyntax For(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, params ExpressionSyntax[] increments) => new ForStatementSyntax(variable, condition, new(SyntaxTokenKind.CommaSymbol, increments), new EmptyStatementSyntax());
         public static ReturnStatementSyntax Return(ExpressionSyntax expression = null) => new ReturnStatementSyntax(expression != null ? new(SyntaxTokenKind.CommaSymbol, new[] {expression}) : null);
         public static ReturnStatementSyntax Return(params ExpressionSyntax[] expressions) => new ReturnStatementSyntax(new(SyntaxTokenKind.CommaSymbol, expressions));
-        public static MethodInvokeStatementSyntax MethodInvoke(MethodInvokeExpressionSyntax invokeExpression) => new MethodInvokeStatementSyntax(null, invokeExpression);
+        public static MethodInvokeStatementSyntax MethodInvoke(MethodInvokeExpressionSyntax invokeExpression) => new MethodInvokeStatementSyntax(invokeExpression);
         #endregion
 
         #region Expressions
@@ -216,28 +216,28 @@ namespace LumaSharp.Compiler.AST
 
         // Condition
         public static ConditionStatementSyntax WithStatementBlock(this ConditionStatementSyntax conditionStatement, params StatementSyntax[] statements)
-            => new ConditionStatementSyntax(conditionStatement.Condition, conditionStatement.IsAlternate, conditionStatement.Alternate, new BlockSyntax<StatementSyntax>(null, statements), null);
+            => new ConditionStatementSyntax(conditionStatement.Keyword, conditionStatement.Condition, conditionStatement.Alternate, new StatementBlockSyntax(statements));
 
-        public static ConditionStatementSyntax WithStatementBlock(this ConditionStatementSyntax conditionStatement, BlockSyntax<StatementSyntax> block)
-            => new ConditionStatementSyntax(conditionStatement.Condition, conditionStatement.IsAlternate, conditionStatement.Alternate, block, null);
+        public static ConditionStatementSyntax WithStatementBlock(this ConditionStatementSyntax conditionStatement, StatementBlockSyntax block)
+            => new ConditionStatementSyntax(conditionStatement.Keyword, conditionStatement.Condition, conditionStatement.Alternate, block);
 
         public static ConditionStatementSyntax WithInlineStatement(this ConditionStatementSyntax conditionStatement, StatementSyntax statement)
-            => new ConditionStatementSyntax(conditionStatement.Condition, conditionStatement.IsAlternate, conditionStatement.Alternate, null, statement);
+            => new ConditionStatementSyntax(conditionStatement.Keyword, conditionStatement.Condition, conditionStatement.Alternate, statement);
 
 
         public static ConditionStatementSyntax WithAlternate(this ConditionStatementSyntax conditionStatement, ConditionStatementSyntax alternate)
-            => new ConditionStatementSyntax(conditionStatement.Condition, conditionStatement.IsAlternate, alternate, conditionStatement.BlockStatement, alternate);
+            => new ConditionStatementSyntax(conditionStatement.Keyword, conditionStatement.Condition, alternate, conditionStatement.Statement);
 
 
         // For
         public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, params StatementSyntax[] statements)
-            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, new BlockSyntax<StatementSyntax>(null, statements), null);
+            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, new StatementBlockSyntax(statements));
 
-        public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, BlockSyntax<StatementSyntax> block)
-            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, block, null);
+        public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, StatementBlockSyntax block)
+            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, block);
 
         public static ForStatementSyntax WithInlineStatement(this ForStatementSyntax forStatement, StatementSyntax statement)
-            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, null, statement);
+            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, statement);
 
 
         //public static AccessorSyntax WithReadStatement(this AccessorSyntax accessor, StatementSyntax statement)

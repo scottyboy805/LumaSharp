@@ -71,6 +71,9 @@ namespace LumaSharp.Compiler.AST
 
             this.lambda = lambda;
             this.statement = statement;
+
+            // Set parent
+            statement.parent = this;
         }
 
         // Methods

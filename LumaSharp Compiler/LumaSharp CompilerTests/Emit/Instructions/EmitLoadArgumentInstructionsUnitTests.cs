@@ -26,7 +26,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeGenerator generator = new BytecodeGenerator();
@@ -55,7 +55,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeBuilder builder = new BytecodeBuilder();
@@ -84,7 +84,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeBuilder builder = new BytecodeBuilder();
@@ -114,7 +114,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeBuilder builder = new BytecodeBuilder();
@@ -150,7 +150,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeBuilder builder = new BytecodeBuilder();
@@ -178,7 +178,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeBuilder builder = new BytecodeBuilder();
@@ -214,7 +214,7 @@ namespace LumaSharp_CompilerTests.Emit.Instructions
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Build instructions
             BytecodeBuilder builder = new BytecodeBuilder();

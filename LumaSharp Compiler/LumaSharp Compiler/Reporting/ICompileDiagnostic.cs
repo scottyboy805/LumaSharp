@@ -9,7 +9,7 @@ namespace LumaSharp.Compiler.Reporting
         Error,
     }
 
-    public interface ICompileMessage
+    public interface ICompileDiagnostic
     {
         // Properties
         int Code { get; }

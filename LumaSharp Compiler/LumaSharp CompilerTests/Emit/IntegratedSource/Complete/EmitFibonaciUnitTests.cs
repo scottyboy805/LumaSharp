@@ -43,7 +43,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Emit the method
             MetaMethod method = EmitUtil.GetExecutableMethodOnly(methodModel);
@@ -79,7 +79,7 @@ namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
 
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
 
             // Emit the method
             MetaMethod method = EmitUtil.GetExecutableMethodOnly(methodModel);

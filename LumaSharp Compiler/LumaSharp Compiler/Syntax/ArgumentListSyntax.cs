@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public class ArgumentListSyntax : SeparatedListSyntax<ExpressionSyntax>
+    public class ArgumentListSyntax : SeparatedSyntaxList<ExpressionSyntax>
     {
         // Private
         private readonly SyntaxToken lParen;
@@ -34,7 +34,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ArgumentListSyntax(SeparatedListSyntax<ExpressionSyntax> argumentExpressions)
+        internal ArgumentListSyntax(SeparatedSyntaxList<ExpressionSyntax> argumentExpressions)
             : this(
                   new SyntaxToken(SyntaxTokenKind.LParenSymbol),
                   argumentExpressions,
@@ -42,7 +42,7 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal ArgumentListSyntax(SyntaxToken lParen, SeparatedListSyntax<ExpressionSyntax> argumentExpressions, SyntaxToken rParen)
+        internal ArgumentListSyntax(SyntaxToken lParen, SeparatedSyntaxList<ExpressionSyntax> argumentExpressions, SyntaxToken rParen)
             : base(argumentExpressions)
         {
             // Check kind
@@ -54,6 +54,9 @@ namespace LumaSharp.Compiler.AST
 
             this.lParen = lParen;
             this.rParen = rParen;
+
+            // Set parent
+            if(argumentExpressions != null) argumentExpressions.parent = this;
         }
 
         // Methods

@@ -23,9 +23,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodInvokeStatementSyntax(SyntaxNode parent, MethodInvokeExpressionSyntax invokeExpression)
+        internal MethodInvokeStatementSyntax(MethodInvokeExpressionSyntax invokeExpression)
         {
+            // Check for null
+            if(invokeExpression == null)
+                throw new ArgumentNullException(nameof(invokeExpression));
+
             this.invokeExpression = invokeExpression;
+
+            // Set parent
+            invokeExpression.parent = this;
         }
 
         // Methods

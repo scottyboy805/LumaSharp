@@ -2,7 +2,7 @@
 
 namespace LumaSharp.Compiler.AST
 {
-    public class SeparatedListSyntax<T> : SyntaxNode, IEnumerable<T> where T : SyntaxNode
+    public class SeparatedSyntaxList<T> : SyntaxNode, IEnumerable<T> where T : SyntaxNode
     {
         // Type
         private struct SyntaxSeparatedElement
@@ -69,7 +69,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        protected SeparatedListSyntax(SeparatedListSyntax<T> other)
+        protected SeparatedSyntaxList(SeparatedSyntaxList<T> other)
         {
             this.separatorKind = other != null
                 ? other.separatorKind
@@ -79,12 +79,12 @@ namespace LumaSharp.Compiler.AST
                 : new();
         }
 
-        internal SeparatedListSyntax(SyntaxTokenKind separatorKind)
+        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind)
         {
             this.separatorKind = separatorKind;
         }
 
-        internal SeparatedListSyntax(SyntaxTokenKind separatorKind, T[] syntaxList)
+        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, T[] syntaxList)
         {
             this.separatorKind = separatorKind;
             this.syntaxList = new();
@@ -114,6 +114,9 @@ namespace LumaSharp.Compiler.AST
                 separator = separator != null ? separator.Value : default,
                 syntax = syntaxElement,
             });
+
+            // Set parent
+            if (syntaxElement != null) syntaxElement.parent = this;
         }
 
         public override void GetSourceText(TextWriter writer)

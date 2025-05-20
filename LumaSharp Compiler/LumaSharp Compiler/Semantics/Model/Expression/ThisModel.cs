@@ -59,7 +59,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Must be invalid usage context
             if(thisMethodScope == null || thisMethodScope.IsGlobal == true)
             {
-                report.ReportMessage(Code.KeywordNotValid, MessageSeverity.Error, syntax.StartToken.Source, syntax.Keyword.Text);
+                report.ReportDiagnostic(Code.KeywordNotValid, MessageSeverity.Error, syntax.StartToken.Source, syntax.Keyword.Text);
             }
         }
     }

@@ -71,7 +71,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                 // Check for local
                 if(current != null && localIdentifier.IsLocal == true && localIdentifier.DeclareIndex > ((StatementModel)current).StatementIndex)
                 {
-                    report.ReportMessage(Code.IdentifierUsedBeforeDeclared, MessageSeverity.Error, syntax.StartToken.Source, syntax.Identifier.Text);
+                    report.ReportDiagnostic(Code.IdentifierUsedBeforeDeclared, MessageSeverity.Error, syntax.StartToken.Source, syntax.Identifier.Text);
                 }
             }
         }

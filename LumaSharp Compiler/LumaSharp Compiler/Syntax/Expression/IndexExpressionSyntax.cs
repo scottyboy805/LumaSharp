@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class IndexExpressionSyntax : ExpressionSyntax
@@ -7,7 +9,7 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken lArray;
         private readonly SyntaxToken rArray;
         private readonly ExpressionSyntax accessExpression = null;
-        private readonly SeparatedListSyntax<ExpressionSyntax> indexExpressions;
+        private readonly SeparatedSyntaxList<ExpressionSyntax> indexExpressions;
 
         // Properties
         public override SyntaxToken StartToken
@@ -35,7 +37,7 @@ namespace LumaSharp.Compiler.AST
             get { return accessExpression; }
         }
 
-        public SeparatedListSyntax<ExpressionSyntax> IndexExpressions
+        public SeparatedSyntaxList<ExpressionSyntax> IndexExpressions
         {
             get { return indexExpressions; }
         }
@@ -58,7 +60,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SeparatedListSyntax<ExpressionSyntax> indexExpressions)
+        internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SeparatedSyntaxList<ExpressionSyntax> indexExpressions)
             : this(
                   accessExpression,
                   new SyntaxToken(SyntaxTokenKind.LArraySymbol),
@@ -67,7 +69,7 @@ namespace LumaSharp.Compiler.AST
         { 
         }
 
-        internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SyntaxToken lArray, SeparatedListSyntax<ExpressionSyntax> indexExpressions, SyntaxToken rArray)
+        internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SyntaxToken lArray, SeparatedSyntaxList<ExpressionSyntax> indexExpressions, SyntaxToken rArray)
         {
             // Check for null
             if(accessExpression == null)
@@ -87,6 +89,10 @@ namespace LumaSharp.Compiler.AST
             this.rArray = rArray;
             this.accessExpression = accessExpression;
             this.indexExpressions = indexExpressions;
+
+            // Set parent
+            accessExpression.parent = this;
+            indexExpressions.parent = this;
         }
 
         // Methods
@@ -103,6 +109,11 @@ namespace LumaSharp.Compiler.AST
 
             // Write rArray
             rArray.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitIndexExpression(this);
         }
     }
 }

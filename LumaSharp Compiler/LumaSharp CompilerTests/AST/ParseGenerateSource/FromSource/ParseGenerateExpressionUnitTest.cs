@@ -44,15 +44,15 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSource
         }
 
         [DataTestMethod]
-        [DataRow("type(i32)")]
-        [DataRow("type ( i32 ) ")]
-        [DataRow("type  (  i32  )  ")]
-        [DataRow("type \t( \ti32 \t)\t ")]
-        [DataRow("type \n( \ni32 \n)\n ")]
-        [DataRow("type \n\t( \n\ti32 \n\t)\n\t ")]
-        [DataRow("type(\t\t\ti32)\t\t\t")]
-        [DataRow("type(\n\n\ni32)\n\n\n")]
-        public void GenerateExpression_Type(string input)
+        [DataRow("typeof(i32)")]
+        [DataRow("typeof ( i32 ) ")]
+        [DataRow("typeof  (  i32  )  ")]
+        [DataRow("typeof \t( \ti32 \t)\t ")]
+        [DataRow("typeof \n( \ni32 \n)\n ")]
+        [DataRow("typeof \n\t( \n\ti32 \n\t)\n\t ")]
+        [DataRow("typeof(\t\t\ti32)\t\t\t")]
+        [DataRow("typeof(\n\n\ni32)\n\n\n")]
+        public void GenerateExpression_Typeof(string input)
         {
             // Try to parse the tree
             ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));

@@ -122,14 +122,15 @@ namespace LumaSharp.Compiler.Semantics.Model
         private void BuildSyntaxBlock(ConditionStatementSyntax syntax)
         {
             // Check for inline
-            if(syntax.HasInlineStatement == true)
+            if(syntax.Statement is StatementBlockSyntax statementBlock)
             {
-                this.statements = new StatementModel[] { StatementModel.Any(Model, this, syntax.InlineStatement, StatementIndex + 1, this) };
+                this.statements = statementBlock.Statements.Select((s, i) => StatementModel.Any(Model, this, s, StatementIndex + 1 + i, this)).ToArray();
+                
             }
             // Check for body
-            else if(syntax.HasBlockStatement == true)
+            else
             {
-                this.statements = syntax.BlockStatement.Elements.Select((s, i) => StatementModel.Any(Model, this, s, StatementIndex + 1 + i, this)).ToArray();
+                this.statements = new StatementModel[] { StatementModel.Any(Model, this, syntax.Statement, StatementIndex + 1, this) };
             }
         }
     }

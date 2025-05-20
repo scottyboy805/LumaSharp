@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class MethodInvokeExpressionSyntax : ExpressionSyntax
@@ -94,6 +96,11 @@ namespace LumaSharp.Compiler.AST
             this.accessExpression = accessExpression;
             this.genericArgumentList = genericArguments;
             this.argumentList = arguments;
+
+            // Set parent
+            accessExpression.parent = this;
+            if(genericArgumentList != null) genericArgumentList.parent = this;
+            if(argumentList != null) argumentList.parent = this;
         }
         
         // Methods
@@ -111,6 +118,11 @@ namespace LumaSharp.Compiler.AST
 
             // Build arguments
             argumentList.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitMethodInvokeExpression(this);
         }
     }
 }

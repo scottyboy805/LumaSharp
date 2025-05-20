@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public abstract class ExpressionSyntax : SyntaxNode
@@ -16,6 +18,8 @@ namespace LumaSharp.Compiler.AST
         //}
 
         // Methods
+        public abstract void Accept(SyntaxVisitor visitor);
+
         //public static SeparatedListSyntax<ExpressionSyntax> List(SyntaxNode parent, LumaSharpParser.ExpressionListContext expressionList)
         //{
         //    // Check for null

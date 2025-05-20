@@ -7,9 +7,20 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken keyword;
 
         // Properties
-        public override SyntaxToken StartToken => keyword;
-        public override SyntaxToken EndToken => Semicolon;
-        public SyntaxToken Keyword => keyword;
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return Semicolon; }
+        }
+
+        public SyntaxToken Keyword
+        {
+            get { return keyword; }
+        }
 
         // Constructor
         internal BreakStatementSyntax()
@@ -29,7 +40,6 @@ namespace LumaSharp.Compiler.AST
             // Check kind
             if (semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
                 throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
-
 
             this.keyword = keyword;
         }

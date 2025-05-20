@@ -500,7 +500,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             {
                 for(int i = 0; i < typeSymbols.Count - 1; i++)
                 {
-                    report.ReportMessage(Code.MultipleBaseTypes, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[0].EvaluatedTypeSymbol, typeSymbols[i + 1].EvaluatedTypeSymbol);
+                    report.ReportDiagnostic(Code.MultipleBaseTypes, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[0].EvaluatedTypeSymbol, typeSymbols[i + 1].EvaluatedTypeSymbol);
                 }
             }
 
@@ -509,7 +509,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             {
                 for (int i = 0; i < typeSymbols.Count; i++)
                 {
-                    report.ReportMessage(Code.InvalidTypeBaseContract, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[i].EvaluatedTypeSymbol);
+                    report.ReportDiagnostic(Code.InvalidTypeBaseContract, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[i].EvaluatedTypeSymbol);
                 }
             }
 
@@ -518,7 +518,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             {
                 for(int i = 0; i < typeSymbols.Count; i++)
                 {
-                    report.ReportMessage(Code.FirstBaseType, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[i].EvaluatedTypeSymbol);
+                    report.ReportDiagnostic(Code.FirstBaseType, MessageSeverity.Error, typeSymbols[i].Syntax.StartToken.Source, typeSymbols[i].EvaluatedTypeSymbol);
                 }
             }
         }
@@ -531,14 +531,14 @@ namespace LumaSharp.Compiler.Semantics.Model
             if(baseType == this)
             {
                 Code reportCode = (IsType == true) ? Code.InvalidSelfBaseType : Code.InvalidSelfBaseContract;
-                report.ReportMessage(reportCode, MessageSeverity.Error, baseModel.Syntax.StartToken.Source, baseType);
+                report.ReportDiagnostic(reportCode, MessageSeverity.Error, baseModel.Syntax.StartToken.Source, baseType);
             }
 
             // Check for enum
             if(baseType.IsEnum == true)
             {
                 Code reportCode = (IsType == true) ? Code.InvalidEnumBaseType : Code.InvalidEnumBaseContract;
-                report.ReportMessage(reportCode, MessageSeverity.Error, baseModel.Syntax.StartToken.Source, baseType);
+                report.ReportDiagnostic(reportCode, MessageSeverity.Error, baseModel.Syntax.StartToken.Source, baseType);
             }
         }
 

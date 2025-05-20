@@ -5,7 +5,7 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SyntaxToken identifier;
-        private readonly SeparatedListSyntax<TypeReferenceSyntax> genericConstraints;
+        private readonly SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints;
         private readonly SyntaxToken colon;
         private readonly int index;
 
@@ -13,7 +13,11 @@ namespace LumaSharp.Compiler.AST
         internal static readonly GenericParameterSyntax Error = new();
 
         // Properties
-        public override SyntaxToken StartToken => identifier;
+        public override SyntaxToken StartToken
+        {
+            get { return identifier; }
+        }
+
         public override SyntaxToken EndToken
         {
             get
@@ -26,14 +30,40 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public SyntaxToken Identifier => identifier;
-        public SeparatedListSyntax<TypeReferenceSyntax> ConstraintTypes => genericConstraints;
-        public int Index => index;
-        public int ConstraintTypeCount => HasConstraintTypes ? genericConstraints.Count : 0;
-        public bool HasConstraintTypes => genericConstraints != null;
-        internal override IEnumerable<SyntaxNode> Descendants => genericConstraints != null 
-            ? genericConstraints.Descendants 
-            : Enumerable.Empty<SyntaxNode>();
+        public SyntaxToken Identifier
+        {
+            get { return identifier; }
+        }
+
+        public SeparatedSyntaxList<TypeReferenceSyntax> ConstraintTypes
+        {
+            get { return genericConstraints; }
+        }
+
+        public int Index
+        {
+            get { return index; }
+        }
+
+        public int ConstraintTypeCount
+        {
+            get { return HasConstraintTypes ? genericConstraints.Count : 0; }
+        }
+
+        public bool HasConstraintTypes
+        {
+            get { return genericConstraints != null; }
+        }
+
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get
+            {
+                return genericConstraints != null
+                    ? genericConstraints.Descendants
+                    : Enumerable.Empty<SyntaxNode>();
+            }
+        }
 
         // Constructor
         private GenericParameterSyntax()
@@ -41,7 +71,7 @@ namespace LumaSharp.Compiler.AST
             this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
         }
 
-        internal GenericParameterSyntax(SyntaxToken identifier, int index, SyntaxToken colon, SeparatedListSyntax<TypeReferenceSyntax> contraintTypes)
+        internal GenericParameterSyntax(SyntaxToken identifier, int index, SyntaxToken colon, SeparatedSyntaxList<TypeReferenceSyntax> constraintTypes)
         {
             // Check kind
             if (identifier.Kind != SyntaxTokenKind.Identifier)
@@ -53,7 +83,10 @@ namespace LumaSharp.Compiler.AST
             this.identifier = identifier;
             this.index = index;
             this.colon = colon;
-            this.genericConstraints = contraintTypes;
+            this.genericConstraints = constraintTypes;
+
+            // Set parent
+            if (constraintTypes != null) constraintTypes.parent = this;
         }
 
         // Methods

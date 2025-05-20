@@ -1,4 +1,5 @@
-﻿
+﻿using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum PrimitiveType : byte
@@ -30,11 +31,30 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken dot;
 
         // Properties
-        public override SyntaxToken StartToken => identifier;
-        public override SyntaxToken EndToken => dot;
-        public SyntaxToken Identifier => identifier;
-        public GenericArgumentListSyntax GenericArguments => genericArguments;
-        public SyntaxToken Dot => dot;
+        public override SyntaxToken StartToken
+        {
+            get { return identifier; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return dot; }
+        }
+
+        public SyntaxToken Identifier
+        {
+            get { return identifier; }
+        }
+
+        public GenericArgumentListSyntax GenericArguments
+        {
+            get { return genericArguments; }
+        }
+
+        public SyntaxToken Dot
+        {
+            get { return dot; }
+        }
 
         public int GenericArgumentCount
         {
@@ -78,6 +98,9 @@ namespace LumaSharp.Compiler.AST
             this.identifier = identifier;
             this.genericArguments = genericArguments;
             this.dot = dot;
+
+            // Set parent
+            if (genericArguments != null) genericArguments.parent = this;
         }
 
         // Methods
@@ -295,6 +318,16 @@ namespace LumaSharp.Compiler.AST
             this.parentTypes = parentTypes;
             this.genericArguments = genericArguments;
             this.arrayParameters = arrayParameters;
+
+            // Set parent
+            if (namespaceName != null) namespaceName.parent = this;
+            if(parentTypes != null)
+            {
+                foreach (ParentTypeReferenceSyntax p in parentTypes)
+                    p.parent = this;
+            }
+            if (genericArguments != null) genericArguments.parent = this;
+            if(arrayParameters != null) arrayParameters.parent = this;
         }
 
         // Methods
@@ -329,6 +362,11 @@ namespace LumaSharp.Compiler.AST
                 arrayParameters.GetSourceText(writer);
         }
 
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTypeReference(this);
+        }
+
         internal bool GetPrimitiveType(out PrimitiveType primitiveType)
         {
             // Get all available primitives
@@ -346,88 +384,6 @@ namespace LumaSharp.Compiler.AST
             }
             primitiveType = 0;
             return false;
-        }
-
-        private SyntaxToken GetPrimitiveType(LumaSharpParser.PrimitiveTypeContext primitive)
-        {
-            // Check for any
-            if (primitive.ANY() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.AnyKeyword, primitive.ANY());
-            }
-            // Check for bool
-            else if (primitive.BOOL() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.BoolKeyword, primitive.BOOL());
-            }
-            // Check for char
-            else if (primitive.CHAR() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.CharKeyword, primitive.CHAR());
-            }
-            // Check for I8
-            else if (primitive.I8() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.I8Keyword, primitive.I8());
-            }
-            // Check for U8
-            else if (primitive.U8() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.U8Keyword, primitive.U8());
-            }
-            // Check for I16
-            else if (primitive.I16() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.I16Keyword, primitive.I16());
-            }
-            // Check for U16
-            else if (primitive.U16() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.U16Keyword, primitive.U16());
-            }
-            // Check for I32
-            else if (primitive.I32() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.I32Keyword, primitive.I32());
-            }
-            // Check for U32
-            else if (primitive.U32() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.U32Keyword, primitive.U32());
-            }
-            // Check for I64
-            else if (primitive.I64() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.I64Keyword, primitive.I64());
-            }
-            // Check for U64
-            else if (primitive.U64() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.U64Keyword, primitive.U64());
-            }
-            // Check for F32
-            else if (primitive.F32() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.F32Keyword, primitive.F32());
-            }
-            // Check for F64
-            else if (primitive.F64() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.F64Keyword, primitive.F64());
-            }
-            // Check for string
-            else if (primitive.STRING() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.StringKeyword, primitive.STRING());
-            }
-            // Check for void
-            else if (primitive.VOID() != null)
-            {
-                return new SyntaxToken(SyntaxTokenKind.VoidKeyword, primitive.VOID());
-            }
-
-            // Should never happen
-            return SyntaxToken.Invalid;
         }
     }
 }

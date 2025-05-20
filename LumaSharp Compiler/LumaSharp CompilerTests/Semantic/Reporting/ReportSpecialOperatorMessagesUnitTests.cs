@@ -23,8 +23,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -43,8 +43,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -63,8 +63,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -83,8 +83,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -103,8 +103,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -122,8 +122,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -141,8 +141,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -161,8 +161,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectVoidParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectVoidParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -181,8 +181,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -200,8 +200,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -220,8 +220,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectVoidParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectVoidParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -241,8 +241,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -261,8 +261,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -281,8 +281,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -302,8 +302,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -322,8 +322,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -342,8 +342,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -363,8 +363,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -383,8 +383,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -403,8 +403,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -424,8 +424,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -444,8 +444,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -464,8 +464,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -485,8 +485,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -505,8 +505,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -525,8 +525,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -546,8 +546,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -566,8 +566,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -586,8 +586,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -606,8 +606,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -627,8 +627,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -647,8 +647,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -667,8 +667,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -687,8 +687,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -708,8 +708,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -728,8 +728,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -748,8 +748,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -768,8 +768,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
 
 
@@ -789,8 +789,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorMustBeGlobal, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -809,8 +809,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectReturn, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -829,8 +829,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameterCount, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -849,8 +849,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.OperatorIncorrectParameter, model.Report.Diagnostics.First().Code);
         }
     }
 }

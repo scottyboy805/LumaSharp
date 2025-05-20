@@ -51,7 +51,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
 
             Assert.IsNotNull(model);
             Assert.AreEqual(1, model.TypeModels.Count);
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
     }
 }

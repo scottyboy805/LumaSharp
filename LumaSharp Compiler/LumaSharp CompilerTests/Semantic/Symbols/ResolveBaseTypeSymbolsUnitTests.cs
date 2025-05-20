@@ -23,7 +23,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(typeModel.BaseTypeSymbols);
             Assert.AreEqual(1, typeModel.BaseTypeSymbols.Length);
             Assert.IsTrue(TypeChecker.IsSpecialTypeAny(typeModel.BaseTypeSymbols[0]));
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -42,7 +42,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(typeModel.BaseTypeSymbols);
             Assert.AreEqual(2, typeModel.BaseTypeSymbols.Length);
             Assert.IsTrue(TypeChecker.IsSpecialTypeAny(typeModel.BaseTypeSymbols[0]));
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -61,7 +61,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(typeModel.BaseTypeSymbols);
             Assert.AreEqual(3, typeModel.BaseTypeSymbols.Length);
             Assert.IsTrue(TypeChecker.IsSpecialTypeAny(typeModel.BaseTypeSymbols[0]));
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace LumaSharp_CompilerTests.Semantic.Symbols
             Assert.IsNotNull(typeModel.BaseTypeSymbols);
             Assert.AreEqual(1, typeModel.BaseTypeSymbols.Length);
             Assert.IsTrue(TypeChecker.IsSpecialTypeEnum(typeModel.BaseTypeSymbols[0]));
-            Assert.AreEqual(0, model.Report.MessageCount);
+            Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
     }
 }

@@ -101,7 +101,7 @@ namespace LumaSharp.Compiler.Parser
                 if (attributeTypeReference == null)
                 {
                     // Expected type reference
-                    report.ReportMessage(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
                     return null; // Cannot recover from here - need to process each following token manually
                 }
 
@@ -148,7 +148,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RArraySymbol, out SyntaxToken rArray) == false)
                 {
                     // Expected ']'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
                     return RecoverFromArrayParameterError();
                 }
 
@@ -167,13 +167,13 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lGeneric = tokens.Consume();
 
                 // Parse generic parameters
-                SeparatedListSyntax<GenericParameterSyntax> genericParameters = ParseSeparatedSyntaxList(ParseGenericParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
+                SeparatedSyntaxList<GenericParameterSyntax> genericParameters = ParseSeparatedSyntaxList(ParseGenericParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
 
                 // Consume the r generic
                 if (tokens.ConsumeExpect(SyntaxTokenKind.GreaterSymbol, out SyntaxToken rGeneric) == false)
                 {
                     // Expected '>'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
                     return RecoverFromGenericParameterListError();
                 }
 
@@ -189,12 +189,12 @@ namespace LumaSharp.Compiler.Parser
             if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
             {
                 // Expected identifier
-                report.ReportMessage(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
                 return RecoverFromGenericParameterError();
             }
 
             SyntaxToken colonToken = default;
-            SeparatedListSyntax<TypeReferenceSyntax> genericConstraints = null;
+            SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints = null;
 
             // Parse generic constraints
             if(tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
@@ -209,7 +209,7 @@ namespace LumaSharp.Compiler.Parser
                 if(genericConstraints == null)
                 {
                     // Expected type
-                    report.ReportMessage(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
                     return RecoverFromGenericParameterError();
                 }
 
@@ -283,13 +283,13 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lGeneric = tokens.Consume();
 
                 // Parse generic type references
-                SeparatedListSyntax<TypeReferenceSyntax> genericTypeArguments = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
+                SeparatedSyntaxList<TypeReferenceSyntax> genericTypeArguments = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
 
                 // Expect r generic
                 if (tokens.ConsumeExpect(SyntaxTokenKind.GreaterSymbol, out SyntaxToken rGeneric) == false)
                 {
                     // Expected '>'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
                     return RecoverFromGenericArgumentListError();
                 }
 
@@ -308,13 +308,13 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lParen = tokens.Consume();
 
                 // Parse the parameter list
-                SeparatedListSyntax<ParameterSyntax> parameters = ParseSeparatedSyntaxList(ParseParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
+                SeparatedSyntaxList<ParameterSyntax> parameters = ParseSeparatedSyntaxList(ParseParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
 
                 // Expect rParen
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
                 {
                     // Expected ')'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
                     return RecoverFromParameterListError();
                 }
 
@@ -336,7 +336,7 @@ namespace LumaSharp.Compiler.Parser
             if (parameterType == null)
             {
                 // Expected type
-                report.ReportMessage(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
+                report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
                 return RecoverFromParameterError();
             }
 
@@ -344,7 +344,7 @@ namespace LumaSharp.Compiler.Parser
             if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
             {
                 // Expected identifier
-                report.ReportMessage(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
                 return RecoverFromParameterError();
             }
 
@@ -370,13 +370,13 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lParen = tokens.Consume();
 
                 // Parse the arguments
-                SeparatedListSyntax<ExpressionSyntax> expressionArguments = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
+                SeparatedSyntaxList<ExpressionSyntax> expressionArguments = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
 
                 // Expect rParen
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
                 {
                     // Expected ')'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
                     return RecoverFromArgumentListError();
                 }
 
@@ -445,7 +445,7 @@ namespace LumaSharp.Compiler.Parser
             if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
             {
                 // Expected identifier
-                report.ReportMessage(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
                 return null;
             }
 
@@ -459,12 +459,12 @@ namespace LumaSharp.Compiler.Parser
             return new TypeReferenceSyntax(namespaceName, parentTypes, identifier, genericArguments, arrayParameters);
         }
 
-        internal SeparatedListSyntax<T> ParseSeparatedSyntaxList<T>(Func<T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
+        internal SeparatedSyntaxList<T> ParseSeparatedSyntaxList<T>(Func<T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
         {
             return ParseSeparatedSyntaxList((i) => parseSyntaxElement(), separatorKind, endTokenKind);
         }
 
-        internal SeparatedListSyntax<T> ParseSeparatedSyntaxList<T>(Func<int, T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
+        internal SeparatedSyntaxList<T> ParseSeparatedSyntaxList<T>(Func<int, T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
         {
             // Check for end
             if (tokens.PeekKind() == endTokenKind)
@@ -485,7 +485,7 @@ namespace LumaSharp.Compiler.Parser
                     : (SyntaxToken?)null; // Nasty cast required otherwise separator is initialized to some weird corrupt value
 
                 // Create the syntax list
-                SeparatedListSyntax<T> syntaxReferenceList = new(separatorKind);
+                SeparatedSyntaxList<T> syntaxReferenceList = new(separatorKind);
 
                 // Add the reference
                 syntaxReferenceList.AddElement(syntaxReference, separator);

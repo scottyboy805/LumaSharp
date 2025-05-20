@@ -18,8 +18,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidPrimitiveGenericConstraint, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidPrimitiveGenericConstraint, model.Report.Diagnostics.First().Code);
         }
     }
 }

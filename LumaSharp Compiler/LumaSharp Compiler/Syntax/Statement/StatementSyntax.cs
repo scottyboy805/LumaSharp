@@ -22,6 +22,10 @@ namespace LumaSharp.Compiler.AST
 
         protected StatementSyntax(SyntaxToken semicolon)
         {            
+            // Check kind
+            if(semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
+
             this.semicolon = semicolon;
         }
 

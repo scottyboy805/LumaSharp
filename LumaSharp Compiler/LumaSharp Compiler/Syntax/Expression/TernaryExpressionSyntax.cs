@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class TernaryExpressionSyntax : ExpressionSyntax
@@ -91,6 +93,11 @@ namespace LumaSharp.Compiler.AST
             this.trueExpression = trueExpression;
             this.colon = colon;
             this.falseExpression = falseExpression;
+
+            // Set parent
+            condition.parent = this;
+            trueExpression.parent = this;
+            falseExpression.parent = this;
         }
 
         // Methods
@@ -110,6 +117,11 @@ namespace LumaSharp.Compiler.AST
 
             // Write false
             falseExpression.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTernaryExpression(this);
         }
     }
 }

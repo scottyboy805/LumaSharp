@@ -318,7 +318,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     }
                     else
                     {
-                        report.ReportMessage(Code.MultipleParameterIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)parameterIdentifierSymbols[i]).Syntax.StartToken.Source, parameterIdentifierSymbols[i].IdentifierName);
+                        report.ReportDiagnostic(Code.MultipleParameterIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)parameterIdentifierSymbols[i]).Syntax.StartToken.Source, parameterIdentifierSymbols[i].IdentifierName);
                     }
                 }
 
@@ -341,7 +341,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                             }
                             else
                             {
-                                report.ReportMessage(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localIdentifierSymbols[i]).Syntax.StartToken.Source, localIdentifierSymbols[i].IdentifierName);
+                                report.ReportDiagnostic(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localIdentifierSymbols[i]).Syntax.StartToken.Source, localIdentifierSymbols[i].IdentifierName);
                             }
                         }
                     }

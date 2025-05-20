@@ -87,7 +87,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                         // Check for assignment
                         if (TypeChecker.IsTypeAssignable(right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol) == false)
                         {
-                            report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right[i].Source, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
+                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, right[i].Source, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
                         }
                     }
                 }
@@ -109,7 +109,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                             // Check for assignment
                             if (TypeChecker.IsTypeAssignable(methodReturnSymbols[i], left[i].EvaluatedTypeSymbol) == false)
                             {
-                                report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, invokeMethod.Source, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
+                                report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, invokeMethod.Source, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
                             }
                         }
                     }

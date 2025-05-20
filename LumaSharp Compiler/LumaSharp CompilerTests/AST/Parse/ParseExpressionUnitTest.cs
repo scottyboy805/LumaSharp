@@ -158,10 +158,11 @@ namespace LumaSharp_CompilerTests.AST.Parse
         [DataRow("a - b")]
         [DataRow("true % false")]
         [DataRow("45.2F - 84.2D")]
+        [DataRow("(5 - 2) / absoluteValue")]
         public void Expression_Binary(string input)
         {
             // Try to parse the tree
-            ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
+            ExpressionSyntax expression = TestUtils.ParseInputStringExpression(input);
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(BinaryExpressionSyntax));

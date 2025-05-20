@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class TypeofExpressionSyntax : ExpressionSyntax
@@ -25,12 +27,12 @@ namespace LumaSharp.Compiler.AST
             get { return keyword; }
         }
 
-        public new SyntaxToken LParen
+        public SyntaxToken LParen
         {
             get { return lParen; }
         }
 
-        public new SyntaxToken RParen
+        public SyntaxToken RParen
         {
             get { return rParen; }
         }
@@ -77,6 +79,9 @@ namespace LumaSharp.Compiler.AST
 
             // Type reference
             this.typeReference = typeReference;
+
+            // Set parent
+            typeReference.parent = this;
         }
 
         // Methods
@@ -93,6 +98,11 @@ namespace LumaSharp.Compiler.AST
 
             // RParen
             rParen.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTypeofExpression(this);
         }
     }
 }

@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum BinaryOperation
@@ -26,11 +28,30 @@ namespace LumaSharp.Compiler.AST
         private readonly ExpressionSyntax right;
 
         // Properties
-        public override SyntaxToken StartToken => left.StartToken;
-        public override SyntaxToken EndToken => right.EndToken;
-        public SyntaxToken Operation => operation;
-        public ExpressionSyntax Left => left;
-        public ExpressionSyntax Right => right;
+        public override SyntaxToken StartToken
+        {
+            get { return left.StartToken; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return right.EndToken; }
+        }
+
+        public SyntaxToken Operation
+        {
+            get { return operation; }
+        }
+
+        public ExpressionSyntax Left
+        {
+            get { return left; }
+        }
+
+        public ExpressionSyntax Right
+        {
+            get { return right; }
+        }
 
         public BinaryOperation BinaryOperation
         {
@@ -83,6 +104,10 @@ namespace LumaSharp.Compiler.AST
             this.left = left;
             this.right = right;
             this.operation = op;
+
+            // Set parent
+            left.parent = this;
+            right.parent = this;
         }
 
         // Methods
@@ -96,6 +121,11 @@ namespace LumaSharp.Compiler.AST
 
             // Write right
             right.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitBinaryExpression(this);
         }
     }
 }

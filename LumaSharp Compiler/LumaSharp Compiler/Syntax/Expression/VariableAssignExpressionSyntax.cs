@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum AssignOperation
@@ -13,7 +15,7 @@ namespace LumaSharp.Compiler.AST
     public sealed class VariableAssignExpressionSyntax : ExpressionSyntax
     {
         // Private
-        private readonly SeparatedListSyntax<ExpressionSyntax> assignExpressions;
+        private readonly SeparatedSyntaxList<ExpressionSyntax> assignExpressions;
         private readonly SyntaxToken assign;
 
         // Properties
@@ -32,7 +34,7 @@ namespace LumaSharp.Compiler.AST
             get { return assign; }
         }
 
-        public SeparatedListSyntax<ExpressionSyntax> AssignExpressions
+        public SeparatedSyntaxList<ExpressionSyntax> AssignExpressions
         {
             get { return assignExpressions; }
         }
@@ -53,14 +55,14 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal VariableAssignExpressionSyntax(SeparatedListSyntax<ExpressionSyntax> assignExpressions)
+        internal VariableAssignExpressionSyntax(SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
             : this(
                   new SyntaxToken(SyntaxTokenKind.AssignSymbol),
                   assignExpressions)
         {
         }
 
-        internal VariableAssignExpressionSyntax(SyntaxToken assign, SeparatedListSyntax<ExpressionSyntax> assignExpressions)
+        internal VariableAssignExpressionSyntax(SyntaxToken assign, SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
         {
             // Check kind
             if (assign.IsAssign == false)
@@ -72,6 +74,9 @@ namespace LumaSharp.Compiler.AST
 
             this.assign = assign;
             this.assignExpressions = assignExpressions;
+
+            // Set parent
+            assignExpressions.parent = this;
         }
 
         // Methods
@@ -82,6 +87,11 @@ namespace LumaSharp.Compiler.AST
 
             // Assign expressions
             assignExpressions.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitVariableAssignExpression(this);
         }
     }
 }

@@ -6,8 +6,7 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken keyword;
         private readonly ExpressionSyntax condition;
-        private readonly StatementSyntax inlineStatement;
-        private readonly BlockSyntax<StatementSyntax> blockStatement;
+        private readonly StatementSyntax statement;
 
         private readonly ConditionStatementSyntax alternate;
 
@@ -25,15 +24,8 @@ namespace LumaSharp.Compiler.AST
                 if (HasAlternate == true)
                     return alternate.EndToken;
 
-                // Check for block
-                if (HasBlockStatement == true)
-                    return blockStatement.EndToken;
-
-                // Check for condition
-                if(HasCondition == true)
-                    return condition.EndToken;
-
-                return keyword;
+                // Get statement
+                return statement.EndToken;
             }
         }
 
@@ -47,14 +39,9 @@ namespace LumaSharp.Compiler.AST
             get { return condition; }
         }
 
-        public StatementSyntax InlineStatement
+        public StatementSyntax Statement
         {
-            get { return inlineStatement; }
-        }
-
-        public BlockSyntax<StatementSyntax> BlockStatement
-        {
-            get { return blockStatement; }
+            get { return statement; }
         }
 
         public ConditionStatementSyntax Alternate
@@ -65,16 +52,6 @@ namespace LumaSharp.Compiler.AST
         public bool HasCondition
         {
             get { return condition != null; }
-        }
-
-        public bool HasInlineStatement
-        {
-            get { return inlineStatement != null; }
-        }
-
-        public bool HasBlockStatement
-        {
-            get { return blockStatement != null; }
         }
 
         public bool IsAlternate
@@ -88,25 +65,30 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ConditionStatementSyntax(ExpressionSyntax condition, bool isAlternate, ConditionStatementSyntax alternate, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+        internal ConditionStatementSyntax(SyntaxToken keyword, ExpressionSyntax condition, ConditionStatementSyntax alternate, StatementSyntax statement)
         {
-            if (condition != null)
-            {
-                //this.keyword = isAlternate == false
-                //    ? Syntax.KeywordOrSymbol(SyntaxTokenKind.IfKeyword)
-                //    : Syntax.KeywordOrSymbol(SyntaxTokenKind.ElseifKeyword);
-            }
-            else
-            {
-                this.keyword = Syntax.Token(SyntaxTokenKind.ElseKeyword);
-            }
+            // Check kind
+            if (keyword.Kind != SyntaxTokenKind.IfKeyword && keyword.Kind != SyntaxTokenKind.ElifKeyword && keyword.Kind != SyntaxTokenKind.ElseKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be a valid conditional kind");
+
+            // Check null
+            if(statement == null)
+                throw new ArgumentNullException(nameof(statement));
+
+            // Check alternate
+            if (alternate != null && alternate.keyword.Kind == SyntaxTokenKind.IfKeyword)
+                throw new ArgumentException(nameof(alternate) + " must be a valid alternate conditional kind");
 
             // Condition
+            this.keyword = keyword;
             this.condition = condition;
             this.alternate = alternate;
+            this.statement = statement;
 
-            this.blockStatement = body;
-            this.inlineStatement = inlineStatement;
+            // Set parent
+            if (condition != null) condition.parent = this;
+            if (alternate != null) alternate.parent = this;
+            statement.parent = this;
         }
 
         // Methods
@@ -122,16 +104,8 @@ namespace LumaSharp.Compiler.AST
                 condition.GetSourceText(writer);
             }
 
-            // Check for inline
-            if(HasInlineStatement == true)
-            {
-                inlineStatement.GetSourceText(writer);
-            }
-            // Check for block
-            else if(HasBlockStatement == true)
-            {
-                BlockStatement.GetSourceText(writer);
-            }
+            // Write statement
+            statement.GetSourceText(writer);
 
             // Write alternate
             if(HasAlternate == true)
@@ -139,13 +113,5 @@ namespace LumaSharp.Compiler.AST
                 alternate.GetSourceText(writer);
             }
         }
-
-        //internal void MakeAlternate()
-        //{
-        //    keyword = conditionExpression != null
-        //        ? SyntaxToken.Elif()
-        //        : SyntaxToken.Else()
-        //            .WithTrailingWhitespace(" ");
-        //}
     }
 }

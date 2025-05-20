@@ -5,15 +5,15 @@ namespace LumaSharp.Compiler.Reporting
     public interface ICompileReport
     {
         // Properties
-        IEnumerable<ICompileMessage> Messages { get; }
+        IEnumerable<ICompileDiagnostic> Diagnostics { get; }
 
-        int MessageCount { get; }
+        int DiagnosticCount { get; }
 
-        bool HasAnyMessages { get; }
+        bool HasAnyDiagnostics { get; }
 
         // Methods
-        IEnumerable<ICompileMessage> GetMessages(MessageSeverity severity);
+        IEnumerable<ICompileDiagnostic> GetDiagnostics(MessageSeverity severity);
 
-        bool HasMessages(MessageSeverity severity);
+        bool HasDiagnostics(MessageSeverity severity);
     }
 }

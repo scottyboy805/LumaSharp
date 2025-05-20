@@ -7,10 +7,8 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken keyword;
         private readonly VariableDeclarationStatementSyntax variable;
         private readonly ExpressionSyntax condition;
-        private readonly SeparatedListSyntax<ExpressionSyntax> increments;
-
-        private readonly StatementSyntax inlineStatement;
-        private readonly BlockSyntax<StatementSyntax> blockStatement;
+        private readonly SeparatedSyntaxList<ExpressionSyntax> increments;
+        private readonly StatementSyntax statement;
 
         // Properties
         public override SyntaxToken StartToken
@@ -20,18 +18,7 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get
-            {
-                // Check for block
-                if (HasBlockStatement == true)
-                    return blockStatement.EndToken;
-
-                // Check for inline
-                if(HasInlineStatement == true)
-                    return inlineStatement.EndToken;
-
-                return SyntaxToken.Invalid;
-            }
+            get { return statement.EndToken; }
         }
 
         public SyntaxToken Keyword
@@ -49,19 +36,14 @@ namespace LumaSharp.Compiler.AST
             get { return condition; }
         }
 
-        public SeparatedListSyntax<ExpressionSyntax> Increments
+        public SeparatedSyntaxList<ExpressionSyntax> Increments
         {
             get { return increments; }
         }
 
-        public StatementSyntax InlineStatement
+        public StatementSyntax Statement
         {
-            get { return inlineStatement; }
-        }
-
-        public BlockSyntax<StatementSyntax> BlockStatement
-        {
-            get { return blockStatement; }
+            get { return statement; }
         }
 
         public bool HasVariable
@@ -79,37 +61,38 @@ namespace LumaSharp.Compiler.AST
             get { return increments != null; }
         }
 
-        public bool HasInlineStatement
-        {
-            get { return inlineStatement != null; }
-        }
-
-        public bool HasBlockStatement
-        {
-            get { return blockStatement != null; }
-        }
-
         // Constructor
-        internal ForStatementSyntax(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedListSyntax<ExpressionSyntax> increments, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+        internal ForStatementSyntax(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
             : this(
                   new SyntaxToken(SyntaxTokenKind.ForKeyword),
                   variable,
                   condition,
                   increments,
-                  body,
-                  inlineStatement)
+                  statement)
         {
         }
 
-        internal ForStatementSyntax(SyntaxToken keyword, VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedListSyntax<ExpressionSyntax> increments, BlockSyntax<StatementSyntax> body, StatementSyntax inlineStatement)
+        internal ForStatementSyntax(SyntaxToken keyword, VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
         {
+            // Check kind
+            if(keyword.Kind != SyntaxTokenKind.ForKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ForKeyword);
+
+            // Check null
+            if(statement == null)
+                throw new ArgumentNullException(nameof(statement));
+
             this.keyword = keyword;
             this.variable = variable;
             this.condition = condition;
             this.increments = increments;
+            this.statement = statement;
 
-            this.blockStatement = body;
-            this.inlineStatement = inlineStatement;
+            // Set parent
+            if (variable != null) variable.parent = this;
+            if (condition != null) condition.parent = this;
+            if (increments != null) increments.parent = this;
+            statement.parent = this;
         }
 
         // Methods
@@ -130,17 +113,8 @@ namespace LumaSharp.Compiler.AST
             if (HasIncrements == true) 
                 increments.GetSourceText(writer);
 
-
-            // Check for inline
-            if(HasInlineStatement == true)
-            {
-                inlineStatement.GetSourceText(writer);
-            }
-            // Check for block
-            else if(HasBlockStatement == true)
-            {
-                blockStatement.GetSourceText(writer);
-            }
+            // Statement
+            statement.GetSourceText(writer);
         }
     }
 }

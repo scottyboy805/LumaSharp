@@ -3,7 +3,7 @@ using LumaSharp.Compiler.AST;
 
 namespace LumaSharp.Compiler.Reporting
 {
-    internal struct CompileMessage : ICompileMessage
+    internal struct CompileDiagnostic : ICompileDiagnostic
     {
         // Private
         private int code;
@@ -33,7 +33,7 @@ namespace LumaSharp.Compiler.Reporting
         }
 
         // Constructor
-        internal CompileMessage(int code, MessageSeverity severity, SyntaxSource source, string message)
+        internal CompileDiagnostic(int code, MessageSeverity severity, SyntaxSource source, string message)
         {
             this.code = code;
             this.severity = severity;

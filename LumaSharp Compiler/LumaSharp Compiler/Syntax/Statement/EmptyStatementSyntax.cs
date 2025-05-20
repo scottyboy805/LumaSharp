@@ -4,8 +4,15 @@ namespace LumaSharp.Compiler.AST
     public sealed class EmptyStatementSyntax : StatementSyntax
     {
         // Properties
-        public override SyntaxToken StartToken => Semicolon;
-        public override SyntaxToken EndToken => Semicolon;
+        public override SyntaxToken StartToken
+        {
+            get { return Semicolon; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return Semicolon; }
+        }
 
         // Constructor
         internal EmptyStatementSyntax()

@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class NewExpressionSyntax : ExpressionSyntax
@@ -11,15 +13,7 @@ namespace LumaSharp.Compiler.AST
         // Properties
         public override SyntaxToken StartToken
         {
-            get
-            {
-                // Check for keyword
-                if (HasKeyword == true)
-                    return keyword;
-
-                // Type
-                return newType.StartToken;
-            }
+            get { return keyword; }
         }
 
         public override SyntaxToken EndToken
@@ -52,11 +46,6 @@ namespace LumaSharp.Compiler.AST
             get { return arguments != null; }
         }
 
-        public bool HasKeyword
-        {
-            get { return keyword.Kind != SyntaxTokenKind.Invalid; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
@@ -83,27 +72,31 @@ namespace LumaSharp.Compiler.AST
             if(keyword.Kind != SyntaxTokenKind.NewKeyword)
                 throw new ArgumentException(nameof(keyword) + " must be of kind: " +  SyntaxTokenKind.NewKeyword);
 
-            // Check for null
-            if(arguments == null)
-                throw new ArgumentNullException(nameof(arguments));
-
             this.keyword = keyword;
             this.newType = newType;
             this.arguments = arguments;
+
+            // Set parent
+            newType.parent = this;
+            if(arguments != null) arguments.parent = this;
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword
-            if (HasKeyword == true)
-                keyword.GetSourceText(writer);
+            keyword.GetSourceText(writer);
 
             // Type reference
             newType.GetSourceText(writer);
 
             // Argument list
             arguments.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitNewExpression(this);
         }
     }
 }

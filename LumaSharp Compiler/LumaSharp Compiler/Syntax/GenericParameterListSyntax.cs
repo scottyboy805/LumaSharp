@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class GenericParameterListSyntax : SeparatedListSyntax<GenericParameterSyntax>
+    public sealed class GenericParameterListSyntax : SeparatedSyntaxList<GenericParameterSyntax>
     {
         // Private        
         private readonly SyntaxToken lGeneric;
@@ -34,7 +34,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal GenericParameterListSyntax(SeparatedListSyntax<GenericParameterSyntax> genericParameters)
+        internal GenericParameterListSyntax(SeparatedSyntaxList<GenericParameterSyntax> genericParameters)
             : this(
                   new SyntaxToken(SyntaxTokenKind.LessSymbol),
                   genericParameters,
@@ -42,11 +42,21 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal GenericParameterListSyntax(SyntaxToken lGeneric, SeparatedListSyntax<GenericParameterSyntax> genericParameters, SyntaxToken rGeneric)
+        internal GenericParameterListSyntax(SyntaxToken lGeneric, SeparatedSyntaxList<GenericParameterSyntax> genericParameters, SyntaxToken rGeneric)
             : base(genericParameters)
         {
+            // Check kind
+            if (lGeneric.Kind != SyntaxTokenKind.LessSymbol)
+                throw new ArgumentException(nameof(lGeneric) + " must be of kind: " + SyntaxTokenKind.LessSymbol);
+
+            if (rGeneric.Kind != SyntaxTokenKind.GreaterSymbol)
+                throw new ArgumentException(nameof(rGeneric) + " must be of kind: " + SyntaxTokenKind.GreaterSymbol);
+
             this.lGeneric = lGeneric;
             this.rGeneric = rGeneric;
+
+            // Set parent
+            if(genericParameters != null) genericParameters.parent = this;
         }
 
         // Methods

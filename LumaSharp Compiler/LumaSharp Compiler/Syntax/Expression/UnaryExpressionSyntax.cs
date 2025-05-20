@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum UnaryOperation
@@ -93,6 +95,9 @@ namespace LumaSharp.Compiler.AST
             this.operation = op;
             this.expression = expression;
             this.isPrefix = isPrefix;
+
+            // Set parent
+            expression.parent = this;
         }
 
         // Methods
@@ -109,6 +114,11 @@ namespace LumaSharp.Compiler.AST
                 expression.GetSourceText(writer);
                 operation.GetSourceText(writer);
             }
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitUnaryExpression(this);
         }
     }
 }

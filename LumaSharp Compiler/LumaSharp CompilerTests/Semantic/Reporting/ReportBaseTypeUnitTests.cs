@@ -20,8 +20,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidSelfBaseType, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidSelfBaseType, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -37,8 +37,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidEnumBaseType, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidEnumBaseType, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -54,8 +54,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.MultipleBaseTypes, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.MultipleBaseTypes, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -71,8 +71,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.FirstBaseType, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.FirstBaseType, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -87,8 +87,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidSelfBaseContract, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidSelfBaseContract, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -104,8 +104,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidEnumBaseContract, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidEnumBaseContract, model.Report.Diagnostics.First().Code);
         }
 
         [TestMethod]
@@ -121,8 +121,8 @@ namespace LumaSharp_CompilerTests.Semantic.Reporting
             Console.WriteLine(model.Report);
 
             Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.MessageCount);
-            Assert.AreEqual((int)Code.InvalidTypeBaseContract, model.Report.Messages.First().Code);
+            Assert.AreEqual(1, model.Report.DiagnosticCount);
+            Assert.AreEqual((int)Code.InvalidTypeBaseContract, model.Report.Diagnostics.First().Code);
         }
     }
 }

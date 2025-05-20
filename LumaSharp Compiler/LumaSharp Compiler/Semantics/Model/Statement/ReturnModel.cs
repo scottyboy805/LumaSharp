@@ -74,7 +74,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                         // Check for return type conversion
                         if (TypeChecker.IsTypeAssignable(returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]) == false)
                         {
-                            report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
+                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
                         }
                     }
                 }

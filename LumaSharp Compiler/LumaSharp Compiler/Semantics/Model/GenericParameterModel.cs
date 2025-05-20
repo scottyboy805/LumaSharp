@@ -208,7 +208,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Check for primitive
             if(genericConstraint.IsPrimitive == true)
             {
-                report.ReportMessage(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.ConstraintTypes[index].StartToken.Source, genericConstraint);
+                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.ConstraintTypes[index].StartToken.Source, genericConstraint);
             }
         }
     }

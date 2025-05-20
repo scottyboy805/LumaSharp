@@ -1,17 +1,32 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class ParameterListSyntax : SeparatedListSyntax<ParameterSyntax>
+    public sealed class ParameterListSyntax : SeparatedSyntaxList<ParameterSyntax>
     {
         // Private
         private readonly SyntaxToken lParen;
         private readonly SyntaxToken rParen;
 
         // Properties
-        public override SyntaxToken StartToken => lParen;
-        public override SyntaxToken EndToken => rParen;
-        public SyntaxToken LParen => lParen;
-        public SyntaxToken RParen => rParen;
+        public override SyntaxToken StartToken
+        {
+            get { return lParen; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rParen; }
+        }
+
+        public SyntaxToken LParen
+        {
+            get { return lParen; }
+        }
+
+        public SyntaxToken RParen
+        {
+            get { return rParen; }
+        }
 
         public bool HasParameters
         {
@@ -19,7 +34,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ParameterListSyntax(SeparatedListSyntax<ParameterSyntax> parameters)
+        internal ParameterListSyntax(SeparatedSyntaxList<ParameterSyntax> parameters)
             : this(
                   new SyntaxToken(SyntaxTokenKind.LParenSymbol),
                   parameters,
@@ -27,7 +42,7 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal ParameterListSyntax(SyntaxToken lParen, SeparatedListSyntax<ParameterSyntax> parameters, SyntaxToken rParen)
+        internal ParameterListSyntax(SyntaxToken lParen, SeparatedSyntaxList<ParameterSyntax> parameters, SyntaxToken rParen)
             : base(parameters)
         {
             // Check kind
@@ -39,6 +54,9 @@ namespace LumaSharp.Compiler.AST
 
             this.lParen = lParen;
             this.rParen = rParen;
+
+            // Set parent
+            if (parameters != null) parameters.parent = this;
         }
 
         // Methods

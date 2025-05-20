@@ -9,10 +9,40 @@ namespace LumaSharp.Compiler.AST
         private readonly List<StatementSyntax> statements = new();
 
         // Properties
-        public override SyntaxToken StartToken => lBlock;
-        public override SyntaxToken EndToken => rBlock;
+        public override SyntaxToken StartToken
+        {
+            get { return lBlock; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rBlock; }
+        }
+
+        public SyntaxToken LBlock
+        {
+            get { return lBlock; }
+        }
+
+        public SyntaxToken RBlock
+        {
+            get { return rBlock; }
+        }
+
+        public IEnumerable<StatementSyntax> Statements
+        {
+            get { return statements; }
+        }
 
         // Constructor
+        internal StatementBlockSyntax(IEnumerable<StatementSyntax> statements)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.LBlockSymbol),
+                  statements,
+                  new SyntaxToken(SyntaxTokenKind.RBlockSymbol))
+        {
+        }
+
         internal StatementBlockSyntax(SyntaxToken lBlock, IEnumerable<StatementSyntax> statements, SyntaxToken rBlock)
             : base(SyntaxToken.Invalid)
         {
@@ -27,8 +57,14 @@ namespace LumaSharp.Compiler.AST
             this.rBlock = rBlock;
 
             // Check for any
-            if(statements != null)
+            if (statements != null)
+            {
                 this.statements.AddRange(statements.Where(s => s != null));
+
+                // Set parent
+                foreach (StatementSyntax s in this.statements)
+                    s.parent = this;
+            }
         }
 
         // Methods

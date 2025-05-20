@@ -1,5 +1,6 @@
 ﻿using Antlr4.Runtime;
 using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.AST.Visitor;
 using LumaSharp.Compiler.Parser;
 using LumaSharp.Compiler.Reporting;
 using System.Diagnostics;
@@ -125,9 +126,17 @@ namespace LumaSharp_CompilerTests
             T result = parse(parser);
 
             // Check for errors
-            foreach(ICompileMessage message in report.Messages)
+            foreach(ICompileDiagnostic message in report.Diagnostics)
             {
                 Debug.WriteLine(message);
+            }
+
+            // Write syntax
+            if(result is ExpressionSyntax e)
+            {
+                PrintSyntaxTreeWalker print = new();
+                e.Accept(print);
+                Debug.WriteLine(print.Text);
             }
 
             return result;

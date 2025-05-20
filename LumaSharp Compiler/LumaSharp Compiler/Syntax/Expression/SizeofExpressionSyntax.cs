@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class SizeofExpressionSyntax : ExpressionSyntax
@@ -10,12 +12,35 @@ namespace LumaSharp.Compiler.AST
         private readonly TypeReferenceSyntax typeReference;
 
         // Properties
-        public override SyntaxToken StartToken => keyword;
-        public override SyntaxToken EndToken => rParen;
-        public SyntaxToken Keyword=> keyword;
-        public SyntaxToken LParen => lParen;
-        public SyntaxToken RParen => rParen;
-        public TypeReferenceSyntax TypeReference => typeReference;
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rParen; }
+        }
+
+        public SyntaxToken Keyword
+        {
+            get { return keyword; }
+        }
+
+        public SyntaxToken LParen
+        {
+            get { return lParen; }
+        }
+
+        public SyntaxToken RParen
+        {
+            get { return rParen; }
+        }
+
+        public TypeReferenceSyntax TypeReference
+        {
+            get { return typeReference; }
+        }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
@@ -54,6 +79,9 @@ namespace LumaSharp.Compiler.AST
 
             // Type reference
             this.typeReference = typeReference;
+
+            // Set parent
+            typeReference.parent = this;
         }
 
         // Methods
@@ -70,6 +98,11 @@ namespace LumaSharp.Compiler.AST
 
             // Write closing
             rParen.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitSizeofExpression(this);
         }
     }
 }

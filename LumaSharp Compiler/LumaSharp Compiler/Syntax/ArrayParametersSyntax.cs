@@ -9,12 +9,35 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken[] separators;
 
         // Properties
-        public override SyntaxToken StartToken => lArray;
-        public override SyntaxToken EndToken => rArray;
-        public SyntaxToken LArray => lArray;
-        public SyntaxToken RArray => rArray;
-        public SyntaxToken[] Separators => separators;
-        public int Rank => separators != null ? separators.Length + 1 : 1;
+        public override SyntaxToken StartToken
+        {
+            get { return lArray; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rArray; }
+        }
+
+        public SyntaxToken LArray
+        {
+            get { return lArray; }
+        }
+
+        public SyntaxToken RArray
+        {
+            get { return rArray; }
+        }
+
+        public SyntaxToken[] Separators
+        {
+            get { return separators; }
+        }
+
+        public int Rank
+        {
+            get { return separators != null ? separators.Length + 1 : 1; }
+        }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {

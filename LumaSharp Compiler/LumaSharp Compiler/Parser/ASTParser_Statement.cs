@@ -56,7 +56,7 @@ namespace LumaSharp.Compiler.Parser
                     if(statement == null)
                     {
                         // Expected statement
-                        report.ReportMessage(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                        report.ReportDiagnostic(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
                         return RecoverFromStatementBlockError();
                     }
 
@@ -92,7 +92,7 @@ namespace LumaSharp.Compiler.Parser
                 if(conditionExpression == null)
                 {
                     // Expected expression
-                    report.ReportMessage(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Source);
                     return RecoverFromStatementError();
                 }
 
@@ -103,7 +103,7 @@ namespace LumaSharp.Compiler.Parser
                 if(statement == null)
                 {
                     // Expected statement
-                    report.ReportMessage(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
                     return RecoverFromStatementError();
                 }
 
@@ -135,7 +135,7 @@ namespace LumaSharp.Compiler.Parser
                 if (statement == null)
                 {
                     // Expected statement
-                    report.ReportMessage(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
                     return RecoverFromStatementError();
                 }
 
@@ -177,7 +177,7 @@ namespace LumaSharp.Compiler.Parser
                 else if(tokens.PeekKind() == SyntaxTokenKind.Identifier)
                 {
                     // Expected 'in' - we can give an error here after we encounter 'for identifier' - this pattern can only be a foreach
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.InKeyword));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.InKeyword));
                     return RecoverFromStatementError();
                 }
             }
@@ -196,13 +196,13 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken returnToken = tokens.Consume();
 
                 // Check for optional expression list
-                SeparatedListSyntax<ExpressionSyntax> returnExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.SemicolonSymbol);
+                SeparatedSyntaxList<ExpressionSyntax> returnExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.SemicolonSymbol);
 
                 // Require semicolon
                 if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                 {
                     // Expected ';'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, semicolon.Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, semicolon.Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                     return RecoverFromStatementError();
                 }
 
@@ -224,7 +224,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                 {
                     // Expected ';'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, semicolon.Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, semicolon.Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                     return RecoverFromStatementError();
                 }
 
@@ -246,7 +246,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                 {
                     // Expected ';'
-                    report.ReportMessage(Code.ExpectedToken, MessageSeverity.Error, semicolon.Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, semicolon.Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                     return RecoverFromStatementError();
                 }
 

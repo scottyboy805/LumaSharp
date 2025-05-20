@@ -1,5 +1,4 @@
-﻿
-using LumaSharp.Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 
 namespace LumaSharp.Compiler.Reporting
 {

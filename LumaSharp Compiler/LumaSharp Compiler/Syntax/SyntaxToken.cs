@@ -6,6 +6,7 @@ namespace LumaSharp.Compiler.AST
     public enum SyntaxTokenKind
     {
         Invalid = 0,
+        EOF = 1,
 
         LineComment,
         BlockCommentStart,
@@ -15,9 +16,6 @@ namespace LumaSharp.Compiler.AST
         Identifier,
         Literal,
         LiteralDescriptor,
-        //UnaryOperator,
-        //BinaryOperator,
-        //AssignOperator,
 
         AssignSymbol,
         AssignPlusSymbol,
@@ -97,6 +95,7 @@ namespace LumaSharp.Compiler.AST
         ReturnKeyword,
         OverrideKeyword,
         IfKeyword,
+        ElifKeyword,
         ElseKeyword,
         TrueKeyword,
         FalseKeyword,
@@ -132,6 +131,9 @@ namespace LumaSharp.Compiler.AST
 
         private static readonly Dictionary<SyntaxTokenKind, string> syntaxTokenStrings = new()
         {
+            {SyntaxTokenKind.Invalid, "" },
+            { SyntaxTokenKind.EOF, "\0" },
+
             { SyntaxTokenKind.LineComment, "//" },
             { SyntaxTokenKind.BlockCommentStart, "/*" },
             { SyntaxTokenKind.BlockCommentEnd, "*/" },
@@ -235,39 +237,52 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.NewKeyword, "new" },
         };
 
-        private readonly SyntaxTokenKind kind;
-        private readonly string text;
-        private readonly SyntaxSource source;
+        // Private
+        private readonly List<SyntaxTrivia> trivia;
 
         // Public
-        public static readonly SyntaxToken Invalid = new SyntaxToken(SyntaxTokenKind.Invalid, (string)null);
+        public static readonly SyntaxToken Invalid = new SyntaxToken(SyntaxTokenKind.Invalid);
+
+        public readonly SyntaxTokenKind Kind;
+        public readonly string Text;
+        public readonly SyntaxSource Source;
 
         // Properties
-        public SyntaxTokenKind Kind
+        public bool IsKeyword => IsKeywordKind(Kind);
+        public bool IsSymbol => IsSymbolKind(Kind);
+        public bool IsLiteral => IsLiteralKind(Kind);
+        public bool IsPrimitiveType => IsPrimitiveTypeKind(Kind);
+        public bool IsAccessModifier => IsAccessModifierKind(Kind);
+        public bool IsBinaryOperand => IsBinaryOperandKind(Kind);
+        public bool IsUnaryOperand => IsUnaryOperandKind(Kind);
+        public bool IsAssign => IsAssignKind(Kind);
+
+        public IEnumerable<SyntaxTrivia> Trivia
         {
-            get { return kind; }
+            get
+            {
+                // Check for none
+                if (trivia == null)
+                    yield break;
+
+                // Enumerate all
+                foreach(SyntaxTrivia t in trivia)
+                    yield return t;
+            }
         }
 
-        public string Text
-        {
-            get { return text; }
-        }
-
-        public SyntaxSource Source
-        {
-            get { return source; }
-        }
-
-        public bool IsKeyword => IsKeywordKind(kind);
-        public bool IsSymbol => IsSymbolKind(kind);
-        public bool IsLiteral => IsLiteralKind(kind);
-        public bool IsPrimitiveType => IsPrimitiveTypeKind(kind);
-        public bool IsAccessModifier => IsAccessModifierKind(kind);
-        public bool IsBinaryOperand => IsBinaryOperandKind(kind);
-        public bool IsUnaryOperand => IsUnaryOperandKind(kind);
-        public bool IsAssign => IsAssignKind(kind);
+        public IEnumerable<SyntaxTrivia> LeadingTrivia => Trivia.Where(t => t.IsLeading);
+        public IEnumerable<SyntaxTrivia> TrailingTrivia => Trivia.Where(t => t.IsTrailing);
 
         // Constructor
+        private SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSource source, IEnumerable<SyntaxTrivia> trivia)
+        {
+            this.Kind = kind;
+            this.Text = text;
+            this.Source = source;
+            this.trivia = trivia.Any() ? trivia.ToList() : null;
+        }
+
         internal SyntaxToken(SyntaxTokenKind kind, SyntaxSource source = default)
         {
             // Get text
@@ -275,9 +290,9 @@ namespace LumaSharp.Compiler.AST
             if (syntaxTokenStrings.TryGetValue(kind, out text) == false)
                 throw new ArgumentException(string.Format("Syntax kind '{0}' requires text to be specified", kind));
 
-            this.kind = kind;
-            this.text = text;
-            this.source = source;
+            this.Kind = kind;
+            this.Text = text;
+            this.Source = source;
         }
 
         internal SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSource source = default)
@@ -287,33 +302,34 @@ namespace LumaSharp.Compiler.AST
             if (syntaxTokenStrings.TryGetValue(kind, out expected) == true && expected != text)
                 throw new ArgumentException(string.Format("Expected text '{0}' for syntax kind: '{1}'", expected, kind));
 
-            this.kind = kind;
-            this.text = text;
-            this.source = source;
-        }
-
-        internal SyntaxToken(SyntaxTokenKind kind, ITerminalNode node)
-            : this(kind, node != null ? node.Symbol : null)
-        {
-        }
-
-        internal SyntaxToken(SyntaxTokenKind kind, IToken node)
-        {
-            this.kind = kind;
-            this.text = node.Text;
-            this.source = new SyntaxSource(node);
+            this.Kind = kind;
+            this.Text = text;
+            this.Source = source;
         }
 
         // Methods
+        public SyntaxToken WithTrivia(IEnumerable<SyntaxTrivia> trivia)
+        {
+            return new SyntaxToken(Kind, Text, Source, trivia);
+        }
+
         public void GetSourceText(TextWriter writer)
         {
+            // Write leading trivia
+            foreach(SyntaxTrivia t in LeadingTrivia)
+                t.GetSourceText(writer);
+
             // Write symbol
-            writer.Write(text);
+            writer.Write(Text);
+
+            // Write trailing trivia
+            foreach(SyntaxTrivia t in TrailingTrivia)
+                t.GetSourceText(writer);
         }
 
         public override string ToString()
         {
-            return text;
+            return Text;
         }
 
         public static string GetText(SyntaxTokenKind kind)

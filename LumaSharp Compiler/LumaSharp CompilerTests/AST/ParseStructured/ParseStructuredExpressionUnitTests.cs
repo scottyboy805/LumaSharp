@@ -92,7 +92,7 @@ namespace LumaSharp_CompilerTests.AST.ParseStructured
         [DataRow("my.Array[0][0, 1]", typeof(IndexExpressionSyntax))]
         [DataRow(@"""Hello World""[0, 1]", typeof(LiteralExpressionSyntax))]
         [DataRow("1234[1]", typeof(LiteralExpressionSyntax))]
-        [DataRow("(43 + 24)[1]", typeof(BinaryExpressionSyntax))]
+        [DataRow("(43 + 24)[1]", typeof(ParenthesizedExpressionSyntax))]
         [DataRow("new MyType()[1]", typeof(NewExpressionSyntax))]
         [DataRow("ident[0, 1]", typeof(VariableReferenceExpressionSyntax))]
         [DataRow("this[0, 1]", typeof(ThisExpressionSyntax))]

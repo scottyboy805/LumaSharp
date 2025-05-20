@@ -4,7 +4,7 @@ namespace LumaSharp.Compiler.AST
     public sealed class AssignStatementSyntax : StatementSyntax
     {
         // Private
-        private readonly SeparatedListSyntax<ExpressionSyntax> left;
+        private readonly SeparatedSyntaxList<ExpressionSyntax> left;
         private readonly VariableAssignExpressionSyntax variableAssign;
 
         // Properties
@@ -23,12 +23,12 @@ namespace LumaSharp.Compiler.AST
             get { return variableAssign; }
         }
 
-        public SeparatedListSyntax<ExpressionSyntax> Left
+        public SeparatedSyntaxList<ExpressionSyntax> Left
         {
             get { return left; }
         }
 
-        public SeparatedListSyntax<ExpressionSyntax> Right
+        public SeparatedSyntaxList<ExpressionSyntax> Right
         {
             get { return variableAssign.AssignExpressions; }
         }
@@ -43,7 +43,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AssignStatementSyntax(SeparatedListSyntax<ExpressionSyntax> left, VariableAssignExpressionSyntax assign)
+        internal AssignStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> left, VariableAssignExpressionSyntax assign)
         {
             // Check null
             if(left == null)
@@ -54,6 +54,10 @@ namespace LumaSharp.Compiler.AST
 
             this.left = left;
             this.variableAssign = assign;
+
+            // Set parent
+            left.parent = this;
+            assign.parent = this;
         }
 
         // Methods

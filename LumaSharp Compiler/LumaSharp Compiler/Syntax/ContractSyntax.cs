@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken keyword;
         private readonly GenericParameterListSyntax genericParameters;
-        private readonly SeparatedListSyntax<TypeReferenceSyntax> baseTypes;
+        private readonly SeparatedSyntaxList<TypeReferenceSyntax> baseTypes;
         private readonly SyntaxToken colon;
 
         private readonly BlockSyntax<MemberSyntax> memberBlock;
@@ -48,7 +48,7 @@ namespace LumaSharp.Compiler.AST
             get { return genericParameters; }
         }
 
-        public SeparatedListSyntax<TypeReferenceSyntax> BaseTypes
+        public SeparatedSyntaxList<TypeReferenceSyntax> BaseTypes
         {
             get { return baseTypes; }
         }
@@ -104,7 +104,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ContractSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, SeparatedListSyntax<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+        internal ContractSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, SeparatedSyntaxList<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
             : base(identifier, attributes, accessModifiers)
         {
             this.keyword = Syntax.Token(SyntaxTokenKind.ContractKeyword);

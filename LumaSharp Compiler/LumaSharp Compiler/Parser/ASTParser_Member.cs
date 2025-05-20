@@ -76,7 +76,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
                 {
                     // Expected identifier
-                    report.ReportMessage(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
                 }
 
                 // Parse generic parameters
@@ -90,7 +90,7 @@ namespace LumaSharp.Compiler.Parser
 
                 // Inherit parameters
                 SyntaxToken inheritToken = default;
-                SeparatedListSyntax<TypeReferenceSyntax> inheritTypes = null;
+                SeparatedSyntaxList<TypeReferenceSyntax> inheritTypes = null;
 
                 // Check for inherit provided
                 if(tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
@@ -169,7 +169,7 @@ namespace LumaSharp.Compiler.Parser
             SyntaxToken[] modifiers = ParseAccessModifiers();
 
             // Parse method return values
-            SeparatedListSyntax<TypeReferenceSyntax> returnTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
+            SeparatedSyntaxList<TypeReferenceSyntax> returnTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
 
             // Check for return types available
             if(returnTypes != null)

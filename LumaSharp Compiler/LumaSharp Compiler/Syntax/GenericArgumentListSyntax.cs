@@ -1,17 +1,32 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public class GenericArgumentListSyntax : SeparatedListSyntax<TypeReferenceSyntax>
+    public class GenericArgumentListSyntax : SeparatedSyntaxList<TypeReferenceSyntax>
     {
         // Private
         private readonly SyntaxToken lGeneric;
         private readonly SyntaxToken rGeneric;
 
         // Properties
-        public override SyntaxToken StartToken => lGeneric;
-        public override SyntaxToken EndToken => rGeneric;
-        public SyntaxToken LGeneric => lGeneric;
-        public SyntaxToken RGeneric => rGeneric;
+        public override SyntaxToken StartToken
+        {
+            get { return lGeneric; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return rGeneric; }
+        }
+
+        public SyntaxToken LGeneric
+        {
+            get { return lGeneric; }
+        }
+
+        public SyntaxToken RGeneric
+        {
+            get { return rGeneric; }
+        }
 
         public bool HasGenericArguments
         {
@@ -19,7 +34,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal GenericArgumentListSyntax(SeparatedListSyntax<TypeReferenceSyntax> genericArguments)
+        internal GenericArgumentListSyntax(SeparatedSyntaxList<TypeReferenceSyntax> genericArguments)
             : this(
                   new SyntaxToken(SyntaxTokenKind.LessSymbol),
                   genericArguments,
@@ -27,7 +42,7 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal GenericArgumentListSyntax(SyntaxToken lGeneric, SeparatedListSyntax<TypeReferenceSyntax> genericArguments, SyntaxToken rGeneric)
+        internal GenericArgumentListSyntax(SyntaxToken lGeneric, SeparatedSyntaxList<TypeReferenceSyntax> genericArguments, SyntaxToken rGeneric)
             : base(genericArguments)
         {
             // Check kind
@@ -39,6 +54,9 @@ namespace LumaSharp.Compiler.AST
 
             this.lGeneric = lGeneric;
             this.rGeneric = rGeneric;
+
+            // Set parent
+            if (genericArguments != null) genericArguments.parent = this;
         }
 
         // Methods

@@ -65,6 +65,11 @@ namespace LumaSharp.Compiler.AST
             this.variableType = variableType;
             this.identifiers = identifiers;
             this.assignment = assignment;
+
+            // Set parent
+            variableType.parent = this;
+            identifiers.parent = this;
+            assignment.parent = this;
         }
 
         // Methods

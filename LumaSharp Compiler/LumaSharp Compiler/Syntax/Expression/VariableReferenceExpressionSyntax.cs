@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class VariableReferenceExpressionSyntax : ExpressionSyntax
@@ -42,6 +44,11 @@ namespace LumaSharp.Compiler.AST
         {
             // Write identifier
             writer.Write(identifier.ToString());
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitVariableReferenceExpression(this);
         }
     }
 }

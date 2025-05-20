@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ThisExpressionSyntax : ExpressionSyntax
@@ -49,6 +51,11 @@ namespace LumaSharp.Compiler.AST
         {
             // Write keyword
             keyword.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitThisExpression(this);
         }
     }
 }

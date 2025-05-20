@@ -7,9 +7,20 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken keyword;
 
         // Properties
-        public override SyntaxToken StartToken => keyword;
-        public override SyntaxToken EndToken => Semicolon;
-        public SyntaxToken Keyword => keyword;
+        public override SyntaxToken StartToken
+        {
+            get { return keyword; }
+        }
+
+        public override SyntaxToken EndToken
+        {
+            get { return Semicolon; }
+        }
+
+        public SyntaxToken Keyword
+        {
+            get { return keyword; }
+        }
 
         // Constructor
         internal ContinueStatementSyntax()

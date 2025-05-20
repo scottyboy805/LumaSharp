@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ParenthesizedExpressionSyntax : ExpressionSyntax
@@ -9,12 +11,30 @@ namespace LumaSharp.Compiler.AST
         private readonly ExpressionSyntax expression;
 
         // Properties
-        public override SyntaxToken StartToken => lParen;
-        public override SyntaxToken EndToken => rParen;
+        public override SyntaxToken StartToken
+        {
+            get { return lParen; }
+        }
 
-        public SyntaxToken LParen => lParen;
-        public SyntaxToken RParen => rParen;
-        public ExpressionSyntax Expression => expression;
+        public override SyntaxToken EndToken
+        {
+            get { return rParen; }
+        }
+
+        public SyntaxToken LParen
+        {
+            get { return lParen; }
+        }
+
+        public SyntaxToken RParen
+        {
+            get { return rParen; }
+        }
+
+        public ExpressionSyntax Expression
+        {
+            get { return expression; }
+        }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
@@ -49,6 +69,9 @@ namespace LumaSharp.Compiler.AST
             this.lParen = lParen;
             this.rParen = rParen;
             this.expression = expression;
+
+            // Set parent
+            expression.parent = this;
         }
 
         // Methods
@@ -62,6 +85,11 @@ namespace LumaSharp.Compiler.AST
 
             // RParen
             rParen.GetSourceText(writer);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitParenthesizedExpression(this);
         }
     }
 }

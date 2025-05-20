@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class MemberAccessExpressionSyntax : ExpressionSyntax
@@ -64,6 +66,9 @@ namespace LumaSharp.Compiler.AST
             this.accessExpression = accessExpression;
             this.dot = dot;
             this.identifier = identifier;
+
+            // Set parent
+            accessExpression.parent = this;
         }
 
         // Methods
@@ -77,6 +82,11 @@ namespace LumaSharp.Compiler.AST
 
             // Write identifier
             writer.Write(identifier.ToString());
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitMemberAccessExpression(this);
         }
     }
 }

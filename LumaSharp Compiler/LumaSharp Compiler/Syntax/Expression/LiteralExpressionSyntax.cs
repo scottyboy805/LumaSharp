@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class LiteralExpressionSyntax : ExpressionSyntax
@@ -68,6 +70,11 @@ namespace LumaSharp.Compiler.AST
             // Write descriptor
             if (HasDescriptor == true)
                 writer.Write(descriptor.Text);
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitLiteralExpression(this);
         }
     }
 }

@@ -121,6 +121,15 @@ namespace LumaSharp.Compiler.AST
             this.identifier = identifier;
             this.assignment = assignment;
             this.enumerable = enumerable;
+
+            // Set parent
+            if(attributes != null)
+            {
+                foreach (AttributeReferenceSyntax a in attributes)
+                    a.parent = this;
+            }
+            parameterType.parent = this;
+            if (assignment != null) assignment.parent = this;
         }
 
         // Methods

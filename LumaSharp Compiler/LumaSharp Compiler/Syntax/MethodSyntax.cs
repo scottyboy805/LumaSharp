@@ -4,7 +4,7 @@ namespace LumaSharp.Compiler.AST
     public sealed class MethodSyntax : MemberSyntax
     {
         // Private
-        private readonly SeparatedListSyntax<TypeReferenceSyntax> returnTypes;
+        private readonly SeparatedSyntaxList<TypeReferenceSyntax> returnTypes;
         private readonly GenericParameterListSyntax genericParameters;
         private readonly ParameterListSyntax parameters;
         private readonly BlockSyntax<StatementSyntax> body;
@@ -55,7 +55,7 @@ namespace LumaSharp.Compiler.AST
             get { return overrideKeyword; }
         }
 
-        public SeparatedListSyntax<TypeReferenceSyntax> ReturnTypes
+        public SeparatedSyntaxList<TypeReferenceSyntax> ReturnTypes
         {
             get { return returnTypes; }
         }
@@ -103,7 +103,7 @@ namespace LumaSharp.Compiler.AST
         internal override IEnumerable<SyntaxNode> Descendants => throw new NotImplementedException();
 
         // Constructor
-        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedListSyntax<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? isOverride, BlockSyntax<StatementSyntax> body, LambdaStatementSyntax lambda)
+        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? isOverride, BlockSyntax<StatementSyntax> body, LambdaStatementSyntax lambda)
             : base(identifier, attributes, accessModifiers)
         {
             this.returnTypes = returnTypes;
