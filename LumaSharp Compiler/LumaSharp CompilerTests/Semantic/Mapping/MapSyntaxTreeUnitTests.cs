@@ -2,7 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Compiler.Semantics.Model;
 
-namespace LumaSharp_CompilerTests.Semantic.Mapping
+namespace CompilerTests.Semantic.Mapping
 {
     [TestClass]
     public sealed class MapSyntaxTreeUnitTests

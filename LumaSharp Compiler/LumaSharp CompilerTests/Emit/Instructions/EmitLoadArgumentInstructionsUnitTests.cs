@@ -5,7 +5,7 @@ using LumaSharp.Runtime;
 using LumaSharp.Runtime.Emit;
 using LumaSharp.Compiler.Emit;
 
-namespace LumaSharp_CompilerTests.Emit.Instructions
+namespace CompilerTests.Emit.Instructions
 {
     [TestClass]
     public sealed class EmitLoadArgumentInstructionsUnitTests

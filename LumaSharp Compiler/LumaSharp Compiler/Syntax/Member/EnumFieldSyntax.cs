@@ -1,0 +1,65 @@
+﻿
+namespace LumaSharp.Compiler.AST
+{
+    public sealed class EnumFieldSyntax : MemberSyntax
+    {
+        // Private
+        private readonly VariableAssignExpressionSyntax fieldAssignment;
+
+        // Properties
+        public override SyntaxToken EndToken
+        {
+            get
+            {
+                if(HasFieldAssignment == true)
+                    return fieldAssignment.EndToken;
+
+                return identifier;
+            }
+        }
+
+        public VariableAssignExpressionSyntax FieldAssignment
+        {
+            get { return fieldAssignment; }
+        }
+
+        public bool HasFieldAssignment
+        {
+            get { return fieldAssignment != null; }
+        }
+
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get
+            {
+                // Field assignment
+                if (HasFieldAssignment == true)
+                    yield return fieldAssignment;
+            }
+        }
+
+        // Constructor
+        internal EnumFieldSyntax(SyntaxToken identifier, VariableAssignExpressionSyntax fieldAssignment)
+            : base(identifier, null, null)
+        {
+            this.fieldAssignment = fieldAssignment;
+
+            // Set parent
+            if (fieldAssignment != null) fieldAssignment.parent = this;
+        }
+
+        // Methods
+        public override void GetSourceText(TextWriter writer)
+        {
+            // Identifier
+            identifier.GetSourceText(writer);
+
+            // Assign
+            if (HasFieldAssignment == true)
+            {
+                // Assign expression
+                fieldAssignment.GetSourceText(writer);
+            }
+        }
+    }
+}

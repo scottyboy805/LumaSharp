@@ -2,7 +2,7 @@
 using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Semantic.StaticAnalysis
+namespace CompilerTests.Semantic.StaticAnalysis
 {
     [TestClass]
     public sealed class StaticAnalyseSimplifyUnitTests

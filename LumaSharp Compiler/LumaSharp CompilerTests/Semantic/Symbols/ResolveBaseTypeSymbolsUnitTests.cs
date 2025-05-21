@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Compiler.Semantics.Reference;
 
-namespace LumaSharp_CompilerTests.Semantic.Symbols
+namespace CompilerTests.Semantic.Symbols
 {
     [TestClass]
     public sealed class ResolveBaseTypeSymbolsUnitTests

@@ -7,7 +7,7 @@
 //using LumaSharp.Runtime;
 //using LumaSharp.Runtime.Emit;
 
-//namespace LumaSharp_CompilerTests.Emit.Integrated
+//namespace CompilerTests.Emit.Integrated
 //{
 //    [TestClass]
 //    public unsafe sealed class EmitExecuteConditionSyntaxUnitTests

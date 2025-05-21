@@ -181,8 +181,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Create body
             if (syntax.HasBody == true)
             {
-                this.bodyStatements = syntax.Body.Elements
-                    .Select((s, i) => StatementModel.Any(model, this, s, i, this)).ToArray();
+#pragma warning FIX THIS
+                //this.bodyStatements = syntax.Body.Elements
+                //    .Select((s, i) => StatementModel.Any(model, this, s, i, this)).ToArray();
             }
 
             // Create flags

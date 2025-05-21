@@ -18,6 +18,26 @@ namespace LumaSharp.Compiler.Parser
             if (statement == null)
                 statement = ParseBlockStatement();
 
+            // General statements
+            // ### Clearly defined rules - begin with an explicit keyword or symbol that uniquely identifies the expression syntax
+            {
+                // Check for break statement
+                if (statement == null)
+                    statement = ParseBreakStatement();
+
+                // Check for continue statement
+                if(statement == null)
+                    statement = ParseContinueStatement();
+
+                // Check for condition
+                if (statement == null)
+                    statement = ParseConditionStatement();
+
+                // Check for return
+                if (statement == null)
+                    statement = ParseReturnStatement();
+            }
+
             return statement;
         }
 
@@ -77,7 +97,7 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        internal StatementSyntax ParseIfStatement()
+        internal StatementSyntax ParseConditionStatement()
         {
             // Check for if keyword
             if(tokens.PeekKind() == SyntaxTokenKind.IfKeyword)
@@ -108,24 +128,28 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Parse optional alternate recursively
-                ConditionStatementSyntax alternate = ParseIfAlternateStatement() as ConditionStatementSyntax;
+                ConditionStatementSyntax alternate = ParseConditionAlternateStatement() as ConditionStatementSyntax;
 
                 // Create if
+                return new ConditionStatementSyntax(ifToken, conditionExpression, alternate, statement);
             }
             return null;
         }
 
-        private StatementSyntax ParseIfAlternateStatement()
+        private StatementSyntax ParseConditionAlternateStatement()
         {
             // Check for else
-            if(tokens.PeekKind() == SyntaxTokenKind.ElseKeyword)
+            if(tokens.PeekKind() == SyntaxTokenKind.ElseKeyword || tokens.PeekKind() == SyntaxTokenKind.ElifKeyword)
             {
                 // Consume token
-                SyntaxToken elseToken = tokens.Consume();
+                SyntaxToken elseOrElifToken = tokens.Consume();
+
+                // Get condition
+                ExpressionSyntax conditionExpression = null;
 
                 // Check for conditioned if
-                if (tokens.PeekKind() == SyntaxTokenKind.IfKeyword)
-                    return ParseIfStatement();
+                if (tokens.PeekKind() == SyntaxTokenKind.ElifKeyword)
+                    conditionExpression = ParseExpression();
 
                 // Must be just an else clause
                 // Parse the statement
@@ -139,8 +163,11 @@ namespace LumaSharp.Compiler.Parser
                     return RecoverFromStatementError();
                 }
 
+                // Parse optional alternate recursively
+                ConditionStatementSyntax alternate = ParseConditionAlternateStatement() as ConditionStatementSyntax;
+
                 // Create the alternate condition
-                //return new ConditionStatementSyntax(elseToken, statement);
+                return new ConditionStatementSyntax(elseOrElifToken, conditionExpression, alternate, statement);
             }
             return null;
         }
@@ -252,6 +279,23 @@ namespace LumaSharp.Compiler.Parser
 
                 // Create continue statement
                 return new ContinueStatementSyntax(continueToken, semicolon);
+            }
+            return null;
+        }
+
+        private LambdaStatementSyntax ParseLambdaStatement()
+        {
+            // Check for lambda
+            if(tokens.PeekKind() == SyntaxTokenKind.LambdaSymbol)
+            {
+                // Consume the token
+                SyntaxToken lambdaToken = tokens.Consume();
+
+                // Parse the statement
+                StatementSyntax statement = ParseStatement();
+
+                // Create the lambda
+                return new LambdaStatementSyntax(lambdaToken, statement);
             }
             return null;
         }

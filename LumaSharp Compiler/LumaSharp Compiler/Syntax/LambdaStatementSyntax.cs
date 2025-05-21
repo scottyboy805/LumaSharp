@@ -6,7 +6,6 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken lambda;
         private readonly StatementSyntax statement;
-        private readonly SyntaxToken comma;
 
         // Properties
         public override SyntaxToken StartToken
@@ -16,14 +15,7 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get
-            {
-                // Check for comma
-                if (HasComma == true)
-                    return comma;
-
-                return statement.EndToken;
-            }
+            get{ return statement.EndToken; }
         }
 
         public SyntaxToken Lambda
@@ -34,16 +26,6 @@ namespace LumaSharp.Compiler.AST
         public StatementSyntax Statement
         {
             get { return statement; }
-        }
-
-        public SyntaxToken Comma
-        {
-            get { return comma; }
-        }
-
-        public bool HasComma
-        {
-            get { return comma.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -84,10 +66,6 @@ namespace LumaSharp.Compiler.AST
 
             // Statement
             statement.GetSourceText(writer);
-
-            // Comma
-            if(HasComma == true)
-                comma.GetSourceText(writer);
         }
     }
 }

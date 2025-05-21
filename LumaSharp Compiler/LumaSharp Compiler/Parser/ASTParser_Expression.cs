@@ -648,6 +648,23 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
+        private VariableAssignExpressionSyntax ParseVariableAssignExpression()
+        {
+            // Check for assignment
+            if(tokens.Peek().IsAssign == true)
+            {
+                // Consume the token
+                SyntaxToken assign = tokens.Consume();
+
+                // Parse the assign expressions
+                SeparatedSyntaxList<ExpressionSyntax> assignExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Invalid);
+
+                // Create the assignment
+                return new VariableAssignExpressionSyntax(assign, assignExpressions);
+            }
+            return null;
+        }
+
         private ExpressionSyntax RecoverFromExpressionError()
         {
             // An error occurred while parsing an expression - To recover we should consume all tokens until we reach a semi colon or end of stream

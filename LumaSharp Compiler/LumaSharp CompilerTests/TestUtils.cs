@@ -5,7 +5,7 @@ using LumaSharp.Compiler.Parser;
 using LumaSharp.Compiler.Reporting;
 using System.Diagnostics;
 
-namespace LumaSharp_CompilerTests
+namespace CompilerTests
 {
     public static class TestUtils
     {

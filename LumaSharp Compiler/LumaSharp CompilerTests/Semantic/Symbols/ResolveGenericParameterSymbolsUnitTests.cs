@@ -2,7 +2,7 @@
 using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.Semantic.Symbols
+namespace CompilerTests.Semantic.Symbols
 {
     [TestClass]
     public sealed class ResolveGenericParameterSymbolsUnitTests

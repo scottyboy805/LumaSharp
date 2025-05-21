@@ -1,7 +1,7 @@
 ﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
+namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
 {
     [TestClass]
     public sealed class SyntaxGenerateMemberUnitTests
@@ -76,8 +76,8 @@ namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax6 = Syntax.Accessor("MyAccessor", Syntax.TypeReference("MyType"))
                 .WithAccessorBody(
-                    Syntax.AccessorBody(AccessorOperation.Read, Syntax.Return(Syntax.Literal(false))),
-                    Syntax.AccessorBody(AccessorOperation.Write, Syntax.Return(Syntax.Literal(true))));
+                    Syntax.AccessorRead(Syntax.Return(Syntax.Literal(false))),
+                    Syntax.AccessorWrite(Syntax.Return(Syntax.Literal(true))));
 
             // Get expression text
             Assert.AreEqual("MyType MyAccessor=>read:{return false;}=>write:{return true;}", syntax6.GetSourceText());

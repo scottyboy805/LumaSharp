@@ -6,11 +6,9 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken keyword;
         private readonly GenericParameterListSyntax genericParameters;
-        private readonly SeparatedSyntaxList<TypeReferenceSyntax> baseTypes;
-        private readonly SyntaxToken colon;
-        private readonly SyntaxToken overrideKeyword;
-
-        private readonly BlockSyntax<MemberSyntax> memberBlock;
+        private readonly BaseTypeListSyntax baseTypes;
+        private readonly SyntaxToken? overrideKeyword;
+        private readonly MemberBlockSyntax members;
 
         // Properties
         public override SyntaxToken StartToken
@@ -20,7 +18,7 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get { return memberBlock.EndToken; }
+            get { return members.EndToken; }
         }
 
         public SyntaxToken Keyword
@@ -54,29 +52,19 @@ namespace LumaSharp.Compiler.AST
             get { return genericParameters; }
         }
 
-        public SeparatedSyntaxList<TypeReferenceSyntax> BaseTypes
+        public BaseTypeListSyntax BaseTypes
         {
             get { return baseTypes; }
         }
 
-        public SyntaxToken Colon
-        {
-            get { return colon; }
-        }
-
-        public SyntaxToken Override
+        public SyntaxToken? Override
         {
             get { return overrideKeyword; }
         }
 
-        public BlockSyntax<MemberSyntax> MemberBlock
+        public MemberBlockSyntax Members
         {
-            get { return memberBlock; }
-        }
-
-        public IEnumerable<MemberSyntax> Members
-        {
-            get { return memberBlock.Elements; }
+            get { return members; }
         }
 
         public int GenericParameterCount
@@ -91,7 +79,7 @@ namespace LumaSharp.Compiler.AST
 
         public int MemberCount
         {
-            get { return HasMembers ? memberBlock.ElementCount: 0; }
+            get { return HasMembers ? members.Count: 0; }
         }        
 
         public bool HasGenericParameters
@@ -106,47 +94,55 @@ namespace LumaSharp.Compiler.AST
 
         public bool HasMembers
         {
-            get { return memberBlock.HasElements; }
-        }
-
-        public bool IsAttribute
-        {
-            get { return keyword.Kind == SyntaxTokenKind.AttributeKeyword; }
-        }
-
-        public bool IsOverride
-        {
-            get { return overrideKeyword.Kind != SyntaxTokenKind.Invalid; }
+            get { return members.Count > 0; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return memberBlock.Descendants; }
+            get { return members; }
         }
 
         // Constructor
-        internal TypeSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, bool isOverride, SeparatedSyntaxList<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+        internal TypeSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, SyntaxToken? overrideToken, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.TypeKeyword),
+                  identifier,
+                  attributes,
+                  accessModifiers,
+                  genericParameters,
+                  overrideToken,
+                  baseTypes,
+                  members)
+        {
+        }
+
+        internal TypeSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, SyntaxToken? overrideToken, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
             : base(identifier, attributes, accessModifiers)
         {
+            // Check kind
+            if (keyword.Kind != SyntaxTokenKind.TypeKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.TypeKeyword);
+
+            // Check null
+            if (members == null)
+                throw new ArgumentNullException(nameof(members));
+
             // Members
-            this.keyword = Syntax.Token(SyntaxTokenKind.TypeKeyword);
+            this.keyword = keyword;
             this.genericParameters = genericParameters;
+            this.overrideKeyword = overrideToken;
+            this.baseTypes = baseTypes;
+            this.members = members;
 
-            // Check for override
-            if (isOverride == true)
-                this.overrideKeyword = Syntax.Token(SyntaxTokenKind.OverrideKeyword);
-
-            if (baseTypes != null)
+            // Set parent
+            if (attributes != null)
             {
-                this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
-                this.baseTypes = baseTypes;
+                foreach (AttributeReferenceSyntax a in attributes)
+                    a.parent = this;
             }
-
-            this.memberBlock = memberBlock;
-
-            // Check for null block
-            if (memberBlock == null)
-                this.memberBlock = new BlockSyntax<MemberSyntax>(this, Enumerable.Empty<MemberSyntax>());
+            if (genericParameters != null) genericParameters.parent = this;
+            if (baseTypes != null) baseTypes.parent = this;
+            members.parent = this;
         }
 
         // Methods
@@ -169,26 +165,23 @@ namespace LumaSharp.Compiler.AST
             }
 
             // Check for override
-            if(IsOverride == true)
-                overrideKeyword.GetSourceText(writer);
+            if(overrideKeyword != null)
+                overrideKeyword?.GetSourceText(writer);
 
             // Check for base types
             if(HasBaseTypes == true)
             {
-                // Colon
-                colon.GetSourceText(writer);
-
                 // Base types
                 baseTypes.GetSourceText(writer);
             }
 
             // Write block
-            memberBlock.GetSourceText(writer);
+            members.GetSourceText(writer);
         }
 
         void IMemberSyntaxContainer.AddMember(MemberSyntax member)
         {
-            ((IMemberSyntaxContainer)memberBlock).AddMember(member);
+            //((IMemberSyntaxContainer)members).AddMember(member);
 
             // Update hierarchy
             member.parent = this;

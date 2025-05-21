@@ -1,7 +1,7 @@
 ﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.AST
+namespace CompilerTests.AST
 {
     [TestClass]
     public class TypeReferenceSyntaxTests

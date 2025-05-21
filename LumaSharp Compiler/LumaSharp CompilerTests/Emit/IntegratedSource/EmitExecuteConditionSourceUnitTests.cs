@@ -9,7 +9,7 @@
 //using LumaSharp_Compiler;
 //using AppContext = LumaSharp.Runtime.AppContext;
 
-//namespace LumaSharp_CompilerTests.Emit.IntegratedSource
+//namespace CompilerTests.Emit.IntegratedSource
 //{
 //    [TestClass]
 //    public sealed class EmitExecuteConditionSourceUnitTests

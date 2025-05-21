@@ -2,7 +2,7 @@
 using LumaSharp.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.AST.ParseStructured
+namespace CompilerTests.AST.ParseStructured
 {
     [TestClass]
     public class ParseStructuredMemberUnitTest

@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Semantics.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Compiler.Reporting;
 
-namespace LumaSharp_CompilerTests.Semantic.Reporting
+namespace CompilerTests.Semantic.Reporting
 {
     [TestClass]
     public sealed class ReportFieldMessagesUnitTests

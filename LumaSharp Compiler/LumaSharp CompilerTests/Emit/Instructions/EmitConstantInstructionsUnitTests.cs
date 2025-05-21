@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Runtime;
 using LumaSharp.Compiler.Emit;
 
-namespace LumaSharp_CompilerTests.Emit.Instructions
+namespace CompilerTests.Emit.Instructions
 {
     [TestClass]
     public sealed class EmitConstantInstructionsUnitTests

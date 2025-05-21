@@ -114,7 +114,7 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.Identifier);
 
             if(enumerable != null && enumerable.Value.Kind != SyntaxTokenKind.EnumerableSymbol)
-                throw new ArgumentException(nameof(identifier) + " must be of kind: " + SyntaxTokenKind.EnumerableSymbol.ToString());
+                throw new ArgumentException(nameof(enumerable) + " must be of kind: " + SyntaxTokenKind.EnumerableSymbol.ToString());
 
             this.attributes = attributes;
             this.parameterType = parameterType;

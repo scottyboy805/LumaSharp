@@ -65,7 +65,7 @@ namespace LumaSharp.Compiler.AST
             this.expressions = expressions;
 
             // Set parent
-            expressions.parent = this;
+            if(expressions != null) expressions.parent = this;
         }
 
         // Methods

@@ -214,6 +214,25 @@ namespace LumaSharp.Compiler.Parser
 
         private void ReadTrailingTrivia(IList<SyntaxTrivia> trivia)
         {
+            // First lookahead to see if there is an end line - if not then we should not parse the trailing trivia
+            int position = 0;
+            while (source.EOF == false)
+            {
+                // Peek current
+                char current = source.Peek(position++);
+
+                // Check for end line
+                if (IsEndLineTrivia(current) == true || current == '\0')
+                    break;
+
+                // Handle whitespace
+                if (IsWhiteSpaceTrivia(current) == true)
+                    continue;
+
+                // Must be some other character that should be parsed as a token
+                return;
+            }
+
             while (source.EOF == false)
             {
                 // Get current char

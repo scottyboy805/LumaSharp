@@ -317,7 +317,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                 this.parentType = (TypeModel)parent;
 
             // Build model
-            BuildMembersModel(model, syntax.Fields);
+            BuildMembersModel(model, syntax.Body);
 
             // Create flags
             this.typeFlags = BuildTypeFlags();

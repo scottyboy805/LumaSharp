@@ -349,7 +349,7 @@ namespace LumaSharp.Compiler.Parser
             }
 
             // Optional enumerable token
-            SyntaxToken enumerable = default;
+            SyntaxToken? enumerable = null;
 
             if(tokens.PeekKind() == SyntaxTokenKind.EnumerableSymbol)
                 enumerable = tokens.Consume();
@@ -409,6 +409,7 @@ namespace LumaSharp.Compiler.Parser
             {
                 case SyntaxTokenKind.AnyKeyword:
                 case SyntaxTokenKind.BoolKeyword:
+                case SyntaxTokenKind.CharKeyword:
                 case SyntaxTokenKind.I8Keyword:
                 case SyntaxTokenKind.U8Keyword:
                 case SyntaxTokenKind.I16Keyword:

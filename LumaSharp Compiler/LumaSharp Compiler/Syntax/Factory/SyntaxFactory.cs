@@ -21,13 +21,13 @@ namespace LumaSharp.Compiler.AST
         //public static ImportSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType, params string[] identifiers) => new ImportSyntax(null, alias, aliasType, identifiers);
         
         public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier));
-        public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, false, null, null);
+        public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
-        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, underlyingType, null);
+        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), null);
         public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignExpressionSyntax fieldAssignment = null, bool byReference = false) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
-        public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(null, AccessorOperation.Read, statement);
-        public static AccessorBodySyntax AccessorBody(AccessorOperation op, params StatementSyntax[] statements) => new AccessorBodySyntax(null, op, new BlockSyntax<StatementSyntax>(null, statements));
-        public static AccessorBodySyntax AccessorBody(AccessorOperation op, BlockSyntax<StatementSyntax> block) => new AccessorBodySyntax(null, op, block);
+        public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
+        public static AccessorBodySyntax AccessorRead(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
+        public static AccessorBodySyntax AccessorWrite(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.WriteKeyword), statement);
         public static AccessorSyntax Accessor(SyntaxToken identifier, TypeReferenceSyntax accessorType) => new AccessorSyntax(identifier, null, null, accessorType, null, false);
 
         public static MethodSyntax Method(SyntaxToken identifier, TypeReferenceSyntax returnType) => new MethodSyntax(identifier, null, null, new SeparatedSyntaxList<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol, new[] { returnType }), null, null, null, null, null);
@@ -118,19 +118,19 @@ namespace LumaSharp.Compiler.AST
 
         // ### Attributes
         public static TypeSyntax WithAttributes(this TypeSyntax type, params AttributeReferenceSyntax[] attributes)
-            => new TypeSyntax(type.Identifier, attributes, type.AccessModifiers, type.GenericParameters, type.IsOverride, type.BaseTypes, type.MemberBlock);
+            => new TypeSyntax(type.Identifier, attributes, type.AccessModifiers, type.GenericParameters, type.Override, type.BaseTypes, type.Members);
 
         public static ContractSyntax WithAttributes(this ContractSyntax contract, params AttributeReferenceSyntax[] attributes)
-            => new ContractSyntax(contract.Identifier, attributes, contract.AccessModifiers, contract.GenericParameters, contract.BaseTypes, contract.MemberBlock);
+            => new ContractSyntax(contract.Identifier, attributes, contract.AccessModifiers, contract.GenericParameters, contract.BaseTypes, contract.Members);
 
         public static EnumSyntax WithAttributes(this EnumSyntax e, params AttributeReferenceSyntax[] attributes)
-            => new EnumSyntax(e.Identifier, attributes, e.AccessModifiers, e.UnderlyingTypeReference, e.FieldBlock);
+            => new EnumSyntax(e.Identifier, attributes, e.AccessModifiers, e.UnderlyingType, e.Body);
 
         public static FieldSyntax WithAttributes(this FieldSyntax field, params AttributeReferenceSyntax[] attributes)
             => new FieldSyntax(field.Identifier, attributes, field.AccessModifiers, field.FieldType, field.FieldAssignment);
 
         public static MethodSyntax WithAttributes(this MethodSyntax method, params AttributeReferenceSyntax[] attributes)
-            => new MethodSyntax(method.Identifier, attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, method.Body, method.LambdaStatement);
+            => new MethodSyntax(method.Identifier, attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
 
         public static ParameterSyntax WithAttributes(this ParameterSyntax parameter, params AttributeReferenceSyntax[] attributes)
             => new ParameterSyntax(attributes, parameter.ParameterType, parameter.Identifier, parameter.Assignment, parameter.Enumerable);
@@ -138,19 +138,19 @@ namespace LumaSharp.Compiler.AST
 
         // ### Modifiers
         public static TypeSyntax WithAccessModifiers(this TypeSyntax type, params SyntaxToken[] modifiers)
-            => new TypeSyntax(type.Identifier, type.Attributes, modifiers, type.GenericParameters, type.IsOverride, type.BaseTypes, type.MemberBlock);
+            => new TypeSyntax(type.Identifier, type.Attributes, modifiers, type.GenericParameters, type.Override, type.BaseTypes, type.Members);
 
         public static ContractSyntax WithAccessModifiers(this ContractSyntax contract, params SyntaxToken[] modifiers)
-            => new ContractSyntax(contract.Identifier, contract.Attributes, modifiers, contract.GenericParameters, contract.BaseTypes, contract.MemberBlock);
+            => new ContractSyntax(contract.Identifier, contract.Attributes, modifiers, contract.GenericParameters, contract.BaseTypes, contract.Members);
 
         public static EnumSyntax WithAccessModifiers(this EnumSyntax e, params SyntaxToken[] modifiers)
-            => new EnumSyntax(e.Identifier, e.Attributes, modifiers, e.UnderlyingTypeReference, e.FieldBlock);
+            => new EnumSyntax(e.Identifier, e.Attributes, modifiers, e.UnderlyingType, e.Body);
 
         public static FieldSyntax WithAccessModifiers(this FieldSyntax field, params SyntaxToken[] modifiers)
             => new FieldSyntax(field.Identifier, field.Attributes, modifiers, field.FieldType, field.FieldAssignment);
 
         public static MethodSyntax WithAccessModifiers(this MethodSyntax method, params SyntaxToken[] modifiers)
-            => new MethodSyntax(method.Identifier, method.Attributes, modifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, method.Body, method.LambdaStatement);
+            => new MethodSyntax(method.Identifier, method.Attributes, modifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
 
 
         // Generic parameters
@@ -158,35 +158,35 @@ namespace LumaSharp.Compiler.AST
             => type.WithGenericParameters(new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters)));
 
         public static TypeSyntax WithGenericParameters(this TypeSyntax type, GenericParameterListSyntax genericParameters)
-            => new TypeSyntax(type.Identifier, type.Attributes, type.AccessModifiers, genericParameters, type.IsOverride, type.BaseTypes, type.MemberBlock);
+            => new TypeSyntax(type.Identifier, type.Attributes, type.AccessModifiers, genericParameters, type.Override, type.BaseTypes, type.Members);
 
         public static ContractSyntax WithGenericParameters(this ContractSyntax contract, params GenericParameterSyntax[] genericParameters)
             => contract.WithGenericParameters(new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters)));
 
         public static ContractSyntax WithGenericParameters(this ContractSyntax contract, GenericParameterListSyntax genericParameters)
-            => new ContractSyntax(contract.Identifier, contract.Attributes, contract.AccessModifiers, genericParameters, contract.BaseTypes, contract.MemberBlock);
+            => new ContractSyntax(contract.Identifier, contract.Attributes, contract.AccessModifiers, genericParameters, contract.BaseTypes, contract.Members);
 
         public static MethodSyntax WithGenericParameters(this MethodSyntax method, params GenericParameterSyntax[] genericParameters)
             => method.WithGenericParameters(new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters)));
 
         public static MethodSyntax WithGenericParameters(this MethodSyntax method, GenericParameterListSyntax genericParameters)
-            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, genericParameters, method.Parameters, method.Override, method.Body, method.LambdaStatement);
+            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, genericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
 
 
         // Base type
         public static TypeSyntax WithBaseTypes(this TypeSyntax type, params TypeReferenceSyntax[] baseTypes)
-            => new TypeSyntax(type.Identifier, type.Attributes, type.AccessModifiers, type.GenericParameters, type.IsOverride, new(SyntaxTokenKind.CommaSymbol, baseTypes), type.MemberBlock);
+            => new TypeSyntax(type.Identifier, type.Attributes, type.AccessModifiers, type.GenericParameters, type.Override, new(new(SyntaxTokenKind.CommaSymbol, baseTypes)), type.Members);
 
         public static ContractSyntax WithBaseTypes(this ContractSyntax contract, params TypeReferenceSyntax[] baseTypes)
-            => new ContractSyntax(contract.Identifier, contract.Attributes, contract.AccessModifiers, contract.GenericParameters, new(SyntaxTokenKind.CommaSymbol, baseTypes), contract.MemberBlock);
+            => new ContractSyntax(contract.Identifier, contract.Attributes, contract.AccessModifiers, contract.GenericParameters, new(new(SyntaxTokenKind.CommaSymbol, baseTypes)), contract.Members);
 
         public static EnumSyntax WithUnderlyingType(this EnumSyntax e, TypeReferenceSyntax underlyingType)
-            => new EnumSyntax(e.Identifier, e.Attributes, e.AccessModifiers, underlyingType, e.FieldBlock);
+            => new EnumSyntax(e.Identifier, e.Attributes, e.AccessModifiers, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), e.Body);
 
 
         // Accessor
         public static AccessorSyntax WithAccessorLambda(this AccessorSyntax accessor, StatementSyntax statement)
-            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, new[] { new AccessorBodySyntax(null, AccessorOperation.Read, statement) }, accessor.IsOverride);
+            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, new[] { new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement) }, accessor.IsOverride);
 
         public static AccessorSyntax WithAccessorBody(this AccessorSyntax accessor, params AccessorBodySyntax[] accessorBodies)
             => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessorBodies, accessor.IsOverride);
@@ -194,15 +194,15 @@ namespace LumaSharp.Compiler.AST
 
         // Methods
         public static MethodSyntax WithReturn(this MethodSyntax method, TypeReferenceSyntax returnType)
-            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, new(SyntaxTokenKind.CommaSymbol, new[] { returnType }), method.GenericParameters, method.Parameters, method.Override, method.Body, method.LambdaStatement);
+            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, new(SyntaxTokenKind.CommaSymbol, new[] { returnType }), method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
 
         public static MethodSyntax WithParameters(this MethodSyntax method, params ParameterSyntax[] parameters)
-            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters)), method.Override, method.Body, method.LambdaStatement);
+            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters)), method.Override, method.Body, method.Lambda);
 
         public static MethodSyntax WithBody(this MethodSyntax method, params StatementSyntax[] bodyStatements)
-            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, new BlockSyntax<StatementSyntax>(null, bodyStatements), null);
+            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, new StatementBlockSyntax(bodyStatements), null);
 
-        public static MethodSyntax WithBody(this MethodSyntax method, BlockSyntax<StatementSyntax> body)
+        public static MethodSyntax WithBody(this MethodSyntax method, StatementSyntax body)
             => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, body, null);
 
         public static MethodSyntax WithLambda(this MethodSyntax method, StatementSyntax inlineStatement)

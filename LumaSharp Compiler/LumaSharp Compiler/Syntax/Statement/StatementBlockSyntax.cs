@@ -1,7 +1,9 @@
 ﻿
+using System.Collections;
+
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class StatementBlockSyntax : StatementSyntax
+    public sealed class StatementBlockSyntax : StatementSyntax, IEnumerable<StatementSyntax>
     {
         // Private
         private readonly SyntaxToken lBlock;
@@ -29,7 +31,17 @@ namespace LumaSharp.Compiler.AST
             get { return rBlock; }
         }
 
+        public int Count
+        {
+            get { return statements.Count; }
+        }
+
         public IEnumerable<StatementSyntax> Statements
+        {
+            get { return statements; }
+        }
+
+        internal override IEnumerable<SyntaxNode> Descendants
         {
             get { return statements; }
         }
@@ -44,7 +56,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         internal StatementBlockSyntax(SyntaxToken lBlock, IEnumerable<StatementSyntax> statements, SyntaxToken rBlock)
-            : base(SyntaxToken.Invalid)
+            : base()
         {
             // Check kind
             if (lBlock.Kind != SyntaxTokenKind.LBlockSymbol)
@@ -79,6 +91,16 @@ namespace LumaSharp.Compiler.AST
 
             // RBlock
             rBlock.GetSourceText(writer);
+        }
+
+        public IEnumerator<StatementSyntax> GetEnumerator()
+        {
+            return statements.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

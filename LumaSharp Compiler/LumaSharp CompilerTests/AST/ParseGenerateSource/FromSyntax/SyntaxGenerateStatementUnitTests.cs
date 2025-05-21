@@ -1,7 +1,7 @@
 ﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.AST.ParseGenerateSource.FromSyntax
+namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
 {
     [TestClass]
     public sealed class SyntaxGenerateStatementUnitTests

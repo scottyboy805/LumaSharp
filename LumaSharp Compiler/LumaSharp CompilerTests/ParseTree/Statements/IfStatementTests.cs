@@ -1,6 +1,6 @@
 ﻿//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-//namespace LumaSharp_CompilerTests.ParseTree.Statements
+//namespace CompilerTests.ParseTree.Statements
 //{
 //    [TestClass]
 //    public class IfStatementTests

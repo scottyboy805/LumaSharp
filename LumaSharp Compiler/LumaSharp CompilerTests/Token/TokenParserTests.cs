@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Parser;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Data;
 
-namespace LumaSharp_CompilerTests.Parser
+namespace CompilerTests.Token
 {
     [TestClass]
     public class TokenParserTests

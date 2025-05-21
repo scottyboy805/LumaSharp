@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using LumaSharp.Runtime.Reflection;
 using System.Diagnostics;
 
-namespace LumaSharp_CompilerTests.Emit.IntegratedSource.Complete
+namespace CompilerTests.Emit.IntegratedSource.Complete
 {
     [TestClass]
     public sealed class EmitFibonacciUnitTests

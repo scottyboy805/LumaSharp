@@ -7,7 +7,7 @@
 //using LumaSharp_Compiler;
 //using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-//namespace LumaSharp_CompilerTests.Emit.IntegratedSource
+//namespace CompilerTests.Emit.IntegratedSource
 //{
 //    [TestClass]
 //    public sealed class EmitExecuteForSourceUnitTests

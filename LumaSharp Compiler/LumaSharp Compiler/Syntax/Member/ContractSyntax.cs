@@ -6,15 +6,13 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken keyword;
         private readonly GenericParameterListSyntax genericParameters;
-        private readonly SeparatedSyntaxList<TypeReferenceSyntax> baseTypes;
-        private readonly SyntaxToken colon;
-
-        private readonly BlockSyntax<MemberSyntax> memberBlock;
+        private readonly BaseTypeListSyntax baseTypes;
+        private readonly MemberBlockSyntax members;
 
         // Properties
         public override SyntaxToken EndToken
         {
-            get { return memberBlock.EndToken; }
+            get { return members.EndToken; }
         }
 
         public SyntaxToken Keyword
@@ -48,24 +46,14 @@ namespace LumaSharp.Compiler.AST
             get { return genericParameters; }
         }
 
-        public SeparatedSyntaxList<TypeReferenceSyntax> BaseTypes
+        public BaseTypeListSyntax BaseTypes
         {
             get { return baseTypes; }
         }
 
-        public SyntaxToken Colon
+        public MemberBlockSyntax Members
         {
-            get { return colon; }
-        }
-
-        public BlockSyntax<MemberSyntax> MemberBlock
-        {
-            get { return memberBlock; }
-        }
-
-        public IEnumerable<MemberSyntax> Members
-        {
-            get { return memberBlock.Elements; }
+            get { return members; }
         }
 
         public int GenericParameterCount
@@ -80,7 +68,7 @@ namespace LumaSharp.Compiler.AST
 
         public int MemberCount
         {
-            get { return HasMembers ? memberBlock.ElementCount : 0; }
+            get { return HasMembers ? members.Count : 0; }
         }
 
         public bool HasGenericParameters
@@ -95,32 +83,52 @@ namespace LumaSharp.Compiler.AST
 
         public bool HasMembers
         {
-            get { return memberBlock.HasElements; }
+            get { return members.Count > 0; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
-            get { return memberBlock.Descendants; }
+            get { return members; }
         }
 
         // Constructor
-        internal ContractSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, SeparatedSyntaxList<TypeReferenceSyntax> baseTypes, BlockSyntax<MemberSyntax> memberBlock)
+        internal ContractSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
+            : this(
+                  new SyntaxToken(SyntaxTokenKind.ContractKeyword),
+                  identifier,
+                  attributes,
+                  accessModifiers,
+                  genericParameter,
+                  baseTypes, 
+                  members)
+        {
+        }
+
+        internal ContractSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
             : base(identifier, attributes, accessModifiers)
         {
-            this.keyword = Syntax.Token(SyntaxTokenKind.ContractKeyword);
-            this.genericParameters = genericParameter;
-            
-            if(baseTypes != null)
+            // Check kind
+            if (keyword.Kind != SyntaxTokenKind.ContractKeyword)
+                throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ContractKeyword);
+
+            // Check null
+            if (members == null)
+                throw new ArgumentNullException(nameof(members));
+
+            this.keyword = keyword;
+            this.genericParameters = genericParameters;
+            this.baseTypes = baseTypes;
+            this.members = members;
+
+            // Set parent
+            if(attributes != null)
             {
-                this.colon = Syntax.Token(SyntaxTokenKind.ColonSymbol);
-                this.baseTypes = baseTypes;
+                foreach (AttributeReferenceSyntax a in attributes)
+                    a.parent = this;
             }
-
-            this.memberBlock = memberBlock;
-
-            // Check for null block
-            if(memberBlock == null)
-                this.memberBlock = new BlockSyntax<MemberSyntax>(this, Enumerable.Empty<MemberSyntax>());
+            if (genericParameters != null) genericParameters.parent = this;
+            if (baseTypes != null) baseTypes.parent = this;
+            members.parent = this;
         }
 
         // Methods
@@ -144,20 +152,17 @@ namespace LumaSharp.Compiler.AST
             // Check for base types
             if(HasBaseTypes == true)
             {
-                // Colon
-                colon.GetSourceText(writer);
-
                 // Base types
                 baseTypes.GetSourceText(writer);
             }
 
             // Write block
-            memberBlock.GetSourceText(writer);
+            members.GetSourceText(writer);
         }
 
         public void AddMember(MemberSyntax member)
         {
-            ((IMemberSyntaxContainer)memberBlock).AddMember(member);
+            //((IMemberSyntaxContainer)memberBlock).AddMember(member);
 
             // Update hierarchy
             member.parent = this;

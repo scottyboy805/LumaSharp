@@ -1,6 +1,6 @@
 ﻿//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-//namespace LumaSharp_CompilerTests.ParseTree.Expressions
+//namespace CompilerTests.ParseTree.Expressions
 //{
 //    [TestClass]
 //    public class ArrayIndexExpressionTests

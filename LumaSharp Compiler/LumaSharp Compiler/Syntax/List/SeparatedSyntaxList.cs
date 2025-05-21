@@ -84,6 +84,14 @@ namespace LumaSharp.Compiler.AST
             this.separatorKind = separatorKind;
         }
 
+        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, T syntaxSingle)
+        {
+            this.separatorKind = separatorKind;
+            this.syntaxList = new();
+
+            AddElement(syntaxSingle, null);
+        }
+
         internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, T[] syntaxList)
         {
             this.separatorKind = separatorKind;

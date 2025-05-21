@@ -216,6 +216,7 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.ReturnKeyword, "return" },
             { SyntaxTokenKind.OverrideKeyword, "override" },
             { SyntaxTokenKind.IfKeyword, "if" },
+            { SyntaxTokenKind.ElifKeyword, "elif" },
             { SyntaxTokenKind.ElseKeyword, "else" },
             { SyntaxTokenKind.TrueKeyword, "true" },
             { SyntaxTokenKind.FalseKeyword, "false" },

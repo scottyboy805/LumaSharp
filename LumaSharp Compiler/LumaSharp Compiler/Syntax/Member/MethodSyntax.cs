@@ -7,8 +7,8 @@ namespace LumaSharp.Compiler.AST
         private readonly SeparatedSyntaxList<TypeReferenceSyntax> returnTypes;
         private readonly GenericParameterListSyntax genericParameters;
         private readonly ParameterListSyntax parameters;
-        private readonly BlockSyntax<StatementSyntax> body;
-        private readonly LambdaStatementSyntax lambdaStatement;
+        private readonly StatementSyntax body;
+        private readonly LambdaStatementSyntax lambda;
         private readonly SyntaxToken? overrideKeyword;
 
         // Properties
@@ -34,12 +34,8 @@ namespace LumaSharp.Compiler.AST
             get
             {
                 // Check for body
-                if(HasBody == true)
+                if (HasBody == true)
                     return body.EndToken;
-
-                // Check for lambda
-                if(HasLambdaStatement == true)
-                    return lambdaStatement.EndToken;
 
                 // Check for override
                 if (overrideKeyword != null)
@@ -70,14 +66,14 @@ namespace LumaSharp.Compiler.AST
             get { return parameters; }
         }
 
-        public BlockSyntax<StatementSyntax> Body
+        public StatementSyntax Body
         {
             get { return body; }
         }
 
-        public LambdaStatementSyntax LambdaStatement
+        public LambdaStatementSyntax Lambda
         {
-            get { return lambdaStatement; }
+            get { return lambda; }
         }
 
         public bool HasGenericParameters
@@ -95,24 +91,27 @@ namespace LumaSharp.Compiler.AST
             get { return body != null; }
         }
 
-        public bool HasLambdaStatement
+        public bool HasLambda
         {
-            get { return LambdaStatement != null; }
+            get { return lambda != null; }
         }
 
-        internal override IEnumerable<SyntaxNode> Descendants => throw new NotImplementedException();
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { return body?.Descendants; }
+        }
 
         // Constructor
-        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? isOverride, BlockSyntax<StatementSyntax> body, LambdaStatementSyntax lambda)
+        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementSyntax body, LambdaStatementSyntax lambda)
             : base(identifier, attributes, accessModifiers)
         {
             this.returnTypes = returnTypes;
             this.genericParameters = genericParameters;
             this.parameters = parameters;
-            this.overrideKeyword = isOverride;
+            this.overrideKeyword = overrideToken;
 
             this.body = body;
-            this.lambdaStatement = lambda;
+            this.lambda = lambda;
         }
 
         // Methods
@@ -133,18 +132,13 @@ namespace LumaSharp.Compiler.AST
             // Override
             if(overrideKeyword != null)
             {
-                overrideKeyword.Value.GetSourceText(writer);
+                overrideKeyword?.GetSourceText(writer);
             }
 
             // Body
             if(HasBody == true)
             {
                 body.GetSourceText(writer);
-            }
-            // Lambda
-            else if(HasLambdaStatement == true)
-            {
-                lambdaStatement.GetSourceText(writer);
             }
         }
     }

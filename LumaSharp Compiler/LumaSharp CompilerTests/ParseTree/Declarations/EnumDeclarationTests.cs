@@ -1,6 +1,6 @@
 ﻿//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-//namespace LumaSharp_CompilerTests.ParseTree.Declarations
+//namespace CompilerTests.ParseTree.Declarations
 //{
 //    [TestClass]
 //    public class EnumDeclarationTests

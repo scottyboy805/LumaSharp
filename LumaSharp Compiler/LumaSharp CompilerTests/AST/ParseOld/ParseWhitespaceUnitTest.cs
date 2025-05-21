@@ -2,7 +2,7 @@
 using LumaSharp.Compiler;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace LumaSharp_CompilerTests.AST.Parse
+namespace CompilerTests.AST.Parse
 {
     [TestClass]
     public class ParseWhitespaceUnitTest

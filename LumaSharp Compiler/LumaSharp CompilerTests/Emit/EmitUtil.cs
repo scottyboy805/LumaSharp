@@ -5,7 +5,7 @@ using MethodBuilder = LumaSharp.Compiler.Emit.MethodBuilder;
 using LumaSharp.Compiler.Emit;
 using LumaSharp.Runtime;
 
-namespace LumaSharp_CompilerTests.Emit
+namespace CompilerTests.Emit
 {
     public static class EmitUtil
     {
