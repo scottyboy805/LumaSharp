@@ -3,31 +3,31 @@ namespace LumaSharp.Compiler.AST
 {
     public abstract class StatementSyntax : SyntaxNode
     {
-        // Private
-        private readonly SyntaxToken semicolon;
+        //// Private
+        //private readonly SyntaxToken semicolon;
 
-        // Properties
-        public SyntaxToken Semicolon => semicolon;
+        //// Properties
+        //public SyntaxToken Semicolon => semicolon;
 
-        internal override IEnumerable<SyntaxNode> Descendants
-        {
-            get { yield break; }
-        }
+        //internal override IEnumerable<SyntaxNode> Descendants
+        //{
+        //    get { yield break; }
+        //}
 
-        // Constructor
-        protected StatementSyntax()
-        {
-            semicolon = SyntaxToken.Invalid;
-        }
+        //// Constructor
+        //protected StatementSyntax()
+        //{
+        //    semicolon = SyntaxToken.Invalid;
+        //}
 
-        protected StatementSyntax(SyntaxToken semicolon)
-        {            
-            // Check kind
-            if(semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
-                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
+        //protected StatementSyntax(SyntaxToken semicolon)
+        //{            
+        //    // Check kind
+        //    if(semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+        //        throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
 
-            this.semicolon = semicolon;
-        }
+        //    this.semicolon = semicolon;
+        //}
 
         // Methods
         //public static StatementSyntax Any(SyntaxNode parent, LumaSharpParser.StatementContext statement)

@@ -36,7 +36,23 @@ namespace LumaSharp.Compiler.Parser
                 // Check for return
                 if (statement == null)
                     statement = ParseReturnStatement();
+
+                // Check for foreach
+                if (statement == null)
+                    statement = ParseForeachStatement();
+
+                // Check for for
+                if (statement == null)
+                    statement = ParseForStatement();
             }
+
+            // Check for assignment
+            if (statement == null)
+                statement = ParseAssignStatement();
+
+            // Check for variable declaration
+            if(statement == null)
+                statement = ParseVariableDeclarationStatement();
 
             return statement;
         }
@@ -76,7 +92,7 @@ namespace LumaSharp.Compiler.Parser
                     if(statement == null)
                     {
                         // Expected statement
-                        report.ReportDiagnostic(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                        report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Source);
                         return RecoverFromStatementBlockError();
                     }
 
@@ -123,7 +139,7 @@ namespace LumaSharp.Compiler.Parser
                 if(statement == null)
                 {
                     // Expected statement
-                    report.ReportDiagnostic(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Source);
                     return RecoverFromStatementError();
                 }
 
@@ -159,7 +175,7 @@ namespace LumaSharp.Compiler.Parser
                 if (statement == null)
                 {
                     // Expected statement
-                    report.ReportDiagnostic(Code.ExprectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Source);
                     return RecoverFromStatementError();
                 }
 
@@ -183,6 +199,9 @@ namespace LumaSharp.Compiler.Parser
                 // Consume token
                 SyntaxToken forToken = tokens.Consume();
 
+                // Parse optional type reference
+                TypeReferenceSyntax typeReference = null;
+
                 // Parse identifier - Type is implicit??
                 if(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.InKeyword)
                 {
@@ -199,17 +218,156 @@ namespace LumaSharp.Compiler.Parser
                     StatementSyntax statement = ParseStatement();
 
                     // Create the foreach syntax
-                    //return new Foreach
+                    return new ForeachStatementSyntax(forToken, typeReference, identifier, inToken, expression, statement);
                 }
-                else if(tokens.PeekKind() == SyntaxTokenKind.Identifier)
+                // Parse with explicit type
+                else if((typeReference = ParseTypeReference()) != null && tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.InKeyword)
                 {
-                    // Expected 'in' - we can give an error here after we encounter 'for identifier' - this pattern can only be a foreach
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.InKeyword));
-                    return RecoverFromStatementError();
+                    // Now we know that we are dealing with a foreach loop for certain
+                    SyntaxToken identifier = tokens.Consume();
+
+                    // Get in keyword
+                    SyntaxToken inToken = tokens.Consume();
+
+                    // Get expression
+                    ExpressionSyntax expression = ParseExpression();
+
+                    // Parse the statement
+                    StatementSyntax statement = ParseStatement();
+
+                    // Create the foreach syntax
+                    return new ForeachStatementSyntax(forToken, typeReference, identifier, inToken, expression, statement);
                 }
+                //else if(tokens.PeekKind() == SyntaxTokenKind.Identifier)
+                //{
+                //    // Expected 'in' - we can give an error here after we encounter 'for identifier' - this pattern can only be a foreach
+                //    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.InKeyword));
+                //    return RecoverFromStatementError();
+                //}
             }
 
             // Retrace position
+            tokens.Retrace(initialPosition);
+            return null;
+        }
+
+        internal StatementSyntax ParseForStatement()
+        {
+            // Store current position
+            int initialPosition = tokens.Position;
+
+            // Check for
+            if(tokens.PeekKind() == SyntaxTokenKind.ForKeyword)
+            {
+                // Consume token
+                SyntaxToken forToken = tokens.Consume();
+
+                // Parse variable
+                VariableDeclarationSyntax variable = ParseVariableDeclaration();
+
+                // Expect semicolon
+                if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken variableSemicolon) == false)
+                {
+                    // Expected ';'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    return RecoverFromStatementError();
+                }
+
+                // Parse condition expression
+                ExpressionSyntax condition = ParseOptionalExpression();
+
+                // Expect semicolon
+                if (tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken conditionSemicolon) == false)
+                {
+                    // Expected ';'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    return RecoverFromStatementError();
+                }
+
+                // Parse increment expressions
+                SeparatedSyntaxList<ExpressionSyntax> increments = ParseSeparatedSyntaxList(ParseOptionalExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Invalid);
+
+                // Parse statement
+                StatementSyntax statement = ParseStatement();
+
+                // Create for
+                return new ForStatementSyntax(forToken, variable, variableSemicolon, condition, conditionSemicolon, increments, statement);
+            }
+            return null;
+        }
+
+        internal StatementSyntax ParseAssignStatement()
+        {
+            int startPosition = tokens.Position;
+
+            // Parse the left side - be sure to only parse lhs expressions to avoid ambiguity and over parsing
+            SeparatedSyntaxList<ExpressionSyntax> left = ParseSeparatedSyntaxList(ParseLHSExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Invalid);
+
+            // Check for valid assign
+            if(tokens.Peek().IsAssign == true)
+            {
+                // Parse the assignment
+                VariableAssignmentExpressionSyntax assignment = ParseVariableAssignExpression();
+
+                // Expect semicolon
+                if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
+                {
+                    // Expected ';'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    return RecoverFromStatementError();
+                }
+
+                // Create the assign
+                return new AssignStatementSyntax(left, assignment, semicolon);
+            }
+
+            // Retrace back to the start
+            tokens.Retrace(startPosition);
+            return null;
+        }
+
+        internal StatementSyntax ParseVariableDeclarationStatement()
+        {
+            // Try to parse variable
+            VariableDeclarationSyntax variable = ParseVariableDeclaration();
+
+            // Check for valid
+            if(variable != null)
+            {
+                // Expect semicolon
+                if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
+                {
+                    // Expected ';'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    return RecoverFromStatementError();
+                }
+
+                // Create the variable
+                return new VariableDeclarationStatementSyntax(variable, semicolon);
+            }
+            return null;
+        }
+
+        internal VariableDeclarationSyntax ParseVariableDeclaration()
+        {
+            // Store current position
+            int initialPosition = tokens.Position;
+
+            // Expect type
+            TypeReferenceSyntax variableType = ParseTypeReference();
+
+            // Check for identifier
+            SeparatedTokenList identifierList = ParseSeparatedTokenList(SyntaxTokenKind.CommaSymbol);
+
+            // Check for valid
+            if (variableType != null && identifierList != null)
+            {
+                // Parse optional assignment
+                VariableAssignmentExpressionSyntax assignExpression = ParseVariableAssignExpression();
+
+                // Create the declaration
+                return new VariableDeclarationSyntax(variableType, identifierList, assignExpression);
+            }
             tokens.Retrace(initialPosition);
             return null;
         }

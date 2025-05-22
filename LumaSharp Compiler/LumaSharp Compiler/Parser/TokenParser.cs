@@ -221,7 +221,7 @@ namespace LumaSharp.Compiler.Parser
                 // Peek current
                 char current = source.Peek(position++);
 
-                // Check for end line
+                // Check for end line or end of stream
                 if (IsEndLineTrivia(current) == true || current == '\0')
                     break;
 
@@ -503,7 +503,13 @@ namespace LumaSharp.Compiler.Parser
                 {
                     // Set flag
                     if (source.Peek() == '.')
+                    {
                         consumedDecimal = true;
+
+                        // Check for no trailing number after dot - should be treated as member access so process as a separate token
+                        if (char.IsDigit(source.Peek(1)) == false)
+                            break;
+                    }
 
                     // Append the character
                     builder.Append(source.Consume());

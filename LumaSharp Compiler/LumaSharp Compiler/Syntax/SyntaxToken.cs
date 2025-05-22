@@ -1,6 +1,4 @@
-﻿using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
-
+﻿
 namespace LumaSharp.Compiler.AST
 {
     public enum SyntaxTokenKind
@@ -254,6 +252,7 @@ namespace LumaSharp.Compiler.AST
         public bool IsLiteral => IsLiteralKind(Kind);
         public bool IsPrimitiveType => IsPrimitiveTypeKind(Kind);
         public bool IsAccessModifier => IsAccessModifierKind(Kind);
+        public bool IsRange => IsRangeKind(Kind);
         public bool IsBinaryOperand => IsBinaryOperandKind(Kind);
         public bool IsUnaryOperand => IsUnaryOperandKind(Kind);
         public bool IsAssign => IsAssignKind(Kind);
@@ -328,9 +327,27 @@ namespace LumaSharp.Compiler.AST
                 t.GetSourceText(writer);
         }
 
+        public string GetSourceText()
+        {
+            // Create the writer
+            using (StringWriter writer = new StringWriter())
+            {
+                // Write the text
+                GetSourceText(writer);
+
+                // Get full string
+                return writer.ToString();
+            }
+        }
+
         public override string ToString()
         {
-            return Text;
+            // Check for no trivia
+            if(trivia == null || trivia.Count == 0)
+                return Text;
+
+            // Get the source text with trivia
+            return GetSourceText();
         }
 
         public static string GetText(SyntaxTokenKind kind)
@@ -404,6 +421,17 @@ namespace LumaSharp.Compiler.AST
                 case SyntaxTokenKind.GlobalKeyword:
                 case SyntaxTokenKind.HiddenKeyword:
                 case SyntaxTokenKind.InternalKeyword:
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsRangeKind(SyntaxTokenKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxTokenKind.RangeInclusiveSymbol:
+                case SyntaxTokenKind.RangeExclusiveSymbol:
                     return true;
             }
             return false;

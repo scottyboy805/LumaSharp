@@ -113,7 +113,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public int Index
         {
-            get { return syntax.Index; }
+            get { return syntax.GetPositionIndex(); }
         }
 
         public IReferenceSymbol ParentSymbol

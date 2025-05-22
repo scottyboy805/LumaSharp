@@ -6,6 +6,7 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken keyword;
         private readonly SeparatedSyntaxList<ExpressionSyntax> expressions;
+        private readonly SyntaxToken semicolon;
 
         // Properties
         public override SyntaxToken StartToken
@@ -15,19 +16,17 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get
-            {
-                // Check for returns
-                if (HasExpressions == true)
-                    return expressions.EndToken;
-
-                return keyword;
-            }
+            get { return semicolon; }
         }
 
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public SyntaxToken Semicolon
+        {
+            get { return semicolon; }
         }
 
         public SeparatedSyntaxList<ExpressionSyntax> Expressions
@@ -40,6 +39,15 @@ namespace LumaSharp.Compiler.AST
             get { return expressions != null; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get
+            {
+                if (HasExpressions == true)
+                    yield return expressions;
+            }
+        }
+
         // Constructor
         internal ReturnStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> expressions)
             : this(
@@ -50,7 +58,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         internal ReturnStatementSyntax(SyntaxToken keyword, SeparatedSyntaxList<ExpressionSyntax> expressions, SyntaxToken semicolon)
-            : base(semicolon)
         {
             // Check kind
             if(keyword.Kind != SyntaxTokenKind.ReturnKeyword)
@@ -63,6 +70,7 @@ namespace LumaSharp.Compiler.AST
 
             this.keyword = keyword;
             this.expressions = expressions;
+            this.semicolon = semicolon;
 
             // Set parent
             if(expressions != null) expressions.parent = this;
@@ -79,6 +87,9 @@ namespace LumaSharp.Compiler.AST
             {
                 expressions.GetSourceText(writer);
             }
+
+            // Semicolon
+            semicolon.GetSourceText(writer);
         }
     }
 }

@@ -7,7 +7,6 @@ namespace LumaSharp.Compiler.AST
         private readonly SyntaxToken identifier;
         private readonly SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints;
         private readonly SyntaxToken colon;
-        private readonly int index;
 
         // Internal
         internal static readonly GenericParameterSyntax Error = new();
@@ -40,11 +39,6 @@ namespace LumaSharp.Compiler.AST
             get { return genericConstraints; }
         }
 
-        public int Index
-        {
-            get { return index; }
-        }
-
         public int ConstraintTypeCount
         {
             get { return HasConstraintTypes ? genericConstraints.Count : 0; }
@@ -71,7 +65,7 @@ namespace LumaSharp.Compiler.AST
             this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
         }
 
-        internal GenericParameterSyntax(SyntaxToken identifier, int index, SyntaxToken colon, SeparatedSyntaxList<TypeReferenceSyntax> constraintTypes)
+        internal GenericParameterSyntax(SyntaxToken identifier, SyntaxToken colon, SeparatedSyntaxList<TypeReferenceSyntax> constraintTypes)
         {
             // Check kind
             if (identifier.Kind != SyntaxTokenKind.Identifier)
@@ -81,7 +75,6 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException(nameof(colon) + " must be of kind: " + SyntaxTokenKind.ColonSymbol);
 
             this.identifier = identifier;
-            this.index = index;
             this.colon = colon;
             this.genericConstraints = constraintTypes;
 
@@ -103,6 +96,16 @@ namespace LumaSharp.Compiler.AST
                 // Get constrains types
                 genericConstraints.GetSourceText(writer);
             }
+        }
+
+        public int GetPositionIndex()
+        {
+            // Try to find index
+            if (parent is GenericParameterListSyntax genericParameterList)
+                return genericParameterList.IndexOf(this);
+
+            // Invalid index
+            return -1;
         }
     }
 }

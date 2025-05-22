@@ -4,6 +4,7 @@ using LumaSharp.Compiler.AST.Visitor;
 using LumaSharp.Compiler.Parser;
 using LumaSharp.Compiler.Reporting;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace CompilerTests
 {
@@ -41,14 +42,29 @@ namespace CompilerTests
             return context;
         }
 
+        public static CompilationUnitSyntax ParseInputStringCompilationUnit(string input)
+        {
+            return CreateParser(input, p => p.ParseCompilationUnit());
+        }
+
         public static StatementSyntax ParseInputStringStatement(string input)
         {
             return CreateParser(input, p => p.ParseStatement());
         }
 
+        internal static T ParseInputStringStatement<T>(string input, Func<ASTParser, T> parseStatement) where T : StatementSyntax
+        {
+            return CreateParser(input, p => parseStatement(p));
+        }
+
         public static ExpressionSyntax ParseInputStringExpression(string input)
         {
             return CreateParser(input, p => p.ParseExpression());
+        }
+
+        internal static T ParseInputStringExpression<T>(string input, Func<ASTParser, T> parseExpression) where T : ExpressionSyntax
+        {
+            return CreateParser(input, p => parseExpression(p));
         }
 
         public static LumaSharpParser.NamespaceDeclarationContext ParseNamespaceDeclaration(string input)
@@ -106,6 +122,11 @@ namespace CompilerTests
         public static TypeReferenceSyntax ParseTypeReference(string input)
         {
             return CreateParser(input, p => p.ParseTypeReference());
+        }
+
+        public static SeparatedTokenList ParseSeparatedTokenList(string input, SyntaxTokenKind separatorKind, SyntaxTokenKind valueKind, bool requireTrailingSeparator)
+        {
+            return CreateParser(input, p => p.ParseSeparatedTokenList(separatorKind, valueKind, requireTrailingSeparator));
         }
 
         private static T CreateParser<T>(string input, Func<ASTParser, T> parse) where T : SyntaxNode

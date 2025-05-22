@@ -74,7 +74,7 @@ namespace CompilerTests.Semantic.Reporting
                 Syntax.Field("myField", Syntax.TypeReference("Test"))
                 .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)),
                 Syntax.Method("Test", Syntax.TypeReference("Test"))
-                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference("Test"), "myVar"),
                     Syntax.Return(Syntax.MemberReference(Syntax.VariableReference("myVar"), "myField")))));
 
             // Create model

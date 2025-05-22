@@ -86,8 +86,8 @@ namespace LumaSharp.Compiler.Semantics.Model
             this.syntax = syntax;
 
             // Variable
-            if(syntax.HasVariable == true)
-                this.variableModel = StatementModel.Any(model, this, syntax.Variable, StatementIndex, this) as VariableModel;
+            //if(syntax.HasVariable == true)
+            //    this.variableModel = StatementModel.Any(model, this, syntax.Variable, StatementIndex, this) as VariableModel;
 
             // Condition
             if (syntax.HasCondition == true)

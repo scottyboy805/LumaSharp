@@ -18,5 +18,21 @@ namespace CompilerTests.AST.Parse.Statement
             Assert.IsNotNull(statement);
             Assert.IsInstanceOfType(statement, typeof(BreakStatementSyntax));
         }
+
+        [DataTestMethod]
+        [DataRow("break;")]
+        public void ParseBreakNode(string input)
+        {
+            // Try to parse the tree
+            BreakStatementSyntax statement = TestUtils.ParseInputStringStatement(input, 
+                p => p.ParseBreakStatement() as BreakStatementSyntax);
+
+            Assert.IsNotNull(statement);
+            Assert.AreEqual(SyntaxTokenKind.BreakKeyword, statement.Keyword.Kind);
+            Assert.AreEqual(SyntaxTokenKind.SemicolonSymbol, statement.Semicolon.Kind);
+            Assert.AreEqual(SyntaxTokenKind.BreakKeyword, statement.StartToken.Kind);
+            Assert.AreEqual(SyntaxTokenKind.SemicolonSymbol, statement.EndToken.Kind);
+            Assert.IsFalse(statement.Descendants.Any());
+        }
     }
 }

@@ -67,8 +67,8 @@ namespace LumaSharp.Compiler.AST
             if (separators != null)
             {
                 // Check for rank too high
-                if (separators.Length > 1)
-                    throw new ArgumentException("Rank cannot be greater than 2");
+                if (separators.Length > 2)
+                    throw new ArgumentException("Rank cannot be greater than 3");
 
                 // Check for invalid separators
                 foreach (SyntaxToken separator in separators)

@@ -1,12 +1,15 @@
 ﻿
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ForStatementSyntax : StatementSyntax
     {
         // Private
         private readonly SyntaxToken keyword;
-        private readonly VariableDeclarationStatementSyntax variable;
+        private readonly VariableDeclarationSyntax variable;
+        private readonly SyntaxToken variableSemicolon;
         private readonly ExpressionSyntax condition;
+        private readonly SyntaxToken conditionSemicolon;
         private readonly SeparatedSyntaxList<ExpressionSyntax> increments;
         private readonly StatementSyntax statement;
 
@@ -26,7 +29,17 @@ namespace LumaSharp.Compiler.AST
             get { return keyword; }
         }
 
-        public VariableDeclarationStatementSyntax Variable
+        public SyntaxToken VariableSemicolon
+        {
+            get { return variableSemicolon; }
+        }
+
+        public SyntaxToken ConditionSemicolon
+        {
+            get { return conditionSemicolon; }
+        }
+
+        public VariableDeclarationSyntax Variable
         {
             get { return variable; }
         }
@@ -61,18 +74,35 @@ namespace LumaSharp.Compiler.AST
             get { return increments != null; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get
+            {
+                if(variable != null)
+                    yield return variable;
+
+                if(condition != null)
+                    yield return condition;
+
+                if (increments != null)
+                    yield return increments;
+            }
+        }
+
         // Constructor
-        internal ForStatementSyntax(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
+        internal ForStatementSyntax(VariableDeclarationSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
             : this(
                   new SyntaxToken(SyntaxTokenKind.ForKeyword),
                   variable,
+                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol),
                   condition,
+                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol),
                   increments,
                   statement)
         {
         }
 
-        internal ForStatementSyntax(SyntaxToken keyword, VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
+        internal ForStatementSyntax(SyntaxToken keyword, VariableDeclarationSyntax variable, SyntaxToken variableSemicolon, ExpressionSyntax condition, SyntaxToken conditionSemicolon, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
         {
             // Check kind
             if(keyword.Kind != SyntaxTokenKind.ForKeyword)
@@ -84,7 +114,9 @@ namespace LumaSharp.Compiler.AST
 
             this.keyword = keyword;
             this.variable = variable;
+            this.variableSemicolon = variableSemicolon;
             this.condition = condition;
+            this.conditionSemicolon = conditionSemicolon;
             this.increments = increments;
             this.statement = statement;
 
@@ -105,9 +137,15 @@ namespace LumaSharp.Compiler.AST
             if(HasVariable == true)
                 variable.GetSourceText(writer);
 
+            // Variable semicolon
+            variableSemicolon.GetSourceText(writer);
+
             // Foreach condition
             if(HasCondition == true)
                 condition.GetSourceText(writer);
+
+            // Condition semicolon
+            conditionSemicolon.GetSourceText(writer);
 
             // For expression
             if (HasIncrements == true) 

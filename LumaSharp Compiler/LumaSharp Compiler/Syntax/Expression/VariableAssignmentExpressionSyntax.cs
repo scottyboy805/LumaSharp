@@ -12,7 +12,7 @@ namespace LumaSharp.Compiler.AST
         DivideAssign,
     }
 
-    public sealed class VariableAssignExpressionSyntax : ExpressionSyntax
+    public sealed class VariableAssignmentExpressionSyntax : ExpressionSyntax
     {
         // Private
         private readonly SeparatedSyntaxList<ExpressionSyntax> assignExpressions;
@@ -55,14 +55,14 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal VariableAssignExpressionSyntax(SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
+        internal VariableAssignmentExpressionSyntax(SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
             : this(
                   new SyntaxToken(SyntaxTokenKind.AssignSymbol),
                   assignExpressions)
         {
         }
 
-        internal VariableAssignExpressionSyntax(SyntaxToken assign, SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
+        internal VariableAssignmentExpressionSyntax(SyntaxToken assign, SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
         {
             // Check kind
             if (assign.IsAssign == false)
@@ -91,7 +91,7 @@ namespace LumaSharp.Compiler.AST
 
         public override void Accept(SyntaxVisitor visitor)
         {
-            visitor.VisitVariableAssignExpression(this);
+            visitor.VisitVariableAssignmentExpression(this);
         }
     }
 }

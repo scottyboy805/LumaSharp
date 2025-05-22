@@ -11,7 +11,7 @@ namespace CompilerTests.AST.Parse.Expression
         [DataRow("new i32()")]
         [DataRow("new MyType()")]
         [DataRow("new myGenericType<i32>()")]
-        [DataRow("new myGenericType<i32, string, SomeOtherType<i8>>()")]
+        [DataRow("new myGenericType<i32, SomeOtherType<i8>, string>()")]
         public void ParseAsNewExpression(string input)
         {
             // Try to parse the tree

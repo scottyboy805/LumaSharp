@@ -16,7 +16,7 @@ namespace CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference("Test"), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"), 
                         Syntax.VariableAssignment(Syntax.MemberReference(Syntax.VariableReference("myVar"), "myField"))))));
 
@@ -45,7 +45,7 @@ namespace CompilerTests.Emit.Instructions
                 Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "param1", true))
-                .WithBody(Syntax.Variable(Syntax.TypeReference("Test"), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference("Test"), "myVar"),
                 Syntax.Return(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.MemberReference(Syntax.VariableReference("myVar"), "myField"), "Test"), Syntax.ArgumentList(Syntax.VariableReference("myVar")))))));
 
             // Create model

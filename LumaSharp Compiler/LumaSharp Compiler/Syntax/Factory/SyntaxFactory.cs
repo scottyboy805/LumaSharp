@@ -24,11 +24,11 @@ namespace LumaSharp.Compiler.AST
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
         public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), null);
-        public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignExpressionSyntax fieldAssignment = null, bool byReference = false) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
+        public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null, bool byReference = false) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
         public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
         public static AccessorBodySyntax AccessorRead(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
         public static AccessorBodySyntax AccessorWrite(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.WriteKeyword), statement);
-        public static AccessorSyntax Accessor(SyntaxToken identifier, TypeReferenceSyntax accessorType) => new AccessorSyntax(identifier, null, null, accessorType, null, false);
+        public static AccessorSyntax Accessor(SyntaxToken identifier, TypeReferenceSyntax accessorType) => new AccessorSyntax(identifier, null, null, accessorType, null, null, null);
 
         public static MethodSyntax Method(SyntaxToken identifier, TypeReferenceSyntax returnType) => new MethodSyntax(identifier, null, null, new SeparatedSyntaxList<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol, new[] { returnType }), null, null, null, null, null);
         public static MethodSyntax Method(SyntaxToken identifier) => new MethodSyntax(identifier, null, null, null, null, null, null, null, null);
@@ -44,7 +44,7 @@ namespace LumaSharp.Compiler.AST
         public static TypeReferenceSyntax TypeReference(ParentTypeReferenceSyntax parentType, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(null, new[] { parentType }, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
         public static TypeReferenceSyntax TypeReference(string[] namespaceName, ParentTypeReferenceSyntax[] parentTypes, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(NamespaceName(namespaceName), parentTypes, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
         public static TypeReferenceSyntax TypeReference(string[] namespaceName, ParentTypeReferenceSyntax parentType, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(NamespaceName(namespaceName), new[] { parentType }, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
-        public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, 0, default, new(SyntaxTokenKind.CommaSymbol, constrainTypes));
+        public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, default, new(SyntaxTokenKind.CommaSymbol, constrainTypes));
         public static GenericParameterListSyntax GenericParameterList(params GenericParameterSyntax[] genericParameters) => new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters));
         public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, bool variableSizedList = false) => new ParameterSyntax(null, parameterType, identifier, null, variableSizedList ? new SyntaxToken(SyntaxTokenKind.EnumerableSymbol) : default);
         public static ParameterListSyntax ParameterList(params ParameterSyntax[] parameters) => new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters));
@@ -54,15 +54,17 @@ namespace LumaSharp.Compiler.AST
         #endregion
 
         #region Statements
-        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, params SyntaxToken[] identifiers) => new VariableDeclarationStatementSyntax(variableType, new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), null);
-        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignExpressionSyntax assignment) => new VariableDeclarationStatementSyntax(variableType, new(new [] { identifier }, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), assignment);
-        public static VariableDeclarationStatementSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignExpressionSyntax assignment) => new VariableDeclarationStatementSyntax(variableType, new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), assignment);
-        public static AssignStatementSyntax Assign(ExpressionSyntax left, VariableAssignExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, new[] { left }), variableAssign);
-        public static AssignStatementSyntax Assign(ExpressionSyntax[] left, VariableAssignExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, left), variableAssign);
+        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationSyntax(variableType, new(new [] { identifier }, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), assignment);
+        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationSyntax(variableType, new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), assignment);
+        public static VariableDeclarationStatementSyntax LocalVariable(VariableDeclarationSyntax variable) => new VariableDeclarationStatementSyntax(variable);
+        public static VariableDeclarationStatementSyntax LocalVariable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationStatementSyntax(Variable(variableType, identifier, assignment));
+        public static VariableDeclarationStatementSyntax LocalVariable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationStatementSyntax(Variable(variableType, identifiers, assignment));
+        public static AssignStatementSyntax Assign(ExpressionSyntax left, VariableAssignmentExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, new[] { left }), variableAssign);
+        public static AssignStatementSyntax Assign(ExpressionSyntax[] left, VariableAssignmentExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, left), variableAssign);
         public static BreakStatementSyntax Break() => new BreakStatementSyntax();
         public static ConditionStatementSyntax Condition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(Token(SyntaxTokenKind.IfKeyword), condition, null, new EmptyStatementSyntax());
         public static ContinueStatementSyntax Continue() => new ContinueStatementSyntax();
-        public static ForStatementSyntax For(VariableDeclarationStatementSyntax variable, ExpressionSyntax condition, params ExpressionSyntax[] increments) => new ForStatementSyntax(variable, condition, new(SyntaxTokenKind.CommaSymbol, increments), new EmptyStatementSyntax());
+        public static ForStatementSyntax For(VariableDeclarationSyntax variable, ExpressionSyntax condition, params ExpressionSyntax[] increments) => new ForStatementSyntax(variable, condition, new(SyntaxTokenKind.CommaSymbol, increments), new EmptyStatementSyntax());
         public static ReturnStatementSyntax Return(ExpressionSyntax expression = null) => new ReturnStatementSyntax(expression != null ? new(SyntaxTokenKind.CommaSymbol, new[] {expression}) : null);
         public static ReturnStatementSyntax Return(params ExpressionSyntax[] expressions) => new ReturnStatementSyntax(new(SyntaxTokenKind.CommaSymbol, expressions));
         public static MethodInvokeStatementSyntax MethodInvoke(MethodInvokeExpressionSyntax invokeExpression) => new MethodInvokeStatementSyntax(invokeExpression);
@@ -83,8 +85,8 @@ namespace LumaSharp.Compiler.AST
         public static ThisExpressionSyntax This() => new ThisExpressionSyntax();
         public static TypeofExpressionSyntax TypeOp(TypeReferenceSyntax typeReference) => new TypeofExpressionSyntax(typeReference);
         public static SizeofExpressionSyntax SizeOp(TypeReferenceSyntax typeReference) => new SizeofExpressionSyntax(typeReference);
-        public static VariableAssignExpressionSyntax VariableAssignment(params ExpressionSyntax[] assignExpressions) => new VariableAssignExpressionSyntax(new(SyntaxTokenKind.CommaSymbol, assignExpressions));
-        public static VariableAssignExpressionSyntax VariableAssignment(SyntaxToken assignOp, params ExpressionSyntax[] assignExpressions) => new VariableAssignExpressionSyntax(assignOp, new(SyntaxTokenKind.CommaSymbol, assignExpressions));
+        public static VariableAssignmentExpressionSyntax VariableAssignment(params ExpressionSyntax[] assignExpressions) => new VariableAssignmentExpressionSyntax(new(SyntaxTokenKind.CommaSymbol, assignExpressions));
+        public static VariableAssignmentExpressionSyntax VariableAssignment(SyntaxToken assignOp, params ExpressionSyntax[] assignExpressions) => new VariableAssignmentExpressionSyntax(assignOp, new(SyntaxTokenKind.CommaSymbol, assignExpressions));
         public static VariableReferenceExpressionSyntax VariableReference(SyntaxToken identifier) => new VariableReferenceExpressionSyntax(identifier);
         public static MemberAccessExpressionSyntax MemberReference(ExpressionSyntax accessExpression, SyntaxToken identifier) => new MemberAccessExpressionSyntax(accessExpression, identifier);
         public static MethodInvokeExpressionSyntax MethodInvoke(ExpressionSyntax accessExpression, ArgumentListSyntax arguments, GenericArgumentListSyntax genericArguments = null) => new MethodInvokeExpressionSyntax(accessExpression, genericArguments, arguments);
@@ -185,11 +187,15 @@ namespace LumaSharp.Compiler.AST
 
 
         // Accessor
+        public static AccessorSyntax WithAccessorLambda(this AccessorSyntax accessor, ExpressionSyntax expression)
+            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessor.Override, null, new(expression));
+
+
         public static AccessorSyntax WithAccessorLambda(this AccessorSyntax accessor, StatementSyntax statement)
-            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, new[] { new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement) }, accessor.IsOverride);
+            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessor.Override, new[] { new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement) }, null);
 
         public static AccessorSyntax WithAccessorBody(this AccessorSyntax accessor, params AccessorBodySyntax[] accessorBodies)
-            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessorBodies, accessor.IsOverride);
+            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessor.Override, accessorBodies, null);
 
 
         // Methods
@@ -231,13 +237,13 @@ namespace LumaSharp.Compiler.AST
 
         // For
         public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, params StatementSyntax[] statements)
-            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, new StatementBlockSyntax(statements));
+            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, new StatementBlockSyntax(statements));
 
         public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, StatementBlockSyntax block)
-            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, block);
+            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, block);
 
         public static ForStatementSyntax WithInlineStatement(this ForStatementSyntax forStatement, StatementSyntax statement)
-            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.Condition, forStatement.Increments, statement);
+            => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, statement);
 
 
         //public static AccessorSyntax WithReadStatement(this AccessorSyntax accessor, StatementSyntax statement)

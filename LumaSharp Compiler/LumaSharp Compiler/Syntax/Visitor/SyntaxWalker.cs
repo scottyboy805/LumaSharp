@@ -123,7 +123,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             }
         }
 
-        public override void VisitVariableAssignExpression(VariableAssignExpressionSyntax variableAssignExpression)
+        public override void VisitVariableAssignmentExpression(VariableAssignmentExpressionSyntax variableAssignExpression)
         {
             VisitToken(variableAssignExpression.Assign);
             VisitSyntaxList(variableAssignExpression.AssignExpressions);

@@ -34,7 +34,7 @@ namespace CompilerTests.Semantic.Reporting
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(Syntax.VariableReference("var"),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "var"))));
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "var"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -52,8 +52,8 @@ namespace CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "var"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Bool), "var"))));
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "var"),
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Bool), "var"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -71,9 +71,9 @@ namespace CompilerTests.Semantic.Reporting
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "var"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Bool), "var"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "var"))));
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "var"),
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Bool), "var"),
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "var"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -31,7 +31,7 @@ namespace CompilerTests.Semantic.Symbols
                 Syntax.Type("test")
                 .WithGenericParameters(Syntax.GenericParameter("T"))
                 .WithMembers(Syntax.Method("test")                
-                .WithBody(Syntax.Variable(Syntax.TypeReference("T"), "var"))));
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference("T"), "var"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -50,8 +50,8 @@ namespace CompilerTests.Semantic.Symbols
                 .WithMembers(Syntax.Type("Sub")
                 .WithGenericParameters(Syntax.GenericParameter("M"))
                 .WithMembers(Syntax.Method("test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference("T"), "var1"),
-                Syntax.Variable(Syntax.TypeReference("M"), "var2")))));
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference("T"), "var1"),
+                Syntax.LocalVariable(Syntax.TypeReference("M"), "var2")))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -10,7 +10,7 @@ namespace LumaSharp.Compiler.Reporting
         ExpectedIdentifier = 102,
         ExpectedType = 103,
         ExpectedExpression = 104,
-        ExprectedStatement = 105,
+        ExpectedStatement = 105,
 
         InvalidConversion = 331,
 
@@ -99,7 +99,7 @@ namespace LumaSharp.Compiler.Reporting
             { Code.ExpectedIdentifier, "Expected identifier" },
             { Code.ExpectedType, "Expected type" },
             { Code.ExpectedExpression, "Expected expression" },
-            { Code.ExprectedStatement, "Expected statement" },
+            { Code.ExpectedStatement, "Expected statement" },
 
             // Syntax
 

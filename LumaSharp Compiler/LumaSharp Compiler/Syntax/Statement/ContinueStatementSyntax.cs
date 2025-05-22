@@ -5,6 +5,7 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SyntaxToken keyword;
+        private readonly SyntaxToken semicolon;
 
         // Properties
         public override SyntaxToken StartToken
@@ -14,12 +15,22 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get { return Semicolon; }
+            get { return semicolon; }
         }
 
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public SyntaxToken Semicolon
+        {
+            get { return semicolon; }
+        }
+
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield break; }
         }
 
         // Constructor
@@ -31,7 +42,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         internal ContinueStatementSyntax(SyntaxToken keyword, SyntaxToken semicolon)
-            : base(semicolon)
         {
             // Check kind
             if (keyword.Kind != SyntaxTokenKind.ContinueKeyword)
@@ -42,12 +52,14 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
 
             this.keyword = keyword;
+            this.semicolon = semicolon;
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
             keyword.GetSourceText(writer);
+            semicolon.GetSourceText(writer);
         }
     }
 }

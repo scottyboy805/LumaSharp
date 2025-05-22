@@ -4,89 +4,84 @@ namespace LumaSharp.Compiler.AST
     public sealed class VariableDeclarationStatementSyntax : StatementSyntax
     {
         // Private
-        private readonly TypeReferenceSyntax variableType;
-        private readonly SeparatedTokenList identifiers;
-        private readonly VariableAssignExpressionSyntax assignment;
+        private readonly VariableDeclarationSyntax variable;
+        private readonly SyntaxToken semicolon;
 
         // Properties
         public override SyntaxToken StartToken
         {
-            get { return variableType.StartToken; }
+            get { return variable.StartToken; }
         }
 
         public override SyntaxToken EndToken
         {
-            get
-            {
-                // Check for assignment
-                if (HasAssignment == true)
-                    return assignment.EndToken;
+            get { return semicolon; }
+        }
 
-                // Identifier
-                return identifiers.EndToken;
-            }
+        public SyntaxToken Semicolon
+        {
+            get { return semicolon; }
         }
 
         public TypeReferenceSyntax VariableType
         {
-            get { return variableType; }
+            get { return variable.VariableType; }
         }
 
         public SyntaxToken[] IdentifierNames
         {
-            get { return identifiers.ToArray(); }
+            get { return variable.Identifiers.ToArray(); }
         }
 
         public SeparatedTokenList Identifiers
         {
-            get { return identifiers; }
+            get { return variable.Identifiers; }
         }
 
-        public VariableAssignExpressionSyntax Assignment
+        public VariableAssignmentExpressionSyntax Assignment
         {
-            get { return assignment; }
+            get { return variable.Assignment; }
         }
 
         public bool HasAssignment
         {
-            get { return assignment != null; }
+            get { return variable.Assignment != null; }
+        }
+
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get { yield return variable; }
         }
 
         // Constructor
-        internal VariableDeclarationStatementSyntax(TypeReferenceSyntax variableType, SeparatedTokenList identifiers, VariableAssignExpressionSyntax assignment)
+        internal VariableDeclarationStatementSyntax(VariableDeclarationSyntax variable)
+            : this(
+                  variable,
+                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+        {
+        }
+
+        internal VariableDeclarationStatementSyntax(VariableDeclarationSyntax variable, SyntaxToken semicolon)
         {
             // Check for null
-            if (variableType == null)
-                throw new ArgumentNullException(nameof(variableType));
+            if (variable == null)
+                throw new ArgumentNullException(nameof(variable));
 
-            if(identifiers == null)
-                throw new ArgumentNullException(nameof(identifiers));
-
-            this.variableType = variableType;
-            this.identifiers = identifiers;
-            this.assignment = assignment;
+            this.variable = variable;
+            this.semicolon = semicolon;
 
             // Set parent
-            variableType.parent = this;
-            identifiers.parent = this;
-            assignment.parent = this;
+            variable.parent = this;
         }
 
         // Methods
         public override void GetSourceText(TextWriter writer)
         {
-            // Write type 
-            variableType.GetSourceText(writer);
+            // Write variable 
+            variable.GetSourceText(writer);
 
-            // Write identifiers
-            identifiers.GetSourceText(writer);
-
-            // Check for assignment
-            if (HasAssignment == true)
-            {
-                // Write assign
-                assignment.GetSourceText(writer);
-            }
+            // Semicolon
+            semicolon.GetSourceText(writer);
         }
     }
 }

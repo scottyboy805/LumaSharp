@@ -221,7 +221,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("i32", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Variable(Syntax.TypeReference("MyType"), "var1", "var2");
+            SyntaxNode syntax1 = Syntax.LocalVariable(Syntax.TypeReference("MyType"), new SyntaxToken[] { "var1", "var2" });
 
             // Get expression text
             Assert.AreEqual("MyType var1,var2;", syntax1.GetSourceText());

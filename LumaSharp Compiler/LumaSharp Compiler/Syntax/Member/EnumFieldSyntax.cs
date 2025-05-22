@@ -4,7 +4,7 @@ namespace LumaSharp.Compiler.AST
     public sealed class EnumFieldSyntax : MemberSyntax
     {
         // Private
-        private readonly VariableAssignExpressionSyntax fieldAssignment;
+        private readonly VariableAssignmentExpressionSyntax fieldAssignment;
 
         // Properties
         public override SyntaxToken EndToken
@@ -18,7 +18,7 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public VariableAssignExpressionSyntax FieldAssignment
+        public VariableAssignmentExpressionSyntax FieldAssignment
         {
             get { return fieldAssignment; }
         }
@@ -39,7 +39,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal EnumFieldSyntax(SyntaxToken identifier, VariableAssignExpressionSyntax fieldAssignment)
+        internal EnumFieldSyntax(SyntaxToken identifier, VariableAssignmentExpressionSyntax fieldAssignment)
             : base(identifier, null, null)
         {
             this.fieldAssignment = fieldAssignment;

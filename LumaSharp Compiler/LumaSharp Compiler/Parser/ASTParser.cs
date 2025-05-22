@@ -22,39 +22,134 @@ namespace LumaSharp.Compiler.Parser
         }
 
         // Methods
-        internal SeparatedTokenList ParseNamespaceReference()
+        internal CompilationUnitSyntax ParseCompilationUnit()
         {
-            SeparatedTokenList namespaceName = null;
+            // Parse imports
+            ImportSyntax[] imports = null;
 
-            // Expect identifier followed by colon
-            if(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.ColonSymbol)
+            while(tokens.PeekKind() == SyntaxTokenKind.ImportKeyword)
             {
-                // Consume the first tokens
-                SyntaxToken identifierToken = tokens.Consume();
-                SyntaxToken colonToken = tokens.Consume();
+                // Parse the import
+                ImportSyntax import = ParseImport();
 
-                // We have a valid namespace - create the list
-                namespaceName = new(null, SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
+                // Check for null
+                if (import == null)
+                    continue;
 
-                // Add the first name group
-                namespaceName.AddElement(identifierToken, colonToken);
-
-                // Repeat for following namespace names - Note look ahead further this time because we should not consume the last colon
-                while(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.ColonSymbol)
+                // Add to collection
+                if(imports != null)
                 {
-                    // Consume the last color
-                    tokens.Consume();
+                    Array.Resize(ref imports, imports.Length + 1);
+                }
+                else
+                {
+                    imports = new ImportSyntax[1];
+                }
 
-                    // Consume the additional tokens
-                    identifierToken = tokens.Consume();
-                    colonToken = tokens.Consume();
+                // Add import
+                imports[imports.Length - 1] = import;
+            }
 
-                    // Add the additional name group
-                    namespaceName.AddElement(identifierToken, colonToken);
+            // Parse namespace or members
+            SyntaxNode[] namespaceOrMembers = null;
+
+            while(tokens.EOF == false)
+            {
+                // Parse the namespace
+                SyntaxNode namespaceOrMember = null;// ParseNamespaceReference();
+
+                // Parse root member otherwise
+                if (namespaceOrMember == null)
+                    namespaceOrMember = ParseRootMember();
+
+                // Check for any
+                if (namespaceOrMember == null)
+                    break;
+
+                // Add to collection
+                if(namespaceOrMembers != null)
+                {
+                    Array.Resize(ref namespaceOrMembers, namespaceOrMembers.Length + 1);
+                }
+                else
+                {
+                    namespaceOrMembers = new SyntaxNode[1];
+                }
+
+                // Add member
+                namespaceOrMembers[namespaceOrMembers.Length - 1] = namespaceOrMember;
+            }
+
+            // Create compilation unit
+            return new CompilationUnitSyntax(imports, namespaceOrMembers);
+        }
+
+        internal ImportSyntax ParseImport()
+        {
+            // Check for import
+            if(tokens.PeekKind() == SyntaxTokenKind.ImportKeyword)
+            {
+                // Consume the token
+                SyntaxToken importToken = tokens.Consume();
+
+                // Check for alias
+                if(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.AsKeyword)
+                {
+                    // We are parsing an alias
+                }
+                else
+                {
+                    // We are parsing a standard import
+                    SeparatedTokenList importName = ParseSeparatedTokenList(SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier, false); //ParseNamespaceReference();
+
+                    // Expect semicolon
+                    if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
+                    {
+                        // Expected ';'
+                        report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                        return RecoverFromImportError();
+                    }
+
+                    // Create the import
+                    return new ImportSyntax(importToken, importName);
                 }
             }
-            return namespaceName;
+            return null;
         }
+
+        //internal SeparatedTokenList ParseNamespaceReference()
+        //{
+        //    SeparatedTokenList namespaceName = null;
+
+        //    // Expect identifier followed by colon
+        //    if(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.ColonSymbol)
+        //    {
+        //        // Consume the first tokens
+        //        SyntaxToken identifierToken = tokens.Consume();
+        //        SyntaxToken colonToken = tokens.Consume();
+
+        //        // We have a valid namespace - create the list
+        //        namespaceName = new(SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier);
+
+        //        // Add the first name group
+        //        namespaceName.AddElement(identifierToken, colonToken);
+
+        //        // Repeat for following namespace names - Note look ahead further this time because we should not consume the last colon
+        //        while(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.ColonSymbol)
+        //        {
+        //            // Consume the last color
+        //            tokens.Consume();
+
+        //            // Consume the additional tokens
+        //            identifierToken = tokens.Consume();
+        //            colonToken = tokens.Consume();
+
+        //            // Add the additional name group
+        //            namespaceName.AddElement(identifierToken, colonToken);
+        //        }
+        //    }
+        //    return namespaceName;
+        //}
 
         internal AttributeReferenceSyntax[] ParseAttributes()
         {
@@ -158,233 +253,7 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        internal GenericParameterListSyntax ParseGenericParameterList()
-        {
-            // Check for generic
-            if(tokens.PeekKind() == SyntaxTokenKind.LessSymbol)
-            {
-                // Consume the generic
-                SyntaxToken lGeneric = tokens.Consume();
-
-                // Parse generic parameters
-                SeparatedSyntaxList<GenericParameterSyntax> genericParameters = ParseSeparatedSyntaxList(ParseGenericParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
-
-                // Consume the r generic
-                if (tokens.ConsumeExpect(SyntaxTokenKind.GreaterSymbol, out SyntaxToken rGeneric) == false)
-                {
-                    // Expected '>'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
-                    return RecoverFromGenericParameterListError();
-                }
-
-                // Get parameter list
-                return new GenericParameterListSyntax(lGeneric, genericParameters, rGeneric);
-            }
-            return null;
-        }
-
-        internal GenericParameterSyntax ParseGenericParameter(int index)
-        {
-            // Require identifier
-            if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
-            {
-                // Expected identifier
-                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
-                return RecoverFromGenericParameterError();
-            }
-
-            SyntaxToken colonToken = default;
-            SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints = null;
-
-            // Parse generic constraints
-            if(tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
-            {
-                // Consume the token
-                colonToken = tokens.Consume();
-
-                // Expect generic constraint list
-                genericConstraints = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.CommaSymbol);
-
-                // Check for null
-                if(genericConstraints == null)
-                {
-                    // Expected type
-                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
-                    return RecoverFromGenericParameterError();
-                }
-
-            }
-            return new GenericParameterSyntax(identifier, index, colonToken, genericConstraints);
-        }
-
-        internal bool LooksLikeGenericArgumentList()
-        {
-            int initialPos = tokens.Position;
-            int depth = 0;
-
-            // Look ahead 16 tokens
-            while(tokens.EOF == false && tokens.Position < initialPos + 16)
-            {
-                // Get the next token
-                SyntaxToken token = tokens.Consume();
-
-                // Check kind
-                switch (token.Kind)
-                {
-                    case SyntaxTokenKind.LessSymbol:
-                        {
-                            depth++;
-                            break;
-                        }
-                    case SyntaxTokenKind.GreaterSymbol:
-                        {
-                            depth--;
-
-                            // Check for balanced
-                            if(depth == 0)
-                            {
-                                // Check for common tokens following generic arguments closing
-                                bool isLikelyGeneric = (tokens.PeekKind() == SyntaxTokenKind.DotSymbol || tokens.PeekKind() == SyntaxTokenKind.LParenSymbol || tokens.PeekKind() == SyntaxTokenKind.Identifier);
-
-                                // Retrace and then return
-                                tokens.Retrace(initialPos);
-                                return isLikelyGeneric;
-                            }
-                            break;
-                        }
-                    case SyntaxTokenKind.CommaSymbol:
-                        {
-                            continue;
-                        }
-
-                    default:
-                        {
-                            // Check for binary or unary operator
-                            if (token.IsBinaryOperand == true || token.IsUnaryOperand == true || token.IsLiteral == true)
-                            {
-                                tokens.Retrace(initialPos);
-                                return false;
-                            }
-                            break;
-                        }
-                }                
-            }
-
-            tokens.Retrace(initialPos);
-            return false;
-        }
-
-        internal GenericArgumentListSyntax ParseGenericArgumentList()
-        {
-            // Check for generic
-            if(tokens.PeekKind() == SyntaxTokenKind.LessSymbol)
-            {
-                // Consume the generic
-                SyntaxToken lGeneric = tokens.Consume();
-
-                // Parse generic type references
-                SeparatedSyntaxList<TypeReferenceSyntax> genericTypeArguments = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.GreaterSymbol);
-
-                // Expect r generic
-                if (tokens.ConsumeExpect(SyntaxTokenKind.GreaterSymbol, out SyntaxToken rGeneric) == false)
-                {
-                    // Expected '>'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.GreaterSymbol));
-                    return RecoverFromGenericArgumentListError();
-                }
-
-                // Create generic arguments
-                return new GenericArgumentListSyntax(lGeneric, genericTypeArguments, rGeneric);
-            }
-            return null;
-        }
-
-        internal ParameterListSyntax ParseParameterList()
-        {
-            // Check for parameter start
-            if(tokens.PeekKind() == SyntaxTokenKind.LParenSymbol)
-            {
-                // Consume the lParen
-                SyntaxToken lParen = tokens.Consume();
-
-                // Parse the parameter list
-                SeparatedSyntaxList<ParameterSyntax> parameters = ParseSeparatedSyntaxList(ParseParameter, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
-
-                // Expect rParen
-                if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
-                {
-                    // Expected ')'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
-                    return RecoverFromParameterListError();
-                }
-
-                // Create the parameter list
-                return new ParameterListSyntax(lParen, parameters, rParen);
-            }
-            return null;
-        }
-
-        internal ParameterSyntax ParseParameter()
-        {
-            // Parse attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
-
-            // Parse type reference
-            TypeReferenceSyntax parameterType = ParseTypeReference();
-
-            // Check for null
-            if (parameterType == null)
-            {
-                // Expected type
-                report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
-                return RecoverFromParameterError();
-            }
-
-            // Expect identifier
-            if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
-            {
-                // Expected identifier
-                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
-                return RecoverFromParameterError();
-            }
-
-            // Optional enumerable token
-            SyntaxToken? enumerable = null;
-
-            if(tokens.PeekKind() == SyntaxTokenKind.EnumerableSymbol)
-                enumerable = tokens.Consume();
-
-            // Optional assign
-            VariableAssignExpressionSyntax assignment = null;
-
-            // Create parameter
-            return new ParameterSyntax(attributes, parameterType, identifier, assignment, enumerable);
-        }
-
-        internal ArgumentListSyntax ParseArgumentList()
-        {
-            // Check for arg start
-            if(tokens.PeekKind() == SyntaxTokenKind.LParenSymbol)
-            {
-                // Consume the lParen
-                SyntaxToken lParen = tokens.Consume();
-
-                // Parse the arguments
-                SeparatedSyntaxList<ExpressionSyntax> expressionArguments = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RParenSymbol);
-
-                // Expect rParen
-                if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
-                {
-                    // Expected ')'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
-                    return RecoverFromArgumentListError();
-                }
-
-                // Create argument list
-                return new ArgumentListSyntax(lParen, expressionArguments, rParen);
-            }
-            return null;
-        }
+        
 
         internal TypeReferenceSyntax ParseTypeReference()
         {
@@ -437,16 +306,16 @@ namespace LumaSharp.Compiler.Parser
         internal TypeReferenceSyntax ParseFullTypeReference()
         {
             // Parse the namespace name first
-            SeparatedTokenList namespaceName = ParseNamespaceReference();
+            SeparatedTokenList namespaceName = ParseSeparatedTokenList(SyntaxTokenKind.ColonSymbol, SyntaxTokenKind.Identifier, true);// ParseNamespaceReference();
 
             // Parse parent name?
-            ParentTypeReferenceSyntax[] parentTypes = null;
+            ParentTypeReferenceSyntax[] parentTypes = ParseParentTypeReferences();
 
             // Parse identifier
             if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
             {
                 // Expected identifier
-                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                //report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
                 return null;
             }
 
@@ -460,50 +329,63 @@ namespace LumaSharp.Compiler.Parser
             return new TypeReferenceSyntax(namespaceName, parentTypes, identifier, genericArguments, arrayParameters);
         }
 
-        internal SeparatedSyntaxList<T> ParseSeparatedSyntaxList<T>(Func<T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
+        internal ParentTypeReferenceSyntax[] ParseParentTypeReferences()
         {
-            return ParseSeparatedSyntaxList((i) => parseSyntaxElement(), separatorKind, endTokenKind);
-        }
+            int position = 0;
+            ParentTypeReferenceSyntax[] parentTypeReferences = null;
 
-        internal SeparatedSyntaxList<T> ParseSeparatedSyntaxList<T>(Func<int, T> parseSyntaxElement, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind) where T : SyntaxNode
-        {
-            // Check for end
-            if (tokens.PeekKind() == endTokenKind)
-                return null;
-
-            // Store index
-            int index = 0;
-
-            // Parse first reference
-            T syntaxReference = parseSyntaxElement(index++);
-
-            // Check for valid
-            if (syntaxReference != null)
+            // Try to parse all references
+            while(tokens.EOF == false && tokens.PeekKind() == SyntaxTokenKind.Identifier)
             {
-                // Get the separator
-                SyntaxToken? separator = tokens.PeekKind() == separatorKind
-                    ? tokens.Consume()
-                    : (SyntaxToken?)null; // Nasty cast required otherwise separator is initialized to some weird corrupt value
+                // Store the current position
+                position = tokens.Position;
 
-                // Create the syntax list
-                SeparatedSyntaxList<T> syntaxReferenceList = new(separatorKind);
+                // Read the identifier
+                SyntaxToken identifier = tokens.Consume();
+
+                // Optional generic arguments
+                GenericArgumentListSyntax genericArguments = ParseGenericArgumentList();
+
+                // Now expect dot separator to confirm we are parsing a parent type
+                if(tokens.PeekKind() != SyntaxTokenKind.DotSymbol)
+                {
+                    // Return to prior state
+                    tokens.Retrace(position);
+                    break;
+                }
+
+                // Consume the dot
+                SyntaxToken dot = tokens.Consume();
 
                 // Add the reference
-                syntaxReferenceList.AddElement(syntaxReference, separator);
-
-                // Repeat for all other elements
-                while (separator != null && tokens.PeekKind() != endTokenKind && (syntaxReference = parseSyntaxElement(index++)) != null)
+                if(parentTypeReferences != null)
                 {
-                    // Get the separator
-                    separator = tokens.PeekKind() == separatorKind
-                        ? tokens.Consume()
-                        : (SyntaxToken?)null;
-
-                    // Add the additional reference
-                    syntaxReferenceList.AddElement(syntaxReference, separator);
+                    Array.Resize(ref parentTypeReferences, parentTypeReferences.Length + 1);
                 }
-                return syntaxReferenceList;
+                else
+                {
+                    parentTypeReferences = new ParentTypeReferenceSyntax[1];
+                }
+
+                // Add the reference
+                parentTypeReferences[parentTypeReferences.Length - 1] = new ParentTypeReferenceSyntax(identifier, genericArguments, dot);
             }
+
+            return parentTypeReferences;
+        }
+
+
+        private ImportSyntax RecoverFromImportError()
+        {
+            // An error occurred while parsing an import - To recover we should consume all tokens until we reach a semicolon or end of stream
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.SemicolonSymbol)
+                tokens.Consume();
+
+            // Consume the semicolon
+            if (tokens.EOF == false)
+                tokens.Consume();
+
+            // Always null - just means we can return from calling control easily
             return null;
         }
 
@@ -519,82 +401,6 @@ namespace LumaSharp.Compiler.Parser
 
             // Create error
             return new ArrayParametersSyntax(null);
-        }
-
-        private GenericParameterListSyntax RecoverFromGenericParameterListError()
-        {
-            // An error occurred while parsing a generic parameter list - To recover we should consume all tokens until we reach a rgeneric or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
-                tokens.Consume();
-
-            // Consume the rParen
-            if (tokens.EOF == false)
-                tokens.Consume();
-
-            // Always null - just means we can return from calling control easily
-            return new GenericParameterListSyntax(null);
-        }
-
-        private GenericParameterSyntax RecoverFromGenericParameterError()
-        {
-            // An error occurred while parsing a generic parameter - To recover we should consume all tokens until we reach a comma, closing generic or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.CommaSymbol && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
-                tokens.Consume();
-
-            // Always null - just means we can return from calling control easily
-            return GenericParameterSyntax.Error;
-        }
-
-        private ParameterListSyntax RecoverFromParameterListError()
-        {
-            // An error occurred while parsing a parameter list - To recover we should consume all tokens until we reach a rParen or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RParenSymbol)
-                tokens.Consume();
-
-            // Consume the rParen
-            if (tokens.EOF == false)
-                tokens.Consume();
-
-            // Always null - just means we can return from calling control easily
-            return new ParameterListSyntax(null);
-        }
-
-        private ParameterSyntax RecoverFromParameterError()
-        {
-            // An error occurred while parsing a parameter list - To recover we should consume all tokens until we reach a comma, rParen or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.CommaSymbol && tokens.PeekKind() != SyntaxTokenKind.RParenSymbol)
-                tokens.Consume();
-
-            // Always null - just means we can return from calling control easily
-            return ParameterSyntax.Error;
-        }
-
-        private GenericArgumentListSyntax RecoverFromGenericArgumentListError()
-        {
-            // An error occurred while parsing a generic argument list - To recover we should consume all tokens until we reach a rGeneric or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.GreaterSymbol)
-                tokens.Consume();
-
-            // Consume the rParen
-            if (tokens.EOF == false)
-                tokens.Consume();
-
-            // Always null - just means we can return from calling control easily
-            return new GenericArgumentListSyntax(null);
-        }
-
-        private ArgumentListSyntax RecoverFromArgumentListError()
-        {
-            // An error occurred while parsing a argument list - To recover we should consume all tokens until we reach a rParen or end of stream
-            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RParenSymbol)
-                tokens.Consume();
-
-            // Consume the rParen
-            if (tokens.EOF == false)
-                tokens.Consume();
-
-            // Always null - just means we can return from calling control easily
-            return new ArgumentListSyntax(null);
         }
     }
 }

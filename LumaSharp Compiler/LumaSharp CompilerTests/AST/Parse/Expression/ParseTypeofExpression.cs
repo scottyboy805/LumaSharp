@@ -20,5 +20,22 @@ namespace CompilerTests.AST.Parse.Expression
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(TypeofExpressionSyntax));
         }
+
+        [DataTestMethod]
+        [DataRow("typeof(i32)")]
+        public void ParseTypeofNode(string input)
+        {
+            // Try to parse the tree
+            TypeofExpressionSyntax expression = TestUtils.ParseInputStringExpression(input,
+                p => p.ParseTypeofExpression() as TypeofExpressionSyntax);
+
+            Assert.IsNotNull(expression);
+            Assert.AreEqual(SyntaxTokenKind.TypeofKeyword, expression.Keyword.Kind);
+            Assert.AreEqual(SyntaxTokenKind.LParenSymbol, expression.LParen.Kind);
+            Assert.AreEqual(SyntaxTokenKind.RParenSymbol, expression.RParen.Kind);
+            Assert.AreEqual(SyntaxTokenKind.TypeofKeyword, expression.StartToken.Kind);
+            Assert.AreEqual(SyntaxTokenKind.RParenSymbol, expression.EndToken.Kind);
+            Assert.AreEqual(1, expression.Descendants.Count());
+        }
     }
 }

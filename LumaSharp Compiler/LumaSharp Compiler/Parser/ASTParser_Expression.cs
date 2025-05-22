@@ -12,10 +12,13 @@ namespace LumaSharp.Compiler.Parser
         /// it simply hands off to parse in order of precedence.
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax ParseExpression()
-        {
+        internal ExpressionSyntax ParseExpression() => ParseExpression(true);
+        internal ExpressionSyntax ParseLHSExpression() => ParseExpression(false);
+
+        internal ExpressionSyntax ParseExpression(bool rhs)
+        {           
             // Parse root expression
-            ExpressionSyntax expr = ParseLogicalOrBinaryExpression();
+            ExpressionSyntax expr = ParseLogicalOrBinaryExpression(rhs);
 
             // Array indexing which can apply to any leaf expression - will be checked semantically later
             // Check for valid expression
@@ -30,14 +33,56 @@ namespace LumaSharp.Compiler.Parser
                 // Handle ternary
                 expr = ParseTernaryExpression(expr);
             }
+
+            // Check for null
+            if(expr == null)
+            {
+                // Unexpected token - no valid expression was found
+                report.ReportDiagnostic(Code.UnexpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(tokens.PeekKind()));
+                return RecoverFromExpressionError();
+            }
+
             // Finally get the expression
             return expr;
         }
 
-        private ExpressionSyntax ParseLogicalOrBinaryExpression()
+        internal ExpressionSyntax ParseOptionalExpression() => ParseOptionalExpression(true);
+
+        internal ExpressionSyntax ParseOptionalExpression(bool rhs)
+        {
+            // Store initial
+            int expressionStart = tokens.Position;
+
+            // Parse root expression
+            ExpressionSyntax expr = ParseLogicalOrBinaryExpression(rhs);
+
+            // Array indexing which can apply to any leaf expression - will be checked semantically later
+            // Check for valid expression
+            if (expr != null)
+            {
+                // Handle array index for expression or just return the input expression
+                expr = ParseIndexExpression(expr);
+
+                // Handle member access for expression or just return the input expression
+                expr = ParseMemberAccessExpression(expr);
+
+                // Handle ternary
+                expr = ParseTernaryExpression(expr);
+            }
+
+            // Retrace if null
+            if (expr == null)
+            {
+                // Retrace and parse as something else
+                tokens.Retrace(expressionStart);
+            }
+            return expr;
+        }
+
+        private ExpressionSyntax ParseLogicalOrBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseLogicalAndBinaryExpression();
+            ExpressionSyntax expr = ParseLogicalAndBinaryExpression(rhs);
 
             // Check for or token
             while(tokens.PeekKind() == SyntaxTokenKind.OrSymbol)
@@ -46,7 +91,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseLogicalAndBinaryExpression();
+                ExpressionSyntax right = ParseLogicalAndBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -54,10 +99,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseLogicalAndBinaryExpression()
+        private ExpressionSyntax ParseLogicalAndBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseBitwiseXOrBinaryExpression();
+            ExpressionSyntax expr = ParseBitwiseOrBinaryExpression(rhs);
 
             // Check for and token
             while (tokens.PeekKind() == SyntaxTokenKind.AndSymbol)
@@ -66,7 +111,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseBitwiseXOrBinaryExpression();
+                ExpressionSyntax right = ParseBitwiseOrBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -74,10 +119,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseBitwiseOrBinaryExpression()
+        private ExpressionSyntax ParseBitwiseOrBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseBitwiseXOrBinaryExpression();
+            ExpressionSyntax expr = ParseBitwiseXOrBinaryExpression(rhs);
 
             // Check for or token
             while (tokens.PeekKind() == SyntaxTokenKind.BitwiseOrSymbol)
@@ -86,7 +131,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseBitwiseXOrBinaryExpression();
+                ExpressionSyntax right = ParseBitwiseXOrBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -94,10 +139,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseBitwiseXOrBinaryExpression()
+        private ExpressionSyntax ParseBitwiseXOrBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseBitwiseAndBinaryExpression();
+            ExpressionSyntax expr = ParseBitwiseAndBinaryExpression(rhs);
 
             // Check for xor token
             while (tokens.PeekKind() == SyntaxTokenKind.BitwiseXOrSymbol)
@@ -106,7 +151,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseBitwiseAndBinaryExpression();
+                ExpressionSyntax right = ParseBitwiseAndBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -114,10 +159,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseBitwiseAndBinaryExpression()
+        private ExpressionSyntax ParseBitwiseAndBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseEqualityBinaryExpression();
+            ExpressionSyntax expr = ParseEqualityBinaryExpression(rhs);
 
             // Check for and token
             while (tokens.PeekKind() == SyntaxTokenKind.BitwiseAndSymbol)
@@ -126,7 +171,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseEqualityBinaryExpression();
+                ExpressionSyntax right = ParseEqualityBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -134,10 +179,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseEqualityBinaryExpression()
+        private ExpressionSyntax ParseEqualityBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseRelationalBinaryExpression();
+            ExpressionSyntax expr = ParseRelationalBinaryExpression(rhs);
 
             // Check for '==' '!=' tokens
             while (tokens.PeekKind() == SyntaxTokenKind.EqualitySymbol || tokens.PeekKind() == SyntaxTokenKind.NonEqualitySymbol)
@@ -146,20 +191,32 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseRelationalBinaryExpression();
+                ExpressionSyntax right = ParseRelationalBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
             }
+            // Check for assign
+            while(rhs == true && tokens.Peek().IsAssign == true)
+            {
+                // Consume the assign
+                SyntaxToken assignToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseRelationalBinaryExpression(rhs);
+
+                // Create assignment
+                return new AssignExpressionSyntax(expr, assignToken, right);
+            }
             return expr;
         }
 
-        private ExpressionSyntax ParseRelationalBinaryExpression()
+        private ExpressionSyntax ParseRelationalBinaryExpression(bool rhs)
         {
             int expressionStart = tokens.Position;
 
             // Parse and
-            ExpressionSyntax expr = ParseBitShiftBinaryExpression();
+            ExpressionSyntax expr = ParseBitShiftBinaryExpression(rhs);
 
             // Handle ambiguity between less than and open generics
             if(LooksLikeGenericArgumentList() == true)
@@ -176,18 +233,31 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseBitShiftBinaryExpression();
+                ExpressionSyntax right = ParseBitShiftBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
             }
+
+            // Check for range
+            while(tokens.PeekKind() == SyntaxTokenKind.RangeInclusiveSymbol || tokens.PeekKind() == SyntaxTokenKind.RangeExclusiveSymbol)
+            {
+                // Consume the operator
+                SyntaxToken rangeToken = tokens.Consume();
+
+                // Parse right
+                ExpressionSyntax right = ParseBitShiftBinaryExpression(rhs);
+
+                // Create range
+                return new RangeExpressionSyntax(expr, rangeToken, right);
+            }
             return expr;
         }
 
-        private ExpressionSyntax ParseBitShiftBinaryExpression()
+        private ExpressionSyntax ParseBitShiftBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseAdditiveBinaryExpression();
+            ExpressionSyntax expr = ParseAdditiveBinaryExpression(rhs);
 
             // Check for '<<' '>>' tokens
             while (tokens.PeekKind() == SyntaxTokenKind.BitShiftLeftSymbol || tokens.PeekKind() == SyntaxTokenKind.BitShiftRightSymbol)
@@ -196,7 +266,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseAdditiveBinaryExpression();
+                ExpressionSyntax right = ParseAdditiveBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -204,10 +274,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseAdditiveBinaryExpression()
+        private ExpressionSyntax ParseAdditiveBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseMultiplicativeBinaryExpression();
+            ExpressionSyntax expr = ParseMultiplicativeBinaryExpression(rhs);
 
             // Check for '+' '-' tokens
             while (tokens.PeekKind() == SyntaxTokenKind.AddSymbol || tokens.PeekKind() == SyntaxTokenKind.SubtractSymbol)
@@ -216,7 +286,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseMultiplicativeBinaryExpression();
+                ExpressionSyntax right = ParseMultiplicativeBinaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -224,10 +294,10 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseMultiplicativeBinaryExpression()
+        private ExpressionSyntax ParseMultiplicativeBinaryExpression(bool rhs)
         {
             // Parse and
-            ExpressionSyntax expr = ParseUnaryExpression();
+            ExpressionSyntax expr = ParseUnaryExpression(rhs);
 
             // Check for '+' '-' tokens
             while (tokens.PeekKind() == SyntaxTokenKind.MultiplySymbol || tokens.PeekKind() == SyntaxTokenKind.DivideSymbol || tokens.PeekKind() == SyntaxTokenKind.ModulusSymbol)
@@ -236,7 +306,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken operandToken = tokens.Consume();
 
                 // Parse right
-                ExpressionSyntax right = ParseUnaryExpression();
+                ExpressionSyntax right = ParseUnaryExpression(rhs);
 
                 // Create binary
                 return new BinaryExpressionSyntax(expr, operandToken, right);
@@ -244,7 +314,7 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParseUnaryExpression()
+        private ExpressionSyntax ParseUnaryExpression(bool rhs)
         {
             // Peek next
             SyntaxTokenKind kind = tokens.PeekKind();
@@ -256,19 +326,19 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken op = tokens.Consume();
 
                 // Parse the expression
-                ExpressionSyntax expr = ParseUnaryExpression();
+                ExpressionSyntax expr = ParseUnaryExpression(rhs);
 
                 // Create the unary prefix
                 return new UnaryExpressionSyntax(expr, op, true);
             }
             // Handle postfix expressions
-            return ParsePostfixExpression();
+            return ParsePostfixExpression(rhs);
         }
 
-        private ExpressionSyntax ParsePostfixExpression()
+        private ExpressionSyntax ParsePostfixExpression(bool rhs)
         {
             // Parse the primary
-            ExpressionSyntax expr = ParsePrimaryExpression();
+            ExpressionSyntax expr = ParsePrimaryExpression(rhs);
 
             // Check for postfix operators
             while(tokens.PeekKind() == SyntaxTokenKind.PlusPlusSymbol || tokens.PeekKind() == SyntaxTokenKind.MinusMinusSymbol)
@@ -283,7 +353,7 @@ namespace LumaSharp.Compiler.Parser
             return expr;
         }
 
-        private ExpressionSyntax ParsePrimaryExpression()
+        private ExpressionSyntax ParsePrimaryExpression(bool rhs)
         {
             ExpressionSyntax expr = null;
 
@@ -294,7 +364,7 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken lParen = tokens.Consume();
 
                 // Begin parsing from top down once again
-                expr = ParseExpression();
+                expr = ParseExpression(rhs);
 
                 // Expect closing paren
                 if(tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
@@ -350,13 +420,21 @@ namespace LumaSharp.Compiler.Parser
             // Check for valid expression
             if(expr != null)
             {
+                // Handle array index for expression or just return the input expression
+                expr = ParseIndexExpression(expr);
+
+                // Handle member access for expression or just return the input expression
+                expr = ParseMemberAccessExpression(expr);
+
+                // Handle ternary
+                expr = ParseTernaryExpression(expr);
+
                 // Finally get the expression
                 return expr;
             }
 
-            // Unexpected token - no valid expression was found
-            report.ReportDiagnostic(Code.UnexpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(tokens.PeekKind()));
-            return RecoverFromExpressionError();
+            // Could not parse expression
+            return null;
         }
 
         private ExpressionSyntax ParseIndexExpression(ExpressionSyntax expr)
@@ -648,7 +726,7 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        private VariableAssignExpressionSyntax ParseVariableAssignExpression()
+        private VariableAssignmentExpressionSyntax ParseVariableAssignExpression()
         {
             // Check for assignment
             if(tokens.Peek().IsAssign == true)
@@ -660,7 +738,7 @@ namespace LumaSharp.Compiler.Parser
                 SeparatedSyntaxList<ExpressionSyntax> assignExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Invalid);
 
                 // Create the assignment
-                return new VariableAssignExpressionSyntax(assign, assignExpressions);
+                return new VariableAssignmentExpressionSyntax(assign, assignExpressions);
             }
             return null;
         }

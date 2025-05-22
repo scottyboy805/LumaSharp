@@ -64,6 +64,23 @@ namespace LumaSharp.Compiler.AST
             get { return alternate != null; }
         }
 
+        internal override IEnumerable<SyntaxNode> Descendants
+        {
+            get
+            {
+                // Check for condition
+                if (condition != null)
+                    yield return condition;
+
+                // Statement
+                yield return statement;
+
+                // Alternate
+                if(alternate != null) 
+                    yield return alternate;
+            }
+        }
+
         // Constructor
         internal ConditionStatementSyntax(SyntaxToken keyword, ExpressionSyntax condition, ConditionStatementSyntax alternate, StatementSyntax statement)
         {

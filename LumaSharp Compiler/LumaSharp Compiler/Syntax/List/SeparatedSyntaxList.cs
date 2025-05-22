@@ -141,6 +141,11 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
+        public int IndexOf(T syntax)
+        {
+            return syntaxList.FindIndex(i => i.syntax == syntax);
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             foreach (SyntaxSeparatedElement item in syntaxList)

@@ -99,9 +99,9 @@ namespace LumaSharp.Compiler.AST
             if(separator != null && separator.Value.Kind != separatorKind)
                 throw new ArgumentException("Separator must be of kind: " + separatorKind);
 
-            // Check for count
-            if (tokenList.Count > 0 && separator == null)
-                throw new ArgumentException("Separator must be provided for non-zero indexed elements");
+            //// Check for count
+            //if (tokenList.Count > 0 && separator == null)
+            //    throw new ArgumentException("Separator must be provided for non-zero indexed elements");
 
             // Check for token
             if(tokenKind != null && tokenElement.Kind != tokenKind.Value)

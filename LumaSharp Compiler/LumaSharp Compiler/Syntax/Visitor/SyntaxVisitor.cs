@@ -22,6 +22,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             expression.Accept(this);
         }
 
+        public virtual void VisitAssignExpression(AssignExpressionSyntax assignExpression) { }
         public virtual void VisitBaseExpression(BaseExpressionSyntax baseExpression) { }
         public virtual void VisitBinaryExpression(BinaryExpressionSyntax binaryExpression) { }
         public virtual void VisitIndexExpression(IndexExpressionSyntax indexExpression) { }
@@ -35,7 +36,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitThisExpression(ThisExpressionSyntax thisExpression) { }
         public virtual void VisitTypeofExpression(TypeofExpressionSyntax typeofExpression) { }
         public virtual void VisitUnaryExpression(UnaryExpressionSyntax unaryExpression) { }
-        public virtual void VisitVariableAssignExpression(VariableAssignExpressionSyntax variableAssignExpression) { }
+        public virtual void VisitVariableAssignmentExpression(VariableAssignmentExpressionSyntax variableAssignExpression) { }
         public virtual void VisitVariableReferenceExpression(VariableReferenceExpressionSyntax variableReferenceExpression) { }
         #endregion
     }

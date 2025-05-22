@@ -15,7 +15,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
@@ -41,8 +41,8 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
-                    Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
+                    Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
@@ -68,9 +68,9 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
-                    Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
+                    Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
@@ -96,10 +96,10 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
-                Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "l2"),
-                    Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "l0"),
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "l1"),
+                Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "l2"),
+                    Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
@@ -127,10 +127,10 @@ namespace CompilerTests.Emit.Instructions
             StatementSyntax[] statements = new StatementSyntax[byte.MaxValue + 2];
 
             for (int i = 0; i < byte.MaxValue; i++)
-                statements[i] = Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "l" + i);
+                statements[i] = Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "l" + i);
 
             // Store our variable last
-            statements[byte.MaxValue] = Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar");
+            statements[byte.MaxValue] = Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "myVar");
 
             // Store our access expression finally
             statements[byte.MaxValue + 1] = Syntax.Assign(Syntax.VariableReference("myVar"),

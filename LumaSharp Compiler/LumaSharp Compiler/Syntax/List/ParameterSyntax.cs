@@ -6,10 +6,9 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly AttributeReferenceSyntax[] attributes;
         private readonly TypeReferenceSyntax parameterType;
-        private readonly VariableAssignExpressionSyntax assignment;
+        private readonly VariableAssignmentExpressionSyntax assignment;
         private readonly SyntaxToken identifier;
         private readonly SyntaxToken? enumerable;
-        private readonly int index;
 
         // Internal
         internal static readonly ParameterSyntax Error = new();
@@ -49,7 +48,7 @@ namespace LumaSharp.Compiler.AST
             get { return parameterType; }
         }
 
-        public VariableAssignExpressionSyntax Assignment
+        public VariableAssignmentExpressionSyntax Assignment
         {
             get { return assignment; }
         }
@@ -62,11 +61,6 @@ namespace LumaSharp.Compiler.AST
         public SyntaxToken? Enumerable
         {
             get { return enumerable; }
-        }
-
-        public int Index
-        {
-            get { return index; }
         }
 
         public bool HasAttributes
@@ -103,7 +97,7 @@ namespace LumaSharp.Compiler.AST
             this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
         }
 
-        internal ParameterSyntax(AttributeReferenceSyntax[] attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignExpressionSyntax assignment, SyntaxToken? enumerable)
+        internal ParameterSyntax(AttributeReferenceSyntax[] attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment, SyntaxToken? enumerable)
         {
             // Check null
             if (parameterType == null)
@@ -153,6 +147,16 @@ namespace LumaSharp.Compiler.AST
             {
                 enumerable.Value.GetSourceText(writer);
             }
+        }
+
+        public int GetPositionIndex()
+        {
+            // Try to find index
+            if (parent is ParameterListSyntax parameterList)
+                return parameterList.IndexOf(this);
+
+            // Invalid index
+            return -1;
         }
     }
 }

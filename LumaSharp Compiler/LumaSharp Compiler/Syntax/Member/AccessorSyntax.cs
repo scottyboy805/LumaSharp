@@ -6,7 +6,8 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly TypeReferenceSyntax accessorType;
         private readonly AccessorBodySyntax[] accessorBodies;
-        private readonly SyntaxToken overrideKeyword;
+        private readonly AccessorLambdaSyntax lambda;
+        private readonly SyntaxToken? overrideKeyword;
 
         // Properties
         public override SyntaxToken EndToken
@@ -21,7 +22,7 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public SyntaxToken Override
+        public SyntaxToken? Override
         {
             get { return overrideKeyword; }
         }
@@ -36,9 +37,14 @@ namespace LumaSharp.Compiler.AST
             get { return accessorBodies; }
         }
 
+        public AccessorLambdaSyntax Lambda
+        {
+            get { return lambda; }
+        }
+
         public bool HasLambdaBody
         {
-            get { return accessorBodies != null && accessorBodies.Any(b => b.Lambda.Kind != SyntaxTokenKind.Invalid); }
+            get { return lambda != null; }
         }
 
         public bool HasReadBody
@@ -56,27 +62,20 @@ namespace LumaSharp.Compiler.AST
             get { return accessorBodies != null; }
         }
 
-        public bool IsOverride
-        {
-            get { return overrideKeyword.Kind != SyntaxTokenKind.Invalid; }
-        }
-
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get { yield break; }
         }
 
         // Constructor
-        internal AccessorSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, AccessorBodySyntax[] accessorBodies, bool isOverride)
+        internal AccessorSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, SyntaxToken? overrideToken, AccessorBodySyntax[] accessorBodies, AccessorLambdaSyntax lambda)
             : base(identifier, attributes, modifiers)
         {
             // Accessor type
             this.accessorType = type;
+            this.overrideKeyword = overrideToken;
             this.accessorBodies = accessorBodies;
-
-            // Check for override
-            if (isOverride == true)
-                this.overrideKeyword = Syntax.Token(SyntaxTokenKind.OverrideKeyword);
+            this.lambda = lambda;            
         }
 
         // Methods

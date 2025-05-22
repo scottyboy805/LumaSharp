@@ -5,7 +5,8 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SeparatedSyntaxList<ExpressionSyntax> left;
-        private readonly VariableAssignExpressionSyntax variableAssign;
+        private readonly VariableAssignmentExpressionSyntax variableAssign;
+        private readonly SyntaxToken semicolon;
 
         // Properties
         public override SyntaxToken StartToken
@@ -15,10 +16,15 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get { return variableAssign.EndToken; }
+            get { return semicolon; }
         }
 
-        public VariableAssignExpressionSyntax AssignExpression
+        public SyntaxToken Semicolon
+        {
+            get { return semicolon; }
+        }
+
+        public VariableAssignmentExpressionSyntax AssignExpression
         {
             get { return variableAssign; }
         }
@@ -43,7 +49,15 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AssignStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> left, VariableAssignExpressionSyntax assign)
+        internal AssignStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> left, VariableAssignmentExpressionSyntax assign)
+            : this(
+                  left, 
+                  assign,
+                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+        {
+        }
+
+        internal AssignStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> left, VariableAssignmentExpressionSyntax assign, SyntaxToken semicolon)
         {
             // Check null
             if(left == null)
@@ -52,8 +66,13 @@ namespace LumaSharp.Compiler.AST
             if(assign == null)
                 throw new ArgumentNullException(nameof(assign));
 
+            // Check kind
+            if (semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol); 
+
             this.left = left;
             this.variableAssign = assign;
+            this.semicolon = semicolon;
 
             // Set parent
             left.parent = this;
@@ -68,6 +87,9 @@ namespace LumaSharp.Compiler.AST
 
             // Write assign
             variableAssign.GetSourceText(writer);
+
+            // Semicolon
+            semicolon.GetSourceText(writer);
         }
     }
 }

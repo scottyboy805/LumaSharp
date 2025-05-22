@@ -17,7 +17,7 @@ namespace LumaSharp.Compiler.Parser
                 MemberSyntax[] members = null;
 
                 // Parse all members
-                MemberSyntax member = ParseRootMember();
+                MemberSyntax member = ParseMember();
 
                 // Check for valid
                 while(member != null)
@@ -31,8 +31,11 @@ namespace LumaSharp.Compiler.Parser
                         members = new MemberSyntax[1];
                     }
 
+                    // Add to members
+                    members[members.Length - 1] = member;
+
                     // Try to parse next member
-                    member = ParseRootMember();
+                    member = ParseMember();
                 }
 
                 // Expect closing
@@ -269,7 +272,7 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Parse optional assignment
-                VariableAssignExpressionSyntax assignExpression = ParseVariableAssignExpression();
+                VariableAssignmentExpressionSyntax assignExpression = ParseVariableAssignExpression();
 
                 // Expect semicolon
                 if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
@@ -298,7 +301,7 @@ namespace LumaSharp.Compiler.Parser
             }
 
             // Parse optional assign
-            VariableAssignExpressionSyntax assignExpression = ParseVariableAssignExpression();
+            VariableAssignmentExpressionSyntax assignExpression = ParseVariableAssignExpression();
 
             // Create the enum field
             return new EnumFieldSyntax(identifier, assignExpression);
@@ -306,6 +309,138 @@ namespace LumaSharp.Compiler.Parser
 
         internal AccessorSyntax ParseAccessorDeclaration()
         {
+            // Store current position
+            int initialPosition = tokens.Position;
+
+            // Parse optional attributes
+            AttributeReferenceSyntax[] attributes = ParseAttributes();
+
+            // Parse access modifiers
+            SyntaxToken[] modifiers = ParseAccessModifiers();
+
+            // Parse the field type
+            TypeReferenceSyntax accessorType = ParseTypeReference();
+
+            // Require that field type is valid at this point
+            if (accessorType != null)
+            {
+                // Expect identifier next for the field name
+                if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
+                {
+                    return null;
+                    //// Expected identifier
+                    //report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    //return RecoverFromFieldError();
+                }
+
+                // Optional override
+                SyntaxToken? overrideToken = null;
+
+                if (tokens.PeekKind() == SyntaxTokenKind.OverrideKeyword)
+                    overrideToken = tokens.Consume();
+
+                // Expect lambda - Only now we can be sure that we are dealing with an accessor
+                if (tokens.PeekKind() == SyntaxTokenKind.LambdaSymbol)
+                {
+                    // Now we know we are definitely dealing with an accessor
+                    AccessorBodySyntax[] bodies = ParseAccessorBodies();
+                    AccessorLambdaSyntax lambda = null;
+
+                    // Check for lambda
+                    if (bodies == null)
+                        lambda = ParseAccessorLambda();
+
+                    // Create the field
+                    return new AccessorSyntax(identifier, attributes, modifiers, accessorType, overrideToken, bodies, lambda);
+                }
+            }
+
+            // Retrace to starting position
+            tokens.Retrace(initialPosition);
+            return null;
+        }
+
+        internal AccessorBodySyntax[] ParseAccessorBodies()
+        {
+            // Create array
+            AccessorBodySyntax[] bodies = null;
+
+            // Check for lambda followed by read or write
+            while(tokens.PeekKind() == SyntaxTokenKind.LambdaSymbol && (tokens.PeekKind(1) == SyntaxTokenKind.ReadKeyword || tokens.PeekKind(1) == SyntaxTokenKind.WriteKeyword))
+            {
+                // Consume lambda
+                SyntaxToken lambda = tokens.Consume();
+
+                // Read keyword
+                SyntaxToken keyword = tokens.Consume();
+
+                // Expect colon separator
+                if(tokens.ConsumeExpect(SyntaxTokenKind.ColonSymbol, out SyntaxToken colon) == false)
+                {
+                    // Expected ':'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.ColonSymbol));
+                    RecoverFromAccessorBodyError();
+                    continue;
+                }
+
+                // Parse the statement
+                StatementSyntax statement = ParseStatement();
+
+                // Check for statement
+                if(statement == null)
+                {
+                    // Expected statement
+                    report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                    RecoverFromAccessorBodyError();
+                    continue;
+                }
+
+                // Create the array
+                if(bodies != null)
+                {
+                    Array.Resize(ref bodies, bodies.Length + 1);
+                }
+                else
+                {
+                    bodies = new AccessorBodySyntax[1];
+                }
+
+                // Add body
+                bodies[bodies.Length - 1] = new AccessorBodySyntax(lambda, keyword, colon, statement);
+            }
+            return bodies;
+        }
+
+        internal AccessorLambdaSyntax ParseAccessorLambda()
+        {
+            // Check for lambda
+            if(tokens.PeekKind() == SyntaxTokenKind.LambdaSymbol)
+            {
+                // Consume the token
+                SyntaxToken lambda = tokens.Consume();
+
+                // Parse expression
+                ExpressionSyntax expression = ParseExpression();
+
+                // Expect expression
+                if(expression == null)
+                {
+                    // Expected expression
+                    report.ReportDiagnostic(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Source);
+                    return RecoverFromAccessorLambdaError();
+                }
+
+                // Expect semicolon
+                if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
+                {
+                    // Expected ';'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    return RecoverFromAccessorLambdaError();
+                }
+
+                // Create lambda
+                return new AccessorLambdaSyntax(lambda, expression, semicolon);
+            }
             return null;
         }
 
@@ -442,6 +577,34 @@ namespace LumaSharp.Compiler.Parser
         {
             // An error occurred while parsing an enum field - To recover we should consume all tokens until we reach a comma, closing block or end of stream
             while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.CommaSymbol && tokens.PeekKind() != SyntaxTokenKind.RBlockSymbol)
+                tokens.Consume();
+
+            // Always null - just means we can return from calling control easily
+            return null;
+        }
+
+        private AccessorBodySyntax RecoverFromAccessorBodyError()
+        {
+            // An error occurred while parsing a body - To recover we should consume all tokens until we reach a semicolon or rBlock or end of stream
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.SemicolonSymbol && tokens.PeekKind() != SyntaxTokenKind.RBlockSymbol)
+                tokens.Consume();
+
+            // Consume the semicolon or RBlock so we can parse the next member
+            if (tokens.EOF == false)
+                tokens.Consume();
+
+            // Always null - just means we can return from calling control easily
+            return null;
+        }
+
+        private AccessorLambdaSyntax RecoverFromAccessorLambdaError()
+        {
+            // An error occurred while parsing a lambda - To recover we should consume all tokens until we reach a semicolon or end of stream
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.SemicolonSymbol)
+                tokens.Consume();
+
+            // Consume the semicolon so we can parse the next member
+            if (tokens.EOF == false)
                 tokens.Consume();
 
             // Always null - just means we can return from calling control easily

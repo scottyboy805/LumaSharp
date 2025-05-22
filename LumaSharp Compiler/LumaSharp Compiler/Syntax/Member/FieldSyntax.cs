@@ -5,7 +5,7 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly TypeReferenceSyntax fieldType;
-        private readonly VariableAssignExpressionSyntax fieldAssignment;
+        private readonly VariableAssignmentExpressionSyntax fieldAssignment;
         private readonly SyntaxToken comma;                 // Required if there is another member following immediately
 
         // Properties
@@ -46,7 +46,7 @@ namespace LumaSharp.Compiler.AST
             get { return fieldType; }
         }
 
-        public VariableAssignExpressionSyntax FieldAssignment
+        public VariableAssignmentExpressionSyntax FieldAssignment
         {
             get { return fieldAssignment; }
         }
@@ -80,7 +80,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignExpressionSyntax fieldAssignment)
+        internal FieldSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment)
             : base(identifier, attributes, accessModifiers)
         {
             this.fieldType = fieldType;

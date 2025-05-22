@@ -15,7 +15,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Any), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.LiteralNull())))));
 
@@ -41,7 +41,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Bool), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Bool), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(true))))));
 
@@ -67,7 +67,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.Bool), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.Bool), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(false))))));
 
@@ -93,7 +93,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(-1))))));
 
@@ -120,7 +120,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(0))))));
 
@@ -147,7 +147,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(1))))));
 
@@ -174,7 +174,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
 
@@ -201,7 +201,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.U32), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.U32), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5U))))));
 
@@ -228,7 +228,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.I64), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I64), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5L))))));
 
@@ -255,7 +255,7 @@ namespace CompilerTests.Emit.Instructions
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithBody(Syntax.Variable(Syntax.TypeReference(PrimitiveType.U64), "myVar"),
+                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.U64), "myVar"),
                     Syntax.Assign(Syntax.VariableReference("myVar"),
                         Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5UL))))));
 

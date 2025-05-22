@@ -15,7 +15,7 @@ namespace CompilerTests.Semantic.Symbols
                     .WithMembers(Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
                         .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myParam"))
                         .WithBody(
-                            Syntax.Variable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                            Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
                             Syntax.Assign(Syntax.VariableReference("myVar"),
                                 Syntax.VariableAssignment(Syntax.Literal(5))))));
 
