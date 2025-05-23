@@ -16,6 +16,7 @@ namespace LumaSharp.Compiler.AST
         LiteralDescriptor,
 
         AssignSymbol,
+        AssignInferSymbol,
         AssignPlusSymbol,
         AssignMinusSymbol,
         AssignMultiplySymbol,
@@ -137,6 +138,7 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.BlockCommentEnd, "*/" },
 
             { SyntaxTokenKind.AssignSymbol, "=" },
+            { SyntaxTokenKind.AssignInferSymbol, ":="  },
             { SyntaxTokenKind.AssignPlusSymbol, "+=" },
             { SyntaxTokenKind.AssignMinusSymbol, "-=" },
             { SyntaxTokenKind.AssignMultiplySymbol, "*=" },
@@ -481,6 +483,7 @@ namespace LumaSharp.Compiler.AST
             switch(kind)
             {
                 case SyntaxTokenKind.AssignSymbol:
+                case SyntaxTokenKind.AssignInferSymbol:
                 case SyntaxTokenKind.AssignPlusSymbol:
                 case SyntaxTokenKind.AssignMinusSymbol:
                 case SyntaxTokenKind.AssignMultiplySymbol:

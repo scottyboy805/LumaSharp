@@ -25,6 +25,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitAssignExpression(AssignExpressionSyntax assignExpression) { }
         public virtual void VisitBaseExpression(BaseExpressionSyntax baseExpression) { }
         public virtual void VisitBinaryExpression(BinaryExpressionSyntax binaryExpression) { }
+        public virtual void VisitCollectionInitializerExpression(CollectionInitializerExpressionSyntax collectionInitializerExpression) { }
         public virtual void VisitIndexExpression(IndexExpressionSyntax indexExpression) { }
         public virtual void VisitLiteralExpression(LiteralExpressionSyntax literalExpression) { }
         public virtual void VisitMemberAccessExpression(MemberAccessExpressionSyntax memberAccessExpression) { }

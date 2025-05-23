@@ -1,5 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
+using System.Reflection.Metadata;
 using System.Text;
 
 namespace LumaSharp.Compiler.Parser
@@ -400,6 +401,10 @@ namespace LumaSharp.Compiler.Parser
                 // Check for new
                 if (expr == null)
                     expr = ParseNewExpression();
+
+                // Check for collection initializer
+                if (expr == null)
+                    expr = ParseCollectionInitializerExpression();
             }
 
             // ### Loosely defined rules - Can be matched in multiple cases so order of evaluation is important
@@ -679,6 +684,31 @@ namespace LumaSharp.Compiler.Parser
 
                 // Create new expression
                 return new NewExpressionSyntax(newToken, newTypeReference, argumentList);
+            }
+            return null;
+        }
+
+        private ExpressionSyntax ParseCollectionInitializerExpression()
+        {
+            // Check for lBlock
+            if(tokens.PeekKind() == SyntaxTokenKind.LBlockSymbol)
+            {
+                // Get the lBlock
+                SyntaxToken lBlock = tokens.Consume();
+
+                // Parse optional expressions
+                SeparatedSyntaxList<ExpressionSyntax> initializerExpressions = ParseSeparatedSyntaxList(ParseOptionalExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RBlockSymbol);
+
+                // Expect rBlock
+                if(tokens.ConsumeExpect(SyntaxTokenKind.RBlockSymbol, out SyntaxToken rBlock) == false)
+                {
+                    // Expected '}'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RBlockSymbol));
+                    return RecoverFromExpressionError();
+                }
+
+                // Create collection initializer
+                return new CollectionInitializerExpressionSyntax(lBlock, initializerExpressions, rBlock);
             }
             return null;
         }

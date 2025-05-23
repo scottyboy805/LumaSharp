@@ -71,7 +71,7 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        internal StatementSyntax ParseBlockStatement()
+        internal StatementBlockSyntax ParseBlockStatement()
         {
             // Check for block
             if(tokens.PeekKind() == SyntaxTokenKind.LBlockSymbol)
@@ -360,10 +360,18 @@ namespace LumaSharp.Compiler.Parser
             SeparatedTokenList identifierList = ParseSeparatedTokenList(SyntaxTokenKind.CommaSymbol);
 
             // Check for valid
-            if (variableType != null && identifierList != null)
+            if ((variableType != null || tokens.PeekKind() == SyntaxTokenKind.AssignInferSymbol) && identifierList != null)
             {
                 // Parse optional assignment
                 VariableAssignmentExpressionSyntax assignExpression = ParseVariableAssignExpression();
+
+                // Expected type if non-infer operator
+                if(variableType == null && (assignExpression == null || assignExpression.Assign.Kind != SyntaxTokenKind.AssignInferSymbol))
+                {
+                    // TODO - Type must be provided, or did you mean ':='?
+                    //report.ReportDiagnostic(Code.)
+                    //return RecoverFromStatementBlockError
+                }
 
                 // Create the declaration
                 return new VariableDeclarationSyntax(variableType, identifierList, assignExpression);
@@ -472,7 +480,7 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        private StatementSyntax RecoverFromStatementBlockError()
+        private StatementBlockSyntax RecoverFromStatementBlockError()
         {
             // An error occurred while parsing a statement block - To recover we should consume all tokens until we reach a closing block or end of stream
             while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RBlockSymbol)

@@ -66,8 +66,8 @@ namespace LumaSharp.Compiler.AST
         internal VariableDeclarationSyntax(TypeReferenceSyntax variableType, SeparatedTokenList identifiers, VariableAssignmentExpressionSyntax assignment)
         {
             // Check for null
-            if (variableType == null)
-                throw new ArgumentNullException(nameof(variableType));
+            if (variableType == null && (assignment == null || assignment.Assign.Kind != SyntaxTokenKind.AssignInferSymbol))
+                throw new ArgumentNullException(nameof(variableType) + " cannot be null when a non-infer assign operator is used");
 
             if (identifiers == null)
                 throw new ArgumentNullException(nameof(identifiers));
@@ -86,7 +86,8 @@ namespace LumaSharp.Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             // Write type 
-            variableType.GetSourceText(writer);
+            if(variableType != null)
+                variableType.GetSourceText(writer);
 
             // Write identifiers
             identifiers.GetSourceText(writer);

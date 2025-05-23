@@ -101,6 +101,10 @@ namespace LumaSharp.Compiler.Parser
         {
             // Any root can be nested
             MemberSyntax member = ParseRootMember();
+
+            // Parse constructor
+            if(member == null)
+                member = ParseConstructorDeclaration();
                         
             // Parse method
             if (member == null)
@@ -444,6 +448,83 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
+        internal ConstructorSyntax ParseConstructorDeclaration()
+        {
+            // Store current position
+            int initialPosition = tokens.Position;
+
+            // Parse optional attributes
+            AttributeReferenceSyntax[] attributes = ParseAttributes();
+
+            // Parse access modifiers
+            SyntaxToken[] modifiers = ParseAccessModifiers();
+
+            // Expect this keyword
+            if(tokens.PeekKind() == SyntaxTokenKind.ThisKeyword)
+            {
+                // Consume the token
+                SyntaxToken thisKeyword = tokens.Consume();
+
+                // Parse parameters
+                ParameterListSyntax parameters = ParseParameterList();
+
+                // Parse optional constructor invoke
+                ConstructorInvokeSyntax constructorInvoke = ParseConstructorInvoke();
+
+                // Now parse the body or lambda
+                LambdaStatementSyntax lambda = ParseLambdaStatement();
+                StatementBlockSyntax body = null;
+
+                // Check for lambda parsed
+                if (lambda != null)
+                {
+                    // Check for following lBlock
+                    if (tokens.PeekKind() == SyntaxTokenKind.LBlockSymbol)
+                    {
+                        // Expected member??
+                    }
+                }
+                else
+                {
+                    // Parse the statement
+                    body = ParseBlockStatement();
+                }
+
+                // Create constructor
+                return new ConstructorSyntax(thisKeyword, attributes, modifiers, parameters, constructorInvoke, body, lambda);
+            }
+            tokens.Retrace(initialPosition);
+            return null;
+        }
+
+        private ConstructorInvokeSyntax ParseConstructorInvoke()
+        {
+            // Expect colon
+            if(tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
+            {
+                // Consume the colon
+                SyntaxToken colon = tokens.Consume();
+
+                // Expect base or this
+                if(tokens.PeekKind() != SyntaxTokenKind.BaseKeyword && tokens.PeekKind() != SyntaxTokenKind.ThisKeyword)
+                {
+                    // Expected base or this
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.BaseKeyword) + " or " + SyntaxToken.GetText(SyntaxTokenKind.ThisKeyword));
+                    return null; // TODO - recover
+                }
+
+                // Consume the token
+                SyntaxToken baseOrThisKeyword = tokens.Consume();
+
+                // Parse arguments
+                ArgumentListSyntax arguments = ParseArgumentList();
+
+                // Create invoke
+                return new ConstructorInvokeSyntax(colon, baseOrThisKeyword, arguments);
+            }
+            return null;
+        }
+
         internal MethodSyntax ParseMethodDeclaration()
         {
             // Store current position
@@ -481,7 +562,7 @@ namespace LumaSharp.Compiler.Parser
 
                         // Now parse the body or lambda
                         LambdaStatementSyntax lambda = ParseLambdaStatement();
-                        StatementSyntax body = null;
+                        StatementBlockSyntax body = null;
 
                         // Check for lambda parsed
                         if (lambda != null)

@@ -7,7 +7,7 @@ namespace LumaSharp.Compiler.AST
         private readonly SeparatedSyntaxList<TypeReferenceSyntax> returnTypes;
         private readonly GenericParameterListSyntax genericParameters;
         private readonly ParameterListSyntax parameters;
-        private readonly StatementSyntax body;
+        private readonly StatementBlockSyntax body;
         private readonly LambdaStatementSyntax lambda;
         private readonly SyntaxToken? overrideKeyword;
 
@@ -66,7 +66,7 @@ namespace LumaSharp.Compiler.AST
             get { return parameters; }
         }
 
-        public StatementSyntax Body
+        public StatementBlockSyntax Body
         {
             get { return body; }
         }
@@ -102,7 +102,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementSyntax body, LambdaStatementSyntax lambda)
+        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementBlockSyntax body, LambdaStatementSyntax lambda)
             : base(identifier, attributes, accessModifiers)
         {
             this.returnTypes = returnTypes;
@@ -139,6 +139,12 @@ namespace LumaSharp.Compiler.AST
             if(HasBody == true)
             {
                 body.GetSourceText(writer);
+            }
+
+            // Lambda
+            if (HasLambda == true)
+            {
+                lambda.GetSourceText(writer);
             }
         }
     }

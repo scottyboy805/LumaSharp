@@ -208,7 +208,7 @@ namespace LumaSharp.Compiler.AST
         public static MethodSyntax WithBody(this MethodSyntax method, params StatementSyntax[] bodyStatements)
             => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, new StatementBlockSyntax(bodyStatements), null);
 
-        public static MethodSyntax WithBody(this MethodSyntax method, StatementSyntax body)
+        public static MethodSyntax WithBody(this MethodSyntax method, StatementBlockSyntax body)
             => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, body, null);
 
         public static MethodSyntax WithLambda(this MethodSyntax method, StatementSyntax inlineStatement)
