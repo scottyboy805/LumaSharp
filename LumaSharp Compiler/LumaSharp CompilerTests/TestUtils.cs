@@ -129,6 +129,11 @@ namespace CompilerTests
             return CreateParser(input, p => p.ParseSeparatedTokenList(separatorKind, valueKind, requireTrailingSeparator));
         }
 
+        public static SeparatedSyntaxList<ExpressionSyntax> ParseSeparatedExpressionList(string input, SyntaxTokenKind separatorKind, SyntaxTokenKind endTokenKind = SyntaxTokenKind.Invalid)
+        {
+            return CreateParser(input, p => p.ParseSeparatedSyntaxList(p.ParseOptionalExpression, separatorKind, endTokenKind));
+        }
+
         private static T CreateParser<T>(string input, Func<ASTParser, T> parse) where T : SyntaxNode
         {
             // Create the report
@@ -145,6 +150,10 @@ namespace CompilerTests
 
             // Try to parse
             T result = parse(parser);
+
+            // Log the node
+            if (result != null)
+                Debug.WriteLine(result.GetSourceText());
 
             // Check for errors
             foreach(ICompileDiagnostic message in report.Diagnostics)

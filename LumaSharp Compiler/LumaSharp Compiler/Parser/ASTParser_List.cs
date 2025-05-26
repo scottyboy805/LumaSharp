@@ -12,37 +12,61 @@ namespace LumaSharp.Compiler.Parser
             if (tokens.PeekKind() == endTokenKind)
                 return null;
 
-            // Parse first reference
-            T syntaxReference = parseSyntaxElement();
+            // Store list of syntax
+            SeparatedSyntaxList<T> list = null;
+            T syntax = null;
 
-            // Check for valid
-            if (syntaxReference != null)
+            // Check for value
+            while ((syntax = parseSyntaxElement()) != null)
             {
-                // Get the separator
+                // Check for separator
                 SyntaxToken? separator = tokens.PeekKind() == separatorKind
                     ? tokens.Consume()
-                    : (SyntaxToken?)null; // Nasty cast required otherwise separator is initialized to some weird corrupt value
+                    : (SyntaxToken?)null;
 
-                // Create the syntax list
-                SeparatedSyntaxList<T> syntaxReferenceList = new(separatorKind);
+                // Create list
+                if (list == null)
+                    list = new(separatorKind);
 
-                // Add the reference
-                syntaxReferenceList.AddElement(syntaxReference, separator);
+                // Add item
+                list.AddElement(syntax, separator);
 
-                // Repeat for all other elements
-                while (separator != null && tokens.PeekKind() != endTokenKind && (syntaxReference = parseSyntaxElement()) != null)
-                {
-                    // Get the separator
-                    separator = tokens.PeekKind() == separatorKind
-                        ? tokens.Consume()
-                        : (SyntaxToken?)null;
-
-                    // Add the additional reference
-                    syntaxReferenceList.AddElement(syntaxReference, separator);
-                }
-                return syntaxReferenceList;
+                // Check for end
+                if (separator == null)
+                    break;
             }
-            return null;
+
+            //// Parse first reference
+            //T syntaxReference = parseSyntaxElement();
+
+            //// Check for valid
+            //if (syntaxReference != null)
+            //{
+            //    // Get the separator
+            //    SyntaxToken? separator = tokens.PeekKind() == separatorKind
+            //        ? tokens.Consume()
+            //        : (SyntaxToken?)null; // Nasty cast required otherwise separator is initialized to some weird corrupt value
+
+            //    // Create the syntax list
+            //    SeparatedSyntaxList<T> syntaxReferenceList = new(separatorKind);
+
+            //    // Add the reference
+            //    syntaxReferenceList.AddElement(syntaxReference, separator);
+
+            //    // Repeat for all other elements
+            //    while (separator != null && tokens.PeekKind() != endTokenKind && (syntaxReference = parseSyntaxElement()) != null)
+            //    {
+            //        // Get the separator
+            //        separator = tokens.PeekKind() == separatorKind
+            //            ? tokens.Consume()
+            //            : (SyntaxToken?)null;
+
+            //        // Add the additional reference
+            //        syntaxReferenceList.AddElement(syntaxReference, separator);
+            //    }
+            //    return syntaxReferenceList;
+            //}
+            return list;
         }
 
         internal SeparatedTokenList ParseSeparatedTokenList(SyntaxTokenKind separatorKind, SyntaxTokenKind valueKind = SyntaxTokenKind.Identifier, bool requireTrailingSeparator = false)

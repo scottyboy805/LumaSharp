@@ -91,8 +91,11 @@ namespace LumaSharp.Compiler.AST
             lArray.GetSourceText(writer);
 
             // Write separator
-            for (int i = 0; i < separators.Length; i++)
-                separators[i].GetSourceText(writer);
+            if (separators != null)
+            {
+                for (int i = 0; i < separators.Length; i++)
+                    separators[i].GetSourceText(writer);
+            }
 
             // Array end
             rArray.GetSourceText(writer);

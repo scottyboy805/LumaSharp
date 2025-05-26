@@ -218,18 +218,23 @@ namespace LumaSharp.Compiler.Parser
 
             // Parse and
             ExpressionSyntax expr = ParseBitShiftBinaryExpression(rhs);
-
-            // Handle ambiguity between less than and open generics
-            if(LooksLikeGenericArgumentList() == true)
-            {
-                // Retrace back to start of expression and now try and parse it as a generic type reference
-                tokens.Retrace(expressionStart);
-                expr = ParseTypeReference();
-            }
+                       
 
             // Check for '<' '<=' '>' '>=' tokens
             while (tokens.PeekKind() == SyntaxTokenKind.LessSymbol || tokens.PeekKind() == SyntaxTokenKind.LessEqualSymbol || tokens.PeekKind() == SyntaxTokenKind.GreaterSymbol || tokens.PeekKind() == SyntaxTokenKind.GreaterEqualSymbol)
             {
+                // Check for '<' which could be greater than or opening generic arguments
+                if(tokens.PeekKind() == SyntaxTokenKind.LessSymbol)
+                {
+                    // Handle ambiguity between less than and open generics
+                    if (LooksLikeGenericArgumentList() == true)
+                    {
+                        // Retrace back to start of expression and now try and parse it as a generic type reference
+                        tokens.Retrace(expressionStart);
+                        expr = ParseTypeReference();
+                    }
+                }
+
                 // Consume the operator
                 SyntaxToken operandToken = tokens.Consume();
 

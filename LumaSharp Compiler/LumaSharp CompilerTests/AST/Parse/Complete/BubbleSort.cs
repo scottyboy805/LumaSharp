@@ -12,7 +12,7 @@ import Collections:Generic;
 
 export type Main
 {
-    List<i32> unsortedValues;
+    List<i32> unsortedValues = { 800, 11, 50, 771, 649 };
 
     global void BubbleSort(List<i32> values)
     {

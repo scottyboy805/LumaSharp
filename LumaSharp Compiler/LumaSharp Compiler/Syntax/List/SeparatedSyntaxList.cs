@@ -134,7 +134,7 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for token
                 if(i > 0)
-                    syntaxList[i].separator.GetSourceText(writer);
+                    syntaxList[i - 1].separator.GetSourceText(writer);
 
                 // Get syntax source
                 syntaxList[i].syntax.GetSourceText(writer);
