@@ -11,7 +11,7 @@ namespace LumaSharp.Runtime
     internal static unsafe class __interpreter
     {
         // Methods
-        internal static StackData* ExecuteBytecode(ThreadContext context, _MethodHandle* method)
+        internal static StackData* ExecuteBytecode(ThreadContext context, AssemblyContext assemblyContext, _MethodHandle* method)
         {
             // Get sp max
             byte* spMax = context.ThreadStackPtr + context.ThreadStackSize;
@@ -384,7 +384,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)assemblyContext.fieldHandles[token];
 
                             // Pop instance
                             sp--;
@@ -411,7 +411,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)assemblyContext.fieldHandles[token];
 
                             // Pop instance
                             sp--;
@@ -440,10 +440,10 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)assemblyContext.fieldHandles[token];
 
                             // Get global memory handle
-                            IntPtr globalMem = context.AppContext.globalMemoryHandles[field->DeclaringTypeToken];
+                            IntPtr globalMem = assemblyContext.globalMemoryHandles[field->DeclaringTypeToken];
 
                             // Get global field address
                             byte* fieldMem = field->GetFieldAddress((byte*)globalMem);
@@ -463,10 +463,10 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)assemblyContext.fieldHandles[token];
 
                             // Get global memory handle
-                            IntPtr globalMem = context.AppContext.globalMemoryHandles[field->DeclaringTypeToken];
+                            IntPtr globalMem = assemblyContext.globalMemoryHandles[field->DeclaringTypeToken];
 
                             // Get global field address
                             byte* fieldMem = field->GetFieldAddress((byte*)globalMem);
@@ -488,7 +488,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)assemblyContext.fieldHandles[token];
 
                             // Pop value then instance
                             sp -= 2;
@@ -514,10 +514,10 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get field handle
-                            _FieldHandle* field = (_FieldHandle*)context.AppContext.fieldHandles[token];
+                            _FieldHandle* field = (_FieldHandle*)assemblyContext.fieldHandles[token];
 
                             // Get global memory handle
-                            IntPtr globalMem = context.AppContext.globalMemoryHandles[field->DeclaringTypeToken];
+                            IntPtr globalMem = assemblyContext.globalMemoryHandles[field->DeclaringTypeToken];
 
                             // Pop value
                             sp--;
@@ -1927,7 +1927,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle
-                            _TypeHandle* asType = (_TypeHandle*)context.AppContext.typeHandles[token];
+                            _TypeHandle* asType = (_TypeHandle*)assemblyContext.typeHandles[token];
 
                             // Pop object
                             sp--;
@@ -1946,8 +1946,8 @@ namespace LumaSharp.Runtime
                             if (isType == false)
                             {
                                 // Get the meta types
-                                MetaType instMetaType = context.AppContext.ResolveType(memoryHandle->TypeHandle->TypeToken);
-                                MetaType asMetaType = context.AppContext.ResolveType(asType->TypeToken);
+                                MetaType instMetaType = assemblyContext.ResolveType(memoryHandle->TypeHandle->TypeToken);
+                                MetaType asMetaType = assemblyContext.ResolveType(asType->TypeToken);
 
                                 // Check for assignable - TODO
                             }
@@ -2024,7 +2024,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle
-                            _TypeHandle* typeHandle = (_TypeHandle*)context.AppContext.typeHandles[token];
+                            _TypeHandle* typeHandle = (_TypeHandle*)assemblyContext.typeHandles[token];
 
                             // Create new instance and push to stack
                             sp->Type = StackTypeCode.Address;
@@ -2045,7 +2045,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get method handle
-                            _MethodHandle* callHandle = (_MethodHandle*)context.AppContext.methodHandles[token];
+                            _MethodHandle* callHandle = (_MethodHandle*)assemblyContext.methodHandles[token];
 
                             // Get call ptr
                             StackData* spCall = sp;
@@ -2155,7 +2155,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle
-                            _TypeHandle* asType = (_TypeHandle*)context.AppContext.typeHandles[token];
+                            _TypeHandle* asType = (_TypeHandle*)assemblyContext.typeHandles[token];
 
                             // Check for null
                             if((sp - 1)->Ptr == IntPtr.Zero)
@@ -2177,8 +2177,8 @@ namespace LumaSharp.Runtime
                             if (isType == false)
                             {
                                 // Get the meta types
-                                MetaType instMetaType = context.AppContext.ResolveType(memoryHandle->TypeHandle->TypeToken);
-                                MetaType asMetaType = context.AppContext.ResolveType(asType->TypeToken);
+                                MetaType instMetaType = assemblyContext.ResolveType(memoryHandle->TypeHandle->TypeToken);
+                                MetaType asMetaType = assemblyContext.ResolveType(asType->TypeToken);
 
                                 // Check for assignable - TODO
                             }
@@ -2205,7 +2205,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle
-                            _TypeHandle* toType = (_TypeHandle*)context.AppContext.typeHandles[token];
+                            _TypeHandle* toType = (_TypeHandle*)assemblyContext.typeHandles[token];
 
                             // Pop primitive
                             sp--;
@@ -2232,7 +2232,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle
-                            _TypeHandle* asType = (_TypeHandle*)context.AppContext.typeHandles[token];
+                            _TypeHandle* asType = (_TypeHandle*)assemblyContext.typeHandles[token];
 
                             // Pop object
                             sp--;
@@ -2281,7 +2281,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get type handle ptr
-                            _TypeHandle* typePtr = (_TypeHandle*)context.AppContext.typeHandles[token];
+                            _TypeHandle* typePtr = (_TypeHandle*)assemblyContext.typeHandles[token];
 
                             // Push address of type to stack
                             sp->Type = StackTypeCode.Address;
@@ -2299,7 +2299,7 @@ namespace LumaSharp.Runtime
                             pc += sizeof(int);
 
                             // Get method handle ptr
-                            _MethodHandle* methodPtr = (_MethodHandle*)context.AppContext.methodHandles[token];
+                            _MethodHandle* methodPtr = (_MethodHandle*)assemblyContext.methodHandles[token];
 
                             // Push address of method to stack
                             sp->Type = StackTypeCode.Address;

@@ -29,16 +29,17 @@ namespace LumaSharp_RuntimeTests
 
             // Create app and thread context
             AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create type handle
             _TypeHandle typeHandle = new _TypeHandle(110, 4);
             _FieldHandle fieldHandle = new _FieldHandle(120, 0, 0, new _TypeHandle(RuntimeTypeCode.I32));
-            appContext.typeHandles[110] = (IntPtr)(&typeHandle);
-            appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
+            asmContext.typeHandles[110] = (IntPtr)(&typeHandle);
+            asmContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
 
             Assert.AreEqual(1234, spReturn->I32);
         }
@@ -64,16 +65,17 @@ namespace LumaSharp_RuntimeTests
 
             // Create app and thread context
             AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create type handle
             _TypeHandle typeHandle = new _TypeHandle(_TokenHandle.TypeDef(0), 4);
             _FieldHandle fieldHandle = new _FieldHandle(_TokenHandle.FieldDef(0), 0, 0, new _TypeHandle(RuntimeTypeCode.I32));
-            appContext.typeHandles[_TokenHandle.TypeDef(0)] = (IntPtr)(&typeHandle);
-            appContext.fieldHandles[_TokenHandle.FieldDef(0)] = (IntPtr)(&fieldHandle);
+            asmContext.typeHandles[_TokenHandle.TypeDef(0)] = (IntPtr)(&typeHandle);
+            asmContext.fieldHandles[_TokenHandle.FieldDef(0)] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
 
             Assert.AreEqual(1234, spReturn->I32);
         }

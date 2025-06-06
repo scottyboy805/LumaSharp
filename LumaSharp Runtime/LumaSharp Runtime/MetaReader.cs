@@ -6,11 +6,11 @@ namespace LumaSharp.Runtime
     internal sealed class MetaReader
     {
         // Private
-        private AppContext appContext = null;
+        private AssemblyContext appContext = null;
         private BinaryReader reader = null;
 
         // Constructor
-        internal MetaReader(AppContext appContext, Stream inputStream)
+        internal MetaReader(AssemblyContext appContext, Stream inputStream)
         {
             this.appContext = appContext;
             this.reader = new BinaryReader(inputStream);

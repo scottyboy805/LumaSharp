@@ -84,10 +84,10 @@ namespace LumaSharp.Runtime.Handle
         }
 
         // Methods       
-        internal static StackData* Invoke(ThreadContext context, _MethodHandle* method, IntPtr inst, StackData* args)
+        internal static StackData* Invoke(ThreadContext threadContext, AssemblyContext assemblyContext, _MethodHandle* method, IntPtr inst, StackData* args)
         {
             // Get spArg address
-            StackData* spArg = (StackData*)context.ThreadStackPtr;
+            StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
 
             // Check for this
             if ((method->Signature.Flags & _MethodSignatureFlags.HasThis) != 0)
@@ -111,7 +111,7 @@ namespace LumaSharp.Runtime.Handle
             }
             
             // Execute bytecode
-            return __interpreter.ExecuteBytecode(context, method);
+            return __interpreter.ExecuteBytecode(threadContext, assemblyContext, method);
         }
     }
 }

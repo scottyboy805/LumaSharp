@@ -12,7 +12,7 @@ namespace LumaSharp.Runtime.Reflection
     public sealed class MetaVariable
     {
         // Internal
-        internal AppContext context = null;
+        internal AssemblyContext context = null;
 
         // Private
         private MetaVariableFlags variableFlags = 0;
@@ -52,13 +52,13 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaVariable(AppContext context, int index)
+        internal MetaVariable(AssemblyContext context, int index)
         {
             this.context = context;
             this.index = index;
         }
 
-        internal MetaVariable(AppContext context, string name, int index, MemberReference<MetaType> parameterType, MetaVariableFlags parameterFlags)
+        internal MetaVariable(AssemblyContext context, string name, int index, MemberReference<MetaType> parameterType, MetaVariableFlags parameterFlags)
         {
             this.context = context;
             this.name = name;

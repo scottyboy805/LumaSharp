@@ -1,28 +1,16 @@
-﻿using LumaSharp.Runtime.Handle;
-using LumaSharp.Runtime.Reflection;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+﻿using LumaSharp.Runtime.Reflection;
 using System.Runtime.InteropServices;
-using MetaType = LumaSharp.Runtime.Reflection.MetaType;
 
 namespace LumaSharp.Runtime
 {
     public unsafe sealed class AppContext : IDisposable
     {
         // Internal
-        internal _TypeHandle* _anyType = null;
-        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> typeHandles = new();        // token, _TypeHandle*
-        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> fieldHandles = new();       // token, _FieldHandle*
-        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> methodHandles = new();      // token, _MethodHandle*
-        internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> globalMemoryHandles = new();
+        internal readonly _TypeHandle* primitivePtr = null;
 
         // Private
-        private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
         private Dictionary<int, MetaAssembly> loadedModules = new Dictionary<int, MetaAssembly>();
-        private Dictionary<_TokenHandle, MetaType> loadedTypes = new();
-        private Dictionary<_TokenHandle, MetaMember> loadedMembers = new();       
-
 
         // Constructor
         public AppContext()
@@ -34,7 +22,6 @@ namespace LumaSharp.Runtime
             foreach(RuntimeTypeCode typeCode in Enum.GetValues<RuntimeTypeCode>())
             {
                 primitivePtr[(int)typeCode] = new _TypeHandle(typeCode);
-                typeHandles[typeCode] = (IntPtr)(&primitivePtr[(int)typeCode]);
             }
         }
 
@@ -105,70 +92,14 @@ namespace LumaSharp.Runtime
         public MetaAssembly ResolveModule(string name)
         {
             return loadedModules.Values
-                .FirstOrDefault(m => m.ModuleName.Name == name);
+                .FirstOrDefault(m => m.AssemblyName.Name == name);
         }
 
         public MetaAssembly ResolveModule(string name, Version version)
         {
             return loadedModules.Values
-                .FirstOrDefault(m => m.ModuleName.Name == name 
-                && m.ModuleName.Version.Equals(version));
-        }
-
-        public MetaMember ResolveMember(_TokenHandle token)
-        {
-            // Try to get the member
-            MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == true)
-                return member;
-
-            // Check for type
-            MetaType type;
-            if (loadedTypes.TryGetValue(token, out type) == true)
-                return type;
-
-            // Not found
-            throw new MissingMemberException("Token: " + token);
-        }
-
-        public T ResolveMember<T>(_TokenHandle token) where T : MetaMember
-        {
-            return ResolveMember(token) as T;
-        }
-
-        public MetaType ResolveType(_TokenHandle token)
-        {
-            throw new NotImplementedException();
-        }
-
-        public MetaField ResolveField(_TokenHandle token)
-        {
-            // Try to get the member
-            MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaField) == false)
-                throw new MissingMemberException("Token: " + token);
-
-            return member as MetaField;
-        }
-
-        public MetaAccessor ResolveAccessor(_TokenHandle token)
-        {
-            // Try to get the member
-            MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaAccessor) == false)
-                throw new MissingMemberException("Token: " + token);
-
-            return member as MetaAccessor;
-        }
-
-        public MetaMethod ResolveMethod(_TokenHandle token)
-        {
-            // Try to get the member
-            MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaMethod) == false)
-                throw new MissingMemberException("Token: " + token);
-
-            return member as MetaMethod;
+                .FirstOrDefault(m => m.AssemblyName.Name == name 
+                && m.AssemblyName.Version.Equals(version));
         }
 
         public IEnumerable<MetaAssembly> GetLibraries()
@@ -176,38 +107,8 @@ namespace LumaSharp.Runtime
             return loadedModules.Values;
         }
 
-        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
-        {
-            foreach(MetaType type in loadedTypes.Values)
-            {
-                // Check for field with flags
-                if (type.HasMemberFlags(flags) == true)
-                    yield return type;
-            }
-        }
-
         public void Dispose()
         {
-        }
-
-        internal void DefineMetaMember(MetaMember member)
-        {
-            // Check for already added
-            if (loadedMembers.ContainsKey(member.Token) == true)
-                throw new InvalidOperationException("Member with token already exists: " + member.Token);
-
-            // Store member
-            loadedMembers[member.Token] = member;
-        }
-
-        internal void DefineExecutableMethod(_MethodHandle* method)
-        {
-            // Check for already added
-            if (methodHandles.ContainsKey(method->MethodToken) == true)
-                throw new InvalidOperationException("Method executable with token already exists: " + method->MethodToken);
-
-            // Store method
-            methodHandles[method->MethodToken] = (IntPtr)method;
         }
 
         internal ThreadContext GetCurrentThreadContext()

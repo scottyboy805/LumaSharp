@@ -62,7 +62,7 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaAccessor(AppContext context, _TokenHandle token, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
+        internal MetaAccessor(AssemblyContext context, _TokenHandle token, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
             : base(context, token, name, memberFlags)
         {
             this.accessorFlags = accessorFlags;

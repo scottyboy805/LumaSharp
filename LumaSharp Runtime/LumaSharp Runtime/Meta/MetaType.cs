@@ -72,12 +72,12 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaType(AppContext context)
+        internal MetaType(AssemblyContext context)
             : base(context)
         { 
         }
 
-        protected MetaType(AppContext context, _TokenHandle token, string name, RuntimeTypeCode code, MetaTypeFlags typeFlags)
+        protected MetaType(AssemblyContext context, _TokenHandle token, string name, RuntimeTypeCode code, MetaTypeFlags typeFlags)
             : base(context, token, name, (MemberFlags)typeFlags)
         {
             this.typeCode = code;

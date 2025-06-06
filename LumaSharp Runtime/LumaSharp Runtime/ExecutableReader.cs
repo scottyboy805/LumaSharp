@@ -6,14 +6,14 @@ namespace LumaSharp.Runtime
     internal unsafe sealed class ExecutableReader
     {
         // Private
-        private AppContext appContext = null;
+        private AssemblyContext assemblyContext = null;
         private BinaryReader reader = null;
         private byte* executableMemory = null;
 
         // Constructor
-        internal ExecutableReader(AppContext appContext, Stream inputStream, long size = -1)
+        internal ExecutableReader(AssemblyContext assemblyContext, Stream inputStream, long size = -1)
         {
-            this.appContext = appContext;
+            this.assemblyContext = assemblyContext;
             this.reader = new BinaryReader(inputStream);
 
             // Get size
@@ -79,7 +79,7 @@ namespace LumaSharp.Runtime
 
             // Define
             if(define == true)
-                appContext.DefineExecutableMethod(methodHandle);
+                assemblyContext.DefineExecutableMethod(methodHandle);
 
             return methodHandle;
         }

@@ -13,7 +13,7 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal GenericParameterType(AppContext context, int index, MetaTypeFlags typeFlags)
+        internal GenericParameterType(AssemblyContext context, int index, MetaTypeFlags typeFlags)
             : base(context, default, index.ToString(), RuntimeTypeCode.Any, typeFlags)
         {
             this.genericParameterIndex = index;

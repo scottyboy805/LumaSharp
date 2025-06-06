@@ -50,6 +50,7 @@ namespace LumaSharp.Runtime.Handle
         public readonly int MetaToken;
 
         // Properties
+        public readonly bool IsNil => Kind == TokenKind.Nil;
         public readonly TokenKind Kind => (TokenKind)((byte)((MetaToken >> 24) & 0xFF));
         public readonly int Row => (MetaToken & 0xFFFFFF);
 

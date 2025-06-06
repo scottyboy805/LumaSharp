@@ -25,12 +25,12 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaField(AppContext context)
+        internal MetaField(AssemblyContext context)
             : base(context)
         { 
         }
 
-        internal MetaField(AppContext context, _TokenHandle token, string name, FieldFlags fieldFlags)
+        internal MetaField(AssemblyContext context, _TokenHandle token, string name, FieldFlags fieldFlags)
             : base(context, token, name, (MemberFlags)fieldFlags)
         {
             this.fieldFlags = fieldFlags;

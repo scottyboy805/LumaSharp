@@ -80,12 +80,12 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaMethod(AppContext context)
+        internal MetaMethod(AssemblyContext context)
             : base(context)
         { 
         }
 
-        internal MetaMethod(AppContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags, MemberReference<MetaType>[] returnTypes, MetaVariable[] parameters) 
+        internal MetaMethod(AssemblyContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags, MemberReference<MetaType>[] returnTypes, MetaVariable[] parameters) 
             : base(context, token, name, (MemberFlags)methodFlags)
         {
             this.methodFlags = methodFlags;
@@ -97,7 +97,7 @@ namespace LumaSharp.Runtime.Reflection
         public object Invoke(object[] args, IntPtr instance = default)
         {
             // Get method handle
-            _MethodHandle* method = (_MethodHandle*)context.methodHandles[Token];
+            _MethodHandle* method = (_MethodHandle*)assemblyContext.methodHandles[Token];
 
             // Invoke the method
             StackData* stackPtr = InvokeHandle(method, args, instance);
@@ -129,7 +129,7 @@ namespace LumaSharp.Runtime.Reflection
         public T Invoke<T>(object[] args, IntPtr instance = default) where T : unmanaged
         {
             // Get method handle
-            _MethodHandle* method = (_MethodHandle*)context.methodHandles[Token];
+            _MethodHandle* method = (_MethodHandle*)assemblyContext.methodHandles[Token];
 
             // Invoke the method
             StackData* stackPtr = InvokeHandle(method, args, instance);
@@ -157,7 +157,7 @@ namespace LumaSharp.Runtime.Reflection
                 throw new InvalidOperationException("Cannot invoke a method which has no handle");
 
             // Get thread context
-            ThreadContext threadContext = context.GetCurrentThreadContext();
+            ThreadContext threadContext = assemblyContext.AppContext.GetCurrentThreadContext();
 
             // Alloc temp args
             StackData* spArg = stackalloc StackData[args.Length];
@@ -173,7 +173,7 @@ namespace LumaSharp.Runtime.Reflection
             Stopwatch timer = Stopwatch.StartNew();
 
             // Invoke the method
-            StackData* spReturn = _MethodHandle.Invoke(threadContext, method, instance, spArg);
+            StackData* spReturn = _MethodHandle.Invoke(threadContext, assemblyContext, method, instance, spArg);
 
             Console.WriteLine("Execution took: " + timer.Elapsed.TotalMilliseconds + "ms");
 

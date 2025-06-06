@@ -58,6 +58,7 @@ namespace LumaSharp_RuntimeTests
 
             // Create app and thread context
             AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Push arg
@@ -67,7 +68,7 @@ namespace LumaSharp_RuntimeTests
             spArg->I32 = 8;
 
             // Execute bytecode
-            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
 
             Assert.AreEqual(21, spReturn->I32);
         }
@@ -128,15 +129,16 @@ namespace LumaSharp_RuntimeTests
             
             // Create app and thread context
             AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
             ThreadContext threadContext = new ThreadContext(appContext);
 
-            appContext.methodHandles[110] = (IntPtr)method;
+            asmContext.methodHandles[110] = (IntPtr)method;
 
             // Push arg
             StackData arg = new StackData { Type = StackTypeCode.I32, I32 = 8 };
 
             // Execute bytecode
-            StackData* spReturn = _MethodHandle.Invoke(threadContext, method, IntPtr.Zero, &arg);
+            StackData* spReturn = _MethodHandle.Invoke(threadContext, asmContext, method, IntPtr.Zero, &arg);
 
             Assert.AreEqual(34, spReturn->I32);
         }

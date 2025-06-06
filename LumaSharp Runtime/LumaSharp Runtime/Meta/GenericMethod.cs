@@ -19,7 +19,7 @@ namespace LumaSharp.Runtime.Reflection
         }
         
         // Constructor
-        internal GenericMethod(AppContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags) 
+        internal GenericMethod(AssemblyContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags) 
             : base(context, token, name, methodFlags, null, null)
         {
         }

@@ -14,7 +14,7 @@ namespace LumaSharp.Runtime.Reflection
     public abstract class MetaMember
     {
         // Internal
-        internal AppContext context = null;
+        internal AssemblyContext assemblyContext = null;
 
         // Private
         private _TokenHandle token = default;
@@ -58,14 +58,14 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaMember(AppContext context) 
+        internal MetaMember(AssemblyContext context) 
         {
-            this.context = context;
+            this.assemblyContext = context;
         }
 
-        protected MetaMember(AppContext context, _TokenHandle token, string name, MemberFlags flags)
+        protected MetaMember(AssemblyContext context, _TokenHandle token, string name, MemberFlags flags)
         {
-            this.context =context;
+            this.assemblyContext =context;
             this.token = token;
             this.name = name;
             this.memberFlags = flags;

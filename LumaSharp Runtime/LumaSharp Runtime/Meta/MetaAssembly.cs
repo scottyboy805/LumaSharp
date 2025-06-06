@@ -28,7 +28,7 @@ namespace LumaSharp.Runtime.Reflection
             get { return assemblyName.Name; }
         }
 
-        public MetaAssemblyName ModuleName
+        public MetaAssemblyName AssemblyName
         {
             get { return assemblyName; }
         }
