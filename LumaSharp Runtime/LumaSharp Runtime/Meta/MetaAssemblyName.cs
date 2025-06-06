@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public sealed class MetaLibraryName
+    public sealed class MetaAssemblyName
     {
         // Private
         private string name = "";
@@ -25,21 +25,21 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        public MetaLibraryName(string path)
+        public MetaAssemblyName(string path)
         {
             this.hintPath = path;
             this.name = Path.GetFileName(path);
             this.version = new Version();
         }
 
-        public MetaLibraryName(string name, Version version, string hintPath = null)
+        public MetaAssemblyName(string name, Version version, string hintPath = null)
         {
             this.name = name;
             this.version = version;
             this.hintPath = hintPath;
         }
 
-        internal MetaLibraryName(BinaryReader reader, string hintPath = null)
+        internal MetaAssemblyName(BinaryReader reader, string hintPath = null)
         {
             this.name = reader.ReadString();
             this.version = new Version(

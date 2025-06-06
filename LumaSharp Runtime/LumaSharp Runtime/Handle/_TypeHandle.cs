@@ -11,7 +11,7 @@ namespace LumaSharp.Runtime
         // Properties
         public RuntimeTypeCode TypeCode
         {
-            get { return TypeToken.IsRuntimeType() ? (RuntimeTypeCode)TypeToken.Kind : 0; }
+            get { return (RuntimeTypeCode)TypeToken; }
         }
 
         // Constructor
@@ -23,7 +23,7 @@ namespace LumaSharp.Runtime
 
         public _TypeHandle(RuntimeTypeCode typeCode)
         {
-            this.TypeToken = new _TokenHandle((int)typeCode);
+            this.TypeToken = typeCode;
             this.TypeSize = RuntimeType.GetTypeSize(typeCode);
         }
 

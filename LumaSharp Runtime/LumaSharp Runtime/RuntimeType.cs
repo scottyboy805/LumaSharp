@@ -3,6 +3,7 @@ namespace LumaSharp.Runtime
 {
     public enum RuntimeTypeCode : byte
     {
+        Void = 0,
         Any = 1,
         Bool,
         Char, 
@@ -30,6 +31,8 @@ namespace LumaSharp.Runtime
         {
             return typeCode switch
             {
+                RuntimeTypeCode.Void => 0,
+
                 RuntimeTypeCode.Any => (uint)IntPtr.Size,
                 RuntimeTypeCode.Bool => sizeof(bool),
                 RuntimeTypeCode.Char => sizeof(char),

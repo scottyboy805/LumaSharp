@@ -1,73 +1,57 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace LumaSharp.Runtime.Handle
 {
     public enum TokenKind : byte
     {
-        Void = 0,
+        Nil = 0,
 
-        AnyReference = 1,
-        BoolReference,
-        CharReference,
-        I8Reference,
-        U8Reference,
-        I16Reference,
-        U16Reference,
-        I32Reference,
-        U32Reference,
-        I64Reference,
-        U64Reference,
-        F32Reference,
-        F64Reference,
-        PtrReference,
-        UPtrReference,
+        Void = 1,
+
+        //AnyReference = 1,
+        //BoolReference,
+        //CharReference,
+        //I8Reference,
+        //U8Reference,
+        //I16Reference,
+        //U16Reference,
+        //I32Reference,
+        //U32Reference,
+        //I64Reference,
+        //U64Reference,
+        //F32Reference,
+        //F64Reference,
+        //PtrReference,
+        //UPtrReference,
 
         StringReference = 16,
 
-        ModuleReference = 32,
+        AssemblyReference = 32,
+        PrimitiveTypeReference,
         TypeReference,
         FieldReference,
         AccessorReference,
         MethodReference,
 
-        ModuleDefinition = 64,
+        AssemblyDefinition = 64,
         TypeDefinition,
         FieldDefinition,
         AccessorDefinition,
         MethodDefinition,        
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    public readonly struct _TokenHandle      // 4 byte meta token
+    /// <summary>
+    /// 4 byte metadata token.
+    /// Represents a table element indexed by token kind and row.
+    /// </summary>
+    public readonly struct _TokenHandle
     {
-        // Private
-        [FieldOffset(1)]
-        private readonly byte moduleIndex;
-        [FieldOffset(2)]
-        private readonly ushort tokenIndex;
-
         // Public
-        [FieldOffset(0)]
-        public readonly TokenKind Kind;
-        [FieldOffset(0)]
-        public readonly int MetaToken;        
+        public readonly int MetaToken;
 
         // Properties
-        /// <summary>
-        /// Describes which reference assembly index the token points to, or zero if kind is a definition.
-        /// </summary>
-        internal byte ModuleIndex
-        {
-            get { return moduleIndex; }
-        }
-
-        /// <summary>
-        /// Described the index of the referenced member (max members is 65565)
-        /// </summary>
-        internal ushort TokenIndex
-        {
-            get { return tokenIndex; }
-        }
+        public readonly TokenKind Kind => (TokenKind)((byte)((MetaToken >> 24) & 0xFF));
+        public readonly int Row => (MetaToken & 0xFFFFFF);
 
         // Constructor
         public _TokenHandle(int metaToken)
@@ -75,28 +59,54 @@ namespace LumaSharp.Runtime.Handle
             this.MetaToken = metaToken;
         }
 
-        public _TokenHandle(RuntimeTypeCode typeCode)
+        public _TokenHandle(TokenKind kind, int row)
         {
-            this.Kind = (TokenKind)typeCode;
-        }
+            // Check for excessive row
+            if (row < 0 || row > 0xFFFFFF)
+                throw new ArgumentOutOfRangeException(nameof(row));
 
-        public _TokenHandle(TokenKind kind, byte moduleIndex, ushort tokenIndex)
-        {
-            this.Kind = kind;
-            this.moduleIndex = moduleIndex;
-            this.tokenIndex = tokenIndex;
+            int kindMask = (int)kind << 24;
+            int rowMask = (row & 0xFFFFFF);
+
+            // Create token
+            this.MetaToken = kindMask | rowMask;
         }
 
         // Methods
         public override string ToString()
         {
-            return MetaToken.ToString();
+            return $"MetaToken({Kind}, {Row})";
         }
 
-        public bool IsRuntimeType()
+        public override bool Equals([NotNullWhen(true)] object obj)
         {
-            return Kind >= TokenKind.AnyReference &&
-                Kind <= TokenKind.UPtrReference;
+            return obj is _TokenHandle handle 
+                && MetaToken == handle.MetaToken;
+        }
+
+        public override int GetHashCode()
+        {
+            return MetaToken.GetHashCode();
+        }
+
+        public static _TokenHandle FieldRef(int row)
+        {
+            return new _TokenHandle(TokenKind.FieldReference, row);
+        }
+
+        public static _TokenHandle FieldDef(int row)
+        {
+            return new _TokenHandle(TokenKind.FieldDefinition, row);
+        }
+
+        public static _TokenHandle TypeRef(int row)
+        {
+            return new _TokenHandle(TokenKind.TypeReference, row);
+        }
+
+        public static _TokenHandle TypeDef(int row)
+        {
+            return new _TokenHandle(TokenKind.TypeDefinition, row);
         }
 
         public static bool operator==(_TokenHandle a, _TokenHandle b)
@@ -107,6 +117,32 @@ namespace LumaSharp.Runtime.Handle
         public static bool operator!=(_TokenHandle a, _TokenHandle b)
         {
             return a.MetaToken != b.MetaToken;
+        }
+
+        public static implicit operator int(_TokenHandle token)
+        {
+            return token.MetaToken;
+        }
+
+        public static implicit operator _TokenHandle(int metaToken)
+        {
+            return new _TokenHandle(metaToken);
+        }
+
+        public static implicit operator RuntimeTypeCode(_TokenHandle token)
+        {
+            return token.Kind == TokenKind.PrimitiveTypeReference
+                ? (RuntimeTypeCode)token.Row
+                : 0;
+        }
+
+        public static implicit operator _TokenHandle(RuntimeTypeCode typeCode)
+        {
+            // Get row
+            int row = (int)(0x00FFFFFF & (int)typeCode);
+
+            // Create token
+            return new _TokenHandle(TokenKind.PrimitiveTypeReference, row);
         }
     }
 }

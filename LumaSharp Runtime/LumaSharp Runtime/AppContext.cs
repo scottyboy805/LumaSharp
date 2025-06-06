@@ -19,7 +19,7 @@ namespace LumaSharp.Runtime
         // Private
         private _TypeHandle* primitivePtr = null;
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
-        private Dictionary<int, MetaLibrary> loadedModules = new Dictionary<int, MetaLibrary>();
+        private Dictionary<int, MetaAssembly> loadedModules = new Dictionary<int, MetaAssembly>();
         private Dictionary<_TokenHandle, MetaType> loadedTypes = new();
         private Dictionary<_TokenHandle, MetaMember> loadedMembers = new();       
 
@@ -34,7 +34,7 @@ namespace LumaSharp.Runtime
             foreach(RuntimeTypeCode typeCode in Enum.GetValues<RuntimeTypeCode>())
             {
                 primitivePtr[(int)typeCode] = new _TypeHandle(typeCode);
-                typeHandles[new _TokenHandle(typeCode)] = (IntPtr)(&primitivePtr[(int)typeCode]);
+                typeHandles[typeCode] = (IntPtr)(&primitivePtr[(int)typeCode]);
             }
         }
 
@@ -44,7 +44,7 @@ namespace LumaSharp.Runtime
         }
 
         // Methods
-        public MetaLibrary LoadModule(string modulePath, bool metadataOnly = false)
+        public MetaAssembly LoadModule(string modulePath, bool metadataOnly = false)
         {
             // Check for null or empty
             if (string.IsNullOrEmpty(modulePath) == true)
@@ -58,18 +58,18 @@ namespace LumaSharp.Runtime
             return LoadModule(File.OpenRead(modulePath), metadataOnly);
         }
 
-        public MetaLibrary LoadModule(Stream stream, bool metadataOnly = false)
+        public MetaAssembly LoadModule(Stream stream, bool metadataOnly = false)
         {
             // Check for null
             if(stream == null)
                 throw new ArgumentNullException(nameof(stream));
 
             // Read the module header
-            MetaLibraryName moduleName;
-            MetaLibrary.ReadModuleHeader(stream, out moduleName);
+            MetaAssemblyName moduleName;
+            MetaAssembly.ReadModuleHeader(stream, out moduleName);
 
             // Check for already loaded
-            MetaLibrary loadedModule = ResolveModule(moduleName.Name, moduleName.Version);
+            MetaAssembly loadedModule = ResolveModule(moduleName.Name, moduleName.Version);
 
             // Get loaded module
             if (loadedModule != null)
@@ -77,7 +77,7 @@ namespace LumaSharp.Runtime
 
 
             // Create the module and reader
-            MetaLibrary module = new MetaLibrary(stream, moduleName);
+            MetaAssembly module = new MetaAssembly(stream, moduleName);
             BinaryReader reader = new BinaryReader(stream);
 
             //// Read module
@@ -92,23 +92,23 @@ namespace LumaSharp.Runtime
             return module;
         }
 
-        public MetaLibrary ResolveModule(int token)
+        public MetaAssembly ResolveModule(int token)
         {
             // Try to get the member
-            MetaLibrary module;
+            MetaAssembly module;
             if (loadedModules.TryGetValue(token, out module) == false)
                 throw new DllNotFoundException("Token: " + token);
 
             return module;
         }
 
-        public MetaLibrary ResolveModule(string name)
+        public MetaAssembly ResolveModule(string name)
         {
             return loadedModules.Values
                 .FirstOrDefault(m => m.ModuleName.Name == name);
         }
 
-        public MetaLibrary ResolveModule(string name, Version version)
+        public MetaAssembly ResolveModule(string name, Version version)
         {
             return loadedModules.Values
                 .FirstOrDefault(m => m.ModuleName.Name == name 
@@ -171,7 +171,7 @@ namespace LumaSharp.Runtime
             return member as MetaMethod;
         }
 
-        public IEnumerable<MetaLibrary> GetLibraries()
+        public IEnumerable<MetaAssembly> GetLibraries()
         {
             return loadedModules.Values;
         }

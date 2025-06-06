@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Runtime.Reflection
 {
-    public unsafe sealed class MetaLibrary
+    public unsafe sealed class MetaAssembly
     {
         // Internal
         internal const int magic =  'L' |
@@ -10,11 +10,11 @@ namespace LumaSharp.Runtime.Reflection
                                     ('M' << 24);
 
         // Private
-        private Stream moduleSource = null;
+        private Stream assemblySource = null;
 
         private int token = 0;
-        private MetaLibraryName moduleName = null;
-        private MetaLibraryName[] referenceNames = null;
+        private MetaAssemblyName assemblyName = null;
+        private MetaAssemblyName[] referenceNames = null;
         private MetaType[] types = null;
 
         // Properties
@@ -25,24 +25,24 @@ namespace LumaSharp.Runtime.Reflection
 
         public string Name
         {
-            get { return moduleName.Name; }
+            get { return assemblyName.Name; }
         }
 
-        public MetaLibraryName ModuleName
+        public MetaAssemblyName ModuleName
         {
-            get { return moduleName; }
+            get { return assemblyName; }
         }
 
-        public MetaLibraryName[] ReferenceNames
+        public MetaAssemblyName[] ReferenceNames
         {
             get { return referenceNames; }
         }
 
         // Constructor
-        internal MetaLibrary(Stream moduleSource, MetaLibraryName moduleName)
+        internal MetaAssembly(Stream moduleSource, MetaAssemblyName moduleName)
         {
-            this.moduleSource = moduleSource;
-            this.moduleName = moduleName;
+            this.assemblySource = moduleSource;
+            this.assemblyName = moduleName;
         }
 
         // Methods
@@ -98,7 +98,7 @@ namespace LumaSharp.Runtime.Reflection
         //    }
         //}
 
-        internal static bool ReadModuleHeader(Stream stream, out MetaLibraryName moduleName, bool throwOnError = true)
+        internal static bool ReadModuleHeader(Stream stream, out MetaAssemblyName moduleName, bool throwOnError = true)
         {
             string hintPath = null;
 
@@ -123,7 +123,7 @@ namespace LumaSharp.Runtime.Reflection
             try
             {
                 // Create module name
-                moduleName = new MetaLibraryName(reader, hintPath);
+                moduleName = new MetaAssemblyName(reader, hintPath);
             }
             catch
             {

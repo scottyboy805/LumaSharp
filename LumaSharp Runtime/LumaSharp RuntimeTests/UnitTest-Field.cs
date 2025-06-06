@@ -33,7 +33,7 @@ namespace LumaSharp_RuntimeTests
 
             // Create type handle
             _TypeHandle typeHandle = new _TypeHandle(110, 4);
-            _FieldHandle fieldHandle = new _FieldHandle(120, 0, new _TypeHandle(RuntimeTypeCode.I32));
+            _FieldHandle fieldHandle = new _FieldHandle(120, 0, 0, new _TypeHandle(RuntimeTypeCode.I32));
             appContext.typeHandles[110] = (IntPtr)(&typeHandle);
             appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
 
@@ -49,14 +49,14 @@ namespace LumaSharp_RuntimeTests
             BytecodeGenerator gen = new BytecodeGenerator();
 
             // Emit instructions
-            gen.EmitToken(OpCode.New, 110);
+            gen.EmitToken(OpCode.New, _TokenHandle.TypeDef(0));
             gen.Emit(OpCode.St_Var_0);
             gen.Emit(OpCode.Ld_Var_0);
-            gen.EmitToken(OpCode.Ld_Fld_A, 120);
+            gen.EmitToken(OpCode.Ld_Fld_A, _TokenHandle.FieldDef(0));
             gen.Emit(OpCode.Ld_I4, 1234);
             gen.Emit(OpCode.St_Addr);
             gen.Emit(OpCode.Ld_Var_0);
-            gen.EmitToken(OpCode.Ld_Fld, 120);
+            gen.EmitToken(OpCode.Ld_Fld, _TokenHandle.FieldDef(0));
             gen.Emit(OpCode.Ret);
 
             // Generate method
@@ -67,10 +67,10 @@ namespace LumaSharp_RuntimeTests
             ThreadContext threadContext = new ThreadContext(appContext);
 
             // Create type handle
-            _TypeHandle typeHandle = new _TypeHandle(110, 4);
-            _FieldHandle fieldHandle = new _FieldHandle(120, 0, new _TypeHandle(RuntimeTypeCode.I32));
-            appContext.typeHandles[110] = (IntPtr)(&typeHandle);
-            appContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
+            _TypeHandle typeHandle = new _TypeHandle(_TokenHandle.TypeDef(0), 4);
+            _FieldHandle fieldHandle = new _FieldHandle(_TokenHandle.FieldDef(0), 0, 0, new _TypeHandle(RuntimeTypeCode.I32));
+            appContext.typeHandles[_TokenHandle.TypeDef(0)] = (IntPtr)(&typeHandle);
+            appContext.fieldHandles[_TokenHandle.FieldDef(0)] = (IntPtr)(&fieldHandle);
 
             // Execute bytecode
             StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, method);
