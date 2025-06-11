@@ -1,28 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace LumaSharp.Runtime.Handle
 {
     public enum TokenKind : byte
     {
         Nil = 0,
-
-        Void = 1,
-
-        //AnyReference = 1,
-        //BoolReference,
-        //CharReference,
-        //I8Reference,
-        //U8Reference,
-        //I16Reference,
-        //U16Reference,
-        //I32Reference,
-        //U32Reference,
-        //I64Reference,
-        //U64Reference,
-        //F32Reference,
-        //F64Reference,
-        //PtrReference,
-        //UPtrReference,
 
         StringReference = 16,
 
@@ -100,6 +83,16 @@ namespace LumaSharp.Runtime.Handle
             return new _TokenHandle(TokenKind.FieldDefinition, row);
         }
 
+        public static _TokenHandle MethodRef(int row)
+        {
+            return new _TokenHandle(TokenKind.MethodReference, row);
+        }
+
+        public static _TokenHandle MethodDef(int row)
+        {
+            return new _TokenHandle (TokenKind.MethodDefinition, row);
+        }
+
         public static _TokenHandle TypeRef(int row)
         {
             return new _TokenHandle(TokenKind.TypeReference, row);
@@ -134,7 +127,7 @@ namespace LumaSharp.Runtime.Handle
         {
             return token.Kind == TokenKind.PrimitiveTypeReference
                 ? (RuntimeTypeCode)token.Row
-                : 0;
+                : RuntimeTypeCode.Any;
         }
 
         public static implicit operator _TokenHandle(RuntimeTypeCode typeCode)

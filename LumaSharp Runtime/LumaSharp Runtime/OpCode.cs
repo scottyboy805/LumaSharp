@@ -136,6 +136,33 @@ namespace LumaSharp.Runtime
             return false;
         }
 
+        public static bool IsToken(this OpCode code)
+        {
+            switch(code)
+            {
+                case OpCode.Ld_Fld:
+                case OpCode.Ld_Fld_A:
+                case OpCode.Ld_Fld_G:
+                case OpCode.Ld_Fld_GA:
+                case OpCode.St_Fld:
+                case OpCode.St_Fld_G:
+                case OpCode.Ld_Type:
+                case OpCode.Ld_Size:
+                case OpCode.Ld_Func:
+                case OpCode.Ld_Str:
+                case OpCode.New:
+                case OpCode.NewArr:
+                case OpCode.Call:
+                case OpCode.Call_Virt:
+                case OpCode.Is_Any:
+                case OpCode.Box_Any:
+                case OpCode.Unbox_Any:
+                case OpCode.Cast_Any:
+                    return true;
+            }
+            return false;
+        }
+
         public static int GetOperandSize(this OpCode code)
         {
             return code.GetOperandType() switch

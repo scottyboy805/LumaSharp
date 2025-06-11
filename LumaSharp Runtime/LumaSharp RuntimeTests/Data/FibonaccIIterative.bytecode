@@ -1,0 +1,43 @@
+﻿
+.parameters: i32
+.locals: i32, i32, i32, i32, i32, i32
+.maxstack: 7
+
+nop
+ld_i4_0
+st_var_1
+ld_i4_1
+st_var_2
+ld_i4_0
+st_var_3
+ld_i4, 2
+st_var, 4
+jmp, condition
+
+loop:
+	nop
+	ld_var_1
+	ld_var_2
+	add
+	st_var_3
+	ld_var_2
+	st_var_1
+	ld_var_3
+	st_var_2
+	nop
+	ld_var, 4
+	ld_i4_1
+	add
+	st_var, 4
+
+condition:
+	ld_var, 4
+	ld_var_0
+	cmp_le
+	st_var, 5
+	ld_var, 5
+	jmp_1, loop
+
+ld_var_3
+ret
+

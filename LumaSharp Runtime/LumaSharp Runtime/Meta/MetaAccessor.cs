@@ -7,11 +7,15 @@ namespace LumaSharp.Runtime.Reflection
         // Type
         protected internal enum AccessorFlags
         {
-            Abstract = 2,
-            Override = 4,
-            Generic = 8,
-            Read = 16,
-            Write = 32,
+            Export = 1,
+            Internal = 2,
+            Hidden = 4,
+            Global = 8,
+            Abstract = 16,
+            Override = 32,
+            Generic = 64,
+            Read = 128,
+            Write = 256,
         }
 
         // Private
@@ -62,8 +66,8 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal MetaAccessor(AssemblyContext context, _TokenHandle token, string name, AccessorFlags accessorFlags, MemberFlags memberFlags)
-            : base(context, token, name, memberFlags)
+        internal MetaAccessor(AssemblyContext context, _TokenHandle accessorToken, _TokenHandle declaringTypeToken, _TokenHandle nameToken, _TokenHandle accessorTypeToken, AccessorFlags accessorFlags)
+            : base(context, accessorToken, declaringTypeToken, nameToken, (MetaMemberFlags)accessorFlags)
         {
             this.accessorFlags = accessorFlags;
         }

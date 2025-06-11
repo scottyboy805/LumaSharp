@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
     public class GenericType : MetaType
@@ -18,8 +20,8 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        internal GenericType(AssemblyContext context, string name, MetaType[] genericParameterTypes, MetaTypeFlags typeFlags) 
-            : base(context, default, name, RuntimeTypeCode.Any, typeFlags | MetaTypeFlags.Generic)
+        internal GenericType(AssemblyContext context, _TokenHandle genericTypeToken, _TokenHandle declaringTypeToken, _TokenHandle namespaceToken, _TokenHandle nameToken, MetaType[] genericParameterTypes, MetaTypeFlags typeFlags) 
+            : base(context, genericTypeToken, declaringTypeToken, namespaceToken, nameToken, RuntimeTypeCode.Any, typeFlags | MetaTypeFlags.Generic)
         {
             this.genericParameterTypes = genericParameterTypes;
         }

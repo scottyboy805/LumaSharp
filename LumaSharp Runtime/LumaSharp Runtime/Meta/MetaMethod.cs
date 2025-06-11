@@ -1,5 +1,4 @@
-﻿
-using LumaSharp.Runtime.Handle;
+﻿using LumaSharp.Runtime.Handle;
 using System.Diagnostics;
 
 namespace LumaSharp.Runtime.Reflection
@@ -53,6 +52,11 @@ namespace LumaSharp.Runtime.Reflection
             get { return returnTypeReferences.Select(r => r.Member).ToArray(); }
         }
 
+        public _TokenHandle[] ReturnTypeTokens
+        {
+            get { return returnTypeReferences.Select(r => r.Token).ToArray(); }
+        }
+
         public MetaVariable[] Parameters
         {
             get { return parameters; }
@@ -85,12 +89,13 @@ namespace LumaSharp.Runtime.Reflection
         { 
         }
 
-        internal MetaMethod(AssemblyContext context, _TokenHandle token, string name, MetaMethodFlags methodFlags, MemberReference<MetaType>[] returnTypes, MetaVariable[] parameters) 
-            : base(context, token, name, (MemberFlags)methodFlags)
+        internal MetaMethod(AssemblyContext context, _TokenHandle methodToken, _TokenHandle declaringTypeToken, _TokenHandle nameToken, MetaMethodFlags methodFlags, _TokenHandle[] returnTypeTokens, MetaVariable[] parameters, int rva) 
+            : base(context, methodToken, declaringTypeToken, nameToken, (MetaMemberFlags)methodFlags)
         {
             this.methodFlags = methodFlags;
-            this.returnTypeReferences = returnTypes;
+            this.returnTypeReferences = returnTypeTokens.Select(t => new MemberReference<MetaType>(context, t)).ToArray();
             this.parameters = parameters;
+            this.rva = rva;
         }
 
         // Methods

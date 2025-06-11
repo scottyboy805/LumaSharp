@@ -3,7 +3,7 @@
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
-    public enum MemberFlags : ushort
+    public enum MetaMemberFlags : ushort
     {
         Export = 1,
         Internal = 2,
@@ -14,45 +14,61 @@ namespace LumaSharp.Runtime.Reflection
     public abstract class MetaMember
     {
         // Internal
-        internal AssemblyContext assemblyContext = null;
+        internal readonly AssemblyContext assemblyContext = null;
 
         // Private
-        private _TokenHandle token = default;
-        private string name = "";
-        private MemberFlags memberFlags = 0;
+        private readonly _TokenHandle memberToken;
+        private readonly MemberReference<MetaType> declaringTypeReference;
+        private readonly StringReference nameReference;
+        private readonly MetaMemberFlags memberFlags;
 
         // Properties
         public _TokenHandle Token
         {
-            get { return token; }
+            get { return memberToken; }
+        }
+
+        public MetaType DeclaringType
+        {
+            get { return declaringTypeReference.Member; }
+        }
+
+        public _TokenHandle DeclaringTypeToken
+        {
+            get { return declaringTypeReference.Token; }
         }
 
         public string Name
         {
-            get { return name; }
+            get { return nameReference.String; }
+        }
+
+        public _TokenHandle NameToken
+        {
+            get { return nameReference.Token; }
         }
 
         public bool IsExport
         {
-            get { return (memberFlags & MemberFlags.Export) != 0; }
+            get { return (memberFlags & MetaMemberFlags.Export) != 0; }
         }
 
         public bool IsInternal
         {
-            get { return (memberFlags & MemberFlags.Internal) != 0; }
+            get { return (memberFlags & MetaMemberFlags.Internal) != 0; }
         }
 
         public bool IsHidden
         {
-            get { return (memberFlags & MemberFlags.Hidden) != 0; }
+            get { return (memberFlags & MetaMemberFlags.Hidden) != 0; }
         }
 
         public bool IsGlobal
         {
-            get { return (memberFlags & MemberFlags.Global) != 0; }
+            get { return (memberFlags & MetaMemberFlags.Global) != 0; }
         }
 
-        internal MemberFlags MemberFlags
+        internal MetaMemberFlags MemberFlags
         {
             get { return memberFlags; }
         }
@@ -63,25 +79,19 @@ namespace LumaSharp.Runtime.Reflection
             this.assemblyContext = context;
         }
 
-        protected MetaMember(AssemblyContext context, _TokenHandle token, string name, MemberFlags flags)
+        protected MetaMember(AssemblyContext context, _TokenHandle token, _TokenHandle declaringTypeToken, _TokenHandle nameToken, MetaMemberFlags flags)
         {
-            this.assemblyContext =context;
-            this.token = token;
-            this.name = name;
+            this.assemblyContext = context;
+            this.memberToken = token;
+            this.declaringTypeReference = new MemberReference<MetaType>(context, declaringTypeToken);
+            this.nameReference = new StringReference(context, nameToken);
             this.memberFlags = flags;
         }
 
         // Methods
-        public bool HasMemberFlags(MemberFlags flags)
+        public bool HasMemberFlags(MetaMemberFlags flags)
         {
             return (memberFlags & flags) == flags;
         }
-
-        //internal void LoadMemberMetadata(BinaryReader reader)
-        //{
-        //    metaToken = new _TokenHandle(reader.ReadInt32());
-        //    name = reader.ReadString();
-        //    memberFlags = (MemberFlags)reader.ReadUInt32();
-        //}
     }
 }

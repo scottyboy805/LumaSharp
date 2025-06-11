@@ -1,6 +1,7 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp.Runtime.Emit;
 using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using AppContext = LumaSharp.Runtime.AppContext;
 
@@ -30,13 +31,34 @@ namespace LumaSharp_RuntimeTests
             // Create app and thread context
             AppContext appContext = new AppContext();
             AssemblyContext asmContext = new AssemblyContext(appContext);
-            ThreadContext threadContext = new ThreadContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
 
             // Create type handle
             _TypeHandle typeHandle = new _TypeHandle(110, 4);
             _FieldHandle fieldHandle = new _FieldHandle(120, 0, 0, new _TypeHandle(RuntimeTypeCode.I32));
             asmContext.typeHandles[110] = (IntPtr)(&typeHandle);
             asmContext.fieldHandles[120] = (IntPtr)(&fieldHandle);
+
+            // Execute bytecode
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
+
+            Assert.AreEqual(1234, spReturn->I32);
+        }
+
+        [TestMethod]
+        public unsafe void TestReadWriteExternal()
+        {
+            // Read the IL
+            ILReader reader = new ILReader(File.OpenText("../../../Data/FieldReadWrite.il"));
+
+            // Create app and thread context
+            AppContext appContext = new AppContext();
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
+
+            AssemblyContext asmContext = reader.GenerateAssembly(appContext);
+
+            // Get the method handle
+            _MethodHandle* method = (_MethodHandle*)asmContext.methodHandles[_TokenHandle.MethodDef(0)];
 
             // Execute bytecode
             StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
@@ -66,7 +88,7 @@ namespace LumaSharp_RuntimeTests
             // Create app and thread context
             AppContext appContext = new AppContext();
             AssemblyContext asmContext = new AssemblyContext(appContext);
-            ThreadContext threadContext = new ThreadContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
 
             // Create type handle
             _TypeHandle typeHandle = new _TypeHandle(_TokenHandle.TypeDef(0), 4);

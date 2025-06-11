@@ -10,7 +10,7 @@ namespace LumaSharp.Runtime
 
         // Private
         private Dictionary<int, ThreadContext> threadContexts = new Dictionary<int, ThreadContext>();
-        private Dictionary<int, MetaAssembly> loadedModules = new Dictionary<int, MetaAssembly>();
+        private Dictionary<string, MetaAssembly> loadedAssemblies = new Dictionary<string, MetaAssembly>();    // FullName, assembly
 
         // Constructor
         public AppContext()
@@ -31,21 +31,21 @@ namespace LumaSharp.Runtime
         }
 
         // Methods
-        public MetaAssembly LoadModule(string modulePath, bool metadataOnly = false)
+        public MetaAssembly LoadAssembly(string assemblyPath, bool metadataOnly = false)
         {
             // Check for null or empty
-            if (string.IsNullOrEmpty(modulePath) == true)
-                throw new ArgumentNullException(nameof(modulePath));
+            if (string.IsNullOrEmpty(assemblyPath) == true)
+                throw new ArgumentNullException(nameof(assemblyPath));
 
             // Check for not found 
-            if (File.Exists(modulePath) == false)
-                throw new ArgumentException("Could not find module path: " + modulePath);
+            if (File.Exists(assemblyPath) == false)
+                throw new ArgumentException("Could not find assembly path: " + assemblyPath);
 
             // Load the module
-            return LoadModule(File.OpenRead(modulePath), metadataOnly);
+            return LoadAssembly(File.OpenRead(assemblyPath), metadataOnly);
         }
 
-        public MetaAssembly LoadModule(Stream stream, bool metadataOnly = false)
+        public MetaAssembly LoadAssembly(Stream stream, bool metadataOnly = false)
         {
             // Check for null
             if(stream == null)
@@ -56,7 +56,7 @@ namespace LumaSharp.Runtime
             MetaAssembly.ReadModuleHeader(stream, out moduleName);
 
             // Check for already loaded
-            MetaAssembly loadedModule = ResolveModule(moduleName.Name, moduleName.Version);
+            MetaAssembly loadedModule = GetAssembly(moduleName.Name, moduleName.Version);
 
             // Get loaded module
             if (loadedModule != null)
@@ -75,46 +75,54 @@ namespace LumaSharp.Runtime
             //    module.LoadExecutable(this, reader);
 
             // Register the module
-            loadedModules[module.Token] = module;
+            loadedAssemblies[module.FullName] = module;
             return module;
         }
 
-        public MetaAssembly ResolveModule(int token)
+        public MetaAssembly GetAssembly(string name)
         {
-            // Try to get the member
-            MetaAssembly module;
-            if (loadedModules.TryGetValue(token, out module) == false)
-                throw new DllNotFoundException("Token: " + token);
+            // Check arg
+            if (string.IsNullOrEmpty(name) == true)
+                throw new ArgumentException(nameof(name) + " cannot be null or empty");
 
-            return module;
-        }
+            // Check for full name
+            if (loadedAssemblies.TryGetValue(name, out MetaAssembly assembly) == true)
+                return assembly;
 
-        public MetaAssembly ResolveModule(string name)
-        {
-            return loadedModules.Values
+            // Try to find
+            return loadedAssemblies.Values
                 .FirstOrDefault(m => m.AssemblyName.Name == name);
         }
 
-        public MetaAssembly ResolveModule(string name, Version version)
+        public MetaAssembly GetAssembly(string name, Version version)
         {
-            return loadedModules.Values
+            // Check arg
+            if (string.IsNullOrEmpty(name) == true)
+                throw new ArgumentException(nameof(name) + " cannot be null or empty");
+
+            // Check version
+            if (version == null)
+                throw new ArgumentNullException(nameof(version));
+
+            // Try to find
+            return loadedAssemblies.Values
                 .FirstOrDefault(m => m.AssemblyName.Name == name 
                 && m.AssemblyName.Version.Equals(version));
         }
 
-        public IEnumerable<MetaAssembly> GetLibraries()
+        public IEnumerable<MetaAssembly> GetAssemblies()
         {
-            return loadedModules.Values;
+            return loadedAssemblies.Values;
         }
 
         public void Dispose()
         {
         }
 
-        internal ThreadContext GetCurrentThreadContext()
+        internal ThreadContext GetCurrentThreadContext(uint stackSize = 4096)
         {
             // Get the current thread
-            return GetThreadContext(Thread.CurrentThread.ManagedThreadId);
+            return GetThreadContext(Thread.CurrentThread.ManagedThreadId, stackSize);
         }
 
         internal unsafe ThreadContext GetThreadContext(int threadID, uint stackSize = 4096)
@@ -125,7 +133,7 @@ namespace LumaSharp.Runtime
                 return context;
 
             // Create context
-            context = new ThreadContext(this, stackSize);
+            context = new ThreadContext(stackSize);
 
             // Register context
             threadContexts[threadID] = context;

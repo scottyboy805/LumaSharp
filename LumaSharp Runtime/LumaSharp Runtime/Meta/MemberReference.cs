@@ -6,16 +6,16 @@ namespace LumaSharp.Runtime.Reflection
     {
         // Private
         private AssemblyContext context = null;
-        private _TokenHandle symbolToken = default;
+        private _TokenHandle token = default;
 
         // Internal
         internal T resolvedMember = null;
         internal bool didResolveMember = false;
 
         // Properties
-        public _TokenHandle SymbolToken
+        public _TokenHandle Token
         {
-            get { return symbolToken; }
+            get { return token; }
         }
 
         public T Member
@@ -25,7 +25,7 @@ namespace LumaSharp.Runtime.Reflection
                 // Try to resolve
                 if (resolvedMember == null && didResolveMember == false)
                 {
-                    resolvedMember = context.ResolveMember<T>(symbolToken);
+                    resolvedMember = context.ResolveMember<T>(token);
                     didResolveMember = true;
                 }
 
@@ -35,16 +35,16 @@ namespace LumaSharp.Runtime.Reflection
         }
 
         // Constructor
-        public MemberReference(AssemblyContext context, _TokenHandle symbolToken)
+        public MemberReference(AssemblyContext context, _TokenHandle token)
         {
             this.context = context;
-            this.symbolToken = symbolToken;
+            this.token = token;
         }
 
         public MemberReference(MetaType fromType)
         {
             this.context = fromType.assemblyContext;
-            this.symbolToken = fromType.Token;
+            this.token = fromType.Token;
             this.resolvedMember = fromType as T;
         }
     }

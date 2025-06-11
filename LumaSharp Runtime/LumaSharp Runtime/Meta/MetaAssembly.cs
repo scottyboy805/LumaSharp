@@ -12,41 +12,26 @@ namespace LumaSharp.Runtime.Reflection
         // Private
         private Stream assemblySource = null;
 
-        private int token = 0;
         private MetaAssemblyName assemblyName = null;
         private MetaAssemblyName[] referenceNames = null;
         private MetaType[] types = null;
 
         // Properties
-        public int Token
-        {
-            get { return token; }
-        }
-
-        public string Name
-        {
-            get { return assemblyName.Name; }
-        }
-
-        public MetaAssemblyName AssemblyName
-        {
-            get { return assemblyName; }
-        }
-
-        public MetaAssemblyName[] ReferenceNames
-        {
-            get { return referenceNames; }
-        }
+        public string Name => assemblyName.Name;
+        public string FullName => $"{assemblyName.Name}, {assemblyName.Version}";
+        public Version Version => assemblyName.Version;
+        public MetaAssemblyName AssemblyName => assemblyName;
+        public MetaAssemblyName[] ReferenceNames => referenceNames;
 
         // Constructor
-        internal MetaAssembly(Stream moduleSource, MetaAssemblyName moduleName)
+        internal MetaAssembly(Stream assemblySource, MetaAssemblyName assemblyName)
         {
-            this.assemblySource = moduleSource;
-            this.assemblyName = moduleName;
+            this.assemblySource = assemblySource;
+            this.assemblyName = assemblyName;
         }
 
         // Methods
-        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
+        public IEnumerable<MetaType> GetTypes(MetaMemberFlags flags)
         {
             foreach(MetaType type in types)
             {

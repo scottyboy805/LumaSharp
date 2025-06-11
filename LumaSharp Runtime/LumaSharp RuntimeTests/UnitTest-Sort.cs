@@ -1,6 +1,7 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp.Runtime.Emit;
 using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using AppContext = LumaSharp.Runtime.AppContext;
 using RuntimeTypeCode = LumaSharp.Runtime.RuntimeTypeCode;
@@ -114,11 +115,49 @@ namespace LumaSharp_RuntimeTests
             // Create app and thread context
             AppContext appContext = new AppContext();
             AssemblyContext asmContext = new AssemblyContext(appContext);
-            ThreadContext threadContext = new ThreadContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
 
             // Create test array
             _TypeHandle type = new _TypeHandle(RuntimeTypeCode.I32);
             int* arr =  (int*)__memory.AllocArray(&type, 5);
+            arr[0] = 11;
+            arr[1] = 32;
+            arr[2] = 8;
+            arr[3] = 17;
+            arr[4] = 4;
+
+            // Push arg
+            StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
+
+            spArg->Type = StackTypeCode.Address;
+            spArg->Ptr = (IntPtr)arr;
+
+            // Execute bytecode
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
+
+            Assert.AreEqual(4, arr[0]);
+            Assert.AreEqual(8, arr[1]);
+            Assert.AreEqual(11, arr[2]);
+            Assert.AreEqual(17, arr[3]);
+            Assert.AreEqual(32, arr[4]);
+        }
+
+        [TestMethod]
+        public unsafe void BubbleSortExternal()
+        {
+            BytecodeReader reader = new BytecodeReader(File.OpenText("../../../Data/BubbleSort.bytecode"));
+
+            // Generate method
+            _MethodHandle* method = reader.GenerateMethod();
+
+            // Create app and thread context
+            AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
+
+            // Create test array
+            _TypeHandle type = new _TypeHandle(RuntimeTypeCode.I32);
+            int* arr = (int*)__memory.AllocArray(&type, 5);
             arr[0] = 11;
             arr[1] = 32;
             arr[2] = 8;

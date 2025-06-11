@@ -12,14 +12,17 @@ namespace LumaSharp.Runtime
         internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> methodHandles = new();      // token, _MethodHandle*
         internal readonly ConcurrentDictionary<_TokenHandle, IntPtr> globalMemoryHandles = new();
 
+        internal readonly List<string> metaStrings = new();
+        internal readonly Dictionary<_TokenHandle, MetaMember> metaMembers = new();
+
         // Private
         private readonly AppContext appContext;
         private readonly MetaAssembly assembly;
         private readonly MetaAssemblyName assemblyName;
         private readonly List<AssemblyContext> referenceAssemblies;
         private readonly List<AssemblyContext> referencedByAssemblies;
-        private readonly Dictionary<_TokenHandle, MetaType> loadedTypes = new();
-        private readonly Dictionary<_TokenHandle, MetaMember> loadedMembers = new();
+        //private readonly Dictionary<_TokenHandle, MetaType> loadedTypes = new();
+        //private readonly Dictionary<_TokenHandle, MetaMember> loadedMembers = new();
 
         // Properties
         public AppContext AppContext => appContext;
@@ -58,9 +61,9 @@ namespace LumaSharp.Runtime
             }
         }
 
-        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
+        public IEnumerable<MetaType> GetTypes(MetaMemberFlags flags)
         {
-            foreach (MetaType type in loadedTypes.Values)
+            foreach (MetaType type in metaMembers.Values)
             {
                 // Check for field with flags
                 if (type.HasMemberFlags(flags) == true)
@@ -68,17 +71,22 @@ namespace LumaSharp.Runtime
             }
         }
 
+        public string ResolveString(_TokenHandle token)
+        {
+            // Check for invalid or not string
+            if (token.IsNil == true || token.Kind != TokenKind.StringReference)
+                return null;
+
+            // Get the indexed string
+            return metaStrings[token.Row];
+        }
+
         public MetaMember ResolveMember(_TokenHandle token)
         {
             // Try to get the member
             MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == true)
+            if (metaMembers.TryGetValue(token, out member) == true)
                 return member;
-
-            // Check for type
-            MetaType type;
-            if (loadedTypes.TryGetValue(token, out type) == true)
-                return type;
 
             // Not found
             throw new MissingMemberException("Token: " + token);
@@ -102,7 +110,7 @@ namespace LumaSharp.Runtime
 
             // Try to get the member
             MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaField) == false)
+            if (metaMembers.TryGetValue(token, out member) == false || (member is MetaField) == false)
                 throw new MissingMemberException("Token: " + token);
 
             return member as MetaField;
@@ -112,7 +120,7 @@ namespace LumaSharp.Runtime
         {
             // Try to get the member
             MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaAccessor) == false)
+            if (metaMembers.TryGetValue(token, out member) == false || (member is MetaAccessor) == false)
                 throw new MissingMemberException("Token: " + token);
 
             return member as MetaAccessor;
@@ -122,7 +130,7 @@ namespace LumaSharp.Runtime
         {
             // Try to get the member
             MetaMember member;
-            if (loadedMembers.TryGetValue(token, out member) == false || (member is MetaMethod) == false)
+            if (metaMembers.TryGetValue(token, out member) == false || (member is MetaMethod) == false)
                 throw new MissingMemberException("Token: " + token);
 
             return member as MetaMethod;
@@ -131,11 +139,11 @@ namespace LumaSharp.Runtime
         internal void DefineMetaMember(MetaMember member)
         {
             // Check for already added
-            if (loadedMembers.ContainsKey(member.Token) == true)
+            if (metaMembers.ContainsKey(member.Token) == true)
                 throw new InvalidOperationException("Member with token already exists: " + member.Token);
 
             // Store member
-            loadedMembers[member.Token] = member;
+            metaMembers[member.Token] = member;
         }
 
         internal void DefineExecutableMethod(_MethodHandle* method)

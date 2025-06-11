@@ -22,10 +22,14 @@ namespace LumaSharp.Runtime.Reflection
     public unsafe class MetaType : MetaMember
     {
         // Private
-        private MetaTypeFlags typeFlags = 0;
-        private RuntimeTypeCode typeCode = 0;
-        private MetaType elementType = null;
-        private MetaMember[] members = null;
+        private readonly MetaTypeFlags typeFlags = 0;
+        private readonly RuntimeTypeCode typeCode = 0;
+        private readonly StringReference namespaceReference;
+        private readonly MemberReference<MetaType> baseTypeReference;
+        private readonly MemberReference<MetaType>[] contractTypeReferences;
+        private readonly MemberReference<MetaMember>[] memberReferences;
+        //private MetaType elementType = null;
+        //private MetaMember[] members = null;
 
         // Internal
         internal _TypeHandle* typeExecutable = null;
@@ -39,6 +43,16 @@ namespace LumaSharp.Runtime.Reflection
         public RuntimeTypeCode TypeCode
         {
             get { return typeCode; }
+        }
+
+        public string Namespace
+        {
+            get { return namespaceReference.String; }
+        }
+
+        public _TokenHandle NamespaceToken
+        {
+            get { return namespaceReference.Token; }
         }
 
         public bool IsType
@@ -66,10 +80,10 @@ namespace LumaSharp.Runtime.Reflection
             get { return (typeFlags & MetaTypeFlags.Generic) != 0; }
         }
 
-        public MetaType ElementType
-        {
-            get { return elementType; }
-        }
+        //public MetaType ElementType
+        //{
+        //    get { return elementType; }
+        //}
 
         // Constructor
         internal MetaType(AssemblyContext context)
@@ -77,71 +91,83 @@ namespace LumaSharp.Runtime.Reflection
         { 
         }
 
-        protected MetaType(AssemblyContext context, _TokenHandle token, string name, RuntimeTypeCode code, MetaTypeFlags typeFlags)
-            : base(context, token, name, (MemberFlags)typeFlags)
+        internal MetaType(AssemblyContext context, _TokenHandle typeToken, _TokenHandle declaringTypeToken, _TokenHandle namespaceToken, _TokenHandle nameToken, RuntimeTypeCode code, MetaTypeFlags typeFlags)
+            : base(context, typeToken, declaringTypeToken, nameToken, (MetaMemberFlags)typeFlags)
         {
+            this.namespaceReference = new StringReference(context, namespaceToken);
+            this.typeCode = code;
+            this.typeFlags = typeFlags;            
+        }
+
+        internal MetaType(AssemblyContext context, _TokenHandle typeToken, _TokenHandle declaringTypeToken, _TokenHandle namespaceToken, _TokenHandle nameToken, RuntimeTypeCode code, MetaTypeFlags typeFlags, _TokenHandle baseTypeToken, _TokenHandle[] contractTypeTokens, _TokenHandle[] memberTokens)
+            : base(context, typeToken, declaringTypeToken, nameToken, (MetaMemberFlags)typeFlags)
+        {
+            this.namespaceReference = new StringReference(context, namespaceToken);
             this.typeCode = code;
             this.typeFlags = typeFlags;
+            this.baseTypeReference = new MemberReference<MetaType>(context, baseTypeToken);
+            this.contractTypeReferences = contractTypeTokens.Select(c => new MemberReference<MetaType>(context, c)).ToArray();
+            this.memberReferences = memberTokens.Select(m => new MemberReference<MetaMember>(context, m)).ToArray();
         }
 
         // Methods
-        public IEnumerable<MetaMember> GetMembers(MemberFlags flags)
+        public IEnumerable<MetaMember> GetMembers(MetaMemberFlags flags)
         {
-            foreach(MetaMember member in members)
+            foreach(MemberReference<MetaMember> memberReference in memberReferences)
             {
                 // Check for member flags
-                if (member.HasMemberFlags(flags) == true)
-                    yield return member;
+                if (memberReference.Member.HasMemberFlags(flags) == true)
+                    yield return memberReference.Member;
             }
         }
 
-        public IEnumerable<MetaType> GetTypes(MemberFlags flags)
+        public IEnumerable<MetaType> GetTypes(MetaMemberFlags flags)
         {
-            foreach (MetaMember member in members)
+            foreach (MemberReference<MetaMember> memberReference in memberReferences)
             {
                 // Check for field with flags
-                if (member is MetaType && member.HasMemberFlags(flags) == true)
-                    yield return (MetaType)member;
+                if (memberReference.Member is MetaType && memberReference.Member.HasMemberFlags(flags) == true)
+                    yield return (MetaType)memberReference.Member;
             }
         }
 
-        public IEnumerable<MetaField> GetFields(MemberFlags flags)
+        public IEnumerable<MetaField> GetFields(MetaMemberFlags flags)
         {
-            foreach(MetaMember member in members)
+            foreach (MemberReference<MetaMember> memberReference in memberReferences)
             {
                 // Check for field with flags
-                if (member is MetaField && member.HasMemberFlags(flags) == true)
-                    yield return (MetaField)member;
+                if (memberReference.Member is MetaField && memberReference.Member.HasMemberFlags(flags) == true)
+                    yield return (MetaField)memberReference.Member;
             }
         }
 
-        public IEnumerable<MetaAccessor> GetAccessors(MemberFlags flags)
+        public IEnumerable<MetaAccessor> GetAccessors(MetaMemberFlags flags)
         {
-            foreach (MetaMember member in members)
+            foreach (MemberReference<MetaMember> memberReference in memberReferences)
             {
                 // Check for field with flags
-                if (member is MetaAccessor && member.HasMemberFlags(flags) == true)
-                    yield return (MetaAccessor)member;
+                if (memberReference.Member is MetaAccessor && memberReference.Member.HasMemberFlags(flags) == true)
+                    yield return (MetaAccessor)memberReference.Member;
             }
         }
 
-        public IEnumerable<MetaMethod> GetInitializers(MemberFlags flags)
+        public IEnumerable<MetaMethod> GetInitializers(MetaMemberFlags flags)
         {
-            foreach (MetaMember member in members)
+            foreach (MemberReference<MetaMember> memberReference in memberReferences)
             {
                 // Check for method with flags and not initializer
-                if (member is MetaMethod && member.HasMemberFlags(flags) == true && ((MetaMethod)member).IsInitializer == true)
-                    yield return (MetaMethod)member;
+                if (memberReference.Member is MetaMethod && memberReference.Member.HasMemberFlags(flags) == true && ((MetaMethod)memberReference.Member).IsInitializer == true)
+                    yield return (MetaMethod)memberReference.Member;
             }
         }
 
-        public IEnumerable<MetaMethod> GetMethods(MemberFlags flags) 
+        public IEnumerable<MetaMethod> GetMethods(MetaMemberFlags flags) 
         {
-            foreach(MetaMember member in members)
+            foreach (MemberReference<MetaMember> memberReference in memberReferences)
             {
                 // Check for method with flags and not initializer
-                if(member is MetaMethod && member.HasMemberFlags(flags) == true && ((MetaMethod)member).IsInitializer == false)
-                    yield return (MetaMethod)member;
+                if(memberReference.Member is MetaMethod && memberReference.Member.HasMemberFlags(flags) == true && ((MetaMethod)memberReference.Member).IsInitializer == false)
+                    yield return (MetaMethod)memberReference.Member;
             }
         }
 

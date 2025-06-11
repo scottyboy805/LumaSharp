@@ -24,35 +24,17 @@ namespace LumaSharp.Runtime.Reflection
             get { return fieldTypeReference.Member; }
         }
 
-        // Constructor
-        internal MetaField(AssemblyContext context)
-            : base(context)
-        { 
+        public _TokenHandle FieldTypeToken
+        {
+            get { return fieldTypeReference.Token; }
         }
 
-        internal MetaField(AssemblyContext context, _TokenHandle token, string name, FieldFlags fieldFlags)
-            : base(context, token, name, (MemberFlags)fieldFlags)
+        // Constructor
+        internal MetaField(AssemblyContext context, _TokenHandle fieldToken, _TokenHandle declaringTypeToken, _TokenHandle fieldNameToken, _TokenHandle fieldTypeToken, FieldFlags fieldFlags)
+            : base(context, fieldToken, declaringTypeToken, fieldNameToken, (MetaMemberFlags)fieldFlags)
         {
             this.fieldFlags = fieldFlags;
-        }
-
-        // Methods
-        internal void LoadFieldMetadata(BinaryReader reader)
-        {
-            //// Read member metadata
-            //LoadMemberMetadata(reader);
-
-            //// Get field flags
-            //fieldFlags = (FieldFlags)MemberFlags;
-        }
-
-        internal void LoadFieldExecutable(BinaryReader reader)
-        {
-            //// Create executable
-            //fieldExecutable = (_FieldHandle*)NativeMemory.Alloc((nuint)sizeof(_FieldHandle));
-
-            //// Read handle
-            //fieldExecutable->Read(reader);
+            this.fieldTypeReference = new MemberReference<MetaType>(context, fieldTypeToken);
         }
     }
 }

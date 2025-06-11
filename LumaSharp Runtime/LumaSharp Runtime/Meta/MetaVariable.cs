@@ -1,4 +1,5 @@
-﻿
+﻿using LumaSharp.Runtime.Handle;
+
 namespace LumaSharp.Runtime.Reflection
 {
     [Flags]
@@ -12,18 +13,18 @@ namespace LumaSharp.Runtime.Reflection
     public sealed class MetaVariable
     {
         // Internal
-        internal AssemblyContext context = null;
+        internal readonly AssemblyContext context = null;
 
         // Private
-        private MetaVariableFlags variableFlags = 0;
-        private string name = "";
-        private int index = 0;
-        private MemberReference<MetaType> variableType = null;
+        private readonly MetaVariableFlags variableFlags = 0;
+        private readonly int index = 0;
+        private readonly StringReference nameReference;
+        private readonly MemberReference<MetaType> variableTypeReference;
 
         // Properties
         public string Name
         {
-            get { return name; }
+            get { return nameReference.String; }
         }
 
         public int Index
@@ -33,7 +34,12 @@ namespace LumaSharp.Runtime.Reflection
 
         public MetaType VariableType
         {
-            get { return variableType.Member; }
+            get { return variableTypeReference.Member; }
+        }
+
+        public _TokenHandle VariableTypeToken
+        {
+            get { return variableTypeReference.Token; }
         }
 
         public bool IsReference
@@ -58,24 +64,13 @@ namespace LumaSharp.Runtime.Reflection
             this.index = index;
         }
 
-        internal MetaVariable(AssemblyContext context, string name, int index, MemberReference<MetaType> parameterType, MetaVariableFlags parameterFlags)
+        internal MetaVariable(AssemblyContext context, int index, _TokenHandle nameToken, _TokenHandle variableTypeToken, MetaVariableFlags parameterFlags)
         {
             this.context = context;
-            this.name = name;
             this.index = index;
-            this.variableType = parameterType;
+            this.nameReference = new StringReference(context, nameToken);
+            this.variableTypeReference = new MemberReference<MetaType>(context, variableTypeToken);
             this.variableFlags = parameterFlags;
         }
-
-        // Methods
-        //internal void LoadParameterMetadata(BinaryReader reader)
-        //{
-        //    // Read parameter type
-        //    this.variableType = new MemberReference<MetaType>(
-        //        context, reader.ReadInt32());
-
-        //    // Read flags
-        //    this.variableFlags = (MetaVariableFlags)reader.ReadUInt32();
-        //}
     }
 }

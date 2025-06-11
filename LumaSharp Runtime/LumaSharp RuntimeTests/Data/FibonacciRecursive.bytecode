@@ -1,0 +1,49 @@
+﻿
+.parameters: i32
+.locals: bool, i32, bool
+.maxstack: 4
+
+nop,
+ld_var_0
+ld_i4_0
+cmp_eq
+st_var_1
+ld_var_1
+jmp_0, A
+
+nop
+ld_i4_1
+st_var_2
+jmp, Final
+
+A:
+	ld_var_0
+	ld_i4_1
+	cmp_eq
+	st_var_3
+	ld_var_3
+	jmp_0, C
+
+B:
+	nop
+	ld_i4_1
+	st_var_2
+	jmp, Final
+
+C:
+	nop
+	ld_var_0
+	ld_i4, 2
+	sub
+	call, 110
+	ld_var_0
+	ld_i4_1
+	sub
+	call, 110
+	add
+	st_var_2
+	jmp, Final	
+
+Final:
+	ld_var_2
+	ret

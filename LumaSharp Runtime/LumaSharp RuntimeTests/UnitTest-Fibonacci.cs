@@ -1,6 +1,7 @@
 ﻿using LumaSharp.Runtime;
 using LumaSharp.Runtime.Emit;
 using LumaSharp.Runtime.Handle;
+using LumaSharp.Runtime.Reader;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using AppContext = LumaSharp.Runtime.AppContext;
 using RuntimeTypeCode = LumaSharp.Runtime.RuntimeTypeCode;
@@ -59,7 +60,33 @@ namespace LumaSharp_RuntimeTests
             // Create app and thread context
             AppContext appContext = new AppContext();
             AssemblyContext asmContext = new AssemblyContext(appContext);
-            ThreadContext threadContext = new ThreadContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
+
+            // Push arg
+            StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
+
+            spArg->Type = StackTypeCode.I32;
+            spArg->I32 = 8;
+
+            // Execute bytecode
+            StackData* spReturn = __interpreter.ExecuteBytecode(threadContext, asmContext, method);
+
+            Assert.AreEqual(21, spReturn->I32);
+        }
+
+        [TestMethod]
+        public unsafe void TestIterativeExternal()
+        {
+            // Read the bytecode
+            BytecodeReader reader = new BytecodeReader(File.OpenText("../../../Data/FibonacciIterative.bytecode"));
+
+            // Build the method
+            _MethodHandle* method = reader.GenerateMethod();
+
+            // Create app and thread context
+            AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
 
             // Push arg
             StackData* spArg = (StackData*)threadContext.ThreadStackPtr;
@@ -130,7 +157,32 @@ namespace LumaSharp_RuntimeTests
             // Create app and thread context
             AppContext appContext = new AppContext();
             AssemblyContext asmContext = new AssemblyContext(appContext);
-            ThreadContext threadContext = new ThreadContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
+
+            asmContext.methodHandles[110] = (IntPtr)method;
+
+            // Push arg
+            StackData arg = new StackData { Type = StackTypeCode.I32, I32 = 8 };
+
+            // Execute bytecode
+            StackData* spReturn = _MethodHandle.Invoke(threadContext, asmContext, method, IntPtr.Zero, &arg);
+
+            Assert.AreEqual(34, spReturn->I32);
+        }
+
+        [TestMethod]
+        public unsafe void TestRecursiveExternal()
+        {
+            // Read the bytecode
+            BytecodeReader reader = new BytecodeReader(File.OpenText("../../../Data/FibonacciRecursive.bytecode"));
+
+            // Build the method
+            _MethodHandle* method = reader.GenerateMethod();
+
+            // Create app and thread context
+            AppContext appContext = new AppContext();
+            AssemblyContext asmContext = new AssemblyContext(appContext);
+            ThreadContext threadContext = appContext.GetCurrentThreadContext();
 
             asmContext.methodHandles[110] = (IntPtr)method;
 

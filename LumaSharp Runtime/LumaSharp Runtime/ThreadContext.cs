@@ -31,7 +31,6 @@ namespace LumaSharp.Runtime
         private readonly Stack<CallSite> callStack = new Stack<CallSite>();  // The call stack for the current execution
 
         // Public
-        public readonly AppContext AppContext = null;
         public readonly int ThreadID;                                       // Id of the executing thread
         public readonly uint ThreadStackSize;                               // Size of memory in bytes allocated for the evaluation stack
         public readonly byte* ThreadStackPtr;                               // Eval stack memory for this thread        
@@ -40,9 +39,8 @@ namespace LumaSharp.Runtime
         public int CallDepth => callDepth;
 
         // Constructor
-        public ThreadContext(AppContext context, uint stackSize = 4096)
+        public ThreadContext(uint stackSize = 4096)
         {
-            this.AppContext = context;
             this.ThreadID = Thread.CurrentThread.ManagedThreadId;
             this.ThreadStackSize = stackSize;
             this.ThreadStackPtr = __memory.InitStack(stackSize);

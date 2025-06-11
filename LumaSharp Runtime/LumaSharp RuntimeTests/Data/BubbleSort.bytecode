@@ -1,0 +1,98 @@
+﻿
+.parameters: ptr
+.locals: i32, i32, i32, bool, bool, bool
+.maxstack: 4
+
+nop
+ld_i4_0
+st_var_1
+ld_i4_0
+st_var_2
+jmp, IL_47
+
+	IL_07:
+		nop
+		ld_i4_0
+		st_var_3
+		jmp, IL_34
+
+		IL_0c:
+			nop
+			ld_var_0
+			ld_var_3
+			ld_elem
+			ld_var_0
+			ld_var_3
+			ld_i4_1
+			add
+			ld_elem
+			cmp_g
+			st_var, 4
+			ld_var, 4
+			jmp_0, IL_2f
+
+			nop
+			ld_var_0
+			ld_var_3
+			ld_i4_1
+			add
+			ld_elem
+			st_var_1
+			ld_var_0
+			ld_var_3
+			ld_i4_1
+			add
+			ld_var_0
+			ld_var_3
+			ld_elem
+			st_elem
+			ld_var_0
+			ld_var_3
+			ld_var_1
+			st_elem
+			nop
+
+		IL_2f:
+			nop
+			ld_var_3
+			ld_i4_1
+			add
+			st_var_3
+
+		IL_34:
+			ld_var_3
+			ld_var_0
+			ld_len
+			cast_i4
+			ld_i4_1
+			sub
+			cmp_l
+			st_var, 5
+			ld_var, 5
+			jmp_1, IL_0c
+
+	IL_47:
+		nop
+		ld_var_2
+		ld_i4_1
+		add
+		st_var_2
+
+		ld_var_2
+		ld_var_0
+		ld_len
+		cast_i4
+		cmp_l
+		st_var, 6
+
+		ld_var_2
+		ld_var_0
+		ld_len
+		cast_i4
+		cmp_l
+		st_var, 6
+
+		ld_var, 6
+		jmp_1, IL_07
+
+	ret
