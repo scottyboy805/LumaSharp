@@ -67,6 +67,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitMethodInvokeStatement(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitMethodInvokeStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Invoke

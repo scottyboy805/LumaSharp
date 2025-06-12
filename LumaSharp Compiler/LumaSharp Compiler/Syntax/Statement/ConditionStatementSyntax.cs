@@ -116,6 +116,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitConditionStatement(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitConditionStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword

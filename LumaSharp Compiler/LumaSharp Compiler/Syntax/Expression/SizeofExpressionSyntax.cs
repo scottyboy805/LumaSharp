@@ -85,6 +85,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitSizeofExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitSizeofExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write keyword
@@ -98,11 +108,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write closing
             rParen.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitSizeofExpression(this);
         }
     }
 }

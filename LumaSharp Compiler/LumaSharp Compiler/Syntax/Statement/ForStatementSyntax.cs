@@ -135,6 +135,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitForStatement(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitForStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword

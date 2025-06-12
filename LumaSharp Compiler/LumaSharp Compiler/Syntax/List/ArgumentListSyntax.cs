@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public class ArgumentListSyntax : SeparatedSyntaxList<ExpressionSyntax>
@@ -34,6 +36,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
+        internal ArgumentListSyntax()
+            : this(null)
+        {
+        }
+
         internal ArgumentListSyntax(SeparatedSyntaxList<ExpressionSyntax> argumentExpressions)
             : this(
                   Syntax.Token(SyntaxTokenKind.LParenSymbol),
@@ -60,6 +67,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitArgumentList(this);
+        }
+
+        public override J Accept<J>(SyntaxVisitor<J> visitor)
+        {
+            return visitor.VisitArgumentList(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Argument start

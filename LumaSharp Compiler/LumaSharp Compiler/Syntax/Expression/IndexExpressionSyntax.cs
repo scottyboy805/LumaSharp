@@ -96,6 +96,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitIndexExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitIndexExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write access
@@ -109,11 +119,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write rArray
             rArray.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitIndexExpression(this);
         }
     }
 }

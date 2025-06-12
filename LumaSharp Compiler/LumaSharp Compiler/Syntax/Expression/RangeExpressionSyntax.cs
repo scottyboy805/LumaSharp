@@ -71,8 +71,13 @@ namespace LumaSharp.Compiler.AST
         // Methods
         public override void Accept(SyntaxVisitor visitor)
         {
-            throw new NotImplementedException();
+            visitor.VisitRangeExpression(this);
         }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitRangeExpression(this);
+        }        
 
         public override void GetSourceText(TextWriter writer)
         {

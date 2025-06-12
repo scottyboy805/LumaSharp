@@ -153,6 +153,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitType(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitType(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generate attributes

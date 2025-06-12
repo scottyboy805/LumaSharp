@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ParameterListSyntax : SeparatedSyntaxList<ParameterSyntax>
@@ -34,6 +36,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
+        internal ParameterListSyntax()
+            : this(null)
+        {
+        }
+
         internal ParameterListSyntax(SeparatedSyntaxList<ParameterSyntax> parameters)
             : this(
                   Syntax.Token(SyntaxTokenKind.LParenSymbol),
@@ -60,6 +67,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitParameterList(this);
+        }
+
+        public override J Accept<J>(SyntaxVisitor<J> visitor)
+        {
+            return visitor.VisitParameterList(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Parameter start

@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum SyntaxTriviaKind
@@ -49,6 +51,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTrivia(this);
+        }
+
+        public T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitTrivia(this);
+        }
+
         public void GetSourceText(TextWriter writer)
         {
             // Write text

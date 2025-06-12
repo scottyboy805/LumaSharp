@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public class GenericArgumentListSyntax : SeparatedSyntaxList<TypeReferenceSyntax>
@@ -34,6 +36,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
+        internal GenericArgumentListSyntax()
+            : this(null)
+        {
+        }
+
         internal GenericArgumentListSyntax(SeparatedSyntaxList<TypeReferenceSyntax> genericArguments)
             : this(
                   Syntax.Token(SyntaxTokenKind.LessSymbol),
@@ -60,6 +67,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitGenericArgumentList(this);
+        }
+
+        public override J Accept<J>(SyntaxVisitor<J> visitor)
+        {
+            return visitor.VisitGenericArgumentList(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generic start

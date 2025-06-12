@@ -101,6 +101,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTernaryExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitTernaryExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write condition
@@ -117,11 +127,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write false
             falseExpression.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitTernaryExpression(this);
-        }
+        }        
     }
 }

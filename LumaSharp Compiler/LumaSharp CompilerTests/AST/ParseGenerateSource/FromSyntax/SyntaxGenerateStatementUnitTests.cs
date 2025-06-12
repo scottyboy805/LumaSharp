@@ -203,7 +203,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("return", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Return(Syntax.Literal(5));
+            SyntaxNode syntax1 = Syntax.Return(Syntax.Literal(5))
+                .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("return 5;", syntax1.GetSourceText());

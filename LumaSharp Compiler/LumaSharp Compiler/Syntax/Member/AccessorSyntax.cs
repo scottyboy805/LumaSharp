@@ -86,6 +86,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitAccessor(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitAccessor(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Attributes

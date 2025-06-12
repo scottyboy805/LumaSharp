@@ -109,6 +109,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitParentTypeReference(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitParentTypeReference(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Identifier
@@ -336,6 +341,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTypeReference(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitTypeReference(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write namespace
@@ -365,11 +380,6 @@ namespace LumaSharp.Compiler.AST
             // Write array
             if (IsArrayType == true)
                 arrayParameters.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitTypeReference(this);
         }
 
         internal bool GetPrimitiveType(out PrimitiveType primitiveType)

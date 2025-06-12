@@ -7,7 +7,7 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SyntaxToken value;
-        private readonly SyntaxToken descriptor;
+        private readonly SyntaxToken? descriptor;
 
         // Properties
         public override SyntaxToken StartToken
@@ -20,8 +20,8 @@ namespace LumaSharp.Compiler.AST
             get
             {
                 // Check for descriptor
-                if (HasDescriptor == true)
-                    return descriptor;
+                if(descriptor != null)
+                    return descriptor.Value;
 
                 return value;
             }
@@ -32,14 +32,9 @@ namespace LumaSharp.Compiler.AST
             get { return value; }
         }
 
-        public SyntaxToken Descriptor
+        public SyntaxToken? Descriptor
         {
             get { return descriptor; }
-        }
-
-        public bool HasDescriptor
-        {
-            get { return descriptor.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -58,23 +53,28 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException(nameof(descriptor) + " must be of kind: " + SyntaxTokenKind.LiteralDescriptor);
 
             this.value = value;
-            this.descriptor = descriptor != null ? descriptor.Value : default;
+            this.descriptor = descriptor;
         }
 
         // Methods
-        public override void GetSourceText(TextWriter writer)
-        {
-            // Write value
-            writer.Write(value.Text);
-
-            // Write descriptor
-            if (HasDescriptor == true)
-                writer.Write(descriptor.Text);
-        }
-
         public override void Accept(SyntaxVisitor visitor)
         {
             visitor.VisitLiteralExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitLiteralExpression(this);
+        }
+
+        public override void GetSourceText(TextWriter writer)
+        {
+            // Write value
+            value.GetSourceText(writer);
+
+            // Write descriptor
+            if (descriptor != null)
+                descriptor?.GetSourceText(writer);
         }
     }
 }

@@ -85,6 +85,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitStatementBlock(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitStatementBlock(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // LBlock

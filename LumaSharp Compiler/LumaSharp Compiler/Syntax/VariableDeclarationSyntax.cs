@@ -90,6 +90,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitVariableDeclaration(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitVariableDeclaration(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write type 

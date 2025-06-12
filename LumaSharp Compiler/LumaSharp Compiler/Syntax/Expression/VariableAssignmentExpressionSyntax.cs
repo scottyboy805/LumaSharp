@@ -80,6 +80,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitVariableAssignmentExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitVariableAssignmentExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write assign
@@ -87,11 +97,6 @@ namespace LumaSharp.Compiler.AST
 
             // Assign expressions
             assignExpressions.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitVariableAssignmentExpression(this);
         }
     }
 }

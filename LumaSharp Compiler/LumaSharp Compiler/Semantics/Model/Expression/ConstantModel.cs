@@ -107,7 +107,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             : base(model, parent, literal)
         {
             this.literal = literal.Value;
-            this.descriptor = literal.Descriptor;
+            this.descriptor = literal.Descriptor != null ? literal.Descriptor.Value : default;
         }
 
         // Methods

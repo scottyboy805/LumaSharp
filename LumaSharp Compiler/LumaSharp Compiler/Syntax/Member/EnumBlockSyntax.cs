@@ -59,6 +59,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitEnumBlock(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitEnumBlock(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Block start

@@ -56,6 +56,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitEnumField(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitEnumField(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Identifier

@@ -62,6 +62,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitCollectionInitializerExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitCollectionInitializerExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write lBlock
@@ -73,11 +83,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write rBlock
             rBlock.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitCollectionInitializerExpression(this);
         }
     }
 }

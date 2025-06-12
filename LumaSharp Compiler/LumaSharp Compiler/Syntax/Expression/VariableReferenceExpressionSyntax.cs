@@ -40,15 +40,20 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitVariableReferenceExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitVariableReferenceExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write identifier
             writer.Write(identifier.ToString());
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitVariableReferenceExpression(this);
         }
     }
 }

@@ -12,126 +12,126 @@ namespace LumaSharp.Compiler.AST.Visitor
         // Methods
         public override void VisitBaseExpression(BaseExpressionSyntax baseExpression)
         {
-            VisitToken(baseExpression.Keyword);
+            baseExpression.Keyword.Accept(this);
         }
 
         public override void VisitBinaryExpression(BinaryExpressionSyntax binaryExpression)
         {
             depth++;
-            VisitExpression(binaryExpression.Left);
+            binaryExpression.Left.Accept(this);
             {
-                VisitToken(binaryExpression.Operation);
+                binaryExpression.Operation.Accept(this);
             }
-            VisitExpression(binaryExpression.Right);
+            binaryExpression.Right.Accept(this);
             depth--;
         }
 
         public override void VisitIndexExpression(IndexExpressionSyntax indexExpression)
         {
-            VisitExpression(indexExpression.AccessExpression);
-            VisitToken(indexExpression.LArray);
-            VisitSyntaxList(indexExpression.IndexExpressions);
-            VisitToken(indexExpression.RArray);
+            indexExpression.AccessExpression.Accept(this);
+            indexExpression.LArray.Accept(this);
+            indexExpression.IndexExpressions.Accept(this);
+            indexExpression.RArray.Accept(this);
         }
 
         public override void VisitLiteralExpression(LiteralExpressionSyntax literalExpression)
         {
             VisitToken(literalExpression.Value);
-            if(literalExpression.HasDescriptor == true)
-                VisitToken(literalExpression.Descriptor);
+            if(literalExpression.Descriptor != null)
+                VisitToken(literalExpression.Descriptor.Value);
         }
 
         public override void VisitMemberAccessExpression(MemberAccessExpressionSyntax memberAccessExpression)
         {
-            VisitExpression(memberAccessExpression.AccessExpression);
-            VisitToken(memberAccessExpression.Dot);
-            VisitToken(memberAccessExpression.Identifier);
+            memberAccessExpression.AccessExpression.Accept(this);
+            memberAccessExpression.Dot.Accept(this);
+            memberAccessExpression.Identifier.Accept(this);
         }
 
         public override void VisitMethodInvokeExpression(MethodInvokeExpressionSyntax methodInvokeExpression)
         {
-            VisitExpression(methodInvokeExpression.AccessExpression);
+            methodInvokeExpression.AccessExpression.Accept(this);
             if (methodInvokeExpression.HasGenericArguments == true)
-                VisitGenericArgumentList(methodInvokeExpression.GenericArgumentList);
-            VisitArgumentList(methodInvokeExpression.ArgumentList);
+                methodInvokeExpression.GenericArgumentList.Accept(this);
+            methodInvokeExpression.ArgumentList.Accept(this);
         }
 
         public override void VisitNewExpression(NewExpressionSyntax newExpression)
         {
-            VisitToken(newExpression.Keyword);
-            VisitTypeReference(newExpression.NewType);
+            newExpression.Keyword.Accept(this);
+            newExpression.NewType.Accept(this);
             if(newExpression.HasArguments == true)
-                VisitArgumentList(newExpression.ArgumentList);
+                newExpression.ArgumentList.Accept(this);
         }
 
         public override void VisitParenthesizedExpression(ParenthesizedExpressionSyntax parenthesizedExpression)
         {
-            VisitToken(parenthesizedExpression.LParen);
+            parenthesizedExpression.LParen.Accept(this);
             {
                 depth++;
-                VisitExpression(parenthesizedExpression.Expression);
+                parenthesizedExpression.Expression.Accept(this);
                 depth--;
             }
-            VisitToken(parenthesizedExpression.RParen);
+            parenthesizedExpression.RParen.Accept(this);
         }
 
         public override void VisitSizeofExpression(SizeofExpressionSyntax sizeExpression)
         {
-            VisitToken(sizeExpression.Keyword);
-            VisitToken(sizeExpression.LParen);
+            sizeExpression.Keyword.Accept(this);
+            sizeExpression.LParen.Accept(this);
             {
                 depth++;
-                VisitTypeReference(sizeExpression.TypeReference);
+                sizeExpression.TypeReference.Accept(this);
                 depth--;
             }
-            VisitToken(sizeExpression.RParen);
+            sizeExpression.RParen.Accept(this);
         }
 
         public override void VisitTernaryExpression(TernaryExpressionSyntax ternaryExpression)
         {
-            VisitExpression(ternaryExpression.Condition);
-            VisitToken(ternaryExpression.Ternary);
-            VisitExpression(ternaryExpression.TrueExpression);
-            VisitToken(ternaryExpression.Colon);
-            VisitExpression(ternaryExpression.FalseExpression);
+            ternaryExpression.Condition.Accept(this);
+            ternaryExpression.Ternary.Accept(this);
+            ternaryExpression.TrueExpression.Accept(this);
+            ternaryExpression.Colon.Accept(this);
+            ternaryExpression.FalseExpression.Accept(this);
         }
 
         public override void VisitThisExpression(ThisExpressionSyntax thisExpression)
         {
-            VisitToken(thisExpression.Keyword);
+            thisExpression.Keyword.Accept(this);
         }
 
         public override void VisitTypeofExpression(TypeofExpressionSyntax typeofExpression)
         {
-            VisitToken(typeofExpression.Keyword);
-            VisitToken(typeofExpression.LParen);
-            VisitTypeReference(typeofExpression.TypeReference);
-            VisitToken(typeofExpression.RParen);
+            typeofExpression.Keyword.Accept(this);
+            typeofExpression.LParen.Accept(this);
+            typeofExpression.TypeReference.Accept(this);
+            typeofExpression.RParen.Accept(this);
         }
 
         public override void VisitUnaryExpression(UnaryExpressionSyntax unaryExpression)
         {
             if(unaryExpression.IsPrefix == true)
             {
-                VisitToken(unaryExpression.Operation);
-                VisitExpression(unaryExpression.Expression);
+                unaryExpression.Operation.Accept(this);
+                unaryExpression.Expression.Accept(this);
             }
             else
             {
-                VisitExpression(unaryExpression.Expression);
-                VisitToken(unaryExpression.Operation);
+                unaryExpression.Expression.Accept(this);
+                unaryExpression.Operation.Accept(this);
             }
         }
 
         public override void VisitVariableAssignmentExpression(VariableAssignmentExpressionSyntax variableAssignExpression)
         {
-            VisitToken(variableAssignExpression.Assign);
-            VisitSyntaxList(variableAssignExpression.AssignExpressions);
+            variableAssignExpression.Assign.Accept(this);
+            variableAssignExpression.AssignExpressions.Accept(this);
         }
 
         public override void VisitVariableReferenceExpression(VariableReferenceExpressionSyntax variableReferenceExpression)
         {
-            VisitToken(variableReferenceExpression.Identifier);
+            variableReferenceExpression.Identifier.Accept(this);
         }
     }
 }

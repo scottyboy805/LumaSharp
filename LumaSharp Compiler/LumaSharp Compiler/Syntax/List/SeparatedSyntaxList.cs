@@ -2,15 +2,22 @@
 using System.Collections;
 
 namespace LumaSharp.Compiler.AST
-{
+{    
     public class SeparatedSyntaxList<T> : SyntaxNode, IEnumerable<T> where T : SyntaxNode
     {
         // Type
-        private struct SyntaxSeparatedElement
+        public readonly struct SyntaxSeparatedElement
         {
             // Public
-            public SyntaxToken separator;
-            public T syntax;
+            public readonly T Syntax;
+            public readonly SyntaxToken? Separator;
+            
+            // Constructor
+            public SyntaxSeparatedElement(T syntax, SyntaxToken? separator)
+            {
+                this.Syntax = syntax;
+                this.Separator = separator;
+            }
         }
 
         // Private
@@ -24,7 +31,7 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for any
                 if (syntaxList.Count > 0)
-                    return syntaxList[0].syntax.StartToken;
+                    return syntaxList[0].Syntax.StartToken;
 
                 // Not valid
                 return SyntaxToken.Invalid;
@@ -37,7 +44,7 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for any
                 if (syntaxList.Count > 0)
-                    return syntaxList[syntaxList.Count - 1].syntax.EndToken;
+                    return syntaxList[syntaxList.Count - 1].Syntax.EndToken;
 
                 // Not valid
                 return SyntaxToken.Invalid;
@@ -46,13 +53,7 @@ namespace LumaSharp.Compiler.AST
 
         public T this[int index]
         {
-            get
-            {
-                if (index >= syntaxList.Count)
-                    throw new IndexOutOfRangeException();
-
-                return syntaxList[index].syntax;
-            }
+            get { return index >= 0 && index < syntaxList.Count ? syntaxList[index].Syntax : null; }
         }
 
         public int Count
@@ -60,12 +61,22 @@ namespace LumaSharp.Compiler.AST
             get { return syntaxList.Count; }
         }
 
+        public IReadOnlyList<SyntaxSeparatedElement> Elements
+        {
+            get { return syntaxList; }
+        }
+
+        public SyntaxTokenKind SeparatorKind
+        {
+            get { return separatorKind; }
+        }
+
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
             {
                 foreach (SyntaxSeparatedElement item in syntaxList)
-                    yield return item.syntax;
+                    yield return item.Syntax;
             }
         }
 
@@ -80,29 +91,53 @@ namespace LumaSharp.Compiler.AST
                 : new();
         }
 
-        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind)
-        {
-            this.separatorKind = separatorKind;
-        }
-
         internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, T syntaxSingle)
         {
+            // Check for null
+            if(syntaxSingle == null)
+                throw new ArgumentNullException(nameof(syntaxSingle));
+
             this.separatorKind = separatorKind;
             this.syntaxList = new();
-
-            AddElement(syntaxSingle, null);
+            this.syntaxList.Add(new SyntaxSeparatedElement(syntaxSingle, null));
         }
 
-        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, T[] syntaxList)
+        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, IEnumerable<T> elements)
+            : this(separatorKind, elements.Select(e => new SyntaxSeparatedElement(e, Syntax.Token(separatorKind))))
+        {
+        }
+
+        internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, IEnumerable<SyntaxSeparatedElement> elements)
         {
             this.separatorKind = separatorKind;
-            this.syntaxList = new();
+            this.syntaxList = new(elements != null
+                ? elements.Count()
+                : 0);
 
-            for(int i = 0; i < syntaxList.Length; i++)
+            // Check for any
+            if (elements != null)
             {
-                AddElement(syntaxList[i], i < syntaxList.Length - 1
-                    ? Syntax.Token(separatorKind)
-                    : (SyntaxToken?)null);
+                // Add all elements
+                int current = 0;
+                foreach (SyntaxSeparatedElement item in elements)
+                {
+                    // Add the element
+                    this.syntaxList.Add(item);
+
+                    // Check null
+                    if (item.Syntax == null)
+                        throw new ArgumentException("Syntax element is null at index: " + current);
+
+                    // Expect separator?
+                    if (current < syntaxList.Count - 1 && item.Separator == null)
+                        throw new ArgumentException("A separator must be provided when syntax continues at index: " + current);
+
+                    // Check kind
+                    if (item.Separator != null && item.Separator.Value.Kind != separatorKind)
+                        throw new ArgumentException("Separator must be of kind: " + separatorKind);
+
+                    current++;
+                }
             }
         }
 
@@ -112,25 +147,9 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitSyntaxList(this);
         }
 
-        public void AddElement(T syntaxElement, SyntaxToken? separator)
+        public override J Accept<J>(SyntaxVisitor<J> visitor)
         {
-            // Check kind
-            if (separator != null && separator.Value.Kind != separatorKind)
-                throw new ArgumentException("Separator must be of kind: " + separatorKind);
-
-            //// Check for count
-            //if (syntaxList.Count > 0 && separator == null)
-            //    throw new ArgumentException("Separator must be provided for non-zero indexed elements");
-
-            // Add to list
-            syntaxList.Add(new SyntaxSeparatedElement
-            {
-                separator = separator != null ? separator.Value : default,
-                syntax = syntaxElement,
-            });
-
-            // Set parent
-            if (syntaxElement != null) syntaxElement.parent = this;
+            return visitor.VisitSyntaxList(this);
         }
 
         public override void GetSourceText(TextWriter writer)
@@ -140,22 +159,22 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for token
                 if(i > 0)
-                    syntaxList[i - 1].separator.GetSourceText(writer);
+                    syntaxList[i - 1].Separator?.GetSourceText(writer);
 
                 // Get syntax source
-                syntaxList[i].syntax.GetSourceText(writer);
+                syntaxList[i].Syntax.GetSourceText(writer);
             }
         }
 
         public int IndexOf(T syntax)
         {
-            return syntaxList.FindIndex(i => i.syntax == syntax);
+            return syntaxList.FindIndex(i => i.Syntax == syntax);
         }
 
         public IEnumerator<T> GetEnumerator()
         {
-            foreach (SyntaxSeparatedElement item in syntaxList)
-                yield return item.syntax;
+            foreach(SyntaxSeparatedElement element in syntaxList)
+                yield return element.Syntax;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

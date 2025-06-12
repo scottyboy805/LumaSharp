@@ -94,7 +94,7 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentNullException(nameof(accessExpression));
 
             if (arguments == null)
-                arguments = new ArgumentListSyntax(new SeparatedSyntaxList<ExpressionSyntax>(SyntaxTokenKind.CommaSymbol));
+                arguments = new ArgumentListSyntax(null);
 
             this.accessExpression = accessExpression;
             this.genericArgumentList = genericArguments;
@@ -105,8 +105,18 @@ namespace LumaSharp.Compiler.AST
             if(genericArgumentList != null) genericArgumentList.parent = this;
             if(argumentList != null) argumentList.parent = this;
         }
-        
+
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitMethodInvokeExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitMethodInvokeExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write access
@@ -121,11 +131,6 @@ namespace LumaSharp.Compiler.AST
 
             // Build arguments
             argumentList.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitMethodInvokeExpression(this);
-        }
+        }        
     }
 }

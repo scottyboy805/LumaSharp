@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class GenericParameterListSyntax : SeparatedSyntaxList<GenericParameterSyntax>
@@ -34,6 +36,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
+        internal GenericParameterListSyntax()
+            : this(null)
+        {
+        }
+
         internal GenericParameterListSyntax(SeparatedSyntaxList<GenericParameterSyntax> genericParameters)
             : this(
                   Syntax.Token(SyntaxTokenKind.LessSymbol),
@@ -60,6 +67,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitGenericParameterList(this);
+        }
+
+        public override J Accept<J>(SyntaxVisitor<J> visitor)
+        {
+            return visitor.VisitGenericParameterList(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generic start

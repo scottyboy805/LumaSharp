@@ -69,6 +69,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitConstructorInvoke(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitConstructorInvoke(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write colon

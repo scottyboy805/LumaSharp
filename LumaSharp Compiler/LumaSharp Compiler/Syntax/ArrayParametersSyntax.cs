@@ -92,6 +92,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitArrayParameters(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitArrayParameters(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Array start

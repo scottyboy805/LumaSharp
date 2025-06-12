@@ -101,6 +101,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitUnaryExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitUnaryExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Check for prefix
@@ -114,11 +124,6 @@ namespace LumaSharp.Compiler.AST
                 expression.GetSourceText(writer);
                 operation.GetSourceText(writer);
             }
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitUnaryExpression(this);
         }
     }
 }

@@ -90,6 +90,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitGenericParameter(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitGenericParameter(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write identifier

@@ -99,6 +99,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitTokenList(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitTokenList(this);
+        }
+
         public void AddElement(SyntaxToken tokenElement, SyntaxToken? separator)
         {
             // Check kind

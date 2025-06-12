@@ -69,6 +69,9 @@ namespace LumaSharp.Compiler.AST
             if (variable == null)
                 throw new ArgumentNullException(nameof(variable));
 
+            if(semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
+
             this.variable = variable;
             this.semicolon = semicolon;
 
@@ -80,6 +83,11 @@ namespace LumaSharp.Compiler.AST
         public override void Accept(SyntaxVisitor visitor)
         {
             visitor.VisitVariableDeclarationStatement(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitVariableDeclarationStatement(this);
         }
 
         public override void GetSourceText(TextWriter writer)

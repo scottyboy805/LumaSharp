@@ -85,7 +85,7 @@ namespace LumaSharp.Compiler.AST
 
             // Check null
             if (body == null)
-                body = new EnumBlockSyntax(new SeparatedSyntaxList<EnumFieldSyntax>(SyntaxTokenKind.CommaSymbol));
+                body = new EnumBlockSyntax(null);
 
             this.keyword = keyword;
             this.underlyingType = underlyingType;
@@ -105,6 +105,11 @@ namespace LumaSharp.Compiler.AST
         public override void Accept(SyntaxVisitor visitor)
         {
             visitor.VisitEnum(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitEnum(this);
         }
 
         public override void GetSourceText(TextWriter writer)

@@ -72,6 +72,9 @@ namespace LumaSharp.Compiler.AST
             if(keyword.Kind != SyntaxTokenKind.NewKeyword)
                 throw new ArgumentException(nameof(keyword) + " must be of kind: " +  SyntaxTokenKind.NewKeyword);
 
+            if (arguments == null)
+                arguments = new ArgumentListSyntax(null);
+
             this.keyword = keyword;
             this.newType = newType;
             this.arguments = arguments;
@@ -82,6 +85,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitNewExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitNewExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword
@@ -92,11 +105,6 @@ namespace LumaSharp.Compiler.AST
 
             // Argument list
             arguments.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitNewExpression(this);
-        }
+        }        
     }
 }

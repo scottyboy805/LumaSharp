@@ -3,6 +3,7 @@ namespace LumaSharp.Compiler.AST.Visitor
 {
     public abstract class SyntaxVisitor
     {
+        // Methods
         public virtual void VisitToken(SyntaxToken token) { }
         public virtual void VisitTrivia(SyntaxTrivia trivia) { }
 
@@ -12,6 +13,7 @@ namespace LumaSharp.Compiler.AST.Visitor
 
         public virtual void VisitTokenList(SeparatedTokenList list) { }
         public virtual void VisitSyntaxList<T>(SeparatedSyntaxList<T> list) where T : SyntaxNode { }
+        public virtual void VisitBaseTypeList(BaseTypeListSyntax baseTypeList) { }
         public virtual void VisitGenericParameterList(GenericParameterListSyntax genericParameterList) { }
         public virtual void VisitGenericParameter(GenericParameterSyntax genericParameter) { }
         public virtual void VisitGenericArgumentList(GenericArgumentListSyntax genericArgumentList) { }
@@ -28,12 +30,6 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitVariableDeclaration(VariableDeclarationSyntax variableDeclaration) { }
 
         #region Member
-        public void VisitMember(MemberSyntax member)
-        {
-            // Accept the visit
-            member.Accept(this);
-        }
-
         public virtual void VisitType(TypeSyntax type) { }
         public virtual void VisitContract(ContractSyntax contract) { }
         public virtual void VisitEnum(EnumSyntax e) { }
@@ -49,12 +45,6 @@ namespace LumaSharp.Compiler.AST.Visitor
         #endregion
 
         #region Statement
-        public void VisitStatement(StatementSyntax statement)
-        {
-            // Accept the visit
-            statement.Accept(this);
-        }
-
         public virtual void VisitAssignStatement(AssignStatementSyntax assignStatement) { }
         public virtual void VisitBreakStatement(BreakStatementSyntax breakStatement) { }
         public virtual void VisitConditionStatement(ConditionStatementSyntax conditionStatement) { }
@@ -69,12 +59,6 @@ namespace LumaSharp.Compiler.AST.Visitor
         #endregion
 
         #region Expression
-        public void VisitExpression(ExpressionSyntax expression)
-        {
-            // Accept the visit
-            expression.Accept(this);
-        }
-
         public virtual void VisitAssignExpression(AssignExpressionSyntax assignExpression) { }
         public virtual void VisitBaseExpression(BaseExpressionSyntax baseExpression) { }
         public virtual void VisitBinaryExpression(BinaryExpressionSyntax binaryExpression) { }
@@ -85,6 +69,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitMethodInvokeExpression(MethodInvokeExpressionSyntax methodInvokeExpression) { }
         public virtual void VisitNewExpression(NewExpressionSyntax newExpression) { }
         public virtual void VisitParenthesizedExpression(ParenthesizedExpressionSyntax parenthesizedExpression) { }
+        public virtual void VisitRangeExpression(RangeExpressionSyntax rangeExpression) { }
         public virtual void VisitSizeofExpression(SizeofExpressionSyntax sizeExpression) { }
         public virtual void VisitTernaryExpression(TernaryExpressionSyntax ternaryExpression) { }
         public virtual void VisitThisExpression(ThisExpressionSyntax thisExpression) { }

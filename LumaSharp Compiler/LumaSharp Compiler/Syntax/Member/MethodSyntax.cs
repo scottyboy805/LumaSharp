@@ -9,7 +9,7 @@ namespace LumaSharp.Compiler.AST
         private readonly SeparatedSyntaxList<TypeReferenceSyntax> returnTypes;
         private readonly GenericParameterListSyntax genericParameters;
         private readonly ParameterListSyntax parameters;
-        private readonly StatementBlockSyntax body;
+        private readonly StatementSyntax body;
         private readonly LambdaSyntax lambda;
         private readonly SyntaxToken? overrideKeyword;
 
@@ -68,7 +68,7 @@ namespace LumaSharp.Compiler.AST
             get { return parameters; }
         }
 
-        public StatementBlockSyntax Body
+        public StatementSyntax Body
         {
             get { return body; }
         }
@@ -104,9 +104,21 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementBlockSyntax body, LambdaSyntax lambda)
+        internal MethodSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementSyntax body, LambdaSyntax lambda)
             : base(identifier, attributes, accessModifiers)
         {
+            // Check for parameters
+            if (parameters == null)
+                parameters = new ParameterListSyntax(null);
+
+            // Check for invalid body
+            if (body != null && (body is StatementBlockSyntax) == false && (body is EmptyStatementSyntax) == false)
+                throw new ArgumentException("Body must be a statement block or empty statement");
+
+            // Check for no body
+            if (body == null && lambda == null)
+                body = new EmptyStatementSyntax();
+
             this.returnTypes = returnTypes;
             this.genericParameters = genericParameters;
             this.parameters = parameters;
@@ -120,6 +132,11 @@ namespace LumaSharp.Compiler.AST
         public override void Accept(SyntaxVisitor visitor)
         {
             visitor.VisitMethod(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitMethod(this);
         }
 
         public override void GetSourceText(TextWriter writer)

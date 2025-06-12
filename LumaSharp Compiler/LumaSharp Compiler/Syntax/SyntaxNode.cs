@@ -31,6 +31,8 @@ namespace LumaSharp.Compiler.AST
 
         public abstract void Accept(SyntaxVisitor visitor);
 
+        public abstract T Accept<T>(SyntaxVisitor<T> visitor);
+
         public abstract void GetSourceText(TextWriter writer);
 
         public string GetSourceText()

@@ -46,15 +46,20 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitBaseExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitBaseExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write source
             keyword.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitBaseExpression(this);
         }
     }
 }

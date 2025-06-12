@@ -154,7 +154,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_New()
         {
             SyntaxNode syntax0 = Syntax.New(
-                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(false)));
+                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(false)))
+                    .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("new MyType(false)", syntax0.GetSourceText());
@@ -162,28 +163,13 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.New(
-                Syntax.TypeReference("MyType"));
+                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(true)))
+                    .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("MyType()", syntax1.GetSourceText());
-            Assert.AreEqual("MyType", syntax1.StartToken.Text);
+            Assert.AreEqual("new MyType(5, true)", syntax1.GetSourceText());
+            Assert.AreEqual("new", syntax1.StartToken.Text);
             Assert.AreEqual(")", syntax1.EndToken.Text);
-
-            SyntaxNode syntax2 = Syntax.New(
-                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(true)));
-
-            // Get expression text
-            Assert.AreEqual("new MyType(5,true)", syntax2.GetSourceText());
-            Assert.AreEqual("new", syntax2.StartToken.Text);
-            Assert.AreEqual(")", syntax2.EndToken.Text);
-
-            SyntaxNode syntax3 = Syntax.New(
-                Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(true)));
-
-            // Get expression text
-            Assert.AreEqual("MyType(5,true)", syntax3.GetSourceText());
-            Assert.AreEqual("MyType", syntax3.StartToken.Text);
-            Assert.AreEqual(")", syntax3.EndToken.Text);
         }
 
         [TestMethod]
@@ -196,6 +182,15 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("true?1:0", syntax0.GetSourceText());
             Assert.AreEqual("true", syntax0.StartToken.Text);
             Assert.AreEqual("0", syntax0.EndToken.Text);
+
+            SyntaxNode syntax1 = Syntax.Ternary(
+                Syntax.Literal(true), Syntax.Literal(1), Syntax.Literal(0))
+                    .NormalizeWhitespace();
+
+            // Get expression text
+            Assert.AreEqual("true ? 1 : 0", syntax1.GetSourceText());
+            Assert.AreEqual("true", syntax1.StartToken.Text);
+            Assert.AreEqual("0", syntax1.EndToken.Text);
         }
 
         [TestMethod]
@@ -208,6 +203,15 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("5+10", syntax0.GetSourceText());
             Assert.AreEqual("5", syntax0.StartToken.Text);
             Assert.AreEqual("10", syntax0.EndToken.Text);
+
+            SyntaxNode syntax1 = Syntax.Binary(
+                Syntax.Literal(15), Syntax.Token(SyntaxTokenKind.AddSymbol), Syntax.Literal(110))
+                .NormalizeWhitespace();
+
+            // Get expression text
+            Assert.AreEqual("15 + 110", syntax1.GetSourceText());
+            Assert.AreEqual("15", syntax1.StartToken.Text);
+            Assert.AreEqual("110", syntax1.EndToken.Text);
         }
     }
 }

@@ -111,6 +111,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitBinaryExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitBinaryExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write left
@@ -121,11 +131,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write right
             right.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitBinaryExpression(this);
         }
     }
 }

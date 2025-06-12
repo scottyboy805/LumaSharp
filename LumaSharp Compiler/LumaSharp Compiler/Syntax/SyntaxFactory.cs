@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 { 
     public static class Syntax
@@ -19,6 +21,59 @@ namespace LumaSharp.Compiler.AST
             return new SyntaxToken(kind, text, default);
         }
 
+        #region Trivia
+        public static SyntaxTrivia LeadingTrivia(SyntaxTriviaKind kind, string text)
+        {
+            return SyntaxTrivia.Leading(kind, text, default);
+        }
+
+        public static SyntaxTrivia TrailingTrivia(SyntaxTriviaKind kind, string text)
+        {
+            return SyntaxTrivia.Trailing(kind, text, default);
+        }
+        #endregion
+
+        #region Transformation
+        public static T NormalizeWhitespace<T>(this T node) where T : SyntaxNode
+        {
+            // Create rewriter
+            WhitespaceRewriter rewriter = new WhitespaceRewriter();
+
+            // Try to rewrite this node
+            return rewriter.DefaultVisit(node);
+        }
+
+        public static T ReplaceSyntax<T, J>(this T node, J current, J replacement) where T : SyntaxNode where J : SyntaxNode
+        {
+            // Create syntax replacement
+            SyntaxReplacer<J> replacer = new SyntaxReplacer<J>(current, replacement);
+
+            // Try to rewrite
+            return replacer.DefaultVisit(node);
+        }
+
+        public static T ReplaceToken<T>(this T node, SyntaxToken current, SyntaxToken replacement) where T : SyntaxNode
+        {
+            // Create token replacement
+            TokenReplacer replacer = new TokenReplacer(current, replacement);
+
+            // Try to rewrite
+            return replacer.DefaultVisit(node);
+        }
+
+        public static T WithTrivia<T>(this T node, SyntaxTrivia trivia) where T : SyntaxNode
+        {
+            // Get end token
+            SyntaxToken endToken = node.EndToken;
+
+            // Get token with trivia
+            SyntaxToken replaceToken = endToken.WithTrivia(new[] { trivia });
+
+            // Replace the node
+            return node.ReplaceToken(endToken, replaceToken);
+        }
+        #endregion
+
         #region Members
         internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(identifiers.Select(n => Identifier(n)).ToArray(), SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
 
@@ -28,7 +83,7 @@ namespace LumaSharp.Compiler.AST
         public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier));
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
-        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), null);
+        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, null, null);
         public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
         public static EnumFieldSyntax EnumField(SyntaxToken identifier, VariableAssignmentExpressionSyntax enumAssignment = null) => new EnumFieldSyntax(identifier, enumAssignment);
         public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(Token(SyntaxTokenKind.ReadKeyword), statement);

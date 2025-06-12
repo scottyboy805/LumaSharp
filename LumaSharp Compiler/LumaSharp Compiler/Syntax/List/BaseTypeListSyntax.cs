@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class BaseTypeListSyntax : SeparatedSyntaxList<TypeReferenceSyntax>
@@ -39,6 +41,16 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitBaseTypeList(this);
+        }
+
+        public override J Accept<J>(SyntaxVisitor<J> visitor)
+        {
+            return visitor.VisitBaseTypeList(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write colon

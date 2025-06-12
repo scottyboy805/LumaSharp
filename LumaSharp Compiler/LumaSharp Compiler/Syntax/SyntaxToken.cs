@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum SyntaxTokenKind
@@ -301,9 +303,24 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public SyntaxToken WithTrivia(SyntaxTrivia trivia)
+        {
+            return new SyntaxToken(Kind, Text, Span, new[] { trivia });
+        }
+
         public SyntaxToken WithTrivia(IEnumerable<SyntaxTrivia> trivia)
         {
             return new SyntaxToken(Kind, Text, Span, trivia);
+        }
+
+        public void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitToken(this);
+        }
+
+        public T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitToken(this);
         }
 
         public void GetSourceText(TextWriter writer)

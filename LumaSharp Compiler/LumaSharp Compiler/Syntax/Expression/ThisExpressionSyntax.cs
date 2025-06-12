@@ -44,18 +44,23 @@ namespace LumaSharp.Compiler.AST
 
             keyword = thisToken;
         }
-                
+
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitThisExpression(this);
+        }
+
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitThisExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write keyword
             keyword.GetSourceText(writer);
-        }
-
-        public override void Accept(SyntaxVisitor visitor)
-        {
-            visitor.VisitThisExpression(this);
         }
     }
 }

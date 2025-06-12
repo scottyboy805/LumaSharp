@@ -63,6 +63,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitNamespace(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitNamespace(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write keyword

@@ -78,6 +78,11 @@ namespace LumaSharp.Compiler.AST
             visitor.VisitAssignExpression(this);
         }
 
+        public override T Accept<T>(SyntaxVisitor<T> visitor)
+        {
+            return visitor.VisitAssignExpression(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write left
