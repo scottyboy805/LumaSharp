@@ -1,5 +1,4 @@
-﻿using Antlr4.Runtime;
-
+﻿
 namespace LumaSharp.Compiler.AST
 {
     public readonly struct SyntaxSource
@@ -26,11 +25,8 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal SyntaxSource(IToken token)
+        public SyntaxSource()
         {
-            this.sourceName = token.TokenSource.SourceName;
-            this.line = token.Line;
-            this.column = token.Column;
         }
     }
 }

@@ -9,11 +9,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Collections\CCollection_1.ls" />
+    <None Remove="Collections\Immutable\CImmutableCollection_1.ls" />
+    <None Remove="Collections\Immutable\ImmutableList_1.ls" />
     <None Remove="Type\I32.ls" />
+    <None Remove="Type\ReferenceType.ls" />
+    <None Remove="Type\ValueType.ls" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Collections\CCollection_1.ls" />
+    <Compile Include="Collections\Immutable\CImmutableCollection_1.ls" />
+    <Compile Include="Collections\Immutable\ImmutableList_1.ls" />
     <Compile Include="Type\I32.ls" />
+    <Compile Include="Type\ReferenceType.ls" />
+    <Compile Include="Type\ValueType.ls" />
   </ItemGroup>
 
 </Project>

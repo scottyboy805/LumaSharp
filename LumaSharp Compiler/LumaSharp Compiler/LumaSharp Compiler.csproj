@@ -17,15 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\LumaSharp Runtime\LumaSharp Runtime\LumaSharp Runtime.csproj" />
   </ItemGroup>
-
-  <Target Name="PreBuild" BeforeTargets="PrepareForBuild">
-    <Exec Command="msbuild &quot;../LumaSharp Grammar/LumaSharp Grammar.csproj&quot;" />
-  </Target>
 
 </Project>

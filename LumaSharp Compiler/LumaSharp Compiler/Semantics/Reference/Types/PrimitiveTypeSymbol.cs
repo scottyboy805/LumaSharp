@@ -66,7 +66,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 this.baseTypes = new ITypeReferenceSymbol[] { baseType };
 
             // Create handle
-            this.typeHandle = new _TypeHandle(new _TokenHandle((RuntimeTypeCode)primitiveType), GetRuntimeTypeSize(primitiveType));
+            this.typeHandle = new _TypeHandle((RuntimeTypeCode)primitiveType, GetRuntimeTypeSize(primitiveType));
 
             // Load members from reference library
         }

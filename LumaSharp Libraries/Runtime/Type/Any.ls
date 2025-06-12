@@ -1,14 +1,14 @@
 ﻿
-export type any
+export type any override
 {
 	// Properties
-	#runtime
-	export i32 Hash => read;
+	export i32 Hash override => read; 
 
-	#runtime
-	export string String => read;
+	export string String override => read;
+
+	// Constructor
+	protected this() override;
 
 	// Methods
-	#runtime
-	export bool Equals(any other);
+	export bool Equals(any other) override;
 }

@@ -4,6 +4,7 @@ using AppContext = LumaSharp.Runtime.AppContext;
 using MethodBuilder = LumaSharp.Compiler.Emit.MethodBuilder;
 using LumaSharp.Compiler.Emit;
 using LumaSharp.Runtime;
+using LumaSharp.Runtime.Reader;
 
 namespace CompilerTests.Emit
 {
@@ -46,21 +47,21 @@ namespace CompilerTests.Emit
             executableStream.Seek(0, SeekOrigin.Begin);
 
             // Read method
-            ExecutableReader executableReader = new ExecutableReader(context, executableStream);
-            MetaReader metaReader = new MetaReader(context, metaStream);
+            //ExecutableReader executableReader = new ExecutableReader(context, executableStream);
+            //MetaReader metaReader = new MetaReader(context, metaStream);
 
-            // Read the method
-            MetaMethod method = metaReader.ReadMethodMeta(true);
+            //// Read the method
+            //MetaMethod method = metaReader.ReadMethodMeta(true);
 
-            // Read the executable
-            unsafe { executableReader.ReadMethodExecutable(method.RVA, true); }
+            //// Read the executable
+            //unsafe { executableReader.ReadMethodExecutable(method.RVA, true); }
 
             //MetaMethod method = new MetaMethod(context);
             //method.LoadMethodMetadata(reader);
             //method.LoadMethodExecutable(reader);
 
-
-            return method;
+            return null;
+            //return method;
         }
     }
 }

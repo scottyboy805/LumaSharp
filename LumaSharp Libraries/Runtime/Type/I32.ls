@@ -1,7 +1,11 @@
 ﻿
-export type i32 : any
+#copy
+export type I32 : ValueType
 {
-    // Properties
+    // Internal
+    internal i32 value;
+
+    // Accessors
     #runtime("i32_minvalue")
     gloabl export MinValue => read;
 

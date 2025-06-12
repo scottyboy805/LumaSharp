@@ -1,6 +1,7 @@
-﻿
-using Antlr4.Runtime;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
+
+[assembly: InternalsVisibleTo("LumaSharp CompilerTests")]
 
 namespace LumaSharp.Compiler
 {
@@ -28,10 +29,6 @@ namespace LumaSharp.Compiler
             reader.Dispose();
         }
 
-        internal AntlrInputStream GetInputStream()
-        {
-            return new AntlrInputStream(reader);
-        }
 
         public static InputSource FromSourceText(string lumaSharpSource)
         {

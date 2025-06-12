@@ -1,7 +1,10 @@
 ﻿
+
+// NOT USED ANYMORE - MOVED TO RUNTIME
+
 namespace Collections:Generic
 {
-	export type List<T> : CEnumerable<T>, CEnumerable
+	export type List<T> : CEnumerable<T>
 	{
 		// Fields
 		hidden T[] items = null;
@@ -20,8 +23,6 @@ namespace Collections:Generic
 				this.capacity = input;
 				EnsureCapacity(input);
 			}
-
-		export CIterator => read: return array.ArrayIterator<any>(items, count);
 
 		export CIterator<T> => read: return array.ArrayIterator<T>(items, count);
 

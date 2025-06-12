@@ -1,11 +1,47 @@
 ﻿
-export type string : any
+#copy #readonly
+export type String : ValueType, CReadOnlyCollection<char>, CEnumerable<char>
 {
-	// Properties
-	#runtime("string_length")
-	export i32 Length => read;
+	// Internal
+	#readonly
+	internal char[]? Value;
+
+	// Export
+	#readonly
+	export i32 Length = 0;
+
+	#readonly
+	export global string Empty = default;
+
+	// Accessor
+	i32 CReadOnlyCollection<char>.Count => read: return Length;
+
+	CIterator<char> CEnumerable<char>.Iterator => read: return Value.Iterator;
+
+	// Constructor
+	export this() {}
+
+	export this(string other)
+	{
+		this.Length = other.Length;
+
+		// Copy array if valid
+		if this.Length > 0
+			this.Value = other.Value.Copy();		
+	}
+
+	export this(char c, int count)
+	{
+		this.Length = count;
+		this.Value = Array.Repeat<char>(c, count);
+	}
 
 	// Methods
+	export bool Contains(char c)
+	{
+		return Length > 0 && Value.Contains(c);
+	}
+
 	#runtime("string_compare")
 	export global bool Compare(string a, string b);
 

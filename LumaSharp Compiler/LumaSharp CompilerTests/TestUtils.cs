@@ -1,47 +1,14 @@
-﻿using Antlr4.Runtime;
-using LumaSharp.Compiler.AST;
+﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.AST.Visitor;
 using LumaSharp.Compiler.Parser;
 using LumaSharp.Compiler.Reporting;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace CompilerTests
 {
     public static class TestUtils
     {
-        // Type
-        private class SyntaxErrorHandler : BaseErrorListener
-        {
-            public override void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
-            {
-                throw new Exception($"Syntax error at line {line}, position {charPositionInLine}: {msg}");
-            }
-        }
-
         // Methods
-        public static LumaSharpParser.CompilationUnitContext ParseInputString(string input)
-        {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new  SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.CompilationUnitContext context = parser.compilationUnit();
-
-            // Log errors
-            if(parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
-        }
-
         public static CompilationUnitSyntax ParseInputStringCompilationUnit(string input)
         {
             return CreateParser(input, p => p.ParseCompilationUnit());
@@ -65,28 +32,6 @@ namespace CompilerTests
         internal static T ParseInputStringExpression<T>(string input, Func<ASTParser, T> parseExpression) where T : ExpressionSyntax
         {
             return CreateParser(input, p => parseExpression(p));
-        }
-
-        public static LumaSharpParser.NamespaceDeclarationContext ParseNamespaceDeclaration(string input)
-        {
-            // Create the parser
-            AntlrInputStream inputStream = new AntlrInputStream(input);
-            LumaSharpLexer lexer = new LumaSharpLexer(inputStream);
-            LumaSharpParser parser = new LumaSharpParser(new CommonTokenStream(lexer));
-
-            // Add error handler
-            parser.AddErrorListener(new SyntaxErrorHandler());
-
-            // Run program
-            LumaSharpParser.NamespaceDeclarationContext context = parser.namespaceDeclaration();
-
-            // Log errors
-            if (parser.NumberOfSyntaxErrors > 0)
-            {
-                Debug.WriteLine("Syntax errors: " + parser.NumberOfSyntaxErrors);
-            }
-
-            return context;
         }
 
         public static MemberSyntax ParseMemberDeclaration(string input)

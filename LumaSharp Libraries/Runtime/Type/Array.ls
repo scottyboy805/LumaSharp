@@ -1,54 +1,79 @@
 ﻿
-export type array : CIterator
+export type Array override : CReadOnlyCollection<any>, CIterator<any>
 {
-	internal type ArrayIterator<T> : CIterator<T>, CIterator	
+	#copy
+	internal type ArrayIterator<T> : CIterator<T>	
 	{
 		// Private
-		T[] arr;
-		i32 position;
-		i32 count;
+		#readonly hidden array arr;
+		hidden i32 position;
+		hidden T current;
+
+		// Accessor
+		export T Current => current;
 
 		// Constructor
-		export this ArrayIterator(T[] arr)
+		export this ArrayIterator(array arr)
 		{
 			this.arr = arr;
-			this.count = arr.Count;
-		}
-
-		export this ArrayIterator(T[] arr, i32 count)
-		{
-			this.arr = arr;
-			this.count = count;
 		}
 
 		// Methods
-		export bool CIterator.NextItem(any& item)
+		export void CIterator<T>.Begin()
 		{
-			// Try to retreive item
-			T val;
-			bool success = NextItem(val);
-
-			// Box
-			item = val;
-
-			return success;
+			position = 0;
+			current = default;
 		}
 
-		export bool CIterator<T>.NextItem(T& item)
+		export bool CIterator<T>.Next()
 		{
-			position++;
-
 			// Check for success
-			bool success = position < count;
+			bool success = position < arr.Count;
 
-			// Get item
-			item = success ? arr[position] : default;
+			// Check success
+			if success
+			{
+				// Get item
+				current = success ? arr[position] : default;
+
+				// Increment position
+				position++;
+			}
 
 			return success;
 		}
 	}
 
 	// Accessors
-	#InternalCall("array_length")
+	#runtime("array_length")
 	export i64 Count => read;
+
+	#runtime("array_element")
+	export any this[i32 index] => read; => write;
+
+	export CIterator<T> => read: return new ArrayIterator<T>(items);
+
+	// Constructor
+	protected this() override;
+
+	// Methods
+	export bool Contains(any item)
+	{
+		for i32 i = 0; i < Count; i++			
+		{
+			if array[i] == item
+				return true;
+		}
+		return false;
+	}
+
+	export global T[] Repeat<T>(T value, int count)
+	{
+		// Create array
+		T[] arr = new T[count];
+
+		// Assign all elements
+		for i32 i = 0; i < count; i++
+			arr[i] = value;
+	}
 }
