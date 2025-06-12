@@ -81,8 +81,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_EnumGlobal()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))));
+                Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -98,8 +98,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_EnumExport()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))));
+                Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -115,8 +115,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_EnumHidden()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.HiddenKeyword))));
+                Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.HiddenKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -132,8 +132,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_EnumInternal()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Enum("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.InternalKeyword))));
+                Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.InternalKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

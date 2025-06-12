@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class SyntaxTree : SyntaxNode, IRootSyntaxContainer
+    public sealed class SyntaxTree : SyntaxNode
     {
         // Private
         private List<SyntaxNode> rootElements = null;
@@ -82,26 +82,6 @@ namespace LumaSharp.Compiler.AST
         public override void GetSourceText(TextWriter writer)
         {
             throw new NotImplementedException();
-        }
-
-        void IRootSyntaxContainer.AddRootSyntax(SyntaxNode node)
-        {
-            if(node is NamespaceSyntax)
-            {
-                rootElements.Add(node);
-            }
-            else
-            {
-                if(node is TypeSyntax ||
-                    node is ContractSyntax ||
-                    node is EnumSyntax)
-                {
-                    rootElements.Add(node);
-
-                    // Update hierarchy
-                    node.parent = this;
-                }
-            }
         }
 
         public static SyntaxTree Create(params SyntaxNode[] rootNodes)

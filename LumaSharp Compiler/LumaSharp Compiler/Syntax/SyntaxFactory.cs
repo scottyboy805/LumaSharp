@@ -24,7 +24,8 @@ namespace LumaSharp.Compiler.AST
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
         public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), null);
-        public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null, bool byReference = false) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
+        public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
+        public static EnumFieldSyntax EnumField(SyntaxToken identifier, VariableAssignmentExpressionSyntax enumAssignment = null) => new EnumFieldSyntax(identifier, enumAssignment);
         public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
         public static AccessorBodySyntax AccessorRead(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
         public static AccessorBodySyntax AccessorWrite(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.WriteKeyword), statement);
@@ -46,7 +47,7 @@ namespace LumaSharp.Compiler.AST
         public static TypeReferenceSyntax TypeReference(string[] namespaceName, ParentTypeReferenceSyntax parentType, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(NamespaceName(namespaceName), new[] { parentType }, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
         public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, default, new(SyntaxTokenKind.CommaSymbol, constrainTypes));
         public static GenericParameterListSyntax GenericParameterList(params GenericParameterSyntax[] genericParameters) => new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters));
-        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, bool variableSizedList = false) => new ParameterSyntax(null, parameterType, identifier, null, variableSizedList ? new SyntaxToken(SyntaxTokenKind.EnumerableSymbol) : default);
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, bool variableSizedList = false) => new ParameterSyntax(null, parameterType, identifier, null, variableSizedList ? new SyntaxToken(SyntaxTokenKind.EnumerableSymbol) : (SyntaxToken?)null);
         public static ParameterListSyntax ParameterList(params ParameterSyntax[] parameters) => new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters));
         public static GenericArgumentListSyntax GenericArgumentList(params TypeReferenceSyntax[] genericTypeArguments) => new GenericArgumentListSyntax(new(SyntaxTokenKind.CommaSymbol, genericTypeArguments));
         public static ArgumentListSyntax ArgumentList(params ExpressionSyntax[] argumentExpressions) => new ArgumentListSyntax(new(SyntaxTokenKind.CommaSymbol, argumentExpressions));
@@ -102,21 +103,15 @@ namespace LumaSharp.Compiler.AST
 
 
         #region Expanders
-        public static T WithRootMembers<T>(this T node, params MemberSyntax[] members) where T : SyntaxNode, IRootSyntaxContainer
-        {
-            foreach (MemberSyntax member in members)
-                node.AddRootSyntax(member);
+        // ### Members
+        public static TypeSyntax WithMembers(this TypeSyntax type, params MemberSyntax[] members)
+            => new TypeSyntax(type.Identifier, type.Attributes, type.AccessModifiers, type.GenericParameters, type.Override, type.BaseTypes, new MemberBlockSyntax(members));
 
-            return node;
-        }
+        public static ContractSyntax WithMembers(this ContractSyntax contract, params MemberSyntax[] members)
+            => new ContractSyntax(contract.Identifier, contract.Attributes, contract.AccessModifiers, contract.GenericParameters, contract.BaseTypes, new MemberBlockSyntax(members));
 
-        public static T WithMembers<T>(this T node, params MemberSyntax[] members) where T : SyntaxNode, IMemberSyntaxContainer
-        {
-            foreach (MemberSyntax member in members)
-                node.AddMember(member);
-
-            return node;
-        }
+        public static EnumSyntax WithMembers(this EnumSyntax e, params EnumFieldSyntax[] fields)
+            => new EnumSyntax(e.Identifier, e.Attributes, e.AccessModifiers, e.UnderlyingType, new EnumBlockSyntax(new SeparatedSyntaxList<EnumFieldSyntax>(SyntaxTokenKind.CommaSymbol, fields)));
 
         // ### Attributes
         public static TypeSyntax WithAttributes(this TypeSyntax type, params AttributeReferenceSyntax[] attributes)
@@ -445,18 +440,18 @@ namespace LumaSharp.Compiler.AST
         //}
 
 
-        #region Members
+        //#region Members
 
-        public static MethodSyntax WithMethod<T>(this T node, SyntaxToken identifier) where T : SyntaxNode, IMemberSyntaxContainer
-        {
-            // Create method
-            MethodSyntax method = Method(identifier);
+        //public static MethodSyntax WithMethod<T>(this T node, SyntaxToken identifier) where T : SyntaxNode, IMemberSyntaxContainer
+        //{
+        //    // Create method
+        //    MethodSyntax method = Method(identifier);
 
-            // Add member
-            node.AddMember(method);
-            return method;
-        }
-        #endregion
+        //    // Add member
+        //    node.AddMember(method);
+        //    return method;
+        //}
+        //#endregion
 
         //#region Statements
         //public static T WithStatement<T>(this T node, StatementSyntax statement)

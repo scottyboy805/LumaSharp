@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class EnumSyntax : MemberSyntax, IMemberSyntaxContainer
+    public sealed class EnumSyntax : MemberSyntax
     {
         // Private
         private readonly SyntaxToken keyword;
@@ -83,8 +83,8 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.EnumKeyword);
 
             // Check null
-            if(body == null)
-                throw new ArgumentNullException(nameof(body));
+            if (body == null)
+                body = new EnumBlockSyntax(new SeparatedSyntaxList<EnumFieldSyntax>(SyntaxTokenKind.CommaSymbol));
 
             this.keyword = keyword;
             this.underlyingType = underlyingType;
@@ -121,18 +121,6 @@ namespace LumaSharp.Compiler.AST
 
             // Member block
             body.GetSourceText(writer);
-        }
-
-        public void AddMember(MemberSyntax member)
-        {
-            // Check for field
-            if ((member is FieldSyntax) == false)
-                throw new NotSupportedException("Must be a field");
-
-            //((IMemberSyntaxContainer)fieldBlock).AddMember(member);
-
-            // Update hierarchy
-            member.parent = this;
         }
     }
 }

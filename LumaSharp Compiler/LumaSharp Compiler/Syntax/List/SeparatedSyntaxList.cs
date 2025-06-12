@@ -101,7 +101,7 @@ namespace LumaSharp.Compiler.AST
             {
                 AddElement(syntaxList[i], i < syntaxList.Length - 1
                     ? new SyntaxToken(separatorKind)
-                    : null);
+                    : (SyntaxToken?)null);
             }
         }
 

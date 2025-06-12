@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class ContractSyntax : MemberSyntax, IMemberSyntaxContainer
+    public sealed class ContractSyntax : MemberSyntax
     {
         // Private
         private readonly SyntaxToken keyword;
@@ -113,7 +113,7 @@ namespace LumaSharp.Compiler.AST
 
             // Check null
             if (members == null)
-                throw new ArgumentNullException(nameof(members));
+                members = new MemberBlockSyntax(Enumerable.Empty<MemberSyntax>());
 
             this.keyword = keyword;
             this.genericParameters = genericParameters;
@@ -158,14 +158,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write block
             members.GetSourceText(writer);
-        }
-
-        public void AddMember(MemberSyntax member)
-        {
-            //((IMemberSyntaxContainer)memberBlock).AddMember(member);
-
-            // Update hierarchy
-            member.parent = this;
         }
     }
 }

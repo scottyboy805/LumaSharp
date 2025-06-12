@@ -1,7 +1,7 @@
 ﻿
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class TypeSyntax : MemberSyntax, IMemberSyntaxContainer
+    public sealed class TypeSyntax : MemberSyntax
     {
         // Private
         private readonly SyntaxToken keyword;
@@ -125,7 +125,7 @@ namespace LumaSharp.Compiler.AST
 
             // Check null
             if (members == null)
-                throw new ArgumentNullException(nameof(members));
+                members = new MemberBlockSyntax(Enumerable.Empty<MemberSyntax>());
 
             // Members
             this.keyword = keyword;
@@ -177,14 +177,6 @@ namespace LumaSharp.Compiler.AST
 
             // Write block
             members.GetSourceText(writer);
-        }
-
-        void IMemberSyntaxContainer.AddMember(MemberSyntax member)
-        {
-            //((IMemberSyntaxContainer)members).AddMember(member);
-
-            // Update hierarchy
-            member.parent = this;
         }
     }
 }
