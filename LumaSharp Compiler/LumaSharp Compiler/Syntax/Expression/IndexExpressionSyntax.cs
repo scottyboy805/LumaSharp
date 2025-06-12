@@ -63,9 +63,9 @@ namespace LumaSharp.Compiler.AST
         internal IndexExpressionSyntax(ExpressionSyntax accessExpression, SeparatedSyntaxList<ExpressionSyntax> indexExpressions)
             : this(
                   accessExpression,
-                  new SyntaxToken(SyntaxTokenKind.LArraySymbol),
+                  Syntax.Token(SyntaxTokenKind.LArraySymbol),
                   indexExpressions,
-                  new SyntaxToken(SyntaxTokenKind.RArraySymbol))
+                  Syntax.Token(SyntaxTokenKind.RArraySymbol))
         { 
         }
 

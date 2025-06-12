@@ -97,12 +97,12 @@ namespace LumaSharp.Compiler.Semantics.Model
                     // Check for instance field accessed via type reference
                     if(fieldIdentifier.IsGlobal == false && accessModel is TypeReferenceModel)
                     {
-                        report.ReportDiagnostic(Code.FieldRequiresInstance, MessageSeverity.Error, syntax.StartToken.Source, fieldIdentifier.IdentifierName);
+                        report.ReportDiagnostic(Code.FieldRequiresInstance, MessageSeverity.Error, syntax.StartToken.Span, fieldIdentifier.IdentifierName);
                     }
                     // Check for global field accessed via anything other than type reference
                     else if(fieldIdentifier.IsGlobal == true && (accessModel is TypeReferenceModel) == false)
                     {
-                        report.ReportDiagnostic(Code.FieldRequiresType, MessageSeverity.Error, syntax.StartToken.Source, fieldIdentifier.IdentifierName);
+                        report.ReportDiagnostic(Code.FieldRequiresType, MessageSeverity.Error, syntax.StartToken.Span, fieldIdentifier.IdentifierName);
                     }
                 }
 

@@ -88,7 +88,7 @@ namespace CompilerTests
             TextView textView = new TextView(new StringReader(input));
             
             // Create the token parser
-            TokenParser tokenParser = new TokenParser(textView);
+            TokenParser tokenParser = new TokenParser(textView, null);
 
             // Create parser
             ASTParser parser = new ASTParser(tokenParser.GetEnumerator(), report);

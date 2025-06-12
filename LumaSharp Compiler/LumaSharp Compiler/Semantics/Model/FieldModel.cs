@@ -127,7 +127,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     // Check for return type conversion
                     if (TypeChecker.IsTypeAssignable(assignModel.EvaluatedTypeSymbol, fieldTypeModel.EvaluatedTypeSymbol) == false)
                     {
-                        report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Source, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
+                        report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Span, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
                     }
                 }
             }

@@ -36,9 +36,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal GenericArgumentListSyntax(SeparatedSyntaxList<TypeReferenceSyntax> genericArguments)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LessSymbol),
+                  Syntax.Token(SyntaxTokenKind.LessSymbol),
                   genericArguments,
-                  new SyntaxToken(SyntaxTokenKind.GreaterSymbol))
+                  Syntax.Token(SyntaxTokenKind.GreaterSymbol))
         {
         }
 

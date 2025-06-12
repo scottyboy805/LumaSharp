@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class NamespaceSyntax : SyntaxNode
@@ -36,7 +38,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal NamespaceSyntax(SeparatedTokenList name)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.NamespaceKeyword),
+                  Syntax.Token(SyntaxTokenKind.NamespaceKeyword),
                   name)
         {
         }
@@ -56,6 +58,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitNamespace(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write keyword

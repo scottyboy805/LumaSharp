@@ -7,6 +7,8 @@ namespace LumaSharp.Compiler.AST
 
         Whitespace,
         Newline,
+        LineComment,
+        BlockComment,
     }
 
     public readonly struct SyntaxTrivia
@@ -15,9 +17,13 @@ namespace LumaSharp.Compiler.AST
         private readonly int position;
 
         // Public
+        public const string LineComment = "//";
+        public const string BlockCommentStart = "/*";
+        public const string BlockCommentEnd = "*/";
+
         public readonly SyntaxTriviaKind Kind;
         public readonly string Text;
-        public readonly SyntaxSource Source;
+        public readonly SyntaxSpan Span;
 
         // Properties
         public bool IsLeading => position == -1;
@@ -26,7 +32,7 @@ namespace LumaSharp.Compiler.AST
         public bool IsNewline => IsNewlineKind(Kind);
 
         // Constructor
-        private SyntaxTrivia(SyntaxTriviaKind kind, string text, SyntaxSource source, int position)
+        private SyntaxTrivia(SyntaxTriviaKind kind, string text, SyntaxSpan span, int position)
         {
             // Check for null
             if (text == null)
@@ -38,7 +44,7 @@ namespace LumaSharp.Compiler.AST
 
             this.Kind = kind;
             this.Text = text;
-            this.Source = source;
+            this.Span = span;
             this.position = position;
         }
 
@@ -49,12 +55,12 @@ namespace LumaSharp.Compiler.AST
             writer.Write(Text);
         }
 
-        internal static SyntaxTrivia Leading(SyntaxTriviaKind kind, string text, SyntaxSource source)
+        internal static SyntaxTrivia Leading(SyntaxTriviaKind kind, string text, SyntaxSpan source)
         {
             return new SyntaxTrivia(kind, text, source, -1);
         }
 
-        internal static SyntaxTrivia Trailing(SyntaxTriviaKind kind, string text, SyntaxSource source)
+        internal static SyntaxTrivia Trailing(SyntaxTriviaKind kind, string text, SyntaxSpan source)
         {
             return new SyntaxTrivia(kind, text, source, 1);
         }

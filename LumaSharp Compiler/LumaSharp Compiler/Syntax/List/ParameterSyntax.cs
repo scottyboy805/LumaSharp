@@ -1,10 +1,12 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ParameterSyntax : SyntaxNode
     {
         // Private
-        private readonly AttributeReferenceSyntax[] attributes;
+        private readonly AttributeSyntax[] attributes;
         private readonly TypeReferenceSyntax parameterType;
         private readonly VariableAssignmentExpressionSyntax assignment;
         private readonly SyntaxToken identifier;
@@ -94,10 +96,10 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         private ParameterSyntax()
         {
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
+            this.identifier = Syntax.Identifier("Error");
         }
 
-        internal ParameterSyntax(AttributeReferenceSyntax[] attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment, SyntaxToken? enumerable)
+        internal ParameterSyntax(AttributeSyntax[] attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment, SyntaxToken? enumerable)
         {
             // Check null
             if (parameterType == null)
@@ -119,7 +121,7 @@ namespace LumaSharp.Compiler.AST
             // Set parent
             if(attributes != null)
             {
-                foreach (AttributeReferenceSyntax a in attributes)
+                foreach (AttributeSyntax a in attributes)
                     a.parent = this;
             }
             parameterType.parent = this;
@@ -127,12 +129,17 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitParameter(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write attributes
             if(HasAttributes == true)
             {
-                foreach(AttributeReferenceSyntax attribute in attributes)
+                foreach(AttributeSyntax attribute in attributes)
                     attribute.GetSourceText(writer);
             }
 

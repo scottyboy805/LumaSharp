@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ForeachStatementSyntax : StatementSyntax
@@ -96,6 +98,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitForeachStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword

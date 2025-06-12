@@ -50,10 +50,10 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal SizeofExpressionSyntax(TypeReferenceSyntax typeReference)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.TypeofKeyword),
-                  new SyntaxToken(SyntaxTokenKind.LParenSymbol),
+                  Syntax.Token(SyntaxTokenKind.SizeofKeyword),
+                  Syntax.Token(SyntaxTokenKind.LParenSymbol),
                   typeReference,
-                  new SyntaxToken(SyntaxTokenKind.RParenSymbol))
+                  Syntax.Token(SyntaxTokenKind.RParenSymbol))
         {
         }
 

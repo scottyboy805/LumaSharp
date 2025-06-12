@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class AccessorLambdaSyntax : SyntaxNode
@@ -42,9 +44,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal AccessorLambdaSyntax(ExpressionSyntax expression)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LambdaSymbol),
+                  Syntax.Token(SyntaxTokenKind.LambdaSymbol),
                   expression,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -70,6 +72,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitAccessorLambda(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Lambda

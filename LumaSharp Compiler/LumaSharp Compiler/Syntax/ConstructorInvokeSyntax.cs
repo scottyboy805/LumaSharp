@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ConstructorInvokeSyntax : SyntaxNode
@@ -62,6 +64,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitConstructorInvoke(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write colon

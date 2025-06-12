@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class AccessorSyntax : MemberSyntax
@@ -68,7 +70,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AccessorSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, SyntaxToken? overrideToken, AccessorBodySyntax[] accessorBodies, AccessorLambdaSyntax lambda)
+        internal AccessorSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, SyntaxToken? overrideToken, AccessorBodySyntax[] accessorBodies, AccessorLambdaSyntax lambda)
             : base(identifier, attributes, modifiers)
         {
             // Accessor type
@@ -79,6 +81,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitAccessor(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Attributes

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using LumaSharp.Compiler.AST.Visitor;
+using System.Collections;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -100,12 +101,17 @@ namespace LumaSharp.Compiler.AST
             for(int i = 0; i < syntaxList.Length; i++)
             {
                 AddElement(syntaxList[i], i < syntaxList.Length - 1
-                    ? new SyntaxToken(separatorKind)
+                    ? Syntax.Token(separatorKind)
                     : (SyntaxToken?)null);
             }
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitSyntaxList(this);
+        }
+
         public void AddElement(T syntaxElement, SyntaxToken? separator)
         {
             // Check kind

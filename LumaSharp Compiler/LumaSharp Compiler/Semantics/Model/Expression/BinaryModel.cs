@@ -97,7 +97,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
             catch(NotSupportedException)
             {
-                report.ReportDiagnostic(Code.InvalidOperation, MessageSeverity.Error, syntax.Operation.Source);
+                report.ReportDiagnostic(Code.InvalidOperation, MessageSeverity.Error, syntax.Operation.Span);
                 return;
             }
 
@@ -134,12 +134,12 @@ namespace LumaSharp.Compiler.Semantics.Model
                     // Check for invalid
                     if(opReturnType == 0)
                     {
-                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Source, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
+                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Span, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
                     }
                     else
                     {
                         // We can resolve the inferred return type
-                        inferredTypeSymbol = provider.ResolveTypeSymbol(opReturnType, syntax.Operation.Source);
+                        inferredTypeSymbol = provider.ResolveTypeSymbol(opReturnType, syntax.Operation.Span);
                     }
                 }
                 // Left and or right must be a custom type
@@ -149,7 +149,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     if(leftTypeCode != PrimitiveType.Any)
                     {
                         // We know that built in primitive types cannot support operation on user types
-                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Source, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
+                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, syntax.Operation.Span, syntax.Operation.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
                     }
                     else
                     {

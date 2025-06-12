@@ -60,7 +60,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal NewExpressionSyntax(TypeReferenceSyntax newType, ArgumentListSyntax arguments)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.NewKeyword),
+                  Syntax.Token(SyntaxTokenKind.NewKeyword),
                   newType,
                   arguments)
         {

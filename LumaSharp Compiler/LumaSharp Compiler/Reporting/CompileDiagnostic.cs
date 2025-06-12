@@ -8,7 +8,7 @@ namespace LumaSharp.Compiler.Reporting
         // Private
         private int code;
         private MessageSeverity severity;
-        private SyntaxSource source;
+        private SyntaxSpan source;
         private string message;
 
         // Properties
@@ -22,7 +22,7 @@ namespace LumaSharp.Compiler.Reporting
             get { return severity; }
         }
 
-        public SyntaxSource Source
+        public SyntaxSpan Source
         {
             get { return source; }
         }
@@ -33,7 +33,7 @@ namespace LumaSharp.Compiler.Reporting
         }
 
         // Constructor
-        internal CompileDiagnostic(int code, MessageSeverity severity, SyntaxSource source, string message)
+        internal CompileDiagnostic(int code, MessageSeverity severity, SyntaxSpan source, string message)
         {
             this.code = code;
             this.severity = severity;

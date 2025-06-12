@@ -20,7 +20,7 @@ namespace CompilerTests.AST.Factory.Member
         [ExpectedException(typeof(ArgumentException))]
         public void CreateEnumInvalidIdentifier()
         {
-            Syntax.Enum(new SyntaxToken(SyntaxTokenKind.Invalid));
+            Syntax.Enum(Syntax.Token(SyntaxTokenKind.Invalid));
         }
     }
 }

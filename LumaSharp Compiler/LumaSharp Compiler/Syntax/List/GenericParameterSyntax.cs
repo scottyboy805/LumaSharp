@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class GenericParameterSyntax : SyntaxNode
@@ -62,7 +64,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         private GenericParameterSyntax()
         {
-            this.identifier = new SyntaxToken(SyntaxTokenKind.Identifier, "Error");
+            this.identifier = Syntax.Identifier("Error");
         }
 
         internal GenericParameterSyntax(SyntaxToken identifier, SyntaxToken colon, SeparatedSyntaxList<TypeReferenceSyntax> constraintTypes)
@@ -83,6 +85,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitGenericParameter(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write identifier

@@ -36,9 +36,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ArgumentListSyntax(SeparatedSyntaxList<ExpressionSyntax> argumentExpressions)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LParenSymbol),
+                  Syntax.Token(SyntaxTokenKind.LParenSymbol),
                   argumentExpressions,
-                  new SyntaxToken(SyntaxTokenKind.RParenSymbol))
+                  Syntax.Token(SyntaxTokenKind.RParenSymbol))
         {
         }
 

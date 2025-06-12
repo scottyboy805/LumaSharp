@@ -57,7 +57,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal VariableAssignmentExpressionSyntax(SeparatedSyntaxList<ExpressionSyntax> assignExpressions)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.AssignSymbol),
+                  Syntax.Token(SyntaxTokenKind.AssignSymbol),
                   assignExpressions)
         {
         }

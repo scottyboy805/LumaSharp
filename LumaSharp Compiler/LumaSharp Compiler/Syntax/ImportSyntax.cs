@@ -1,4 +1,5 @@
-﻿
+﻿using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ImportSyntax : SyntaxNode
@@ -80,7 +81,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ImportSyntax(SeparatedTokenList importName)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.ImportKeyword),
+                  Syntax.Token(SyntaxTokenKind.ImportKeyword),
                   importName)
         {
         }
@@ -99,21 +100,12 @@ namespace LumaSharp.Compiler.AST
             this.name = importName;
         }
 
-        //internal ImportSyntax(SyntaxToken keyword, SyntaxToken aliasIdentifier, SyntaxToken asKeyword, SeparatedTokenList importName)
-        //{
-        //    // Check kind
-        //    if (keyword.Kind != SyntaxTokenKind.ImportKeyword)
-        //        throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ImportKeyword);
-
-        //    // Check null
-        //    if (importName == null)
-        //        throw new ArgumentNullException(nameof(importName));
-
-        //    this.keyword = keyword;
-        //    this.name = importName;
-        //}
-
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitImport(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write text

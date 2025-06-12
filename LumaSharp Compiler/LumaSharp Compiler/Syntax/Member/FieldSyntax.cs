@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class FieldSyntax : MemberSyntax
@@ -6,7 +8,7 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly TypeReferenceSyntax fieldType;
         private readonly VariableAssignmentExpressionSyntax fieldAssignment;
-        private readonly SyntaxToken comma;                 // Required if there is another member following immediately
+        private readonly SyntaxToken semicolon;
 
         // Properties
         public override SyntaxToken StartToken
@@ -27,18 +29,7 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get
-            {
-                // Check for comma
-                if (HasComma == true)
-                    return comma;
-
-                // Check for assignment
-                if (HasFieldAssignment == true)
-                    return fieldAssignment.EndToken;
-
-                return identifier;
-            }
+            get { return semicolon; }
         }
 
         public TypeReferenceSyntax FieldType
@@ -51,19 +42,14 @@ namespace LumaSharp.Compiler.AST
             get { return fieldAssignment; }
         }
 
-        public SyntaxToken Comma
+        public SyntaxToken Semicolon
         {
-            get { return comma; }
+            get { return semicolon; }
         }
 
         public bool HasFieldAssignment
         {
             get { return fieldAssignment != null; }
-        }
-
-        public bool HasComma
-        {
-            get { return comma.Kind != SyntaxTokenKind.Invalid; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -80,14 +66,35 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment)
+        internal FieldSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment)
+            : this(
+                  identifier,
+                  attributes,
+                  accessModifiers,
+                  fieldType,
+                  fieldAssignment,
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
+        {
+        }
+
+        internal FieldSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment, SyntaxToken semicolon)
             : base(identifier, attributes, accessModifiers)
         {
+            // Check kind
+            if(semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
+
             this.fieldType = fieldType;
             this.fieldAssignment = fieldAssignment;
+            this.semicolon = semicolon;
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitField(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Attributes
@@ -106,9 +113,8 @@ namespace LumaSharp.Compiler.AST
                 fieldAssignment.GetSourceText(writer);
             }
 
-            // Comma
-            if (HasComma == true)
-                comma.GetSourceText(writer);
+            // Semicolon
+            semicolon.GetSourceText(writer);
         }
     }
 }

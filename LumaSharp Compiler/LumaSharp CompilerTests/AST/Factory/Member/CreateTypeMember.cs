@@ -20,7 +20,7 @@ namespace CompilerTests.AST.Factory.Member
         [ExpectedException(typeof(ArgumentException))]
         public void CreateTypeInvalidIdentifier()
         {
-            Syntax.Type(new SyntaxToken(SyntaxTokenKind.Invalid));
+            Syntax.Type(Syntax.Token(SyntaxTokenKind.Invalid));
         }
     }
 }

@@ -45,7 +45,7 @@ namespace LumaSharp.Compiler.AST
         internal MemberAccessExpressionSyntax(ExpressionSyntax accessExpression, SyntaxToken identifier)
             : this(
                   accessExpression,
-                  new SyntaxToken(SyntaxTokenKind.DotSymbol),
+                  Syntax.Token(SyntaxTokenKind.DotSymbol),
                   identifier)
         {
         }

@@ -10,7 +10,7 @@ namespace LumaSharp.Compiler.Semantics
 
         INamespaceReferenceSymbol ResolveNamespaceSymbol(SeparatedTokenList namespaceName);
 
-        ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource? source);
+        ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSpan? source);
 
         ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference);
 

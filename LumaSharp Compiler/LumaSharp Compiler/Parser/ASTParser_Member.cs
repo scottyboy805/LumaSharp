@@ -42,7 +42,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RBlockSymbol, out SyntaxToken rBlock) == false)
                 {
                     // Expected '}'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RBlockSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RBlockSymbol));
                     return null;
                 }
 
@@ -67,7 +67,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RBlockSymbol, out SyntaxToken rBlock) == false)
                 {
                     // Expected '}'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RBlockSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RBlockSymbol));
                     return null;
                 }
 
@@ -127,7 +127,7 @@ namespace LumaSharp.Compiler.Parser
             int position = tokens.Position;
 
             // Parse attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -142,7 +142,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
                 {
                     // Expected identifier
-                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Span);
                 }
 
                 // Parse generic parameters
@@ -175,7 +175,7 @@ namespace LumaSharp.Compiler.Parser
             int position = tokens.Position;
 
             // Parse attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -190,7 +190,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
                 {
                     // Expected identifier
-                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Span);
                 }
 
                 // Parse generic parameters
@@ -217,7 +217,7 @@ namespace LumaSharp.Compiler.Parser
             int position = tokens.Position;
 
             // Parse attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -232,7 +232,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
                 {
                     // Expected identifier
-                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Span);
                 }
 
                 // Base types
@@ -256,7 +256,7 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -271,7 +271,7 @@ namespace LumaSharp.Compiler.Parser
                 if(tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
                 {
                     // Expected identifier
-                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Span);
                     return RecoverFromFieldError();
                 }
 
@@ -282,12 +282,12 @@ namespace LumaSharp.Compiler.Parser
                 if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                 {
                     // Expected ';'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                     return RecoverFromFieldError();
                 }
 
                 // Create the field
-                return new FieldSyntax(identifier, attributes, modifiers, fieldType, assignExpression);
+                return new FieldSyntax(identifier, attributes, modifiers, fieldType, assignExpression, semicolon);
             }
 
             // Retrace to starting position
@@ -300,7 +300,7 @@ namespace LumaSharp.Compiler.Parser
             // Parse identifier
             if(tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
             {
-                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Source);
+                report.ReportDiagnostic(Code.ExpectedIdentifier, MessageSeverity.Error, tokens.Peek().Span);
                 return RecoverFromEnumFieldError();
             }
 
@@ -317,7 +317,7 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -382,7 +382,7 @@ namespace LumaSharp.Compiler.Parser
                 if(tokens.ConsumeExpect(SyntaxTokenKind.ColonSymbol, out SyntaxToken colon) == false)
                 {
                     // Expected ':'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.ColonSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.ColonSymbol));
                     RecoverFromAccessorBodyError();
                     continue;
                 }
@@ -394,7 +394,7 @@ namespace LumaSharp.Compiler.Parser
                 if(statement == null)
                 {
                     // Expected statement
-                    report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Span);
                     RecoverFromAccessorBodyError();
                     continue;
                 }
@@ -430,7 +430,7 @@ namespace LumaSharp.Compiler.Parser
                 if(expression == null)
                 {
                     // Expected expression
-                    report.ReportDiagnostic(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Span);
                     return RecoverFromAccessorLambdaError();
                 }
 
@@ -438,7 +438,7 @@ namespace LumaSharp.Compiler.Parser
                 if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                 {
                     // Expected ';'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                     return RecoverFromAccessorLambdaError();
                 }
 
@@ -454,7 +454,7 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -472,7 +472,7 @@ namespace LumaSharp.Compiler.Parser
                 ConstructorInvokeSyntax constructorInvoke = ParseConstructorInvoke();
 
                 // Now parse the body or lambda
-                LambdaStatementSyntax lambda = ParseLambdaStatement();
+                LambdaSyntax lambda = ParseLambdaStatement();
                 StatementBlockSyntax body = null;
 
                 // Check for lambda parsed
@@ -509,7 +509,7 @@ namespace LumaSharp.Compiler.Parser
                 if(tokens.PeekKind() != SyntaxTokenKind.BaseKeyword && tokens.PeekKind() != SyntaxTokenKind.ThisKeyword)
                 {
                     // Expected base or this
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.BaseKeyword) + " or " + SyntaxToken.GetText(SyntaxTokenKind.ThisKeyword));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.BaseKeyword) + " or " + SyntaxToken.GetText(SyntaxTokenKind.ThisKeyword));
                     return null; // TODO - recover
                 }
 
@@ -531,7 +531,7 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeReferenceSyntax[] attributes = ParseAttributes();
+            AttributeSyntax[] attributes = ParseAttributes();
 
             // Parse access modifiers
             SyntaxToken[] modifiers = ParseAccessModifiers();
@@ -561,7 +561,7 @@ namespace LumaSharp.Compiler.Parser
                             overrideKeyword = tokens.Consume();
 
                         // Now parse the body or lambda
-                        LambdaStatementSyntax lambda = ParseLambdaStatement();
+                        LambdaSyntax lambda = ParseLambdaStatement();
                         StatementBlockSyntax body = null;
 
                         // Check for lambda parsed

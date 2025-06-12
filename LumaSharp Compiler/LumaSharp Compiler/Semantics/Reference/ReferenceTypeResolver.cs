@@ -22,14 +22,14 @@ namespace LumaSharp.Compiler.Semantics.Reference
             // Check for invalid use of generic
             if (voidType.IsGenericType == true)
             {
-                report.ReportDiagnostic(Code.TypeGenericPrimitive, MessageSeverity.Error, voidType.GenericArguments.StartToken.Source, voidType.Identifier.Text);
+                report.ReportDiagnostic(Code.TypeGenericPrimitive, MessageSeverity.Error, voidType.GenericArguments.StartToken.Span, voidType.Identifier.Text);
                 return false;
             }
 
             // Check for invalid use of  array indexing
             if(voidType.IsArrayType == true)
             {
-                report.ReportDiagnostic(Code.TypeArrayPrimitive, MessageSeverity.Error, voidType.ArrayParameters.StartToken.Source, voidType.Identifier.Text);
+                report.ReportDiagnostic(Code.TypeArrayPrimitive, MessageSeverity.Error, voidType.ArrayParameters.StartToken.Span, voidType.Identifier.Text);
                 return false;
             }
             return true;

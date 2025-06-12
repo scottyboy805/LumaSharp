@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using LumaSharp.Compiler.AST.Visitor;
+using System.Collections;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -89,10 +90,15 @@ namespace LumaSharp.Compiler.AST
         {
             // Add all with separator
             foreach (SyntaxToken item in items)
-                AddElement(item, new SyntaxToken(separatorKind));
+                AddElement(item, Syntax.Token(separatorKind));
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitTokenList(this);
+        }
+
         public void AddElement(SyntaxToken tokenElement, SyntaxToken? separator)
         {
             // Check kind

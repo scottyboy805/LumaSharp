@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ContinueStatementSyntax : StatementSyntax
@@ -36,8 +38,8 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ContinueStatementSyntax()
             : this(
-                  new SyntaxToken(SyntaxTokenKind.ContinueKeyword),
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.ContinueKeyword),
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -56,6 +58,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitContinueStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             keyword.GetSourceText(writer);

@@ -6,17 +6,70 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitToken(SyntaxToken token) { }
         public virtual void VisitTrivia(SyntaxTrivia trivia) { }
 
+        public virtual void VisitCompilationUnit(CompilationUnitSyntax compilationUnit) { }
+        public virtual void VisitImport(ImportSyntax import) { }
+        public virtual void VisitNamespace(NamespaceSyntax ns) { }
+
         public virtual void VisitTokenList(SeparatedTokenList list) { }
         public virtual void VisitSyntaxList<T>(SeparatedSyntaxList<T> list) where T : SyntaxNode { }
         public virtual void VisitGenericParameterList(GenericParameterListSyntax genericParameterList) { }
+        public virtual void VisitGenericParameter(GenericParameterSyntax genericParameter) { }
         public virtual void VisitGenericArgumentList(GenericArgumentListSyntax genericArgumentList) { }
         public virtual void VisitParameterList(ParameterListSyntax parameterList) { }
+        public virtual void VisitParameter(ParameterSyntax parameter) { }
         public virtual void VisitArgumentList(ArgumentListSyntax argumentList) { }
+        public virtual void VisitArrayParameters(ArrayParametersSyntax arrayParameterList) { }
+        public virtual void VisitAttribute(AttributeSyntax attribute) { }
 
+        public virtual void VisitParentTypeReference(ParentTypeReferenceSyntax parentTypeReference) { }
         public virtual void VisitTypeReference(TypeReferenceSyntax typeReference) { }
+        public virtual void VisitConstructorInvoke(ConstructorInvokeSyntax constructorInvoke) { }
+        public virtual void VisitLambda(LambdaSyntax lambda) { }
+        public virtual void VisitVariableDeclaration(VariableDeclarationSyntax variableDeclaration) { }
+
+        #region Member
+        public void VisitMember(MemberSyntax member)
+        {
+            // Accept the visit
+            member.Accept(this);
+        }
+
+        public virtual void VisitType(TypeSyntax type) { }
+        public virtual void VisitContract(ContractSyntax contract) { }
+        public virtual void VisitEnum(EnumSyntax e) { }
+        public virtual void VisitEnumBlock(EnumBlockSyntax enumBlock) { }
+        public virtual void VisitEnumField(EnumFieldSyntax enumField) { }
+        public virtual void VisitField(FieldSyntax field) { }
+        public virtual void VisitAccessor(AccessorSyntax accessor) { }
+        public virtual void VisitAccessorBody(AccessorBodySyntax accessorBody) { }
+        public virtual void VisitAccessorLambda(AccessorLambdaSyntax accessorLambda) { }
+        public virtual void VisitConstructor(ConstructorSyntax constructor) { }
+        public virtual void VisitMethod(MethodSyntax method) { }
+        public virtual void VisitMemberBlock(MemberBlockSyntax memberBlock) { }
+        #endregion
+
+        #region Statement
+        public void VisitStatement(StatementSyntax statement)
+        {
+            // Accept the visit
+            statement.Accept(this);
+        }
+
+        public virtual void VisitAssignStatement(AssignStatementSyntax assignStatement) { }
+        public virtual void VisitBreakStatement(BreakStatementSyntax breakStatement) { }
+        public virtual void VisitConditionStatement(ConditionStatementSyntax conditionStatement) { }
+        public virtual void VisitContinueStatement(ContinueStatementSyntax continueStatement) { }
+        public virtual void VisitEmptyStatement(EmptyStatementSyntax emptyStatement) { }
+        public virtual void VisitForeachStatement(ForeachStatementSyntax foreachStatement) { }
+        public virtual void VisitForStatement(ForStatementSyntax forStatement) { }
+        public virtual void VisitMethodInvokeStatement(MethodInvokeStatementSyntax methodInvokeStatement) { }
+        public virtual void VisitReturnStatement(ReturnStatementSyntax returnStatement) { }
+        public virtual void VisitVariableDeclarationStatement(VariableDeclarationStatementSyntax variableDeclarationStatement) { }
+        public virtual void VisitStatementBlock(StatementBlockSyntax statementBlock) { }
+        #endregion
 
         #region Expression
-        public virtual void VisitExpression(ExpressionSyntax expression)
+        public void VisitExpression(ExpressionSyntax expression)
         {
             // Accept the visit
             expression.Accept(this);

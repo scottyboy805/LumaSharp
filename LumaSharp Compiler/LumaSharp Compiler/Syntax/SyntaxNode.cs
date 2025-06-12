@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public abstract class SyntaxNode
@@ -27,6 +29,8 @@ namespace LumaSharp.Compiler.AST
             return string.Format("{0}({1})", GetType().Name, GetSourceText());
         }
 
+        public abstract void Accept(SyntaxVisitor visitor);
+
         public abstract void GetSourceText(TextWriter writer);
 
         public string GetSourceText()
@@ -40,6 +44,16 @@ namespace LumaSharp.Compiler.AST
                 // Get full string
                 return writer.ToString();
             }
+        }
+
+        public SyntaxSpan GetSpan()
+        {
+            // Get start and end spans
+            SyntaxSpan start = StartToken.Span;
+            SyntaxSpan end = EndToken.Span;
+
+            // Create the total span
+            return new SyntaxSpan(start.Document, start.Start, end.End);
         }
 
         public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : SyntaxNode

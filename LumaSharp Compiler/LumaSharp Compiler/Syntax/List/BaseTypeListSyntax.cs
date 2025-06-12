@@ -20,7 +20,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal BaseTypeListSyntax(SeparatedSyntaxList<TypeReferenceSyntax> baseTypes)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.ColonSymbol),
+                  Syntax.Token(SyntaxTokenKind.ColonSymbol),
                   baseTypes)
         {
         }

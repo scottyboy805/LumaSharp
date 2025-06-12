@@ -87,19 +87,19 @@ namespace LumaSharp.Compiler.Semantics.Model
                     || (accessModifiers.Contains(AccessModifier.Internal) == true && accessModifiers.Contains(AccessModifier.Export) == true)
                     || (accessModifiers.Contains(AccessModifier.Hidden) == true && accessModifiers.Contains(AccessModifier.Export) == true))
                 {
-                    report.ReportDiagnostic(Code.MultipleAccessModifiers, MessageSeverity.Error, syntax.AccessModifiers[0].Source);
+                    report.ReportDiagnostic(Code.MultipleAccessModifiers, MessageSeverity.Error, syntax.AccessModifiers[0].Span);
                 }
 
                 // Check for type
                 if ((this is TypeModel) && accessModifiers.Contains(AccessModifier.Global) == true)
-                    report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, syntax.AccessModifiers.First(m => m.Text == "global").Source, "global");
+                    report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, syntax.AccessModifiers.First(m => m.Text == "global").Span, "global");
 
                 // Check for contract or enum parent
                 if (parent is TypeModel && ((TypeModel)parent).IsContract == true || ((TypeModel)parent).IsEnum == true)
                 {
                     foreach (SyntaxToken token in syntax.AccessModifiers)
                     {
-                        report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, token.Source, token.Text);
+                        report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, token.Span, token.Text);
                     }
                 }
             }

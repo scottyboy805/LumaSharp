@@ -40,7 +40,7 @@ namespace LumaSharp.Compiler.Reporting
             return builder.ToString();
         }
 
-        public void ReportDiagnostic(Code id, MessageSeverity severity, SyntaxSource source, params object[] args)
+        public void ReportDiagnostic(Code id, MessageSeverity severity, SyntaxSpan source, params object[] args)
         {
             Dictionary<Code, string> messageSet;
 
@@ -86,7 +86,7 @@ namespace LumaSharp.Compiler.Reporting
             return diagnostics.Any(m => m.Severity == severity);
         }
 
-        public void Combine(ICompileReportProvider fromReport)
+        public void Combine(ICompileReport fromReport)
         {
             foreach(CompileDiagnostic message in fromReport.Diagnostics)
             {

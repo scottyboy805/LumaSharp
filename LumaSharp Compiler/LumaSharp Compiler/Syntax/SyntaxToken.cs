@@ -6,11 +6,6 @@ namespace LumaSharp.Compiler.AST
         Invalid = 0,
         EOF = 1,
 
-        LineComment,
-        BlockCommentStart,
-        BlockCommentEnd,
-        CommentText,
-
         Identifier,
         Literal,
         LiteralDescriptor,
@@ -133,10 +128,6 @@ namespace LumaSharp.Compiler.AST
             {SyntaxTokenKind.Invalid, "" },
             { SyntaxTokenKind.EOF, "\0" },
 
-            { SyntaxTokenKind.LineComment, "//" },
-            { SyntaxTokenKind.BlockCommentStart, "/*" },
-            { SyntaxTokenKind.BlockCommentEnd, "*/" },
-
             { SyntaxTokenKind.AssignSymbol, "=" },
             { SyntaxTokenKind.AssignInferSymbol, ":="  },
             { SyntaxTokenKind.AssignPlusSymbol, "+=" },
@@ -242,11 +233,11 @@ namespace LumaSharp.Compiler.AST
         private readonly List<SyntaxTrivia> trivia;
 
         // Public
-        public static readonly SyntaxToken Invalid = new SyntaxToken(SyntaxTokenKind.Invalid);
+        public static readonly SyntaxToken Invalid = Syntax.Token(SyntaxTokenKind.Invalid);
 
         public readonly SyntaxTokenKind Kind;
         public readonly string Text;
-        public readonly SyntaxSource Source;
+        public readonly SyntaxSpan Span;
 
         // Properties
         public bool IsKeyword => IsKeywordKind(Kind);
@@ -277,15 +268,15 @@ namespace LumaSharp.Compiler.AST
         public IEnumerable<SyntaxTrivia> TrailingTrivia => Trivia.Where(t => t.IsTrailing);
 
         // Constructor
-        private SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSource source, IEnumerable<SyntaxTrivia> trivia)
+        private SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSpan source, IEnumerable<SyntaxTrivia> trivia)
         {
             this.Kind = kind;
             this.Text = text;
-            this.Source = source;
+            this.Span = source;
             this.trivia = trivia.Any() ? trivia.ToList() : null;
         }
 
-        internal SyntaxToken(SyntaxTokenKind kind, SyntaxSource source = default)
+        internal SyntaxToken(SyntaxTokenKind kind, SyntaxSpan span)
         {
             // Get text
             string text;
@@ -294,10 +285,10 @@ namespace LumaSharp.Compiler.AST
 
             this.Kind = kind;
             this.Text = text;
-            this.Source = source;
+            this.Span = span;
         }
 
-        internal SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSource source = default)
+        internal SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSpan span)
         {
             // Ensure text is correct
             string expected;
@@ -306,13 +297,13 @@ namespace LumaSharp.Compiler.AST
 
             this.Kind = kind;
             this.Text = text;
-            this.Source = source;
+            this.Span = span;
         }
 
         // Methods
         public SyntaxToken WithTrivia(IEnumerable<SyntaxTrivia> trivia)
         {
-            return new SyntaxToken(Kind, Text, Source, trivia);
+            return new SyntaxToken(Kind, Text, Span, trivia);
         }
 
         public void GetSourceText(TextWriter writer)
@@ -496,7 +487,7 @@ namespace LumaSharp.Compiler.AST
         // Support implicit conversion for identifiers only
         public static implicit operator SyntaxToken(string identifier)
         {
-            return new SyntaxToken(SyntaxTokenKind.Identifier, identifier);
+            return Syntax.Identifier(identifier);
         }
     }
 }

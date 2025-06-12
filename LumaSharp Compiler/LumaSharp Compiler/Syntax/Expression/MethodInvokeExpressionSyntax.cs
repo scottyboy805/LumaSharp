@@ -93,6 +93,9 @@ namespace LumaSharp.Compiler.AST
             if(accessExpression == null)
                 throw new ArgumentNullException(nameof(accessExpression));
 
+            if (arguments == null)
+                arguments = new ArgumentListSyntax(new SeparatedSyntaxList<ExpressionSyntax>(SyntaxTokenKind.CommaSymbol));
+
             this.accessExpression = accessExpression;
             this.genericArgumentList = genericArguments;
             this.argumentList = arguments;

@@ -18,7 +18,7 @@ namespace LumaSharp.Compiler.AST
         //}
 
         // Methods
-        public abstract void Accept(SyntaxVisitor visitor);
+        
 
         //public static SeparatedListSyntax<ExpressionSyntax> List(SyntaxNode parent, LumaSharpParser.ExpressionListContext expressionList)
         //{

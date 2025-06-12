@@ -47,9 +47,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ParenthesizedExpressionSyntax(ExpressionSyntax expression)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LParenSymbol),
+                  Syntax.Token(SyntaxTokenKind.LParenSymbol),
                   expression,
-                  new SyntaxToken(SyntaxTokenKind.RParenSymbol))
+                  Syntax.Token(SyntaxTokenKind.RParenSymbol))
         {
         }                  
 

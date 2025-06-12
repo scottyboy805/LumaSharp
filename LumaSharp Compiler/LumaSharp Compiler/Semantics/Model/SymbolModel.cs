@@ -1,6 +1,4 @@
-﻿
-using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Reporting;
+﻿using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {

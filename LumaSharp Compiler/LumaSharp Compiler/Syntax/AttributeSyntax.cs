@@ -1,7 +1,9 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class AttributeReferenceSyntax : SyntaxNode
+    public sealed class AttributeSyntax : SyntaxNode
     {
         // Private
         private readonly SyntaxToken hash;
@@ -49,15 +51,15 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AttributeReferenceSyntax(TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
+        internal AttributeSyntax(TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.HashSymbol),
+                  Syntax.Token(SyntaxTokenKind.HashSymbol),
                   attributeType,
                   argumentList)
         {
         }
 
-        internal AttributeReferenceSyntax(SyntaxToken hashToken, TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
+        internal AttributeSyntax(SyntaxToken hashToken, TypeReferenceSyntax attributeType, ArgumentListSyntax argumentList)
         {
             // Check token
             if(hashToken.Kind != SyntaxTokenKind.HashSymbol)
@@ -69,6 +71,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitAttribute(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write hash

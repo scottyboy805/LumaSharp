@@ -1,5 +1,7 @@
 ﻿
 
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class MethodInvokeStatementSyntax : StatementSyntax
@@ -38,7 +40,7 @@ namespace LumaSharp.Compiler.AST
         internal MethodInvokeStatementSyntax(MethodInvokeExpressionSyntax invokeExpression)
             : this(
                   invokeExpression,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -60,6 +62,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitMethodInvokeStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Invoke

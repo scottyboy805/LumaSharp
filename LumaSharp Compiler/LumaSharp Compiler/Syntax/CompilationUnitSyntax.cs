@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class CompilationUnitSyntax : SyntaxNode
@@ -68,6 +70,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitCompilationUnit(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             if (imports != null)

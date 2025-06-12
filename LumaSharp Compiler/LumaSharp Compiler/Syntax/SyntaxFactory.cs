@@ -6,16 +6,21 @@ namespace LumaSharp.Compiler.AST
         // Methods
         public static SyntaxToken Identifier(string identifier)
         {
-            return new SyntaxToken(SyntaxTokenKind.Identifier, identifier);
+            return new SyntaxToken(SyntaxTokenKind.Identifier, identifier, default);
         }
 
         public static SyntaxToken Token(SyntaxTokenKind kind)
         {
-            return new SyntaxToken(kind);
+            return new SyntaxToken(kind, default);
+        }
+
+        public static SyntaxToken Token(SyntaxTokenKind kind, string text)
+        {
+            return new SyntaxToken(kind, text, default);
         }
 
         #region Members
-        internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(identifiers.Select(n => new SyntaxToken(SyntaxTokenKind.Identifier, n)).ToArray(), SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
+        internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(identifiers.Select(n => Identifier(n)).ToArray(), SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
 
         public static ImportSyntax Import(params SyntaxToken[] identifiers) => new ImportSyntax(new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier));
         //public static ImportSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType, params string[] identifiers) => new ImportSyntax(null, alias, aliasType, identifiers);
@@ -26,9 +31,9 @@ namespace LumaSharp.Compiler.AST
         public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), null);
         public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
         public static EnumFieldSyntax EnumField(SyntaxToken identifier, VariableAssignmentExpressionSyntax enumAssignment = null) => new EnumFieldSyntax(identifier, enumAssignment);
-        public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
-        public static AccessorBodySyntax AccessorRead(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement);
-        public static AccessorBodySyntax AccessorWrite(StatementSyntax statement) => new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.WriteKeyword), statement);
+        public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(Token(SyntaxTokenKind.ReadKeyword), statement);
+        public static AccessorBodySyntax AccessorRead(StatementSyntax statement) => new AccessorBodySyntax(Token(SyntaxTokenKind.ReadKeyword), statement);
+        public static AccessorBodySyntax AccessorWrite(StatementSyntax statement) => new AccessorBodySyntax(Token(SyntaxTokenKind.WriteKeyword), statement);
         public static AccessorSyntax Accessor(SyntaxToken identifier, TypeReferenceSyntax accessorType) => new AccessorSyntax(identifier, null, null, accessorType, null, null, null);
 
         public static MethodSyntax Method(SyntaxToken identifier, TypeReferenceSyntax returnType) => new MethodSyntax(identifier, null, null, new SeparatedSyntaxList<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol, new[] { returnType }), null, null, null, null, null);
@@ -47,11 +52,11 @@ namespace LumaSharp.Compiler.AST
         public static TypeReferenceSyntax TypeReference(string[] namespaceName, ParentTypeReferenceSyntax parentType, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(NamespaceName(namespaceName), new[] { parentType }, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
         public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, default, new(SyntaxTokenKind.CommaSymbol, constrainTypes));
         public static GenericParameterListSyntax GenericParameterList(params GenericParameterSyntax[] genericParameters) => new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters));
-        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, bool variableSizedList = false) => new ParameterSyntax(null, parameterType, identifier, null, variableSizedList ? new SyntaxToken(SyntaxTokenKind.EnumerableSymbol) : (SyntaxToken?)null);
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, bool variableSizedList = false) => new ParameterSyntax(null, parameterType, identifier, null, variableSizedList ? Token(SyntaxTokenKind.EnumerableSymbol) : (SyntaxToken?)null);
         public static ParameterListSyntax ParameterList(params ParameterSyntax[] parameters) => new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters));
         public static GenericArgumentListSyntax GenericArgumentList(params TypeReferenceSyntax[] genericTypeArguments) => new GenericArgumentListSyntax(new(SyntaxTokenKind.CommaSymbol, genericTypeArguments));
         public static ArgumentListSyntax ArgumentList(params ExpressionSyntax[] argumentExpressions) => new ArgumentListSyntax(new(SyntaxTokenKind.CommaSymbol, argumentExpressions));
-        public static AttributeReferenceSyntax Attribute(TypeReferenceSyntax attributeType, ArgumentListSyntax arguments = null) => new AttributeReferenceSyntax(attributeType, arguments);
+        public static AttributeSyntax Attribute(TypeReferenceSyntax attributeType, ArgumentListSyntax arguments = null) => new AttributeSyntax(attributeType, arguments);
         #endregion
 
         #region Statements
@@ -72,20 +77,20 @@ namespace LumaSharp.Compiler.AST
         #endregion
 
         #region Expressions
-        public static LiteralExpressionSyntax LiteralNull() => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.NullKeyword));
-        public static LiteralExpressionSyntax Literal(int val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString()));
-        public static LiteralExpressionSyntax Literal(uint val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString()), new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U"));
-        public static LiteralExpressionSyntax Literal(long val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString()), new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L"));
-        public static LiteralExpressionSyntax Literal(ulong val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString()), new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL"));
-        public static LiteralExpressionSyntax Literal(double val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString()));
-        public static LiteralExpressionSyntax Literal(string val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, "\"" + val + "\""));
-        public static LiteralExpressionSyntax Literal(bool val) => new LiteralExpressionSyntax(new SyntaxToken(val == true ? SyntaxTokenKind.TrueKeyword : SyntaxTokenKind.FalseKeyword, val.ToString().ToLower()));
+        public static LiteralExpressionSyntax LiteralNull() => new LiteralExpressionSyntax(Token(SyntaxTokenKind.NullKeyword));
+        public static LiteralExpressionSyntax Literal(int val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString(), default));
+        public static LiteralExpressionSyntax Literal(uint val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString(), default), new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U", default));
+        public static LiteralExpressionSyntax Literal(long val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString(), default), new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L", default));
+        public static LiteralExpressionSyntax Literal(ulong val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString(), default), new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL", default));
+        public static LiteralExpressionSyntax Literal(double val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, val.ToString(), default));
+        public static LiteralExpressionSyntax Literal(string val) => new LiteralExpressionSyntax(new SyntaxToken(SyntaxTokenKind.Literal, "\"" + val + "\"", default));
+        public static LiteralExpressionSyntax Literal(bool val) => new LiteralExpressionSyntax(new SyntaxToken(val == true ? SyntaxTokenKind.TrueKeyword : SyntaxTokenKind.FalseKeyword, val.ToString().ToLower(), default));
         
         public static IndexExpressionSyntax ArrayIndex(ExpressionSyntax accessExpression, params ExpressionSyntax[] indexExpressions) => new IndexExpressionSyntax(accessExpression, new(SyntaxTokenKind.CommaSymbol, indexExpressions));
         public static BaseExpressionSyntax Base() => new BaseExpressionSyntax();
         public static ThisExpressionSyntax This() => new ThisExpressionSyntax();
-        public static TypeofExpressionSyntax TypeOp(TypeReferenceSyntax typeReference) => new TypeofExpressionSyntax(typeReference);
-        public static SizeofExpressionSyntax SizeOp(TypeReferenceSyntax typeReference) => new SizeofExpressionSyntax(typeReference);
+        public static TypeofExpressionSyntax Typeof(TypeReferenceSyntax typeReference) => new TypeofExpressionSyntax(typeReference);
+        public static SizeofExpressionSyntax Sizeof(TypeReferenceSyntax typeReference) => new SizeofExpressionSyntax(typeReference);
         public static VariableAssignmentExpressionSyntax VariableAssignment(params ExpressionSyntax[] assignExpressions) => new VariableAssignmentExpressionSyntax(new(SyntaxTokenKind.CommaSymbol, assignExpressions));
         public static VariableAssignmentExpressionSyntax VariableAssignment(SyntaxToken assignOp, params ExpressionSyntax[] assignExpressions) => new VariableAssignmentExpressionSyntax(assignOp, new(SyntaxTokenKind.CommaSymbol, assignExpressions));
         public static VariableReferenceExpressionSyntax VariableReference(SyntaxToken identifier) => new VariableReferenceExpressionSyntax(identifier);
@@ -114,22 +119,22 @@ namespace LumaSharp.Compiler.AST
             => new EnumSyntax(e.Identifier, e.Attributes, e.AccessModifiers, e.UnderlyingType, new EnumBlockSyntax(new SeparatedSyntaxList<EnumFieldSyntax>(SyntaxTokenKind.CommaSymbol, fields)));
 
         // ### Attributes
-        public static TypeSyntax WithAttributes(this TypeSyntax type, params AttributeReferenceSyntax[] attributes)
+        public static TypeSyntax WithAttributes(this TypeSyntax type, params AttributeSyntax[] attributes)
             => new TypeSyntax(type.Identifier, attributes, type.AccessModifiers, type.GenericParameters, type.Override, type.BaseTypes, type.Members);
 
-        public static ContractSyntax WithAttributes(this ContractSyntax contract, params AttributeReferenceSyntax[] attributes)
+        public static ContractSyntax WithAttributes(this ContractSyntax contract, params AttributeSyntax[] attributes)
             => new ContractSyntax(contract.Identifier, attributes, contract.AccessModifiers, contract.GenericParameters, contract.BaseTypes, contract.Members);
 
-        public static EnumSyntax WithAttributes(this EnumSyntax e, params AttributeReferenceSyntax[] attributes)
+        public static EnumSyntax WithAttributes(this EnumSyntax e, params AttributeSyntax[] attributes)
             => new EnumSyntax(e.Identifier, attributes, e.AccessModifiers, e.UnderlyingType, e.Body);
 
-        public static FieldSyntax WithAttributes(this FieldSyntax field, params AttributeReferenceSyntax[] attributes)
+        public static FieldSyntax WithAttributes(this FieldSyntax field, params AttributeSyntax[] attributes)
             => new FieldSyntax(field.Identifier, attributes, field.AccessModifiers, field.FieldType, field.FieldAssignment);
 
-        public static MethodSyntax WithAttributes(this MethodSyntax method, params AttributeReferenceSyntax[] attributes)
+        public static MethodSyntax WithAttributes(this MethodSyntax method, params AttributeSyntax[] attributes)
             => new MethodSyntax(method.Identifier, attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
 
-        public static ParameterSyntax WithAttributes(this ParameterSyntax parameter, params AttributeReferenceSyntax[] attributes)
+        public static ParameterSyntax WithAttributes(this ParameterSyntax parameter, params AttributeSyntax[] attributes)
             => new ParameterSyntax(attributes, parameter.ParameterType, parameter.Identifier, parameter.Assignment, parameter.Enumerable);
 
 
@@ -187,7 +192,7 @@ namespace LumaSharp.Compiler.AST
 
 
         public static AccessorSyntax WithAccessorLambda(this AccessorSyntax accessor, StatementSyntax statement)
-            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessor.Override, new[] { new AccessorBodySyntax(new SyntaxToken(SyntaxTokenKind.ReadKeyword), statement) }, null);
+            => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessor.Override, new[] { new AccessorBodySyntax(Token(SyntaxTokenKind.ReadKeyword), statement) }, null);
 
         public static AccessorSyntax WithAccessorBody(this AccessorSyntax accessor, params AccessorBodySyntax[] accessorBodies)
             => new AccessorSyntax(accessor.Identifier, accessor.Attributes, accessor.AccessModifiers, accessor.AccessorType, accessor.Override, accessorBodies, null);
@@ -207,9 +212,9 @@ namespace LumaSharp.Compiler.AST
             => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, body, null);
 
         public static MethodSyntax WithLambda(this MethodSyntax method, StatementSyntax inlineStatement)
-            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, null, new LambdaStatementSyntax(inlineStatement));
+            => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, null, new LambdaSyntax(inlineStatement));
         
-        public static MethodSyntax WithLambda(this MethodSyntax method, LambdaStatementSyntax lambda)
+        public static MethodSyntax WithLambda(this MethodSyntax method, LambdaSyntax lambda)
             => new MethodSyntax(method.Identifier, method.Attributes, method.AccessModifiers, method.ReturnTypes, method.GenericParameters, method.Parameters, method.Override, null, lambda);
 
 
@@ -240,276 +245,7 @@ namespace LumaSharp.Compiler.AST
         public static ForStatementSyntax WithInlineStatement(this ForStatementSyntax forStatement, StatementSyntax statement)
             => new ForStatementSyntax(forStatement.Keyword, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, statement);
 
-
-        //public static AccessorSyntax WithReadStatement(this AccessorSyntax accessor, StatementSyntax statement)
-        //{
-        //    accessor.AssignExpression = null;
-        //    accessor.ReadBody = new AccessorBodySyntax(SyntaxToken.Read(), statement);
-        //    return accessor;
-        //}
-
-        //public static AccessorSyntax WithReadStatements(this AccessorSyntax accessor, params StatementSyntax[] readStatements)
-        //{
-        //    accessor.AssignExpression = null;
-        //    accessor.ReadBody = new AccessorBodySyntax(SyntaxToken.Read(), readStatements);
-        //    return accessor;
-        //}
-
-        //public static AccessorSyntax WithWriteStatement(this AccessorSyntax accessor, StatementSyntax statement)
-        //{
-        //    accessor.AssignExpression = null;
-        //    accessor.WriteBody = new AccessorBodySyntax(SyntaxToken.Write(), statement);
-        //    return accessor;
-        //}
-
-        //public static AccessorSyntax WithWriteStatements(this AccessorSyntax accessor, params StatementSyntax[] writeStatements)
-        //{
-        //    accessor.AssignExpression = null;
-        //    accessor.WriteBody = new AccessorBodySyntax(SyntaxToken.Write(), writeStatements);
-        //    return accessor;
-        //}
-
-
-        //public static MethodSyntax WithParameters(this MethodSyntax method, params ParameterSyntax[] parameters)
-        //{
-        //    method.Parameters = new ParameterListSyntax(parameters);
-        //    return method;
-        //}
-
-
-        //public static MethodSyntax WithStatements(this MethodSyntax method, params StatementSyntax[] statements)
-        //{
-        //    method.Body = new BlockSyntax<StatementSyntax>(statements);
-        //    return method;
-        //}
-
-
-        //public static ConditionStatementSyntax WithStatements(this ConditionStatementSyntax condition, params StatementSyntax[] statements)
-        //{
-        //    condition.BlockStatement = new BlockSyntax<StatementSyntax>(statements);
-        //    return condition;
-        //}
-
-        //public static ConditionStatementSyntax WithInlineStatement(this ConditionStatementSyntax condition, StatementSyntax statement)
-        //{
-        //    condition.InlineStatement = statement;
-        //    return condition;
-        //}
-
-        //public static ConditionStatementSyntax WithAlternate(this ConditionStatementSyntax condition, ConditionStatementSyntax alternate = null)
-        //{
-        //    condition.Alternate = alternate;
-        //    alternate.MakeAlternate();
-        //    return condition;
-        //}
-
-        //public static ForeachStatementSyntax WithStatements(this ForeachStatementSyntax foreachLoop, params StatementSyntax[] statements)
-        //{
-        //    foreachLoop.BlockStatement = new BlockSyntax<StatementSyntax>(statements);
-        //    return foreachLoop;
-        //}
-
-        //public static ForeachStatementSyntax WithInlineStatement(this ForeachStatementSyntax foreachLoop, StatementSyntax statement)
-        //{
-        //    foreachLoop.InlineStatement = statement;
-        //    return foreachLoop;
-        //}
-
-        //public static ForStatementSyntax WithStatements(this ForStatementSyntax forLoop, params StatementSyntax[] statements)
-        //{
-        //    forLoop.BlockStatement = new BlockSyntax<StatementSyntax>(statements);
-        //    return forLoop;
-        //}
-
-        //public static ForStatementSyntax WithInlineStatement(this ForStatementSyntax forLoop, StatementSyntax statement)
-        //{
-        //    forLoop.InlineStatement = statement;
-        //    return forLoop;
-        //}
-
-
-        //public static MethodInvokeExpressionSyntax WithGenericArguments(this MethodInvokeExpressionSyntax invoke, params TypeReferenceSyntax[] genericArguments)
-        //{
-        //    invoke.GenericArguments = genericArguments;
-        //    return invoke;
-        //}
-
-        //public static MethodInvokeExpressionSyntax WithArguments(this MethodInvokeExpressionSyntax invoke, params ExpressionSyntax[] arguments)
-        //{
-        //    invoke.Arguments = arguments;
-        //    return invoke;
-        //}
-
-
-        //public static NewExpressionSyntax WithArguments(this NewExpressionSyntax newExpr, params ExpressionSyntax[] arguments)
-        //{
-        //    newExpr.ArgumentExpressions = arguments;
-        //    return newExpr;
-        //}
-
-        //public static TypeReferenceSyntax WithNamespaceQualifier(this TypeReferenceSyntax type, params string[] namespaceIdentifiers)
-        //{
-        //    if (type.HasParentTypeIdentifier == true)
-        //        throw new InvalidOperationException("Nested type cannot have a namespace qualifier");
-
-        //    type.Namespace = new NamespaceName(namespaceIdentifiers);
-        //    return type;
-        //}
-
-        //public static TypeReferenceSyntax WithGenericArguments(this TypeReferenceSyntax type, params TypeReferenceSyntax[] genericArguments)
-        //{
-        //    type.GenericArguments = new GenericArgumentListSyntax(genericArguments);
-        //    return type;
-        //}
-
-        //public static TypeReferenceSyntax WithArrayQualifier(this TypeReferenceSyntax type, int rank)
-        //{
-        //    type.ArrayParameters = new ArrayParametersSyntax(rank);
-        //    return type;
-        //}
         #endregion
-
-        //public static NamespaceSyntax Namespace(string identifier)
-        //{
-        //    return SyntaxTree.Create()
-        //        .WithNamespace(identifier);
-        //}
-
-        //public static TypeSyntax Type(string identifier)
-        //{
-        //    return SyntaxTree.Create()
-        //        .WithType(identifier);
-        //}
-
-        //public static ContractSyntax Contract(string identifier)
-        //{
-        //    return SyntaxTree.Create()
-        //        .WithContract(identifier);
-        //}
-
-        //public static EnumSyntax Enum(string identifier)
-        //{
-        //    return SyntaxTree.Create()
-        //        .WithEnum(identifier);
-        //}
-
-        //public static MethodSyntax Method(string identifier)
-        //{
-        //    return SyntaxTree.Create().WithMethod(identifier);
-        //}
-
-
-        //public static NamespaceSyntax WithNamespace<T>(this T node, string identifier) where T : SyntaxNode, IRootSyntaxContainer
-        //{
-        //    // Create namespace 
-        //    NamespaceSyntax ns = new NamespaceSyntax(node.tree, node, identifier);
-
-        //    // Add member
-        //    node.AddRootSyntax(ns);
-        //    return ns;
-        //}
-
-        //public static TypeSyntax WithType<T>(this T node, string identifier) where T : SyntaxNode, IMemberSyntaxContainer
-        //{
-        //    // Create type
-        //    TypeSyntax type = new TypeSyntax(node.SyntaxTree, node, identifier);
-
-        //    // Add member
-        //    node.AddMember(type);
-        //    return type;
-        //}
-
-        //public static ContractSyntax WithContract<T>(this T node, string identifier) where T : SyntaxNode, IMemberSyntaxContainer
-        //{
-        //    // Create contract
-        //    ContractSyntax contract = new ContractSyntax(node.SyntaxTree, node, identifier);
-
-        //    // Add member
-        //    node.AddMember(contract);
-        //    return contract;
-        //}
-
-        //public static EnumSyntax WithEnum<T>(this T node, string identifier) where T : SyntaxNode, IMemberSyntaxContainer
-        //{
-        //    // Create contract
-        //    EnumSyntax e = new EnumSyntax(node.SyntaxTree, node, identifier);
-
-        //    // Add member
-        //    node.AddMember(e);
-        //    return e;
-        //}
-
-
-        //#region Members
-
-        //public static MethodSyntax WithMethod<T>(this T node, SyntaxToken identifier) where T : SyntaxNode, IMemberSyntaxContainer
-        //{
-        //    // Create method
-        //    MethodSyntax method = Method(identifier);
-
-        //    // Add member
-        //    node.AddMember(method);
-        //    return method;
-        //}
-        //#endregion
-
-        //#region Statements
-        //public static T WithStatement<T>(this T node, StatementSyntax statement)
-        //{
-
-        //}
-        //#endregion
-
-        //#region RootMembers
-        //public static TypeSyntax WithTypeSyntax(this IRootMemberSyntaxContainer container, string identifier)
-        //{
-        //    // Check container
-        //    CheckSyntaxNode(container);
-
-        //    // Create type
-        //    return new TypeSyntax(container.Tree, container as SyntaxNode, identifier);
-        //}
-        //#endregion
-
-        //#region Members
-        //public static TypeSyntax WithTypeSyntax(this IMemberSyntaxContainer container, string identifier)
-        //{
-        //    // Check container
-        //    CheckSyntaxNode(container);
-
-        //    // Create type
-        //    return new TypeSyntax(container.Tree, container as SyntaxNode, identifier);
-        //}
-        //#endregion
-
-        //#region Statements
-        //public static BreakStatementSyntax WithBreakSyntax(this IStatementSyntaxContainer container)
-        //{
-        //    // Check container
-        //    CheckSyntaxNode(container);
-
-        //    // Create break
-        //    return new BreakStatementSyntax(container.Tree, container as SyntaxNode);
-        //}
-
-        //public static ContinueStatementSyntax WithContinueSyntax(this IStatementSyntaxContainer container)
-        //{
-        //    // Check container
-        //    CheckSyntaxNode(container);
-
-        //    // Create continue
-        //    return new ContinueStatementSyntax(container.Tree, container as SyntaxNode);
-        //}
-
-        //public static ReturnStatementSyntax WithReturnSyntax(this IStatementSyntaxContainer container, ExpressionSyntax returnExpression = null)
-        //{
-        //    // Check container
-        //    CheckSyntaxNode(container);
-
-        //    // Create return
-        //    return new ReturnStatementSyntax(container.Tree, container as SyntaxNode, returnExpression);
-        //}
-        //#endregion
 
         private static void CheckSyntaxNode(object container)
         {

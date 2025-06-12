@@ -16,7 +16,7 @@ namespace LumaSharp.Compiler.Reporting
 
         MessageSeverity Severity { get; }
 
-        SyntaxSource Source { get; }
+        SyntaxSpan Source { get; }
 
         string Message { get; }
     }

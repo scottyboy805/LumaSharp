@@ -36,9 +36,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ParameterListSyntax(SeparatedSyntaxList<ParameterSyntax> parameters)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LParenSymbol),
+                  Syntax.Token(SyntaxTokenKind.LParenSymbol),
                   parameters,
-                  new SyntaxToken(SyntaxTokenKind.RParenSymbol))
+                  Syntax.Token(SyntaxTokenKind.RParenSymbol))
         {
         }
 

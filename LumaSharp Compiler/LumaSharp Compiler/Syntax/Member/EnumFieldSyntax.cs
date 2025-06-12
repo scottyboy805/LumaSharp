@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class EnumFieldSyntax : MemberSyntax
@@ -49,6 +51,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitEnumField(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Identifier

@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ConstructorSyntax : MemberSyntax
@@ -8,7 +10,7 @@ namespace LumaSharp.Compiler.AST
         private readonly ParameterListSyntax parameters;
         private readonly ConstructorInvokeSyntax constructorInvoke;
         private readonly StatementBlockSyntax body;
-        private readonly LambdaStatementSyntax lambda;
+        private readonly LambdaSyntax lambda;
 
         // Properties
         public override SyntaxToken StartToken
@@ -65,7 +67,7 @@ namespace LumaSharp.Compiler.AST
             get { return body; }
         }
 
-        public LambdaStatementSyntax Lambda
+        public LambdaSyntax Lambda
         {
             get { return lambda; }
         }
@@ -100,8 +102,8 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ConstructorSyntax(SyntaxToken thisKeyword, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, ParameterListSyntax parameters, ConstructorInvokeSyntax constructorInvoke, StatementBlockSyntax body, LambdaStatementSyntax lambda)
-            : base(new SyntaxToken(SyntaxTokenKind.Identifier, thisKeyword.Text, thisKeyword.Source), attributes, accessModifiers)
+        internal ConstructorSyntax(SyntaxToken thisKeyword, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, ParameterListSyntax parameters, ConstructorInvokeSyntax constructorInvoke, StatementBlockSyntax body, LambdaSyntax lambda)
+            : base(new SyntaxToken(SyntaxTokenKind.Identifier, thisKeyword.Text, thisKeyword.Span), attributes, accessModifiers)
         {
             // Check kind
             if(thisKeyword.Kind != SyntaxTokenKind.ThisKeyword)
@@ -127,6 +129,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitConstructor(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generate attributes

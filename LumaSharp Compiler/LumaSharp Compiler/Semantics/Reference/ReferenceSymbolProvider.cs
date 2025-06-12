@@ -100,7 +100,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
             return token;
         }
 
-        public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSource? source)
+        public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSpan? source)
         {
             ITypeReferenceSymbol primitive = null;
 
@@ -151,7 +151,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 return resolvedSymbol;
 
             // Namespace not found error
-            report.ReportDiagnostic(Code.NamespaceNotFound, MessageSeverity.Error, name.StartToken.Source, name.GetSourceText());
+            report.ReportDiagnostic(Code.NamespaceNotFound, MessageSeverity.Error, name.StartToken.Span, name.GetSourceText());
             return null;
         }
 
@@ -162,7 +162,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
             if (reference.GetPrimitiveType(out primitive) == true)
             {
                 // Resolve as primitive
-                return ResolveTypeSymbol(primitive, reference.StartToken.Source);
+                return ResolveTypeSymbol(primitive, reference.StartToken.Span);
             }
 
             // Check for void
@@ -174,7 +174,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Check for resolved
                 if(_void == null)
                 {
-                    report.ReportDiagnostic(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "void");
+                    report.ReportDiagnostic(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Span, "void");
                 }
                 return _void;
             }
@@ -185,7 +185,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Check for resolved
                 if(_string == null)
                 {
-                    report.ReportDiagnostic(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "string");
+                    report.ReportDiagnostic(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Span, "string");
                 }
                 return _string;
             }
@@ -196,7 +196,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Check for resolved
                 if(_enum == null)
                 {
-                    report.ReportDiagnostic(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Source, "enum");
+                    report.ReportDiagnostic(Code.BuiltInTypeNotFound, MessageSeverity.Error, reference.StartToken.Span, "enum");
                 }
                 return _enum;
             }
@@ -213,7 +213,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
 
             // Type not found error
-            report.ReportDiagnostic(Code.TypeNotFound, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
+            report.ReportDiagnostic(Code.TypeNotFound, MessageSeverity.Error, reference.Identifier.Span, reference.Identifier.Text);
             return null;
         }
 
@@ -256,7 +256,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
                 // Check for null
                 if (matchSymbol == null)
-                    report.ReportDiagnostic(Code.FieldAccessorNotFound, MessageSeverity.Error, reference.StartToken.Source, reference.Identifier.Text, typeReference.TypeName);
+                    report.ReportDiagnostic(Code.FieldAccessorNotFound, MessageSeverity.Error, reference.StartToken.Span, reference.Identifier.Text, typeReference.TypeName);
 
                 return matchSymbol;
             }
@@ -295,17 +295,17 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Check for no inferable match
                 else if(matchIndex == -1 && matchMethods.Count > 0)
                 {
-                    report.ReportDiagnostic(Code.MethodNoMatch, MessageSeverity.Error, reference.StartToken.Source);
+                    report.ReportDiagnostic(Code.MethodNoMatch, MessageSeverity.Error, reference.StartToken.Span);
                 }
                 // Check for multiple equally inferable matches
                 else if(matchIndex == -2 && matchMethods.Count > 0)
                 {
-                    report.ReportDiagnostic(Code.MethodAmbiguousMatch, MessageSeverity.Error, reference.StartToken.Source);
+                    report.ReportDiagnostic(Code.MethodAmbiguousMatch, MessageSeverity.Error, reference.StartToken.Span);
                 }
                 // Check for failure - report as error
                 else if (resolveMethod == null)
                 {
-                    report.ReportDiagnostic(Code.MethodNotFound, MessageSeverity.Error, reference.StartToken.Source, reference.Identifier.Text, typeReference.TypeName);
+                    report.ReportDiagnostic(Code.MethodNotFound, MessageSeverity.Error, reference.StartToken.Span, reference.Identifier.Text, typeReference.TypeName);
                 }
 
                 return resolveMethod;
@@ -323,7 +323,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 return resolvedSymbol;
 
             // Failed to resolve
-            report.ReportDiagnostic(Code.IdentifierNotFound, MessageSeverity.Error, reference.Identifier.Source, reference.Identifier.Text);
+            report.ReportDiagnostic(Code.IdentifierNotFound, MessageSeverity.Error, reference.Identifier.Span, reference.Identifier.Text);
             return null;
         }
     }

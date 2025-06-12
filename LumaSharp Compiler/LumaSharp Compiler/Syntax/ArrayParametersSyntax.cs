@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ArrayParametersSyntax : SyntaxNode
@@ -48,16 +50,16 @@ namespace LumaSharp.Compiler.AST
         internal ArrayParametersSyntax(int rank)
             : this(
                   Enumerable.Repeat(
-                    new SyntaxToken(SyntaxTokenKind.CommaSymbol), rank)
+                    Syntax.Token(SyntaxTokenKind.CommaSymbol), rank)
                     .ToArray())
         {
         }
 
         internal ArrayParametersSyntax(SyntaxToken[] separators)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LArraySymbol),
+                  Syntax.Token(SyntaxTokenKind.LArraySymbol),
                   separators,
-                  new SyntaxToken(SyntaxTokenKind.RArraySymbol))
+                  Syntax.Token(SyntaxTokenKind.RArraySymbol))
         {
         }
 
@@ -85,6 +87,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitArrayParameters(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Array start

@@ -48,9 +48,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal CollectionInitializerExpressionSyntax(SeparatedSyntaxList<ExpressionSyntax> initializerExpressions)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LBlockSymbol),
+                  Syntax.Token(SyntaxTokenKind.LBlockSymbol),
                   initializerExpressions,
-                  new SyntaxToken(SyntaxTokenKind.RBlockSymbol))
+                  Syntax.Token(SyntaxTokenKind.RBlockSymbol))
         {
         }
 

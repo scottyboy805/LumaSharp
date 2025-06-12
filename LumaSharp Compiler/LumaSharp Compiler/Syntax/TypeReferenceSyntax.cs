@@ -82,7 +82,7 @@ namespace LumaSharp.Compiler.AST
             : this(
                   identifier,
                   genericArguments,
-                  new SyntaxToken(SyntaxTokenKind.DotSymbol))
+                  Syntax.Token(SyntaxTokenKind.DotSymbol))
         {
         }
 
@@ -104,6 +104,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitParentTypeReference(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Identifier
@@ -278,7 +283,7 @@ namespace LumaSharp.Compiler.AST
 
         internal TypeReferenceSyntax(PrimitiveType primitive, ArrayParametersSyntax arrayParameters)
         {
-            this.identifier = new SyntaxToken(primitive switch
+            this.identifier = Syntax.Token(primitive switch
             {
                 PrimitiveType.Void => SyntaxTokenKind.VoidKeyword,
                 PrimitiveType.Bool => SyntaxTokenKind.BoolKeyword,

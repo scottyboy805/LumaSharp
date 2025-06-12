@@ -106,7 +106,7 @@ namespace LumaSharp.Compiler.Parser
                     if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                     {
                         // Expected ';'
-                        report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                        report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                         return RecoverFromImportError();
                     }
 
@@ -151,13 +151,13 @@ namespace LumaSharp.Compiler.Parser
         //    return namespaceName;
         //}
 
-        internal AttributeReferenceSyntax[] ParseAttributes()
+        internal AttributeSyntax[] ParseAttributes()
         {
             // Parse an attribute
-            AttributeReferenceSyntax attribute = ParseAttribute();
+            AttributeSyntax attribute = ParseAttribute();
 
             // Create array
-            AttributeReferenceSyntax[] attributes = null;
+            AttributeSyntax[] attributes = null;
 
             // Check for not null
             while (attribute != null)
@@ -169,7 +169,7 @@ namespace LumaSharp.Compiler.Parser
                 }
                 else
                 {
-                    attributes = new AttributeReferenceSyntax[1];
+                    attributes = new AttributeSyntax[1];
                 }
 
                 // Update element
@@ -181,7 +181,7 @@ namespace LumaSharp.Compiler.Parser
             return attributes;
         }
 
-        internal AttributeReferenceSyntax ParseAttribute()
+        internal AttributeSyntax ParseAttribute()
         {
             // Check for hash
             if(tokens.PeekKind() == SyntaxTokenKind.HashSymbol)
@@ -196,7 +196,7 @@ namespace LumaSharp.Compiler.Parser
                 if (attributeTypeReference == null)
                 {
                     // Expected type reference
-                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Source);
+                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
                     return null; // Cannot recover from here - need to process each following token manually
                 }
 
@@ -204,7 +204,7 @@ namespace LumaSharp.Compiler.Parser
                 ArgumentListSyntax argumentList = ParseArgumentList();
 
                 // Create attribute
-                return new AttributeReferenceSyntax(hashToken, attributeTypeReference, argumentList);
+                return new AttributeSyntax(hashToken, attributeTypeReference, argumentList);
             }
             return null;
         }
@@ -243,7 +243,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RArraySymbol, out SyntaxToken rArray) == false)
                 {
                     // Expected ']'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Source, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
                     return RecoverFromArrayParameterError();
                 }
 

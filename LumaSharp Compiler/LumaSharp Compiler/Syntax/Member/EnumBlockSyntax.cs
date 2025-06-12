@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class EnumBlockSyntax : SeparatedSyntaxList<EnumFieldSyntax>
@@ -31,9 +33,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal EnumBlockSyntax(SeparatedSyntaxList<EnumFieldSyntax> fields)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LBlockSymbol),
+                  Syntax.Token(SyntaxTokenKind.LBlockSymbol),
                   fields,
-                  new SyntaxToken(SyntaxTokenKind.RBlockSymbol))
+                  Syntax.Token(SyntaxTokenKind.RBlockSymbol))
         {
         }
 
@@ -52,6 +54,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitEnumBlock(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Block start

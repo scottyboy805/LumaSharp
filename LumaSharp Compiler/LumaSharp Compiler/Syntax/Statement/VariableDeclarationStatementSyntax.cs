@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class VariableDeclarationStatementSyntax : StatementSyntax
@@ -57,7 +59,7 @@ namespace LumaSharp.Compiler.AST
         internal VariableDeclarationStatementSyntax(VariableDeclarationSyntax variable)
             : this(
                   variable,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -75,6 +77,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitVariableDeclarationStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write variable 

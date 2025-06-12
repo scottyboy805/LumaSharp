@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class AssignStatementSyntax : StatementSyntax
@@ -53,7 +55,7 @@ namespace LumaSharp.Compiler.AST
             : this(
                   left, 
                   assign,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -80,6 +82,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitAssignStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Write left

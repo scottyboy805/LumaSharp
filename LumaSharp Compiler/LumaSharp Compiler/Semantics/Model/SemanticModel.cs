@@ -108,7 +108,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                 List<INamespaceReferenceSymbol> scopedImportModels = new List<INamespaceReferenceSymbol>();
 
                 // Add imports
-                foreach(ImportSyntax importSyntax in tree.DescendantsOfType<ImportSyntax>())
+                foreach(ImportSyntax importSyntax in tree.Root.DescendantsOfType<ImportSyntax>())
                 {
                     // Create model
                     ImportModel importModel = new ImportModel(importSyntax);
@@ -119,22 +119,22 @@ namespace LumaSharp.Compiler.Semantics.Model
                 }
 
                 // Add root namespaces
-                namespaceDeclarations.AddRange(tree.DescendantsOfType<NamespaceSyntax>());
+                namespaceDeclarations.AddRange(tree.Root.DescendantsOfType<NamespaceSyntax>());
 
                 // Add root types
-                typeModels.AddRange(tree.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t, scopedImportModels)));
+                typeModels.AddRange(tree.Root.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t, scopedImportModels)));
                 //rootTypes.AddRange(tree.DescendantsOfType<TypeSyntax>());
 
                 // Add root contracts
-                typeModels.AddRange(tree.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(this, null, c, scopedImportModels)));
+                typeModels.AddRange(tree.Root.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(this, null, c, scopedImportModels)));
                 //rootContracts.AddRange(tree.DescendantsOfType<ContractSyntax>());
 
                 // Add root enums
-                typeModels.AddRange(tree.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(this, null, e, scopedImportModels)));
+                typeModels.AddRange(tree.Root.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(this, null, e, scopedImportModels)));
                 //rootEnums.AddRange(tree.DescendantsOfType<EnumSyntax>());
 
                 // Add namespace
-                foreach(NamespaceSyntax rootNamespace in tree.DescendantsOfType<NamespaceSyntax>())
+                foreach(NamespaceSyntax rootNamespace in tree.Root.DescendantsOfType<NamespaceSyntax>())
                 {
                     // Add all types
                     typeModels.AddRange(rootNamespace.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t, scopedImportModels)));

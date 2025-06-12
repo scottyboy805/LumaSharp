@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using LumaSharp.Compiler.AST.Visitor;
+using System.Collections;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -48,9 +49,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal StatementBlockSyntax(IEnumerable<StatementSyntax> statements)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LBlockSymbol),
+                  Syntax.Token(SyntaxTokenKind.LBlockSymbol),
                   statements,
-                  new SyntaxToken(SyntaxTokenKind.RBlockSymbol))
+                  Syntax.Token(SyntaxTokenKind.RBlockSymbol))
         {
         }
 
@@ -79,6 +80,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitStatementBlock(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // LBlock

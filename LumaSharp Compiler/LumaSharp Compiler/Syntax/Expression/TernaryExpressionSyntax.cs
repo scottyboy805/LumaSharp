@@ -62,9 +62,9 @@ namespace LumaSharp.Compiler.AST
         internal TernaryExpressionSyntax(ExpressionSyntax condition, ExpressionSyntax trueExpression, ExpressionSyntax falseExpression)
             : this(
                   condition,
-                  new SyntaxToken(SyntaxTokenKind.TernarySymbol),
+                  Syntax.Token(SyntaxTokenKind.TernarySymbol),
                   trueExpression,
-                  new SyntaxToken(SyntaxTokenKind.ColonSymbol),
+                  Syntax.Token(SyntaxTokenKind.ColonSymbol),
                   falseExpression)
         {
         }

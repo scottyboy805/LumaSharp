@@ -170,19 +170,19 @@ namespace LumaSharp.Compiler.Reporting
         };
 
         // Methods
-        public static string GetFormattedErrorMessage(int code, MessageSeverity severity, string message, SyntaxSource source)
+        public static string GetFormattedErrorMessage(int code, MessageSeverity severity, string message, SyntaxSpan? source)
         {
             // Create formatted
             string formatted = string.Format("[{0}] LS{1}: {2}", severity.ToString().ToUpper(), code, message);
 
             // Check for source
-            if(source.SourceName != null)
+            if(source != null)
             {
                 // Create formatted source
                 string formattedSource = string.Format(" in source file `{0}` at line `{1}`, column `{2}`", 
-                    string.IsNullOrEmpty(source.SourceName) == false ? source.SourceName : "<unknown>", 
-                    source.Line >= 0 ? source.Line : "<?>", 
-                    source.Column >= 0 ? source.Column : "<?>");
+                    string.IsNullOrEmpty(source?.Document) == false ? source?.Document : "<unknown>", 
+                    source?.Start.Line >= 0 ? source?.Start.Line : "<?>", 
+                    source?.Start.Column >= 0 ? source?.Start.Column : "<?>");
 
                 // Join strings
                 formatted = string.Concat(formatted, formattedSource);

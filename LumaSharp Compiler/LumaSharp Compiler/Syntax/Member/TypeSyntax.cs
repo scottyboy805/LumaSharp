@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class TypeSyntax : MemberSyntax
@@ -103,9 +105,9 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal TypeSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, SyntaxToken? overrideToken, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
+        internal TypeSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, SyntaxToken? overrideToken, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.TypeKeyword),
+                  Syntax.Token(SyntaxTokenKind.TypeKeyword),
                   identifier,
                   attributes,
                   accessModifiers,
@@ -116,7 +118,7 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal TypeSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, SyntaxToken? overrideToken, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
+        internal TypeSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, SyntaxToken? overrideToken, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
             : base(identifier, attributes, accessModifiers)
         {
             // Check kind
@@ -137,7 +139,7 @@ namespace LumaSharp.Compiler.AST
             // Set parent
             if (attributes != null)
             {
-                foreach (AttributeReferenceSyntax a in attributes)
+                foreach (AttributeSyntax a in attributes)
                     a.parent = this;
             }
             if (genericParameters != null) genericParameters.parent = this;
@@ -146,6 +148,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitType(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generate attributes

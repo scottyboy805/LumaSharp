@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class MethodSyntax : MemberSyntax
@@ -8,7 +10,7 @@ namespace LumaSharp.Compiler.AST
         private readonly GenericParameterListSyntax genericParameters;
         private readonly ParameterListSyntax parameters;
         private readonly StatementBlockSyntax body;
-        private readonly LambdaStatementSyntax lambda;
+        private readonly LambdaSyntax lambda;
         private readonly SyntaxToken? overrideKeyword;
 
         // Properties
@@ -71,7 +73,7 @@ namespace LumaSharp.Compiler.AST
             get { return body; }
         }
 
-        public LambdaStatementSyntax Lambda
+        public LambdaSyntax Lambda
         {
             get { return lambda; }
         }
@@ -102,7 +104,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementBlockSyntax body, LambdaStatementSyntax lambda)
+        internal MethodSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementBlockSyntax body, LambdaSyntax lambda)
             : base(identifier, attributes, accessModifiers)
         {
             this.returnTypes = returnTypes;
@@ -115,6 +117,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitMethod(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generate attributes

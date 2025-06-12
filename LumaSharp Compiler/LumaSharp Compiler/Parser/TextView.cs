@@ -1,15 +1,23 @@
-﻿
+﻿using LumaSharp.Compiler.AST;
+
 namespace LumaSharp.Compiler.Parser
 {
     internal sealed class TextView : IDisposable
     {
         // Private
+        private const char carriageReturn = '\r';
+        private const char newLine = '\n';
+        private const char tab = '\t';
+
         private readonly TextReader reader;
         private readonly char[] buffer;
         private int bufferStart = 0;
         private int bufferEnd = 0;
         private int bufferSize = 0;
         private int position = 0;
+        private int line = 1;
+        private int column = 1;
+        private bool lastWasCarriageReturn = false;
 
         // Properties
         public int Position => position;
@@ -80,12 +88,56 @@ namespace LumaSharp.Compiler.Parser
             // Fill the buffer
             FillBuffer(1);
 
-            // Calculate the amount that can be read
-            int toRead = Math.Min(amount, bufferEnd - bufferStart);
+            for (int i = 0; i < amount && bufferStart < bufferEnd; i++)
+            {
+                char c = buffer[bufferStart++];
 
-            // Advance pointer
-            bufferStart += toRead;
-            position += toRead;
+                // Handle newline tracking
+                if (c == newLine)
+                {
+                    if (lastWasCarriageReturn)
+                    {
+                        // \r\n, already counted line
+                        lastWasCarriageReturn = false;
+                    }
+                    else
+                    {
+                        line++;
+                        column = 1;
+                    }
+                }
+                else if (c == carriageReturn)
+                {
+                    line++;
+                    column = 1;
+                    lastWasCarriageReturn = true;
+                }
+                else if (c == tab)
+                {
+                    // Optional: tab size as 4 spaces
+                    column += 4;
+                    lastWasCarriageReturn = false;
+                }
+                else
+                {
+                    column++;
+                    lastWasCarriageReturn = false;
+                }
+
+                position++;
+            }
+
+            // Calculate the amount that can be read
+            //int toRead = Math.Min(amount, bufferEnd - bufferStart);
+
+            //// Advance pointer
+            //bufferStart += toRead;
+            //position += toRead;
+        }
+
+        public SyntaxLocation GetLocation()
+        {
+            return new SyntaxLocation(position, line, column);
         }
 
         private void FillBuffer(int minChars = 1)

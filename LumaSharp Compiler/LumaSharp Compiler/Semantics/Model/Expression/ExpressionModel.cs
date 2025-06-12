@@ -30,9 +30,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
         }
 
-        public SyntaxSource Source
+        public SyntaxSpan Source
         {
-            get { return syntax.StartToken.Source; }
+            get { return syntax.StartToken.Span; }
         }
 
         // Constructor

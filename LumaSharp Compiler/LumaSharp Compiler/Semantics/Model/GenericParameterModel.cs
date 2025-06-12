@@ -169,7 +169,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve any
-            anyType = provider.ResolveTypeSymbol(PrimitiveType.Any, syntax.StartToken.Source);
+            anyType = provider.ResolveTypeSymbol(PrimitiveType.Any, syntax.StartToken.Span);
 
             // Resolve constraints
             if (syntax.HasConstraintTypes == true)
@@ -208,7 +208,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Check for primitive
             if(genericConstraint.IsPrimitive == true)
             {
-                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.ConstraintTypes[index].StartToken.Source, genericConstraint);
+                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.ConstraintTypes[index].StartToken.Span, genericConstraint);
             }
         }
     }

@@ -1,7 +1,9 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class LambdaStatementSyntax : SyntaxNode
+    public sealed class LambdaSyntax : SyntaxNode
     {
         // Private
         private readonly SyntaxToken lambda;
@@ -34,14 +36,14 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal LambdaStatementSyntax(StatementSyntax statement)
+        internal LambdaSyntax(StatementSyntax statement)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LambdaSymbol),
+                  Syntax.Token(SyntaxTokenKind.LambdaSymbol),
                   statement)
         { 
         }
 
-        internal LambdaStatementSyntax(SyntaxToken lambda, StatementSyntax statement)
+        internal LambdaSyntax(SyntaxToken lambda, StatementSyntax statement)
         {
             // Check kind
             if(lambda.Kind != SyntaxTokenKind.LambdaSymbol)
@@ -59,6 +61,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitLambda(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Lambda

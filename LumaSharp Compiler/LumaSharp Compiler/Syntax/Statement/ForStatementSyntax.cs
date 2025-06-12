@@ -1,5 +1,7 @@
 ﻿
 
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ForStatementSyntax : StatementSyntax
@@ -92,11 +94,11 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ForStatementSyntax(VariableDeclarationSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.ForKeyword),
+                  Syntax.Token(SyntaxTokenKind.ForKeyword),
                   variable,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol),
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol),
                   condition,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol),
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol),
                   increments,
                   statement)
         {
@@ -128,6 +130,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitForStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword

@@ -16,7 +16,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSource
         public void GenerateExpression_Base(string input)
         {
             // Try to parse the tree
-            ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
+            ExpressionSyntax expression = TestUtils.ParseInputStringExpression(input);
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(BaseExpressionSyntax));
@@ -34,7 +34,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSource
         public void GenerateExpression_This(string input)
         {
             // Try to parse the tree
-            ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
+            ExpressionSyntax expression = TestUtils.ParseInputStringExpression(input);
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(ThisExpressionSyntax));
@@ -55,7 +55,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSource
         public void GenerateExpression_Typeof(string input)
         {
             // Try to parse the tree
-            ExpressionSyntax expression = SyntaxTree.ParseExpression(InputSource.FromSourceText(input));
+            ExpressionSyntax expression = TestUtils.ParseInputStringExpression(input);
 
             Assert.IsNotNull(expression);
             Assert.IsInstanceOfType(expression, typeof(TypeofExpressionSyntax));

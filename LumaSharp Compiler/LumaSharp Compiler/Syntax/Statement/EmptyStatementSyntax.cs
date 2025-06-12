@@ -1,5 +1,7 @@
 ﻿
 
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class EmptyStatementSyntax : StatementSyntax
@@ -31,7 +33,7 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal EmptyStatementSyntax()
             : this(
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -45,6 +47,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitEmptyStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Get semicolon text

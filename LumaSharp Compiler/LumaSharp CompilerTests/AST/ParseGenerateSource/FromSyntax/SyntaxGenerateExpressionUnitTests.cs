@@ -29,42 +29,42 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         }
 
         [TestMethod]
-        public void GenerateExpression_Type()
+        public void GenerateExpression_Typeof()
         {
-            SyntaxNode syntax0 = Syntax.TypeOp(
+            SyntaxNode syntax0 = Syntax.Typeof(
                 Syntax.TypeReference(PrimitiveType.I32));
 
             // Get expression text
-            Assert.AreEqual("type(i32)", syntax0.GetSourceText());
-            Assert.AreEqual("type", syntax0.StartToken.Text);
+            Assert.AreEqual("typeof(i32)", syntax0.GetSourceText());
+            Assert.AreEqual("typeof", syntax0.StartToken.Text);
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.TypeOp(
+            SyntaxNode syntax1 = Syntax.Typeof(
                 Syntax.TypeReference("MyType"));
 
             // Get expression text
-            Assert.AreEqual("type(MyType)", syntax1.GetSourceText());
-            Assert.AreEqual("type", syntax1.StartToken.Text);
+            Assert.AreEqual("typeof(MyType)", syntax1.GetSourceText());
+            Assert.AreEqual("typeof", syntax1.StartToken.Text);
             Assert.AreEqual(")", syntax1.EndToken.Text);
         }
 
         [TestMethod]
-        public void GenerateExpression_Size()
+        public void GenerateExpression_Sizeof()
         {
-            SyntaxNode syntax0 = Syntax.SizeOp(
+            SyntaxNode syntax0 = Syntax.Sizeof(
                 Syntax.TypeReference(PrimitiveType.I32));
 
             // Get expression text
-            Assert.AreEqual("size(i32)", syntax0.GetSourceText());
-            Assert.AreEqual("size", syntax0.StartToken.Text);
+            Assert.AreEqual("sizeof(i32)", syntax0.GetSourceText());
+            Assert.AreEqual("sizeof", syntax0.StartToken.Text);
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.SizeOp(
+            SyntaxNode syntax1 = Syntax.Sizeof(
                 Syntax.TypeReference("MyType"));
 
             // Get expression text
-            Assert.AreEqual("size(MyType)", syntax1.GetSourceText());
-            Assert.AreEqual("size", syntax1.StartToken.Text);
+            Assert.AreEqual("sizeof(MyType)", syntax1.GetSourceText());
+            Assert.AreEqual("sizeof", syntax1.StartToken.Text);
             Assert.AreEqual(")", syntax1.EndToken.Text);
         }
 
@@ -157,7 +157,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 Syntax.TypeReference("MyType"), Syntax.ArgumentList(Syntax.Literal(false)));
 
             // Get expression text
-            Assert.AreEqual("new MyType()", syntax0.GetSourceText());
+            Assert.AreEqual("new MyType(false)", syntax0.GetSourceText());
             Assert.AreEqual("new", syntax0.StartToken.Text);
             Assert.AreEqual(")", syntax0.EndToken.Text);
 

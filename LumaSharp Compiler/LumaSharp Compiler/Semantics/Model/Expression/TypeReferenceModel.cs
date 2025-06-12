@@ -82,14 +82,14 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Check for generic argument mismatch
             if(typeSymbol.GenericParameterSymbols == null)
             {
-                report.ReportDiagnostic(Code.InvalidNoGenericArgument, MessageSeverity.Error, genericArgumentTypes[0].StartToken.Source, typeSymbol);
+                report.ReportDiagnostic(Code.InvalidNoGenericArgument, MessageSeverity.Error, genericArgumentTypes[0].StartToken.Span, typeSymbol);
                 return;
             }
 
             // Check for mismatch generic argument count
             if(typeSymbol.GenericParameterSymbols.Length != genericArgumentTypes.Length)
             {
-                report.ReportDiagnostic(Code.InvalidCountGenericArgument, MessageSeverity.Error, genericArgumentTypes[0].StartToken.Source, typeSymbol, genericArgumentTypes.Length);
+                report.ReportDiagnostic(Code.InvalidCountGenericArgument, MessageSeverity.Error, genericArgumentTypes[0].StartToken.Span, typeSymbol, genericArgumentTypes.Length);
                 return;
             }
 
@@ -112,7 +112,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     if(TypeChecker.IsTypeAssignable(genericArgument.EvaluatedTypeSymbol, genericConstraint) == false)
                     {
                         // Constraint is not implemented
-                        report.ReportDiagnostic(Code.InvalidConstraintGenericArgument, MessageSeverity.Error, syntax.StartToken.Source, genericArgument, genericConstraint);
+                        report.ReportDiagnostic(Code.InvalidConstraintGenericArgument, MessageSeverity.Error, syntax.StartToken.Span, genericArgument, genericConstraint);
                     }
                 }
             }

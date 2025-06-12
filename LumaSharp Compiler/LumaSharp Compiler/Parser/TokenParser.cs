@@ -7,27 +7,25 @@ namespace LumaSharp.Compiler.Parser
     internal sealed class TokenParser : IEnumerable<SyntaxToken>
     {
         // Private
-        private readonly string lineCommentStart = SyntaxToken.GetText(SyntaxTokenKind.LineComment);
-        private readonly string blockCommentStart = SyntaxToken.GetText(SyntaxTokenKind.BlockCommentStart);
-        private readonly string blockCommentEnd = SyntaxToken.GetText(SyntaxTokenKind.BlockCommentEnd);
-
-        private readonly SyntaxToken[] keywords = SyntaxToken.GetKeywords().Select(t => new SyntaxToken(t)).ToArray();
-        private readonly SyntaxToken[] symbols = SyntaxToken.GetSymbols().Select(t => new SyntaxToken(t))
+        private readonly SyntaxToken[] keywords = SyntaxToken.GetKeywords().Select(t => Syntax.Token(t)).ToArray();
+        private readonly SyntaxToken[] symbols = SyntaxToken.GetSymbols().Select(t => Syntax.Token(t))
             .OrderByDescending(s => s.Text.Length).ToArray();
     
         private readonly StringBuilder builder = new();
         private readonly TextView source;
+        private readonly string document;
 
         private IEnumerator<SyntaxToken> enumerator;
 
         // Constructor
-        public TokenParser(TextView textView)
+        public TokenParser(TextView textView, string document)
         {
             // Check for null
             if(textView == null)
                 throw new ArgumentNullException(nameof(textView));
 
             this.source = textView;
+            this.document = document;
             this.builder = new();
         }
 
@@ -65,37 +63,16 @@ namespace LumaSharp.Compiler.Parser
                     ? trivia[trivia.Count - 1].Text
                     : string.Empty;
 
-
-                // ### COMMENT - Check for line or block comment
-                if (MatchCommentStart(out SyntaxToken commentStart) == true)
+                // Check for eof after trivia
+                if(source.EOF == true)
                 {
-                    // Get the comment start
-                    yield return trivia.Count > 0
-                        ? commentStart.WithTrivia(trivia)
-                        : commentStart;
-
-                    // Get the comment text
-                    SyntaxToken commentText = MatchCommentText(commentStart.Kind == SyntaxTokenKind.LineComment
-                            ? Environment.NewLine
-                            : blockCommentEnd);
-
-                    // Read end trivia
-                    if (commentStart.Kind == SyntaxTokenKind.LineComment)
-                    {
-                        // Read end trivia
-                        ReadTrailingTrivia(trivia);
-                    }
-
-                    yield return trivia.Count > 0
-                        ? commentStart.Kind == SyntaxTokenKind.LineComment
-                            ? commentText.WithTrivia(trivia.Where(t => t.IsTrailing))
-                            : commentText
-                        : commentText;
-
-                    // Get the comment end
-                    if (commentStart.Kind == SyntaxTokenKind.BlockCommentStart)
-                        yield return previous = MatchCommentEnd(blockCommentEnd);
+                    // Return eof token with trivia
+                    yield return Syntax.Token(SyntaxTokenKind.EOF)
+                        .WithTrivia(trivia);
+                    yield break;
                 }
+
+
                 // ### LITERAL - Check for literal string
                 else if (MatchLiteral(out SyntaxToken literal) == true)
                 {
@@ -166,6 +143,9 @@ namespace LumaSharp.Compiler.Parser
                 // Recycle trivia list
                 trivia.Clear();
             }
+
+            // Return eof with no trivia
+            yield return Syntax.Token(SyntaxTokenKind.EOF);
         }
 
         #region Trivia
@@ -272,6 +252,40 @@ namespace LumaSharp.Compiler.Parser
             }
         }
 
+        private bool IsLineCommentTrivia(out string lineCommentText)
+        {
+            // Check for line comment
+            if (MatchString(source, SyntaxTrivia.LineComment) == true)
+            {
+                // Create comment builder
+                StringBuilder commentBuilder = new StringBuilder();
+
+                // Consume those characters
+                source.Consume(SyntaxTrivia.LineComment.Length);
+
+                // Append comment start
+                commentBuilder.Append(SyntaxTrivia.LineComment);
+
+                // Append until line end
+                while(source.EOF == false && IsEndLineTrivia(source.Peek()) == false)
+                {
+                    // Consume and append
+                    commentBuilder.Append(source.Consume());
+                }
+
+                // Get the line comment text
+                lineCommentText = commentBuilder.ToString();
+                return true;
+            }
+            lineCommentText = null;
+            return false;
+        }
+
+        //private bool IsBlockCommentTrivia(out string blockCommentText)
+        //{
+
+        //}
+
         private bool IsWhiteSpaceTrivia(char c)
         {
             return char.IsWhiteSpace(c) == true || c == '\t';
@@ -283,65 +297,14 @@ namespace LumaSharp.Compiler.Parser
         }
         #endregion
 
-        private bool MatchCommentStart(out SyntaxToken commentSymbol)
-        {            
-            // Check for line comment
-            if (MatchString(source, lineCommentStart) == true)
-            {
-                // Consume those characters
-                source.Consume(lineCommentStart.Length);
-
-                // Create the token
-                commentSymbol = new SyntaxToken(SyntaxTokenKind.LineComment);
-                return true;
-            }
-
-            // Check for block comment
-            if (MatchString(source, blockCommentStart) == true)
-            {
-                // Consume those characters
-                source.Consume(blockCommentStart.Length);
-
-                // Create the token
-                commentSymbol = new SyntaxToken(SyntaxTokenKind.BlockCommentStart);
-                return true;
-            }
-
-            commentSymbol = default;
-            return false;
-        }
-
-        private SyntaxToken MatchCommentText(string commentEndString)
-        {
-            // Read until end of line or stream
-            while (source.EOF == false && MatchString(source, commentEndString) == false)
-            {
-                // Get the next comment character
-                builder.Append(source.Consume());
-            }
-
-            // Create the symbol
-            SyntaxToken commentSymbol = new SyntaxToken(SyntaxTokenKind.CommentText, builder.ToString());
-
-            // Recycle builder
-            builder.Clear();
-            return commentSymbol;
-        }
-
-        private SyntaxToken MatchCommentEnd(string commentEndString)
-        {
-            if (MatchString(source, commentEndString) == false)
-                throw new Exception("Invalid comment state");
-
-            source.Consume(commentEndString.Length);
-            return new SyntaxToken(SyntaxTokenKind.BlockCommentEnd);
-        }
-
         private bool MatchLiteral(out SyntaxToken literal)
         {
             // Check for quote
             if (source.Peek() == '"')
             {
+                // Get starting location
+                SyntaxLocation start = source.GetLocation();
+
                 // Create trivia for starting quote?
                 source.Consume();
 
@@ -360,8 +323,12 @@ namespace LumaSharp.Compiler.Parser
 
                 source.Consume();
 
+                // Get end location
+                SyntaxLocation end = source.GetLocation();
+
                 // Build the literal
-                literal = new SyntaxToken(SyntaxTokenKind.Literal, builder.ToString());
+                literal = new SyntaxToken(SyntaxTokenKind.Literal, builder.ToString(), 
+                    new SyntaxSpan(document, start, end));
 
                 // Recycle builder
                 builder.Clear();
@@ -377,7 +344,6 @@ namespace LumaSharp.Compiler.Parser
             // Check for start of doc, white space, end of block comment, or delimiting symbol to start the keyword
             if (source.Position > 0 
                 && string.IsNullOrEmpty(leadingTrivia) == true 
-                && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd 
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 keyword = default;
@@ -400,8 +366,8 @@ namespace LumaSharp.Compiler.Parser
                     // At the end of a keyword we must have either whitespace, end of stream or a valid delimiting character such as a symbol or number
                     if(end != '\0' 
                         && IsWhiteSpaceTrivia(end) == false 
-                        && MatchString(source, lineCommentStart, length) == false 
-                        && MatchString(source, blockCommentStart, length) == false 
+                        && MatchString(source, SyntaxTrivia.LineComment, length) == false 
+                        && MatchString(source, SyntaxTrivia.BlockCommentStart, length) == false 
                         && IsKeywordDelimiterCharacter(end) == false)
                     {
                         // Make be an identifier that starts with a keyword
@@ -427,7 +393,6 @@ namespace LumaSharp.Compiler.Parser
             // Check for start of doc, white space, end of block comment, or delimiting symbol to start the keyword
             if (source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
-                && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsSymbolDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 symbol = default;
@@ -450,8 +415,8 @@ namespace LumaSharp.Compiler.Parser
                     // At the end of a symbol we must have either whitespace, end of stream or a valid delimiting character such as a symbol or number
                     if (end != '\0'
                         && IsWhiteSpaceTrivia(end) == false
-                        && MatchString(source, lineCommentStart, length) == false
-                        && MatchString(source, blockCommentStart, length) == false
+                        && MatchString(source, SyntaxTrivia.LineComment, length) == false
+                        && MatchString(source, SyntaxTrivia.BlockCommentStart, length) == false
                         && IsSymbolDelimiterCharacter(end) == false)
                     {
                         // Make be an identifier that starts with a keyword
@@ -479,7 +444,6 @@ namespace LumaSharp.Compiler.Parser
             // Require whitespace or symbol before number
             if (source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
-                && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 number = default;                
@@ -492,6 +456,9 @@ namespace LumaSharp.Compiler.Parser
             // Check for first number or decimal ('.5' is acceptable)
             if (char.IsNumber(first) == true || first == '.')
             {
+                // Get start
+                SyntaxLocation start = source.GetLocation();
+
                 // Consume first value
                 builder.Append(source.Consume());
 
@@ -515,42 +482,63 @@ namespace LumaSharp.Compiler.Parser
                     builder.Append(source.Consume());
                 }
 
+                // Get end
+                SyntaxLocation end = source.GetLocation();
+
                 // Build the full number string
-                number = new SyntaxToken(SyntaxTokenKind.Literal, builder.ToString());
+                number = new SyntaxToken(SyntaxTokenKind.Literal, builder.ToString(),
+                    new SyntaxSpan(document, start, end));
 
                 // Check for descriptor
                 // Unsigned
                 if(source.Peek() == 'U' || source.Peek() == 'u')
                 {
+                    // Get start
+                    start = source.GetLocation();
+
                     // Check for following L
                     if(source.Peek(1) == 'L' || source.Peek(1) == 'l')
                     {
                         source.Consume(2);
-                        descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL");
+                        descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL",
+                            new SyntaxSpan(document, start, source.GetLocation()));
                     }
                     else
                     {
                         source.Consume();
-                        descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U");
+                        descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U",
+                            new SyntaxSpan(document, start, source.GetLocation()));
                     }
                 }
                 // Long
                 else if(source.Peek() == 'L' || source.Peek() == 'l')
                 {
+                    // Get start
+                    start = source.GetLocation();
+
                     source.Consume();
-                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L");
+                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L",
+                        new SyntaxSpan(document, start, source.GetLocation()));
                 }
                 // Float
                 else if(source.Peek() == 'F' || source.Peek() == 'f')
                 {
+                    // Get start
+                    start = source.GetLocation();
+
                     source.Consume();
-                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "F");
+                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "F",
+                        new SyntaxSpan(document, start, source.GetLocation()));
                 }
                 // Double
                 else if(source.Peek() == 'D' || source.Peek() == 'd')
                 {
+                    // Get start
+                    start = source.GetLocation();
+
                     source.Consume();
-                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "D");
+                    descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "D",
+                        new SyntaxSpan(document, start, source.GetLocation()));
                 }
 
                 // Recycle builder
@@ -568,7 +556,6 @@ namespace LumaSharp.Compiler.Parser
             // Require whitespace or symbol before identifier
             if (source.Position > 0
                 && string.IsNullOrEmpty(leadingTrivia) == true
-                && previousToken.Kind != SyntaxTokenKind.BlockCommentEnd
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 identifier = default;
@@ -581,6 +568,9 @@ namespace LumaSharp.Compiler.Parser
             // Require letter or underscore to start an identifier
             if(char.IsLetter(first) == true || first == '_')
             {
+                // Get start
+                SyntaxLocation start = source.GetLocation();
+
                 // Read thr first character
                 builder.Append(source.Consume());
 
@@ -592,8 +582,12 @@ namespace LumaSharp.Compiler.Parser
                     builder.Append(source.Consume());
                 }
 
+                // Get end
+                SyntaxLocation end = source.GetLocation();
+
                 // Create the token
-                identifier = new SyntaxToken(SyntaxTokenKind.Identifier, builder.ToString());
+                identifier = new SyntaxToken(SyntaxTokenKind.Identifier, builder.ToString(),
+                    new SyntaxSpan(document, start, end));
 
                 // Recycle builder
                 builder.Clear();
@@ -602,22 +596,6 @@ namespace LumaSharp.Compiler.Parser
 
             // Not an identifier
             identifier = default;
-            return false;
-        }
-
-        private static bool MatchAnyString(TextView view, string[] matches, out string match)
-        {
-            foreach(string possibleMatch in matches)
-            {
-                // Check for match
-                if(MatchString(view, possibleMatch) == true)
-                {
-                    match = possibleMatch;
-                    return true;
-                }
-            }
-
-            match = null;
             return false;
         }
 

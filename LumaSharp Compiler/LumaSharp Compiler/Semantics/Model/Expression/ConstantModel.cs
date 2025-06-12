@@ -49,11 +49,11 @@ namespace LumaSharp.Compiler.Semantics.Model
         {
             if(value == null)
             {
-                literal = new SyntaxToken(SyntaxTokenKind.NullKeyword);
+                literal = Syntax.Token(SyntaxTokenKind.NullKeyword);
             }
             else if(value is string)
             {
-                literal = new SyntaxToken(SyntaxTokenKind.Literal, "\"" + value + "\"");
+                literal = Syntax.Token(SyntaxTokenKind.Literal, "\"" + value + "\"");
             }
             else
             {
@@ -66,37 +66,37 @@ namespace LumaSharp.Compiler.Semantics.Model
                     case TypeCode.UInt16:
                     case TypeCode.Int32:
                         {
-                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());                            
+                            literal = Syntax.Token(SyntaxTokenKind.Literal, value.ToString());                            
                             break;
                         }
                     case TypeCode.UInt32:
                         {
-                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
-                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "U");
+                            literal = Syntax.Token(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = Syntax.Token(SyntaxTokenKind.LiteralDescriptor, "U");
                             break;
                         }
                     case TypeCode.Int64:
                         {
-                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
-                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "L");
+                            literal = Syntax.Token(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = Syntax.Token(SyntaxTokenKind.LiteralDescriptor, "L");
                             break;
                         }
                     case TypeCode.UInt64:
                         {
-                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
-                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "UL");
+                            literal = Syntax.Token(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = Syntax.Token(SyntaxTokenKind.LiteralDescriptor, "UL");
                             break;
                         }
                     case TypeCode.Single:
                         {
-                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
-                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "F");
+                            literal = Syntax.Token(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = Syntax.Token(SyntaxTokenKind.LiteralDescriptor, "F");
                             break;
                         }
                     case TypeCode.Double:
                         {
-                            literal = new SyntaxToken(SyntaxTokenKind.Literal, value.ToString());
-                            descriptor = new SyntaxToken(SyntaxTokenKind.LiteralDescriptor, "D");
+                            literal = Syntax.Token(SyntaxTokenKind.Literal, value.ToString());
+                            descriptor = Syntax.Token(SyntaxTokenKind.LiteralDescriptor, "D");
                             break;
                         }
                 }
@@ -150,7 +150,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                 };
 
                 // Resolve symbol
-                this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType, literal.Source);
+                this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType, literal.Span);
             }
         }
 

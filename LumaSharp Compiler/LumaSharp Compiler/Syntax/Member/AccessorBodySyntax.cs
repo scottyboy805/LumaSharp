@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum AccessorOperation
@@ -64,9 +66,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal AccessorBodySyntax(SyntaxToken keyword, StatementSyntax statement)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.LambdaSymbol),
+                  Syntax.Token(SyntaxTokenKind.LambdaSymbol),
                   keyword,
-                  new SyntaxToken(SyntaxTokenKind.ColonSymbol),
+                  Syntax.Token(SyntaxTokenKind.ColonSymbol),
                   statement)
         {
         }
@@ -95,6 +97,11 @@ namespace LumaSharp.Compiler.AST
 
             // Set parent
             statement.parent = this;
+        }
+
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitAccessorBody(this);
         }
 
         public override void GetSourceText(TextWriter writer)

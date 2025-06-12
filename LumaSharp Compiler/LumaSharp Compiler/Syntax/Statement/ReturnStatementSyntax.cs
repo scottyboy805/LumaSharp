@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ReturnStatementSyntax : StatementSyntax
@@ -51,9 +53,9 @@ namespace LumaSharp.Compiler.AST
         // Constructor
         internal ReturnStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> expressions)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.ReturnKeyword),
+                  Syntax.Token(SyntaxTokenKind.ReturnKeyword),
                   expressions,
-                  new SyntaxToken(SyntaxTokenKind.SemicolonSymbol))
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
@@ -77,6 +79,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitReturnStatement(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Keyword

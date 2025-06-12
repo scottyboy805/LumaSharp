@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public sealed class ContractSyntax : MemberSyntax
@@ -92,9 +94,9 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ContractSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
+        internal ContractSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameter, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
             : this(
-                  new SyntaxToken(SyntaxTokenKind.ContractKeyword),
+                  Syntax.Token(SyntaxTokenKind.ContractKeyword),
                   identifier,
                   attributes,
                   accessModifiers,
@@ -104,7 +106,7 @@ namespace LumaSharp.Compiler.AST
         {
         }
 
-        internal ContractSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
+        internal ContractSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, GenericParameterListSyntax genericParameters, BaseTypeListSyntax baseTypes, MemberBlockSyntax members)
             : base(identifier, attributes, accessModifiers)
         {
             // Check kind
@@ -123,7 +125,7 @@ namespace LumaSharp.Compiler.AST
             // Set parent
             if(attributes != null)
             {
-                foreach (AttributeReferenceSyntax a in attributes)
+                foreach (AttributeSyntax a in attributes)
                     a.parent = this;
             }
             if (genericParameters != null) genericParameters.parent = this;
@@ -132,6 +134,11 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
+        public override void Accept(SyntaxVisitor visitor)
+        {
+            visitor.VisitContract(this);
+        }
+
         public override void GetSourceText(TextWriter writer)
         {
             // Generate attributes

@@ -1,5 +1,4 @@
-﻿using LumaSharp.Runtime;
-using LumaSharp.Runtime.Reflection;
+﻿using LumaSharp.Runtime.Reflection;
 using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
 
@@ -319,7 +318,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     }
                     else
                     {
-                        report.ReportDiagnostic(Code.MultipleParameterIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)parameterIdentifierSymbols[i]).Syntax.StartToken.Source, parameterIdentifierSymbols[i].IdentifierName);
+                        report.ReportDiagnostic(Code.MultipleParameterIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)parameterIdentifierSymbols[i]).Syntax.StartToken.Span, parameterIdentifierSymbols[i].IdentifierName);
                     }
                 }
 
@@ -342,7 +341,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                             }
                             else
                             {
-                                report.ReportDiagnostic(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localIdentifierSymbols[i]).Syntax.StartToken.Source, localIdentifierSymbols[i].IdentifierName);
+                                report.ReportDiagnostic(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localIdentifierSymbols[i]).Syntax.StartToken.Span, localIdentifierSymbols[i].IdentifierName);
                             }
                         }
                     }

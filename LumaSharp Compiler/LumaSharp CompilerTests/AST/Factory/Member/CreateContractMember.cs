@@ -20,7 +20,7 @@ namespace CompilerTests.AST.Factory.Member
         [ExpectedException(typeof(ArgumentException))]
         public void CreateContractInvalidIdentifier()
         {
-            Syntax.Contract(new SyntaxToken(SyntaxTokenKind.Invalid));
+            Syntax.Contract(Syntax.Token(SyntaxTokenKind.Invalid));
         }
     }
 }

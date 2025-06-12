@@ -1,4 +1,6 @@
 ﻿
+using LumaSharp.Compiler.AST.Visitor;
+
 namespace LumaSharp.Compiler.AST
 {
     public enum AccessModifier
@@ -12,7 +14,7 @@ namespace LumaSharp.Compiler.AST
     public abstract class MemberSyntax : SyntaxNode
     {
         // Protected
-        protected readonly AttributeReferenceSyntax[] attributes;
+        protected readonly AttributeSyntax[] attributes;
         protected readonly SyntaxToken[] accessModifiers;
         protected readonly SyntaxToken identifier;
 
@@ -33,7 +35,7 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public AttributeReferenceSyntax[] Attributes
+        public AttributeSyntax[] Attributes
         {
             get { return attributes; }
         }
@@ -69,7 +71,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        protected MemberSyntax(SyntaxToken identifier, AttributeReferenceSyntax[] attributes, SyntaxToken[] accessModifiers)
+        protected MemberSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers)
         {
             // Check for identifier
             if(identifier.Kind != SyntaxTokenKind.Identifier)
@@ -86,7 +88,7 @@ namespace LumaSharp.Compiler.AST
             if (HasAttributes == true)
             {
                 // Get custom attributes
-                foreach (AttributeReferenceSyntax attribute in attributes)
+                foreach (AttributeSyntax attribute in attributes)
                 {
                     attribute.GetSourceText(writer);
                 }

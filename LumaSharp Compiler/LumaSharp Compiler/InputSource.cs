@@ -8,19 +8,22 @@ namespace LumaSharp.Compiler
     public sealed class InputSource : IDisposable
     {
         // Private
-        private TextReader reader = null;
-        private string documentName = "Unknown";
-        private string documentPath = "";
+        private readonly TextReader reader = null;
+        private readonly string document = null;
 
         // Properties
         public TextReader Reader => reader;
+        public string Document => document;
 
         // Constructor
-        private InputSource(TextReader reader, string name = null, string path = null)
+        private InputSource(TextReader reader, string document = null)
         {
             this.reader = reader;
-            if(name != null) this.documentName = name;
-            if(path != null) this.documentPath = path;
+            this.document = document;
+
+            // Check for null
+            if (document == null && reader is StreamReader sr && sr.BaseStream is FileStream fs)
+                this.document = fs.Name;
         }
 
         // Methods
@@ -61,7 +64,6 @@ namespace LumaSharp.Compiler
 
             // Create reader
             return new InputSource(new StreamReader(filePath, encoding),
-                Path.GetFileNameWithoutExtension(filePath),
                 filePath);
         }
     }
