@@ -36,6 +36,11 @@ namespace LumaSharp.Compiler.AST
             get { return identifier; }
         }
 
+        public SyntaxToken Colon
+        {
+            get { return colon; }
+        }
+
         public SeparatedSyntaxList<TypeReferenceSyntax> ConstraintTypes
         {
             get { return genericConstraints; }

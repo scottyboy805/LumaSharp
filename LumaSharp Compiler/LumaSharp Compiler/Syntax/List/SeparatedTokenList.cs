@@ -6,11 +6,18 @@ namespace LumaSharp.Compiler.AST
     public class SeparatedTokenList : SyntaxNode, IEnumerable<SyntaxToken>
     {
         // Type
-        private struct TokenSeparatedElement
+        public readonly struct TokenSeparatedElement
         {
-            // Public
-            public SyntaxToken separator;
-            public SyntaxToken token;
+            // Public            
+            public readonly SyntaxToken Token;
+            public readonly SyntaxToken? Separator;
+
+            // Constructor
+            public TokenSeparatedElement(SyntaxToken token, SyntaxToken? separator)
+            {
+                this.Token = token;
+                this.Separator  = separator;
+            }
         }
 
         // Private
@@ -25,7 +32,7 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for any
                 if (tokenList.Count > 0)
-                    return tokenList[0].token;
+                    return tokenList[0].Token;
 
                 // Not valid
                 return SyntaxToken.Invalid;
@@ -38,11 +45,21 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for any
                 if(tokenList.Count > 0)
-                    return tokenList[tokenList.Count - 1].token;
+                    return tokenList[tokenList.Count - 1].Token;
 
                 // Not valid
                 return SyntaxToken.Invalid;
             }
+        }
+
+        public SyntaxTokenKind SeparatorKind
+        {
+            get { return separatorKind; }
+        }
+
+        public SyntaxTokenKind? TokenKind
+        {
+            get { return tokenKind; }
         }
 
         public SyntaxToken this[int index]
@@ -53,8 +70,13 @@ namespace LumaSharp.Compiler.AST
                 if (index >= tokenList.Count)
                     throw new IndexOutOfRangeException();
 
-                return tokenList[index].token; 
+                return tokenList[index].Token; 
             }
+        }
+
+        public IReadOnlyList<TokenSeparatedElement> Elements
+        {
+            get { return tokenList; }
         }
 
         public int Count
@@ -67,7 +89,7 @@ namespace LumaSharp.Compiler.AST
             get
             {
                 if (tokenList.Count > 0)
-                    return tokenList[tokenList.Count - 1].separator.Kind != SyntaxTokenKind.Invalid;
+                    return tokenList[tokenList.Count - 1].Separator != null;
 
                 return false;
             }
@@ -79,18 +101,52 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal SeparatedTokenList(SyntaxTokenKind separatorKind, SyntaxTokenKind? tokenKind)
+        internal SeparatedTokenList(SyntaxTokenKind separatorKind, SyntaxToken tokenSingle)
         {
             this.separatorKind = separatorKind;
-            this.tokenKind = tokenKind;
+            this.tokenList = new();
+            this.tokenList.Add(new TokenSeparatedElement(tokenSingle, null));
+            this.tokenKind = tokenSingle.Kind;
         }
 
-        internal SeparatedTokenList(SyntaxToken[] items, SyntaxTokenKind separatorKind, SyntaxTokenKind? tokenKind)
-            : this(separatorKind, tokenKind)
+        internal SeparatedTokenList(SyntaxTokenKind separatorKind, IEnumerable<SyntaxToken> elements, SyntaxTokenKind? tokenKind)
+            : this(separatorKind, elements.Select(e => new TokenSeparatedElement(e, Syntax.Token(separatorKind))), tokenKind)
         {
-            // Add all with separator
-            foreach (SyntaxToken item in items)
-                AddElement(item, Syntax.Token(separatorKind));
+        }
+
+        internal SeparatedTokenList(SyntaxTokenKind separatorKind, IEnumerable<TokenSeparatedElement> elements, SyntaxTokenKind? tokenKind)
+        {
+            this.separatorKind = separatorKind;
+            this.tokenList = new(elements != null
+                ? elements.Count()
+                : 0);
+            this.tokenKind = tokenKind;
+
+            // Check for any
+            if(elements != null)
+            {
+                // Add all elements
+                int current = 0;
+                foreach(TokenSeparatedElement item in elements)
+                {
+                    // Add the element
+                    this.tokenList.Add(item);
+
+                    // Check kind
+                    if (tokenKind != null && item.Token.Kind != tokenKind)
+                        throw new ArgumentException("Token element must be of kind: " + tokenKind.Value);
+
+                    // Expect separator?
+                    if (current < tokenList.Count - 1 && item.Separator == null)
+                        throw new ArgumentException("A separator must be provided when token continues at index: " + current);
+
+                    // Check kind
+                    if (item.Separator != null && item.Separator.Value.Kind != separatorKind)
+                        throw new ArgumentException("Separator must be of kind: " + separatorKind);
+
+                    current++;
+                }
+            }
         }
 
         // Methods
@@ -104,28 +160,6 @@ namespace LumaSharp.Compiler.AST
             return visitor.VisitTokenList(this);
         }
 
-        public void AddElement(SyntaxToken tokenElement, SyntaxToken? separator)
-        {
-            // Check kind
-            if(separator != null && separator.Value.Kind != separatorKind)
-                throw new ArgumentException("Separator must be of kind: " + separatorKind);
-
-            //// Check for count
-            //if (tokenList.Count > 0 && separator == null)
-            //    throw new ArgumentException("Separator must be provided for non-zero indexed elements");
-
-            // Check for token
-            if(tokenKind != null && tokenElement.Kind != tokenKind.Value)
-                throw new ArgumentException("Token must be of kind: " +  tokenKind);
-
-            // Add to list
-            tokenList.Add(new TokenSeparatedElement
-            {
-                separator = separator != null ? separator.Value : default,
-                token = tokenElement,
-            });
-        }
-
         public override void GetSourceText(TextWriter writer)
         {
             // Process all elements
@@ -133,21 +167,21 @@ namespace LumaSharp.Compiler.AST
             {
                 // Check for token
                 if (i > 0)
-                    tokenList[i].separator.GetSourceText(writer);
+                    tokenList[i].Separator?.GetSourceText(writer);
 
                 // Get syntax source
-                tokenList[i].token.GetSourceText(writer);
+                tokenList[i].Token.GetSourceText(writer);
             }
 
             // Check for trailing separator
             if (HasTrailingSeparator == true)
-                tokenList[tokenList.Count - 1].separator.GetSourceText(writer);
+                tokenList[tokenList.Count - 1].Separator?.GetSourceText(writer);
         }
 
         public IEnumerator<SyntaxToken> GetEnumerator()
         {
             foreach(TokenSeparatedElement token in tokenList)
-                yield return token.token;
+                yield return token.Token;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

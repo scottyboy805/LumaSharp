@@ -25,6 +25,11 @@ namespace LumaSharp.Compiler.AST
             get { return semicolon; }
         }
 
+        public VariableDeclarationSyntax Variable
+        {
+            get { return variable; }
+        }
+
         public TypeReferenceSyntax VariableType
         {
             get { return variable.VariableType; }

@@ -50,7 +50,7 @@ namespace LumaSharp.Compiler.AST
         internal ArrayParametersSyntax(int rank)
             : this(
                   Enumerable.Repeat(
-                    Syntax.Token(SyntaxTokenKind.CommaSymbol), rank)
+                    Syntax.Token(SyntaxTokenKind.CommaSymbol), rank - 1)
                     .ToArray())
         {
         }

@@ -14,7 +14,6 @@ namespace LumaSharp.Compiler.Parser
 
             // Store list of syntax
             List<SeparatedSyntaxList<T>.SyntaxSeparatedElement> elements = null;
-            //SeparatedSyntaxList<T> list = null;
             T syntax = null;
 
             // Check for value
@@ -39,15 +38,13 @@ namespace LumaSharp.Compiler.Parser
             }
 
             // Create the list
-            return new SeparatedSyntaxList<T>(separatorKind, elements);// elements == null
-                //? Enumerable.Empty<T>()
-                //: (IEnumerable<T>)elements);
-            //return list;
+            return new SeparatedSyntaxList<T>(separatorKind, elements);
         }
 
         internal SeparatedTokenList ParseSeparatedTokenList(SyntaxTokenKind separatorKind, SyntaxTokenKind valueKind = SyntaxTokenKind.Identifier, bool requireTrailingSeparator = false)
         {
-            SeparatedTokenList tokenList = null;
+            //SeparatedTokenList tokenList = null;
+            List<SeparatedTokenList.TokenSeparatedElement> elements = null;
 
             // Check for trailing required
             if (requireTrailingSeparator == true && (tokens.PeekKind() != valueKind || tokens.PeekKind(1) != separatorKind))
@@ -65,12 +62,22 @@ namespace LumaSharp.Compiler.Parser
                     : (SyntaxToken?)null;
 
                 // Create list
-                if (tokenList == null)
-                    tokenList = new(separatorKind, valueKind);
+                if (elements == null)
+                    elements = new();
+                //if (tokenList == null)
+                //    tokenList = new(separatorKind, valueKind);
 
                 // Add item
-                tokenList.AddElement(value, separator);
+                elements.Add(new SeparatedTokenList.TokenSeparatedElement(value, separator));
+                //tokenList.AddElement(value, separator);
             }
+
+            // Check for any
+            if (elements == null)
+                return null;
+
+            // Create token list
+            SeparatedTokenList tokenList = new SeparatedTokenList(separatorKind, elements, valueKind);
 
             // Check for trailing separator
             if(tokenList != null && requireTrailingSeparator == true && tokenList.HasTrailingSeparator == false)

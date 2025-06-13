@@ -45,24 +45,24 @@ namespace LumaSharp.Compiler.AST
 
         public static T ReplaceSyntax<T, J>(this T node, J current, J replacement) where T : SyntaxNode where J : SyntaxNode
         {
-            // Create syntax replacement
-            SyntaxReplacer<J> replacer = new SyntaxReplacer<J>(current, replacement);
-
-            // Try to rewrite
-            return replacer.DefaultVisit(node);
+            // Try to replace syntax
+            return new SyntaxReplacer.SyntaxReplace(current, replacement)
+                .DefaultVisit(node);
         }
 
         public static T ReplaceToken<T>(this T node, SyntaxToken current, SyntaxToken replacement) where T : SyntaxNode
         {
-            // Create token replacement
-            TokenReplacer replacer = new TokenReplacer(current, replacement);
-
-            // Try to rewrite
-            return replacer.DefaultVisit(node);
+            // Try to replace token
+            return new SyntaxReplacer.TokenReplace(current, replacement)
+                .DefaultVisit(node);
         }
 
-        public static T WithTrivia<T>(this T node, SyntaxTrivia trivia) where T : SyntaxNode
+        public static T WithTrailingTrivia<T>(this T node, SyntaxTrivia trivia) where T : SyntaxNode
         {
+            // Check kind
+            if (trivia.IsTrailing == false)
+                throw new InvalidOperationException("Trivia is leading");
+
             // Get end token
             SyntaxToken endToken = node.EndToken;
 
@@ -75,12 +75,12 @@ namespace LumaSharp.Compiler.AST
         #endregion
 
         #region Members
-        internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(identifiers.Select(n => Identifier(n)).ToArray(), SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier);
+        internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(SyntaxTokenKind.ColonSymbol, identifiers.Select(n => Identifier(n)), SyntaxTokenKind.Identifier);
 
-        public static ImportSyntax Import(params SyntaxToken[] identifiers) => new ImportSyntax(new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier));
+        public static ImportSyntax Import(params SyntaxToken[] identifiers) => new ImportSyntax(new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier));
         //public static ImportSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType, params string[] identifiers) => new ImportSyntax(null, alias, aliasType, identifiers);
         
-        public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier));
+        public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier));
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
         public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, null, null);
@@ -115,8 +115,8 @@ namespace LumaSharp.Compiler.AST
         #endregion
 
         #region Statements
-        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationSyntax(variableType, new(new [] { identifier }, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), assignment);
-        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationSyntax(variableType, new(identifiers, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Identifier), assignment);
+        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationSyntax(variableType, new(SyntaxTokenKind.CommaSymbol, new[] { identifier }, SyntaxTokenKind.Identifier), assignment);
+        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationSyntax(variableType, new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier), assignment);
         public static VariableDeclarationStatementSyntax LocalVariable(VariableDeclarationSyntax variable) => new VariableDeclarationStatementSyntax(variable);
         public static VariableDeclarationStatementSyntax LocalVariable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationStatementSyntax(Variable(variableType, identifier, assignment));
         public static VariableDeclarationStatementSyntax LocalVariable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) => new VariableDeclarationStatementSyntax(Variable(variableType, identifiers, assignment));

@@ -45,6 +45,11 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
+        public AttributeSyntax[] Attributes
+        {
+            get { return attributes; }
+        }
+
         public TypeReferenceSyntax ParameterType
         {
             get { return parameterType; }

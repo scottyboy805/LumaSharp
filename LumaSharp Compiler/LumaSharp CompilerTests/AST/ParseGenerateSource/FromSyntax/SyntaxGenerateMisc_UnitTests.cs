@@ -87,7 +87,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Method("test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val")).Parameters;
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val")).Parameters
+                .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("(i32 val)", syntax1.GetSourceText());
@@ -96,29 +97,32 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax2 = Syntax.Method("test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val"),
-                Syntax.Parameter(Syntax.TypeReference("MyType"), "arg")).Parameters;
+                Syntax.Parameter(Syntax.TypeReference("MyType"), "arg")).Parameters
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("(i32 val,MyType arg)", syntax2.GetSourceText());
+            Assert.AreEqual("(i32 val, MyType arg)", syntax2.GetSourceText());
             Assert.AreEqual("(", syntax2.StartToken.Text);
             Assert.AreEqual(")", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Method("test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val"),
-                Syntax.Parameter(Syntax.TypeReference("MyType"), "arg")).Parameters;
+                Syntax.Parameter(Syntax.TypeReference("MyType"), "arg", true)).Parameters
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("(i32 val,MyType arg...)", syntax3.GetSourceText());
+            Assert.AreEqual("(i32 val, MyType arg ...)", syntax3.GetSourceText());
             Assert.AreEqual("(", syntax3.StartToken.Text);
             Assert.AreEqual(")", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Method("test")
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val"),
                 Syntax.Parameter(Syntax.TypeReference("MyType"), "arg")
-                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("ref")))).Parameters;
+                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("ref")))).Parameters
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("(i32 val,MyType& arg)", syntax4.GetSourceText());
+            Assert.AreEqual("(i32 val, #ref MyType arg)", syntax4.GetSourceText());
             Assert.AreEqual("(", syntax4.StartToken.Text);
             Assert.AreEqual(")", syntax4.EndToken.Text);
         }

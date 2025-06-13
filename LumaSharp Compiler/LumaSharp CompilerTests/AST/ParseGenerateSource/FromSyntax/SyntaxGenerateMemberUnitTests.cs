@@ -131,7 +131,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("i32 MyMethod(i32 MyParam,MyType Extra)\n{\n}", syntax3.GetSourceText());
+            Assert.AreEqual("i32 MyMethod(i32 MyParam, MyType Extra)\n{\n}", syntax3.GetSourceText());
             Assert.AreEqual("i32", syntax3.StartToken.Text);
             Assert.AreEqual("}", syntax3.EndToken.Text);
         }
