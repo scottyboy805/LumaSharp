@@ -50,25 +50,30 @@ namespace LumaSharp.Compiler.Parser
             SyntaxToken previous = SyntaxToken.Invalid;
 
             // Create trivia list
-            List<SyntaxTrivia> trivia = new();
+            //List<SyntaxTrivia> trivia = new();
 
             // Read all tokens with minimal lookahead
             while(source.EOF == false)
             {
                 // Get leading trivia
-                ReadLeadingTrivia(source.Position == 0, trivia);
+                //ReadLeadingTrivia(source.Position == 0, trivia);
+                SyntaxTrivia[] leadingTrivia = ReadTrivia(source.Position == 0, true)
+                    .ToArray();
 
-                // Get leading trivia string immediately before the token - used for toking parser separation
-                string leadingTriviaString = trivia.Count > 0
-                    ? trivia[trivia.Count - 1].Text
-                    : string.Empty;
+                // Try to get last or default trivia
+                SyntaxTrivia? lastLeadingTrivia = leadingTrivia.LastOrDefault();
+
+                //// Get leading trivia string immediately before the token - used for toking parser separation
+                //string leadingTriviaString = trivia.Count > 0
+                //    ? trivia[trivia.Count - 1].Text
+                //    : string.Empty;
 
                 // Check for eof after trivia
                 if(source.EOF == true)
                 {
                     // Return eof token with trivia
                     yield return Syntax.Token(SyntaxTokenKind.EOF)
-                        .WithTrivia(trivia);
+                        .WithLeadingTrivia(leadingTrivia);
                     yield break;
                 }
 
@@ -77,60 +82,76 @@ namespace LumaSharp.Compiler.Parser
                 else if (MatchLiteral(out SyntaxToken literal) == true)
                 {
                     // Read end trivia
-                    ReadTrailingTrivia(trivia);
+                    //ReadTrailingTrivia(trivia);
 
                     // Get the literal
-                    yield return previous = trivia.Count > 0
-                        ? literal.WithTrivia(trivia)
-                        : literal;
+                    //yield return previous = trivia.Count > 0
+                    //    ? literal.WithTrivia(trivia)
+                    //    : literal;
+                    yield return previous = literal
+                        .WithLeadingTrivia(leadingTrivia)
+                        .WithTrailingTrivia(ReadTrivia(false, false));
                 }
                 // ### KEYWORD - Check for keyword delimited by whitespace or symbol
-                else if (MatchKeyword(leadingTriviaString, previous, out SyntaxToken keyword) == true)
+                else if (MatchKeyword(lastLeadingTrivia, previous, out SyntaxToken keyword) == true)
                 {
-                    // Read end trivia
-                    ReadTrailingTrivia(trivia);
+                    //// Read end trivia
+                    //ReadTrailingTrivia(trivia);
 
-                    // Get the keyword
-                    yield return previous = trivia.Count > 0
-                        ? keyword.WithTrivia(trivia)
-                        : keyword;
+                    //// Get the keyword
+                    //yield return previous = trivia.Count > 0
+                    //    ? keyword.WithTrivia(trivia)
+                    //    : keyword;
+                    yield return previous = keyword
+                        .WithLeadingTrivia(leadingTrivia)
+                        .WithTrailingTrivia(ReadTrivia(false, false));
                 }
                 // ### SYMBOL - Check for symbol delimited by whitespace, letter or digit
-                else if (MatchSymbol(leadingTriviaString, previous, out SyntaxToken symbol) == true)
+                else if (MatchSymbol(lastLeadingTrivia, previous, out SyntaxToken symbol) == true)
                 {
-                    // Read end trivia
-                    ReadTrailingTrivia(trivia);
+                    //// Read end trivia
+                    //ReadTrailingTrivia(trivia);
 
-                    // Get the symbol
-                    yield return previous = trivia.Count > 0
-                        ? symbol.WithTrivia(trivia)
-                        : symbol;
+                    //// Get the symbol
+                    //yield return previous = trivia.Count > 0
+                    //    ? symbol.WithTrivia(trivia)
+                    //    : symbol;
+                    yield return previous = symbol
+                        .WithLeadingTrivia(leadingTrivia)
+                        .WithTrailingTrivia(ReadTrivia(false, false));
                 }
                 // ### NUMBER - Check for numeric value delimited by whitespace or letter
-                else if (MatchNumber(leadingTriviaString, previous, out SyntaxToken number, out SyntaxToken descriptor) == true)
+                else if (MatchNumber(lastLeadingTrivia, previous, out SyntaxToken number, out SyntaxToken descriptor) == true)
                 {
-                    // Read end trivia
-                    ReadTrailingTrivia(trivia);
+                    //// Read end trivia
+                    //ReadTrailingTrivia(trivia);
 
-                    // Get the symbol
-                    yield return previous = trivia.Count > 0
-                        ? number.WithTrivia(trivia.Where(t => t.IsLeading))
-                        : number;
+                    //// Get the symbol
+                    //yield return previous = trivia.Count > 0
+                    //    ? number.WithTrivia(trivia.Where(t => t.IsLeading))
+                    //    : number;
+                    yield return previous = number
+                        .WithLeadingTrivia(leadingTrivia);
 
                     // Check for descriptor
                     if(descriptor.Kind != SyntaxTokenKind.Invalid)
-                        yield return previous = descriptor;
+                        yield return previous = descriptor
+                            .WithTrailingTrivia(ReadTrivia(false, false));
                 }
                 // ### IDENTIFIER - Check for identifier name
-                else if (MatchIdentifier(leadingTriviaString, previous, out SyntaxToken identifier) == true)
+                else if (MatchIdentifier(lastLeadingTrivia, previous, out SyntaxToken identifier) == true)
                 {
-                    // Read end trivia
-                    ReadTrailingTrivia(trivia);
+                    //// Read end trivia
+                    //ReadTrailingTrivia(trivia);
 
-                    // Get the symbol
-                    yield return previous = trivia.Count > 0
-                        ? identifier.WithTrivia(trivia)
-                        : identifier;
+                    //// Get the symbol
+                    //yield return previous = trivia.Count > 0
+                    //    ? identifier.WithTrivia(trivia)
+                    //    : identifier;
+
+                    yield return previous = identifier
+                        .WithLeadingTrivia(leadingTrivia)
+                        .WithTrailingTrivia(ReadTrivia(false, false));
                 }
                 
                 // ### UNKNOWN - could not parse the string
@@ -141,7 +162,7 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Recycle trivia list
-                trivia.Clear();
+                //trivia.Clear();
             }
 
             // Return eof with no trivia
@@ -149,108 +170,194 @@ namespace LumaSharp.Compiler.Parser
         }
 
         #region Trivia
-        private void ReadLeadingTrivia(bool isStart, IList<SyntaxTrivia> trivia)
-        {
+        private IEnumerable<SyntaxTrivia> ReadTrivia(bool isFirstToken, bool isLeading)
+        {            
             while(source.EOF == false)
             {
-                // Get current char
-                char current = source.Peek();
+                // Get current position
+                int position = source.Position;
 
-                // Check for leading whitespace
-                if(IsWhiteSpaceTrivia(current) == true)
+                // Check for new line
+                if (ReadEndLineTrivia(out SyntaxTrivia newLine) == true)
                 {
-                    builder.Append(current);
-                    source.Consume();
+                    // Get the new line
+                    yield return newLine;
 
-                    // Check for build the string
-                    if(IsWhiteSpaceTrivia(source.Peek()) == false)
-                    {
-                        // We can build a whitespace trivia object
-                        trivia.Add(SyntaxTrivia.Leading(SyntaxTriviaKind.Whitespace, builder.ToString(), default));
-                        builder.Clear();
-                    }
+                    // Check for trailing
+                    if (isFirstToken == false && isLeading == false)
+                        yield break;
                 }
-                // Check for any other whitespace for starting token only
-                else if(isStart == true && IsEndLineTrivia(current) == true)
-                {
-                    builder.Append(current);
-                    source.Consume();
-
-                    // Check for build the string
-                    if(IsEndLineTrivia(source.Peek()) == false)
-                    {
-                        // We can build an end line trivia object
-                        trivia.Add(SyntaxTrivia.Leading(SyntaxTriviaKind.Newline, builder.ToString(), default));
-                        builder.Clear();
-                    }
-                }
-                else
-                {
-                    // Must be some other token to be parsed
-                    break;
-                }
-            }
-        }
-
-        private void ReadTrailingTrivia(IList<SyntaxTrivia> trivia)
-        {
-            // First lookahead to see if there is an end line - if not then we should not parse the trailing trivia
-            int position = 0;
-            while (source.EOF == false)
-            {
-                // Peek current
-                char current = source.Peek(position++);
-
-                // Check for end line or end of stream
-                if (IsEndLineTrivia(current) == true || current == '\0')
-                    break;
-
-                // Handle whitespace
-                if (IsWhiteSpaceTrivia(current) == true)
-                    continue;
-
-                // Must be some other character that should be parsed as a token
-                return;
-            }
-
-            while (source.EOF == false)
-            {
-                // Get current char
-                char current = source.Peek();
 
                 // Check for whitespace
-                if(IsWhiteSpaceTrivia(current) == true)
-                {
-                    builder.Append(current);
-                    source.Consume();
+                if (ReadWhitespaceTrivia(out SyntaxTrivia ws) == true)
+                    yield return ws;
 
-                    // Check for build string
-                    if(IsWhiteSpaceTrivia(source.Peek()) == false)
-                    {
-                        trivia.Add(SyntaxTrivia.Trailing(SyntaxTriviaKind.Whitespace, builder.ToString(), default));
-                        builder.Clear();
-                    }
-                }
-                // Check for end line
-                else if(IsEndLineTrivia(current) == true)
-                {
-                    builder.Append(current);
-                    source.Consume();
-
-                    // Check for build string
-                    if (IsEndLineTrivia(source.Peek()) == false)
-                    {
-                        trivia.Add(SyntaxTrivia.Trailing(SyntaxTriviaKind.Newline, builder.ToString(), default));
-                        builder.Clear();
-                    }
-                }
-                else
-                {
-                    // Must be end line or some other token to be parsed
+                // Check for position not changed
+                if (source.Position == position)
                     break;
-                }
             }
         }
+
+        private bool ReadEndLineTrivia(out SyntaxTrivia trivia)
+        {
+            // Check for end line with return
+            if (source.Peek() == '\r' && source.Peek(1) == '\n')
+            {
+                // Read the full new line
+                builder.Append(source.Consume());
+                builder.Append(source.Consume());
+
+                // Build the trivia
+                trivia = Syntax.Trivia(SyntaxTriviaKind.Newline, builder.ToString());
+                builder.Clear();
+                return true;
+            }
+            else if(source.Peek() == '\n' || source.Peek() == '\r')
+            {
+                char current = source.Consume();
+
+                // Finally build the trivia
+                trivia = Syntax.Trivia(SyntaxTriviaKind.Newline, current.ToString());
+                return true;
+            }
+            trivia = default;
+            return false;
+        }
+
+        private bool ReadWhitespaceTrivia(out SyntaxTrivia trivia)
+        {
+            // Get current char
+            char current = source.Peek();
+
+            // Check for whitespace
+            if (IsWhiteSpaceTrivia(current) == true)
+            {
+                builder.Append(current);
+                source.Consume();
+
+                // Continue reading whitespace
+                current = source.Peek();
+
+                while (IsWhiteSpaceTrivia(current) == true)
+                {
+                    builder.Append(current);
+                    source.Consume();
+
+                    // Get next
+                    current = source.Peek();
+                }
+
+                // Finally build the trivia
+                trivia = Syntax.Trivia(SyntaxTriviaKind.Whitespace, builder.ToString());
+                builder.Clear();
+                return true;
+            }
+            trivia = default;
+            return false;
+        }
+
+        //private void ReadLeadingTrivia(bool isStart, IList<SyntaxTrivia> trivia)
+        //{
+        //    while (source.EOF == false)
+        //    {
+        //        Get current char
+        //        char current = source.Peek();
+
+        //        Check for leading whitespace
+        //        if (IsWhiteSpaceTrivia(current) == true)
+        //            {
+        //                builder.Append(current);
+        //                source.Consume();
+
+        //                Check for build the string
+        //               if (IsWhiteSpaceTrivia(source.Peek()) == false)
+        //                    {
+        //                        We can build a whitespace trivia object
+        //                trivia.Add(Syntax.Trivia(SyntaxTriviaKind.Whitespace, builder.ToString()));
+        //                        builder.Clear();
+        //                    }
+        //            }
+        //        Check for any other whitespace for starting token only
+        //        else if (isStart == true && IsEndLineTrivia(current) == true)
+        //                    {
+        //                        builder.Append(current);
+        //                        source.Consume();
+
+        //                        Check for build the string
+        //                       if (IsEndLineTrivia(source.Peek()) == false)
+        //                            {
+        //                                We can build an end line trivia object
+        //                trivia.Add(Syntax.Trivia(SyntaxTriviaKind.Newline, builder.ToString()));
+        //                                builder.Clear();
+        //                            }
+        //                    }
+        //                    else
+        //                    {
+        //                        Must be some other token to be parsed
+        //                        break;
+        //                    }
+        //    }
+        //}
+
+        //private void ReadTrailingTrivia(IList<SyntaxTrivia> trivia)
+        //{
+        //    First lookahead to see if there is an end line - if not then we should not parse the trailing trivia
+        //    int position = 0;
+        //    while (source.EOF == false)
+        //    {
+        //        Peek current
+        //        char current = source.Peek(position++);
+
+        //        Check for end line or end of stream
+        //        if (IsEndLineTrivia(current) == true || current == '\0')
+        //                break;
+
+        //        Handle whitespace
+        //        if (IsWhiteSpaceTrivia(current) == true)
+        //            continue;
+
+        //        Must be some other character that should be parsed as a token
+        //        return;
+        //    }
+
+        //    while (source.EOF == false)
+        //    {
+        //        Get current char
+        //        char current = source.Peek();
+
+        //        Check for whitespace
+        //        if (IsWhiteSpaceTrivia(current) == true)
+        //            {
+        //                builder.Append(current);
+        //                source.Consume();
+
+        //                Check for build string
+        //               if (IsWhiteSpaceTrivia(source.Peek()) == false)
+        //                    {
+        //                        trivia.Add(Syntax.Trivia(SyntaxTriviaKind.Whitespace, builder.ToString()));
+        //                        builder.Clear();
+        //                    }
+        //            }
+        //        Check for end line
+        //        else if (IsEndLineTrivia(current) == true)
+        //                {
+        //                    builder.Append(current);
+        //                    source.Consume();
+
+        //                    Check for build string
+        //                   if (IsEndLineTrivia(source.Peek()) == false)
+        //                        {
+        //                            trivia.Add(Syntax.Trivia(SyntaxTriviaKind.Newline, builder.ToString()));
+        //                            builder.Clear();
+        //                        }
+        //                }
+        //                else
+        //                {
+        //                    Must be end line or some other token to be parsed
+        //                    break;
+        //                }
+        //    }
+        //}
 
         private bool IsLineCommentTrivia(out string lineCommentText)
         {
@@ -339,11 +446,11 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
-        private bool MatchKeyword(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken keyword)
+        private bool MatchKeyword(SyntaxTrivia? lastLeadingTrivia, in SyntaxToken previousToken, out SyntaxToken keyword)
         {
             // Check for start of doc, white space, end of block comment, or delimiting symbol to start the keyword
             if (source.Position > 0 
-                && string.IsNullOrEmpty(leadingTrivia) == true 
+                && lastLeadingTrivia == null 
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 keyword = default;
@@ -388,11 +495,11 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
-        private bool MatchSymbol(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken symbol)
+        private bool MatchSymbol(SyntaxTrivia? lastLeadingTrivia, in SyntaxToken previousToken, out SyntaxToken symbol)
         {
             // Check for start of doc, white space, end of block comment, or delimiting symbol to start the keyword
             if (source.Position > 0
-                && string.IsNullOrEmpty(leadingTrivia) == true
+                && lastLeadingTrivia == null
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsSymbolDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 symbol = default;
@@ -437,13 +544,13 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
-        private bool MatchNumber(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken number, out SyntaxToken descriptor)
+        private bool MatchNumber(SyntaxTrivia? lastLeadingTrivia, in SyntaxToken previousToken, out SyntaxToken number, out SyntaxToken descriptor)
         {
             descriptor = default;
 
             // Require whitespace or symbol before number
             if (source.Position > 0
-                && string.IsNullOrEmpty(leadingTrivia) == true
+                && lastLeadingTrivia == null
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 number = default;                
@@ -551,11 +658,11 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
-        private bool MatchIdentifier(string leadingTrivia, in SyntaxToken previousToken, out SyntaxToken identifier)
+        private bool MatchIdentifier(SyntaxTrivia? lastLeadingTrivia, in SyntaxToken previousToken, out SyntaxToken identifier)
         {
             // Require whitespace or symbol before identifier
             if (source.Position > 0
-                && string.IsNullOrEmpty(leadingTrivia) == true
+                && lastLeadingTrivia == null
                 && (previousToken.Kind == SyntaxTokenKind.Invalid || IsKeywordDelimiterCharacter(previousToken.Text.Last()) == false))
             {
                 identifier = default;

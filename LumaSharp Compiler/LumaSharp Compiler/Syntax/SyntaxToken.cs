@@ -232,7 +232,8 @@ namespace LumaSharp.Compiler.AST
         };
 
         // Private
-        private readonly List<SyntaxTrivia> trivia;
+        private readonly SyntaxTrivia[] leadingTrivia;
+        private readonly SyntaxTrivia[] trailingTrivia;
 
         // Public
         public static readonly SyntaxToken Invalid = Syntax.Token(SyntaxTokenKind.Invalid);
@@ -256,26 +257,33 @@ namespace LumaSharp.Compiler.AST
         {
             get
             {
-                // Check for none
-                if (trivia == null)
-                    yield break;
+                // Get leading
+                if(leadingTrivia != null)
+                {
+                    foreach (SyntaxTrivia trivia in leadingTrivia)
+                        yield return trivia;
+                }
 
-                // Enumerate all
-                foreach(SyntaxTrivia t in trivia)
-                    yield return t;
+                // Get trailing
+                if(trailingTrivia != null)
+                {
+                    foreach(SyntaxTrivia trivia in trailingTrivia)
+                        yield return trivia;
+                }
             }
         }
 
-        public IEnumerable<SyntaxTrivia> LeadingTrivia => Trivia.Where(t => t.IsLeading);
-        public IEnumerable<SyntaxTrivia> TrailingTrivia => Trivia.Where(t => t.IsTrailing);
+        public IEnumerable<SyntaxTrivia> LeadingTrivia => leadingTrivia != null ? leadingTrivia : Enumerable.Empty<SyntaxTrivia>();
+        public IEnumerable<SyntaxTrivia> TrailingTrivia => trailingTrivia != null ? trailingTrivia : Enumerable.Empty<SyntaxTrivia>();
 
         // Constructor
-        private SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSpan source, IEnumerable<SyntaxTrivia> trivia)
+        private SyntaxToken(SyntaxTokenKind kind, string text, SyntaxSpan source, SyntaxTrivia[] leadingTrivia, SyntaxTrivia[] trailingTrivia)
         {
             this.Kind = kind;
             this.Text = text;
             this.Span = source;
-            this.trivia = trivia.Any() ? trivia.ToList() : null;
+            this.leadingTrivia = leadingTrivia;
+            this.trailingTrivia = trailingTrivia;
         }
 
         internal SyntaxToken(SyntaxTokenKind kind, SyntaxSpan span)
@@ -303,14 +311,24 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Methods
-        public SyntaxToken WithTrivia(SyntaxTrivia trivia)
+        public SyntaxToken WithLeadingTrivia(SyntaxTrivia trivia)
         {
-            return new SyntaxToken(Kind, Text, Span, new[] { trivia });
+            return new SyntaxToken(Kind, Text, Span, new[] { trivia }, trailingTrivia);
         }
 
-        public SyntaxToken WithTrivia(IEnumerable<SyntaxTrivia> trivia)
+        public SyntaxToken WithLeadingTrivia(IEnumerable<SyntaxTrivia> trivia)
         {
-            return new SyntaxToken(Kind, Text, Span, trivia);
+            return new SyntaxToken(Kind, Text, Span, trivia.ToArray(), trailingTrivia);
+        }
+
+        public SyntaxToken WithTrailingTrivia(SyntaxTrivia trivia)
+        {
+            return new SyntaxToken(Kind, Text, Span, leadingTrivia, new[] { trivia });
+        }
+
+        public SyntaxToken WithTrailingTrivia(IEnumerable<SyntaxTrivia> trivia)
+        {
+            return new SyntaxToken(Kind, Text, Span, leadingTrivia, trivia.ToArray());
         }
 
         public void Accept(SyntaxVisitor visitor)
@@ -326,15 +344,21 @@ namespace LumaSharp.Compiler.AST
         public void GetSourceText(TextWriter writer)
         {
             // Write leading trivia
-            foreach(SyntaxTrivia t in LeadingTrivia)
-                t.GetSourceText(writer);
+            if (leadingTrivia != null)
+            {
+                foreach (SyntaxTrivia t in LeadingTrivia)
+                    t.GetSourceText(writer);
+            }
 
             // Write symbol
             writer.Write(Text);
 
             // Write trailing trivia
-            foreach(SyntaxTrivia t in TrailingTrivia)
-                t.GetSourceText(writer);
+            if (trailingTrivia != null)
+            {
+                foreach (SyntaxTrivia t in TrailingTrivia)
+                    t.GetSourceText(writer);
+            }
         }
 
         public string GetSourceText()
@@ -353,7 +377,7 @@ namespace LumaSharp.Compiler.AST
         public override string ToString()
         {
             // Check for no trivia
-            if(trivia == null || trivia.Count == 0)
+            if(leadingTrivia == null && trailingTrivia == null)
                 return Text;
 
             // Get the source text with trivia

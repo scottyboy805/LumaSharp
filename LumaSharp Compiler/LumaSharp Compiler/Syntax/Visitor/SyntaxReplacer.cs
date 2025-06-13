@@ -63,7 +63,7 @@ namespace LumaSharp.Compiler.AST.Visitor
 
             protected override bool ReplaceToken(SyntaxToken token, out SyntaxToken replacement)
             {
-                replacement = default;
+                replacement = token;
                 return false;
             }
         }
@@ -77,10 +77,16 @@ namespace LumaSharp.Compiler.AST.Visitor
             // Check for invalid
             if (token.Kind == SyntaxTokenKind.Invalid)
             {
-                replacement = default;
+                replacement = token;
                 return false;
             }
-            return ReplaceToken(token, out replacement);
+            bool result = ReplaceToken(token, out replacement);
+
+            // Check for replaced
+            if (result == false)
+                replacement = token;
+
+            return result;
         }
 
         private bool Replace<T>(T syntax, out T replacement) where T : SyntaxNode
@@ -88,20 +94,26 @@ namespace LumaSharp.Compiler.AST.Visitor
             // Check for null
             if(syntax == null)
             {
-                replacement = default;
+                replacement = syntax;
                 return false;
             }
 
             // Perform visit
-            syntax = DefaultVisit(syntax);
+            T modifiedSyntax = DefaultVisit(syntax);
 
-            // Check for null
-            if(syntax == null)
+            // Check for null or explicitly modified
+            if(modifiedSyntax == null || modifiedSyntax != syntax)
             {
-                replacement = syntax;
+                replacement = modifiedSyntax;
                 return true;
             }
-            return ReplaceSyntax(syntax, out replacement);
+            bool result = ReplaceSyntax(syntax, out replacement);
+
+            // Check for replaced
+            if(result == false)
+                replacement = syntax;
+
+            return result;
         }
 
         private bool ReplaceMany(IEnumerable<SyntaxToken> syntax, out IEnumerable<SyntaxToken> replacement)
@@ -109,7 +121,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             // Check for null
             if (syntax == null)
             {
-                replacement = null;
+                replacement = syntax;
                 return false;
             }
 
@@ -122,7 +134,7 @@ namespace LumaSharp.Compiler.AST.Visitor
                 result.Add(replaced);
             }
 
-            replacement = modified ? result : null;
+            replacement = modified ? result : syntax;
             return modified;
         }
 
@@ -131,7 +143,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             // Check for null
             if(syntax == null)
             {
-                replacement = null;
+                replacement = syntax;
                 return false;
             }
 
@@ -144,7 +156,7 @@ namespace LumaSharp.Compiler.AST.Visitor
                 result.Add(replaced);
             }
 
-            replacement = modified ? result : null;
+            replacement = modified ? result : syntax;
             return modified;
         }
 

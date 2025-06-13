@@ -22,14 +22,9 @@ namespace LumaSharp.Compiler.AST
         }
 
         #region Trivia
-        public static SyntaxTrivia LeadingTrivia(SyntaxTriviaKind kind, string text)
+        public static SyntaxTrivia Trivia(SyntaxTriviaKind kind, string text)
         {
-            return SyntaxTrivia.Leading(kind, text, default);
-        }
-
-        public static SyntaxTrivia TrailingTrivia(SyntaxTriviaKind kind, string text)
-        {
-            return SyntaxTrivia.Trailing(kind, text, default);
+            return new SyntaxTrivia(kind, text, default);
         }
         #endregion
 
@@ -57,19 +52,27 @@ namespace LumaSharp.Compiler.AST
                 .DefaultVisit(node);
         }
 
+        public static T WithLeadingTrivia<T>(this T node, SyntaxTrivia trivia) where T : SyntaxNode
+        {
+            // Get start token
+            SyntaxToken startToken = node.StartToken;
+
+            // Get token with trivia
+            SyntaxToken replaceToken = startToken.WithLeadingTrivia(trivia);
+
+            // Replace the token
+            return node.ReplaceToken(startToken, replaceToken);
+        }
+
         public static T WithTrailingTrivia<T>(this T node, SyntaxTrivia trivia) where T : SyntaxNode
         {
-            // Check kind
-            if (trivia.IsTrailing == false)
-                throw new InvalidOperationException("Trivia is leading");
-
             // Get end token
             SyntaxToken endToken = node.EndToken;
 
             // Get token with trivia
-            SyntaxToken replaceToken = endToken.WithTrivia(new[] { trivia });
+            SyntaxToken replaceToken = endToken.WithTrailingTrivia(trivia);
 
-            // Replace the node
+            // Replace the token
             return node.ReplaceToken(endToken, replaceToken);
         }
         #endregion

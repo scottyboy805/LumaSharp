@@ -4,10 +4,8 @@ namespace LumaSharp.Compiler.AST.Visitor
     internal sealed class WhitespaceRewriter : SyntaxRewriter
     {
         // Private
-        private static readonly SyntaxTrivia leadingWhitespace = Syntax.LeadingTrivia(SyntaxTriviaKind.Whitespace, " ");
-        private static readonly SyntaxTrivia trailingWhitespace = Syntax.TrailingTrivia(SyntaxTriviaKind.Whitespace, " ");
-        private static readonly SyntaxTrivia leadingNewLine = Syntax.LeadingTrivia(SyntaxTriviaKind.Newline, "\n");
-        private static readonly SyntaxTrivia trailingNewLine = Syntax.TrailingTrivia(SyntaxTriviaKind.Newline, "\n");
+        private static readonly SyntaxTrivia whitespace = Syntax.Trivia(SyntaxTriviaKind.Whitespace, " ");
+        private static readonly SyntaxTrivia newLine = Syntax.Trivia(SyntaxTriviaKind.Newline, "\n");
 
         // Methods
         public override SyntaxNode VisitTypeReference(TypeReferenceSyntax typeReference)
@@ -32,13 +30,13 @@ namespace LumaSharp.Compiler.AST.Visitor
                 attribute.Hash,
                 DefaultVisit(attribute.AttributeType),
                 DefaultVisit(attribute.ArgumentList))
-                .WithTrailingTrivia(trailingWhitespace);
+                .WithTrailingTrivia(whitespace);
         }
 
         public override SyntaxNode VisitVariableAssignmentExpression(VariableAssignmentExpressionSyntax variableAssignExpression)
         {
             return new VariableAssignmentExpressionSyntax(
-                variableAssignExpression.Assign.WithTrivia(new[] { leadingWhitespace, trailingWhitespace }),
+                variableAssignExpression.Assign.WithLeadingTrivia(whitespace).WithTrailingTrivia(whitespace),
                 DefaultVisit(variableAssignExpression.AssignExpressions));
         }
 
@@ -64,7 +62,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             // Create the new list with whitespace separators
             return new SeparatedSyntaxList<J>(list.SeparatorKind, list.Elements.Select(
                 e => new SeparatedSyntaxList<J>.SyntaxSeparatedElement(DefaultVisit(e.Syntax), e.Separator != null
-                    ? e.Separator.Value.WithTrivia(trailingWhitespace)
+                    ? e.Separator.Value.WithTrailingTrivia(whitespace)
                     : null)));
         }
 
@@ -81,16 +79,16 @@ namespace LumaSharp.Compiler.AST.Visitor
             return new ParameterSyntax(
                 parameter.Attributes?.Select(p => DefaultVisit(p)).ToArray(),
                 DefaultVisit(parameter.ParameterType),
-                parameter.Identifier.WithTrivia(leadingWhitespace),
+                parameter.Identifier.WithLeadingTrivia(whitespace),
                 DefaultVisit(parameter.Assignment),
-                parameter.Enumerable?.WithTrivia(leadingWhitespace));
+                parameter.Enumerable?.WithLeadingTrivia(whitespace));
         }
         #endregion
 
         public override SyntaxNode VisitField(FieldSyntax field)
         {
             return new FieldSyntax(
-                field.Identifier.WithTrivia(leadingWhitespace),
+                field.Identifier.WithLeadingTrivia(whitespace),
                 field.Attributes,
                 field.AccessModifiers,
                 DefaultVisit(field.FieldType),
@@ -100,7 +98,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitMethod(MethodSyntax method)
         {
             return new MethodSyntax(
-                method.Identifier.WithTrivia(leadingWhitespace),
+                method.Identifier.WithLeadingTrivia(whitespace),
                 method.Attributes,
                 method.AccessModifiers,
                 DefaultVisit(method.ReturnTypes),
@@ -114,7 +112,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax returnStatement)
         {
             return new ReturnStatementSyntax(
-                returnStatement.Keyword.WithTrivia(trailingWhitespace),
+                returnStatement.Keyword.WithTrailingTrivia(whitespace),
                 DefaultVisit(returnStatement.Expressions),
                 returnStatement.Semicolon);
         }
@@ -123,9 +121,9 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitStatementBlock(StatementBlockSyntax statementBlock)
         {
             return new StatementBlockSyntax(
-                statementBlock.LBlock.WithTrivia(leadingNewLine),
+                statementBlock.LBlock.WithLeadingTrivia(newLine),
                 statementBlock.Statements,
-                statementBlock.RBlock.WithTrivia(leadingNewLine));
+                statementBlock.RBlock.WithLeadingTrivia(newLine));
         }
         #endregion
 
@@ -135,14 +133,14 @@ namespace LumaSharp.Compiler.AST.Visitor
         {
             return new BinaryExpressionSyntax(
                 DefaultVisit(binaryExpression.Left),
-                binaryExpression.Operation.WithTrivia(new[] { leadingWhitespace, trailingWhitespace }),
+                binaryExpression.Operation.WithLeadingTrivia(whitespace).WithTrailingTrivia(whitespace),
                 DefaultVisit(binaryExpression.Right));
         }
 
         public override SyntaxNode VisitNewExpression(NewExpressionSyntax newExpression)
         {
             return new NewExpressionSyntax(
-                newExpression.Keyword.WithTrivia(trailingWhitespace),
+                newExpression.Keyword.WithTrailingTrivia(whitespace),
                 DefaultVisit(newExpression.NewType),
                 DefaultVisit(newExpression.ArgumentList));
         }
@@ -150,10 +148,10 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitTernaryExpression(TernaryExpressionSyntax ternaryExpression)
         {
             return new TernaryExpressionSyntax(
-                DefaultVisit(ternaryExpression.Condition).WithTrailingTrivia(trailingWhitespace),
-                ternaryExpression.Ternary.WithTrivia(trailingWhitespace),
-                DefaultVisit(ternaryExpression.TrueExpression).WithTrailingTrivia(trailingWhitespace),
-                ternaryExpression.Colon.WithTrivia(trailingWhitespace),
+                DefaultVisit(ternaryExpression.Condition).WithTrailingTrivia(whitespace),
+                ternaryExpression.Ternary.WithTrailingTrivia(whitespace),
+                DefaultVisit(ternaryExpression.TrueExpression).WithTrailingTrivia(whitespace),
+                ternaryExpression.Colon.WithTrailingTrivia(whitespace),
                 DefaultVisit(ternaryExpression.FalseExpression));
         }
         #endregion
