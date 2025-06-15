@@ -26,6 +26,11 @@ namespace LumaSharp.Compiler.AST
         {
             return new SyntaxTrivia(kind, text, default);
         }
+
+        internal static SyntaxTrivia Trivia(SyntaxTriviaKind kind, string text, SyntaxSpan span)
+        {
+            return new SyntaxTrivia(kind, text, span);
+        }
         #endregion
 
         #region Transformation
@@ -86,7 +91,7 @@ namespace LumaSharp.Compiler.AST
         public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier));
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
-        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, null, null);
+        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, underlyingType != null ? new(new(SyntaxTokenKind.CommaSymbol, underlyingType)) : null, null);
         public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null) => new FieldSyntax(identifier, null, null, fieldType, fieldAssignment);
         public static EnumFieldSyntax EnumField(SyntaxToken identifier, VariableAssignmentExpressionSyntax enumAssignment = null) => new EnumFieldSyntax(identifier, enumAssignment);
         public static AccessorBodySyntax AccessorLambda(StatementSyntax statement) => new AccessorBodySyntax(Token(SyntaxTokenKind.ReadKeyword), statement);
@@ -108,7 +113,7 @@ namespace LumaSharp.Compiler.AST
         public static TypeReferenceSyntax TypeReference(ParentTypeReferenceSyntax parentType, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(null, new[] { parentType }, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
         public static TypeReferenceSyntax TypeReference(string[] namespaceName, ParentTypeReferenceSyntax[] parentTypes, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(NamespaceName(namespaceName), parentTypes, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
         public static TypeReferenceSyntax TypeReference(string[] namespaceName, ParentTypeReferenceSyntax parentType, SyntaxToken identifier, GenericArgumentListSyntax genericArguments = null, int? arrayRank = null) => new TypeReferenceSyntax(NamespaceName(namespaceName), new[] { parentType }, identifier, genericArguments, arrayRank != null ? new ArrayParametersSyntax(arrayRank.Value) : null);
-        public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, default, new(SyntaxTokenKind.CommaSymbol, constrainTypes));
+        public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) => new GenericParameterSyntax(identifier, constrainTypes != null && constrainTypes.Length > 0 ? new(Token(SyntaxTokenKind.ColonSymbol), new(SyntaxTokenKind.BitwiseAndSymbol, constrainTypes)) : null);
         public static GenericParameterListSyntax GenericParameterList(params GenericParameterSyntax[] genericParameters) => new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters));
         public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, bool variableSizedList = false) => new ParameterSyntax(null, parameterType, identifier, null, variableSizedList ? Token(SyntaxTokenKind.EnumerableSymbol) : (SyntaxToken?)null);
         public static ParameterListSyntax ParameterList(params ParameterSyntax[] parameters) => new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters));

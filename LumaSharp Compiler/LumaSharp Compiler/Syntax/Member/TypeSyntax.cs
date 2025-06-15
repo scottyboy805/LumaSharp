@@ -15,7 +15,19 @@ namespace LumaSharp.Compiler.AST
         // Properties
         public override SyntaxToken StartToken
         {
-            get { return keyword; }
+            get 
+            {
+                // Check for attributes
+                if (attributes != null)
+                    return attributes[0].StartToken;
+
+                // Check for modifiers
+                if (accessModifiers != null)
+                    return accessModifiers[0];
+
+                // Fallback to keyword
+                return keyword; 
+            }
         }
 
         public override SyntaxToken EndToken

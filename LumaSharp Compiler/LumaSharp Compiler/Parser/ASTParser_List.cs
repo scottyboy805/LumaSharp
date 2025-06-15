@@ -151,28 +151,56 @@ namespace LumaSharp.Compiler.Parser
                 return RecoverFromGenericParameterError();
             }
 
-            SyntaxToken colonToken = default;
-            SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints = null;
+            // Optional constraints
+            GenericParameterConstraintsSyntax constraints = ParseGenericParameterConstraints();
 
-            // Parse generic constraints
-            if (tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
+            //SyntaxToken colonToken = default;
+            //SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints = null;
+
+            //// Parse generic constraints
+            //if (tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
+            //{
+            //    // Consume the token
+            //    colonToken = tokens.Consume();
+
+            //    // Expect generic constraint list
+            //    genericConstraints = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.CommaSymbol);
+
+            //    // Check for null
+            //    if (genericConstraints == null)
+            //    {
+            //        // Expected type
+            //        report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
+            //        return RecoverFromGenericParameterError();
+            //    }
+
+            //}
+            // Create parameter
+            return new GenericParameterSyntax(identifier, constraints);
+        }
+
+        internal GenericParameterConstraintsSyntax ParseGenericParameterConstraints()
+        {
+            // Check for colon
+            if(tokens.PeekKind() == SyntaxTokenKind.ColonSymbol)
             {
-                // Consume the token
-                colonToken = tokens.Consume();
+                // Consume colon
+                SyntaxToken colon = tokens.Consume();
 
-                // Expect generic constraint list
-                genericConstraints = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.CommaSymbol);
+                // Expect generic constraints
+                SeparatedSyntaxList<TypeReferenceSyntax> genericConstraints = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.BitwiseAndSymbol, SyntaxTokenKind.CommaSymbol);
 
-                // Check for null
-                if (genericConstraints == null)
+                // Check for none
+                if(genericConstraints == null)
                 {
-                    // Expected type
-                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
-                    return RecoverFromGenericParameterError();
+                    report.ReportDiagnostic(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Span);
+                    return null;
                 }
 
+                // Create the constraints
+                return new GenericParameterConstraintsSyntax(colon, genericConstraints);
             }
-            return new GenericParameterSyntax(identifier, colonToken, genericConstraints);
+            return null;
         }
 
         internal GenericArgumentListSyntax ParseGenericArgumentList()

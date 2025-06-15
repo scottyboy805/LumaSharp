@@ -48,6 +48,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitForeachStatement(ForeachStatementSyntax foreachStatement) => foreachStatement;
         public override SyntaxNode VisitForStatement(ForStatementSyntax forStatement) => forStatement;
         public override SyntaxNode VisitGenericArgumentList(GenericArgumentListSyntax genericArgumentList) => genericArgumentList;
+        public override SyntaxNode VisitGenericParameterConstraints(GenericParameterConstraintsSyntax genericConstraints) => genericConstraints;
         public override SyntaxNode VisitGenericParameter(GenericParameterSyntax genericParameter) => genericParameter;
         public override SyntaxNode VisitGenericParameterList(GenericParameterListSyntax genericParameterList) => genericParameterList;
         public override SyntaxNode VisitImport(ImportSyntax import) => import;

@@ -16,6 +16,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public abstract T VisitBaseTypeList(BaseTypeListSyntax baseTypeList);
         public abstract T VisitGenericParameterList(GenericParameterListSyntax genericParameterList);
         public abstract T VisitGenericParameter(GenericParameterSyntax genericParameter);
+        public abstract T VisitGenericParameterConstraints(GenericParameterConstraintsSyntax genericConstraints);
         public abstract T VisitGenericArgumentList(GenericArgumentListSyntax genericArgumentList);
         public abstract T VisitParameterList(ParameterListSyntax parameterList);
         public abstract T VisitParameter(ParameterSyntax parameter);

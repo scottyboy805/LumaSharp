@@ -307,15 +307,27 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitGenericParameter(GenericParameterSyntax genericParameter)
         {
             bool modified = Replace(genericParameter.Identifier, out SyntaxToken identifier);
-            modified |= Replace(genericParameter.Colon, out SyntaxToken colon);
-            modified |= Replace(genericParameter.ConstraintTypes, out SeparatedSyntaxList<TypeReferenceSyntax> constraintTypes);
+            modified |= Replace(genericParameter.Constraints, out GenericParameterConstraintsSyntax constraints);
 
             // Check for modified
             if (modified == false)
                 return genericParameter;
 
             // Create modified
-            return new GenericParameterSyntax(identifier, colon, constraintTypes);
+            return new GenericParameterSyntax(identifier, constraints);
+        }
+
+        public override SyntaxNode VisitGenericParameterConstraints(GenericParameterConstraintsSyntax genericConstraints)
+        {
+            bool modified = Replace(genericConstraints.Colon, out SyntaxToken colon);
+            modified |= Replace(genericConstraints.Constraints, out SeparatedSyntaxList<TypeReferenceSyntax> constraintTypes);
+
+            // Check for modified
+            if (modified == false)
+                return genericConstraints;
+
+            // Create modified
+            return new GenericParameterConstraintsSyntax(colon, constraintTypes);
         }
 
         public override SyntaxNode VisitParameterList(ParameterListSyntax parameterList)

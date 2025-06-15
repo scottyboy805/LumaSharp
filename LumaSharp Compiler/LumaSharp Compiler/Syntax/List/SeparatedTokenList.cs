@@ -110,7 +110,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         internal SeparatedTokenList(SyntaxTokenKind separatorKind, IEnumerable<SyntaxToken> elements, SyntaxTokenKind? tokenKind)
-            : this(separatorKind, elements.Select(e => new TokenSeparatedElement(e, Syntax.Token(separatorKind))), tokenKind)
+            : this(separatorKind, BuildSeparatedTokens(separatorKind, elements), tokenKind)
         {
         }
 
@@ -165,12 +165,12 @@ namespace LumaSharp.Compiler.AST
             // Process all elements
             for (int i = 0; i < tokenList.Count; i++)
             {
-                // Check for token
-                if (i > 0)
-                    tokenList[i].Separator?.GetSourceText(writer);
-
                 // Get syntax source
                 tokenList[i].Token.GetSourceText(writer);
+
+                // Check for token
+                if (i < tokenList.Count - 1)
+                    tokenList[i].Separator?.GetSourceText(writer);
             }
 
             // Check for trailing separator
@@ -187,6 +187,29 @@ namespace LumaSharp.Compiler.AST
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        private static IEnumerable<TokenSeparatedElement> BuildSeparatedTokens(SyntaxTokenKind separatorKind, IEnumerable<SyntaxToken> tokens)
+        {
+            // Check for null
+            if (tokens == null)
+                yield break;
+
+            // Get count
+            int count = tokens.Count();
+            int current = 0;
+
+            // Get all
+            foreach(SyntaxToken token in tokens)
+            {
+                // Create the separator
+                SyntaxToken? separator = current++ < count - 1
+                    ? Syntax.Token(separatorKind)
+                    : (SyntaxToken?)null;
+
+                // Create the element
+                yield return new TokenSeparatedElement(token, separator);
+            }
         }
     }
 }

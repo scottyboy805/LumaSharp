@@ -103,7 +103,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, IEnumerable<T> elements)
-            : this(separatorKind, elements.Select(e => new SyntaxSeparatedElement(e, Syntax.Token(separatorKind))))
+            : this(separatorKind, BuildSeparatedSyntax(separatorKind, elements))
         {
         }
 
@@ -157,12 +157,12 @@ namespace LumaSharp.Compiler.AST
             // Process all elements
             for(int i = 0; i < syntaxList.Count; i++)
             {
-                // Check for token
-                if(i > 0)
-                    syntaxList[i - 1].Separator?.GetSourceText(writer);
-
                 // Get syntax source
                 syntaxList[i].Syntax.GetSourceText(writer);
+
+                // Check for token
+                if (i < syntaxList.Count - 1)
+                    syntaxList[i].Separator?.GetSourceText(writer);
             }
         }
 
@@ -180,6 +180,29 @@ namespace LumaSharp.Compiler.AST
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        private static IEnumerable<SyntaxSeparatedElement> BuildSeparatedSyntax(SyntaxTokenKind separatorKind, IEnumerable<T> elements)
+        {
+            // Check for null
+            if (elements == null)
+                yield break;
+
+            // Get count
+            int count = elements.Count();
+            int current = 0;
+
+            // Get all
+            foreach(T element in elements)
+            {
+                // Create the separator
+                SyntaxToken? separator = current++ < count - 1
+                    ? Syntax.Token(separatorKind)
+                    : (SyntaxToken?)null;
+
+                // Create the element
+                yield return new SyntaxSeparatedElement(element, separator);
+            }
         }
     }
 }

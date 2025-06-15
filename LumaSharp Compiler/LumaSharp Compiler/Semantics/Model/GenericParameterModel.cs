@@ -172,15 +172,15 @@ namespace LumaSharp.Compiler.Semantics.Model
             anyType = provider.ResolveTypeSymbol(PrimitiveType.Any, syntax.StartToken.Span);
 
             // Resolve constraints
-            if (syntax.HasConstraintTypes == true)
+            if (syntax.HasConstraints == true)
             {
                 // Get generic constraints
-                genericConstraints = new ITypeReferenceSymbol[syntax.ConstraintTypeCount];
+                genericConstraints = new ITypeReferenceSymbol[syntax.ConstraintCount];
 
                 // Resolve all
                 for (int i = 0; i < genericConstraints.Length; i++)
                 {
-                    genericConstraints[i] = provider.ResolveTypeSymbol(parent, syntax.ConstraintTypes[i]);
+                    genericConstraints[i] = provider.ResolveTypeSymbol(parent, syntax.Constraints.Constraints[i]);
                 }
 
                 // Check constrains type usage
@@ -208,7 +208,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Check for primitive
             if(genericConstraint.IsPrimitive == true)
             {
-                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.ConstraintTypes[index].StartToken.Span, genericConstraint);
+                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.Constraints.Constraints[index].StartToken.Span, genericConstraint);
             }
         }
     }

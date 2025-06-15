@@ -50,30 +50,23 @@ namespace LumaSharp.Compiler.Parser
             SyntaxToken previous = SyntaxToken.Invalid;
 
             // Create trivia list
-            //List<SyntaxTrivia> trivia = new();
+            SyntaxTrivia[] leadingTrivia = null;
 
             // Read all tokens with minimal lookahead
             while(source.EOF == false)
             {
                 // Get leading trivia
-                //ReadLeadingTrivia(source.Position == 0, trivia);
-                SyntaxTrivia[] leadingTrivia = ReadTrivia(source.Position == 0, true)
-                    .ToArray();
+                if(leadingTrivia == null)
+                    leadingTrivia = ReadTrivia(source.Position == 0, true)
+                        .ToArray();
 
                 // Try to get last or default trivia
                 SyntaxTrivia? lastLeadingTrivia = leadingTrivia.LastOrDefault();
 
-                //// Get leading trivia string immediately before the token - used for toking parser separation
-                //string leadingTriviaString = trivia.Count > 0
-                //    ? trivia[trivia.Count - 1].Text
-                //    : string.Empty;
-
                 // Check for eof after trivia
                 if(source.EOF == true)
                 {
-                    // Return eof token with trivia
-                    yield return Syntax.Token(SyntaxTokenKind.EOF)
-                        .WithLeadingTrivia(leadingTrivia);
+                    // Exit the loop and then return the eof token
                     yield break;
                 }
 
@@ -81,13 +74,7 @@ namespace LumaSharp.Compiler.Parser
                 // ### LITERAL - Check for literal string
                 else if (MatchLiteral(out SyntaxToken literal) == true)
                 {
-                    // Read end trivia
-                    //ReadTrailingTrivia(trivia);
-
                     // Get the literal
-                    //yield return previous = trivia.Count > 0
-                    //    ? literal.WithTrivia(trivia)
-                    //    : literal;
                     yield return previous = literal
                         .WithLeadingTrivia(leadingTrivia)
                         .WithTrailingTrivia(ReadTrivia(false, false));
@@ -95,13 +82,7 @@ namespace LumaSharp.Compiler.Parser
                 // ### KEYWORD - Check for keyword delimited by whitespace or symbol
                 else if (MatchKeyword(lastLeadingTrivia, previous, out SyntaxToken keyword) == true)
                 {
-                    //// Read end trivia
-                    //ReadTrailingTrivia(trivia);
-
                     //// Get the keyword
-                    //yield return previous = trivia.Count > 0
-                    //    ? keyword.WithTrivia(trivia)
-                    //    : keyword;
                     yield return previous = keyword
                         .WithLeadingTrivia(leadingTrivia)
                         .WithTrailingTrivia(ReadTrivia(false, false));
@@ -109,13 +90,7 @@ namespace LumaSharp.Compiler.Parser
                 // ### SYMBOL - Check for symbol delimited by whitespace, letter or digit
                 else if (MatchSymbol(lastLeadingTrivia, previous, out SyntaxToken symbol) == true)
                 {
-                    //// Read end trivia
-                    //ReadTrailingTrivia(trivia);
-
                     //// Get the symbol
-                    //yield return previous = trivia.Count > 0
-                    //    ? symbol.WithTrivia(trivia)
-                    //    : symbol;
                     yield return previous = symbol
                         .WithLeadingTrivia(leadingTrivia)
                         .WithTrailingTrivia(ReadTrivia(false, false));
@@ -123,13 +98,7 @@ namespace LumaSharp.Compiler.Parser
                 // ### NUMBER - Check for numeric value delimited by whitespace or letter
                 else if (MatchNumber(lastLeadingTrivia, previous, out SyntaxToken number, out SyntaxToken descriptor) == true)
                 {
-                    //// Read end trivia
-                    //ReadTrailingTrivia(trivia);
-
-                    //// Get the symbol
-                    //yield return previous = trivia.Count > 0
-                    //    ? number.WithTrivia(trivia.Where(t => t.IsLeading))
-                    //    : number;
+                    //// Get the number
                     yield return previous = number
                         .WithLeadingTrivia(leadingTrivia);
 
@@ -141,14 +110,7 @@ namespace LumaSharp.Compiler.Parser
                 // ### IDENTIFIER - Check for identifier name
                 else if (MatchIdentifier(lastLeadingTrivia, previous, out SyntaxToken identifier) == true)
                 {
-                    //// Read end trivia
-                    //ReadTrailingTrivia(trivia);
-
                     //// Get the symbol
-                    //yield return previous = trivia.Count > 0
-                    //    ? identifier.WithTrivia(trivia)
-                    //    : identifier;
-
                     yield return previous = identifier
                         .WithLeadingTrivia(leadingTrivia)
                         .WithTrailingTrivia(ReadTrivia(false, false));
@@ -161,8 +123,8 @@ namespace LumaSharp.Compiler.Parser
                     throw new Exception("Parser error: " + source.Peek());
                 }
 
-                // Recycle trivia list
-                //trivia.Clear();
+                // Recycle trivia
+                leadingTrivia = null;
             }
 
             // Return eof with no trivia
@@ -187,10 +149,11 @@ namespace LumaSharp.Compiler.Parser
                     if (isFirstToken == false && isLeading == false)
                         yield break;
                 }
-
                 // Check for whitespace
-                if (ReadWhitespaceTrivia(out SyntaxTrivia ws) == true)
+                else if (ReadWhitespaceTrivia(out SyntaxTrivia ws) == true)
+                {
                     yield return ws;
+                }
 
                 // Check for position not changed
                 if (source.Position == position)
@@ -203,21 +166,33 @@ namespace LumaSharp.Compiler.Parser
             // Check for end line with return
             if (source.Peek() == '\r' && source.Peek(1) == '\n')
             {
+                // Get start
+                SyntaxLocation start = source.GetLocation();
+
                 // Read the full new line
                 builder.Append(source.Consume());
                 builder.Append(source.Consume());
 
+                // Get end
+                SyntaxLocation end = source.GetLocation();
+
                 // Build the trivia
-                trivia = Syntax.Trivia(SyntaxTriviaKind.Newline, builder.ToString());
+                trivia = Syntax.Trivia(SyntaxTriviaKind.Newline, builder.ToString(), new SyntaxSpan(document, start, end));
                 builder.Clear();
                 return true;
             }
             else if(source.Peek() == '\n' || source.Peek() == '\r')
             {
+                // Get start
+                SyntaxLocation start = source.GetLocation();
+
                 char current = source.Consume();
 
+                // Get end
+                SyntaxLocation end = source.GetLocation();
+
                 // Finally build the trivia
-                trivia = Syntax.Trivia(SyntaxTriviaKind.Newline, current.ToString());
+                trivia = Syntax.Trivia(SyntaxTriviaKind.Newline, current.ToString(), new SyntaxSpan(document, start, end));
                 return true;
             }
             trivia = default;
@@ -232,6 +207,9 @@ namespace LumaSharp.Compiler.Parser
             // Check for whitespace
             if (IsWhiteSpaceTrivia(current) == true)
             {
+                // Get start
+                SyntaxLocation start = source.GetLocation();
+
                 builder.Append(current);
                 source.Consume();
 
@@ -247,8 +225,59 @@ namespace LumaSharp.Compiler.Parser
                     current = source.Peek();
                 }
 
+                // Get end
+                SyntaxLocation end = source.GetLocation();
+
                 // Finally build the trivia
-                trivia = Syntax.Trivia(SyntaxTriviaKind.Whitespace, builder.ToString());
+                trivia = Syntax.Trivia(SyntaxTriviaKind.Whitespace, builder.ToString(), new SyntaxSpan(document, start, end));
+                builder.Clear();
+                return true;
+            }
+            trivia = default;
+            return false;
+        }
+
+        private bool ReadLineCommentTrivia(out SyntaxTrivia trivia)
+        {
+            // Try to match line comment string
+            if(MatchString(source, SyntaxTrivia.LineComment, 0, out SyntaxLocation start, out _) == true)
+            {
+                // Consume length
+                for (int i = 0; i < SyntaxTrivia.LineComment.Length; i++)
+                    builder.Append(source.Consume());
+
+                // Read until end line or end stream
+                while(source.EOF == false && IsEndLineTrivia(source.Peek()) == false)
+                    builder.Append(source.Consume());
+
+                // Get end
+                SyntaxLocation end = source.GetLocation();
+
+                // Create the line comment trivia
+                trivia = Syntax.Trivia(SyntaxTriviaKind.LineComment, builder.ToString(), new SyntaxSpan(document, start, end));
+                builder.Clear();
+                return true;
+            }
+            trivia = default;
+            return false;
+        }
+
+        private bool ReadBlockCommentTrivia(out SyntaxTrivia trivia)
+        {
+            // Try to match block comment start
+            if(MatchString(source, SyntaxTrivia.BlockCommentStart, 0, out SyntaxLocation start, out _) == true)
+            {
+                // Consume length
+                for (int i = 0; i < SyntaxTrivia.BlockCommentStart.Length; i++)
+                    builder.Append(source.Consume());
+
+                // Read until end block or end stream
+                SyntaxLocation end = default;
+                while (source.EOF == false && MatchString(source, SyntaxTrivia.BlockCommentEnd, 0, out _, out end) == false)
+                    builder.Append(source.Consume());
+
+                // Create the block comment trivia
+                trivia = Syntax.Trivia(SyntaxTriviaKind.BlockComment, builder.ToString(), new SyntaxSpan(document, start, end));
                 builder.Clear();
                 return true;
             }
@@ -362,7 +391,7 @@ namespace LumaSharp.Compiler.Parser
         private bool IsLineCommentTrivia(out string lineCommentText)
         {
             // Check for line comment
-            if (MatchString(source, SyntaxTrivia.LineComment) == true)
+            if (MatchString(source, SyntaxTrivia.LineComment, 0, out SyntaxLocation start, out _) == true)
             {
                 // Create comment builder
                 StringBuilder commentBuilder = new StringBuilder();
@@ -461,21 +490,21 @@ namespace LumaSharp.Compiler.Parser
             foreach(SyntaxToken keywordToken in keywords)
             {
                 // Try to match
-                if(MatchString(source, keywordToken.Text) == true)
+                if(MatchString(source, keywordToken.Text, 0, out SyntaxLocation start, out SyntaxLocation end) == true)
                 {
                     // Get the consume length
                     int length = keywordToken.Text.Length;
 
                     // Check for end delimiting symbols
-                    char end = source.Peek(length);
+                    char next = source.Peek(length);
 
                     // Check for end of stream, white space, comment start or delimiting symbol
                     // At the end of a keyword we must have either whitespace, end of stream or a valid delimiting character such as a symbol or number
-                    if(end != '\0' 
-                        && IsWhiteSpaceTrivia(end) == false 
-                        && MatchString(source, SyntaxTrivia.LineComment, length) == false 
-                        && MatchString(source, SyntaxTrivia.BlockCommentStart, length) == false 
-                        && IsKeywordDelimiterCharacter(end) == false)
+                    if(next != '\0' 
+                        && IsWhiteSpaceTrivia(next) == false 
+                        && MatchString(source, SyntaxTrivia.LineComment, length, out _, out _) == false 
+                        && MatchString(source, SyntaxTrivia.BlockCommentStart, length, out _, out _) == false 
+                        && IsKeywordDelimiterCharacter(next) == false)
                     {
                         // Make be an identifier that starts with a keyword
                         continue;
@@ -485,7 +514,7 @@ namespace LumaSharp.Compiler.Parser
                     source.Consume(length);
 
                     // Update token
-                    keyword = keywordToken;
+                    keyword = new SyntaxToken(keywordToken.Kind, keywordToken.Text, new SyntaxSpan(document, start, end));
                     return true;
                 }
             }
@@ -510,21 +539,21 @@ namespace LumaSharp.Compiler.Parser
             foreach (SyntaxToken symbolToken in symbols)
             {
                 // Try to match
-                if (MatchString(source, symbolToken.Text) == true)
+                if (MatchString(source, symbolToken.Text, 0, out SyntaxLocation start, out SyntaxLocation end) == true)
                 {
                     // Get the consume length
                     int length = symbolToken.Text.Length;
 
                     // Check for end delimiting symbols
-                    char end = source.Peek(length);
+                    char next = source.Peek(length);
 
                     // Check for end of stream, white space, comment start or delimiting symbol
                     // At the end of a symbol we must have either whitespace, end of stream or a valid delimiting character such as a symbol or number
-                    if (end != '\0'
-                        && IsWhiteSpaceTrivia(end) == false
-                        && MatchString(source, SyntaxTrivia.LineComment, length) == false
-                        && MatchString(source, SyntaxTrivia.BlockCommentStart, length) == false
-                        && IsSymbolDelimiterCharacter(end) == false)
+                    if (next != '\0'
+                        && IsWhiteSpaceTrivia(next) == false
+                        && MatchString(source, SyntaxTrivia.LineComment, length, out _, out _) == false
+                        && MatchString(source, SyntaxTrivia.BlockCommentStart, length, out _, out _) == false
+                        && IsSymbolDelimiterCharacter(next) == false)
                     {
                         // Make be an identifier that starts with a keyword
                         continue;
@@ -534,7 +563,7 @@ namespace LumaSharp.Compiler.Parser
                     source.Consume(length);
 
                     // Update token
-                    symbol = symbolToken;
+                    symbol = new SyntaxToken(symbolToken.Kind, symbolToken.Text, new SyntaxSpan(document, start, end));
                     return true;
                 }
             }
@@ -706,18 +735,28 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
-        private static bool MatchString(TextView view, string match, int offset = 0)
+        private static bool MatchString(TextView view, string match, int offset, out SyntaxLocation start, out SyntaxLocation end)
         {
             // Check bounds
             if(offset < 0)
                 throw new ArgumentOutOfRangeException(nameof(offset));
 
+            // Get start
+            start = view.GetLocation();
+
             for(int i = 0; i < match.Length; i++)
             {
                 // Check for match or exit early
                 if (view.Peek(i + offset) != match[i])
+                {
+                    start = default;
+                    end = default;
                     return false;
+                }
             }
+
+            // Get end
+            end = view.GetLocation();
 
             // Must be a match
             return true;
