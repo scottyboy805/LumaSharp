@@ -52,6 +52,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitGenericParameter(GenericParameterSyntax genericParameter) => genericParameter;
         public override SyntaxNode VisitGenericParameterList(GenericParameterListSyntax genericParameterList) => genericParameterList;
         public override SyntaxNode VisitImport(ImportSyntax import) => import;
+        public override SyntaxNode VisitImpotAlias(ImportAliasSyntax importAlias) => importAlias;
         public override SyntaxNode VisitIndexExpression(IndexExpressionSyntax indexExpression) => indexExpression;
         public override SyntaxNode VisitLambda(LambdaSyntax lambda) => lambda;
         public override SyntaxNode VisitLiteralExpression(LiteralExpressionSyntax literalExpression) => literalExpression;

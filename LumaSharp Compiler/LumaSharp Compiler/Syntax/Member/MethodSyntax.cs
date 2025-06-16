@@ -115,6 +115,11 @@ namespace LumaSharp.Compiler.AST
             if (body != null && (body is StatementBlockSyntax) == false && (body is EmptyStatementSyntax) == false)
                 throw new ArgumentException("Body must be a statement block or empty statement");
 
+            // Check for no return
+            if (returnTypes == null)
+                returnTypes = new SeparatedSyntaxList<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol,
+                    new TypeReferenceSyntax(PrimitiveType.Void, null));
+
             // Check for no body
             if (body == null && lambda == null)
                 body = new EmptyStatementSyntax();

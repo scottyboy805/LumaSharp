@@ -2,15 +2,12 @@
 
 namespace LumaSharp.Compiler.AST
 {
-    public sealed class ImportSyntax : SyntaxNode
+    public class ImportSyntax : SyntaxNode
     {
         // Private
         private readonly SyntaxToken keyword;
         private readonly SeparatedTokenList name;
-        private readonly SyntaxToken aliasIdentifier;
-        private readonly TypeReferenceSyntax aliasTypeReference;
-        private readonly SyntaxToken asKeyword;
-        private readonly SyntaxToken dot;
+        private readonly SyntaxToken semicolon;
 
         // Properties
         public override SyntaxToken StartToken
@@ -20,14 +17,7 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get
-            {
-                // Check for alias
-                if (HasAlias == true)
-                    return aliasTypeReference.EndToken;
-
-                return name.EndToken;
-            }
+            get { return semicolon; }
         }
 
         public SyntaxToken Keyword
@@ -40,29 +30,9 @@ namespace LumaSharp.Compiler.AST
             get { return name; }
         }
 
-        public SyntaxToken AliasIdentifier
+        public SyntaxToken Semicolon
         {
-            get { return aliasIdentifier; }
-        }
-
-        public TypeReferenceSyntax AliasTypeReference
-        {
-            get { return aliasTypeReference; }
-        }
-
-        public SyntaxToken As
-        {
-            get { return asKeyword; }
-        }
-
-        public SyntaxToken Dot
-        {
-            get { return dot; }
-        }
-
-        public bool HasAlias
-        {
-            get { return aliasIdentifier.Kind != SyntaxTokenKind.Invalid; }
+            get { return semicolon; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -71,10 +41,6 @@ namespace LumaSharp.Compiler.AST
             {
                 // Get the name
                 yield return name;
-
-                // Check for alias
-                if (HasAlias == true)
-                    yield return aliasTypeReference;
             }
         }
 
@@ -82,15 +48,19 @@ namespace LumaSharp.Compiler.AST
         internal ImportSyntax(SeparatedTokenList importName)
             : this(
                   Syntax.Token(SyntaxTokenKind.ImportKeyword),
-                  importName)
+                  importName,
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
-        internal ImportSyntax(SyntaxToken keyword, SeparatedTokenList importName)
+        internal ImportSyntax(SyntaxToken keyword, SeparatedTokenList importName, SyntaxToken semicolon)
         {
             // Check kind
             if(keyword.Kind != SyntaxTokenKind.ImportKeyword)
                 throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.ImportKeyword);
+
+            if (semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
 
             // Check null
             if(importName == null)
@@ -98,6 +68,10 @@ namespace LumaSharp.Compiler.AST
 
             this.keyword = keyword;
             this.name = importName;
+            this.semicolon = semicolon;
+
+            // Set parent
+            importName.parent = this;
         }
 
         // Methods
@@ -113,32 +87,14 @@ namespace LumaSharp.Compiler.AST
 
         public override void GetSourceText(TextWriter writer)
         {
-            // Write text
+            // Keyword
             keyword.GetSourceText(writer);
 
-            // Check for alias
-            if(HasAlias == true)
-            {
-                // Write alias name
-                aliasIdentifier.GetSourceText(writer);
+            // Name
+            name.GetSourceText(writer);
 
-                // Write as
-                asKeyword.GetSourceText(writer);
-
-                // Write namespace name
-                name.GetSourceText(writer);
-
-                // Write dot
-                dot.GetSourceText(writer);
-
-                // Write alias type
-                aliasTypeReference.GetSourceText(writer);
-            }
-            else
-            {
-                // Get namespace name
-                name.GetSourceText(writer);
-            }
+            // Semicolon
+            semicolon.GetSourceText(writer);
         }        
     }
 }

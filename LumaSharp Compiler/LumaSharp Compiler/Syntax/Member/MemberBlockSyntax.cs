@@ -34,7 +34,7 @@ namespace LumaSharp.Compiler.AST
 
         public int Count
         {
-            get { return Count; }
+            get { return members.Count; }
         }
 
         public IEnumerable<MemberSyntax> Members
@@ -97,7 +97,7 @@ namespace LumaSharp.Compiler.AST
 
             // Members
             foreach (MemberSyntax member in members)
-                member.GetSourceText();
+                member.GetSourceText(writer);
 
             // RBlock
             rBlock.GetSourceText(writer);

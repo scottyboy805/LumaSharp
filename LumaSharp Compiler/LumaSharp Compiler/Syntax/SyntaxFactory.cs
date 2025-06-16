@@ -83,10 +83,10 @@ namespace LumaSharp.Compiler.AST
         #endregion
 
         #region Members
-        internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(SyntaxTokenKind.ColonSymbol, identifiers.Select(n => Identifier(n)), SyntaxTokenKind.Identifier);
+        internal static SeparatedTokenList NamespaceName(string[] identifiers) => new SeparatedTokenList(SyntaxTokenKind.ColonSymbol, identifiers.Select(n => Identifier(n)), SyntaxTokenKind.Identifier, true);
 
-        public static ImportSyntax Import(params SyntaxToken[] identifiers) => new ImportSyntax(new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier));
-        //public static ImportSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType, params string[] identifiers) => new ImportSyntax(null, alias, aliasType, identifiers);
+        public static ImportSyntax Import(params SyntaxToken[] identifiers) => new ImportSyntax(new(SyntaxTokenKind.ColonSymbol, identifiers, SyntaxTokenKind.Identifier));
+        public static ImportAliasSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType) => new ImportAliasSyntax(alias, aliasType);
         
         public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(SyntaxTokenKind.ColonSymbol, identifiers, SyntaxTokenKind.Identifier));
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);

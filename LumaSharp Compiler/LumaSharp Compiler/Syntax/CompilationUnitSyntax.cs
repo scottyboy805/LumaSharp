@@ -44,6 +44,16 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
+        public ImportSyntax[] Imports
+        {
+            get { return imports; }
+        }
+
+        public SyntaxNode[] NamespaceOrMembers
+        {
+            get { return namespaceOrMembers; }
+        }
+
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get

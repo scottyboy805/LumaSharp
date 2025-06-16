@@ -9,26 +9,29 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateRoot_Import()
         {
-            SyntaxNode syntax0 = Syntax.Import("MyNamespace");
+            SyntaxNode syntax0 = Syntax.Import("MyNamespace")
+                .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("import MyNamespace;", syntax0.GetSourceText());
             Assert.AreEqual("import", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Import("MyNamespace", "MySubNamespace", "MyFinalNamespace");
+            SyntaxNode syntax1 = Syntax.Import("MyNamespace", "MySubNamespace", "MyFinalNamespace")
+                .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("import MyNamespace:MySubNamespace:MyFinalNamespace;", syntax1.GetSourceText());
             Assert.AreEqual("import", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
-            //SyntaxNode syntax2 = Syntax.ImportAlias("MyAlias", Syntax.TypeReference("MyType"), "MyNamespace", "MySubNamespace", "MyFinalNamespace");
+            SyntaxNode syntax2 = Syntax.ImportAlias("MyAlias", Syntax.TypeReference(new[] { "MyNamespace", "MySubNamespace", "MyFinalNamespace" }, "MyType"))
+                .NormalizeWhitespace();
 
-            //// Get expression text
-            //Assert.AreEqual("import MyAlias as MyNamespace:MySubNamespace:MyFinalNamespace.MyType;", syntax2.GetSourceText());
-            //Assert.AreEqual("import", syntax2.StartToken.Text);
-            //Assert.AreEqual(";", syntax2.EndToken.Text);
+            // Get expression text
+            Assert.AreEqual("import MyAlias as MyNamespace:MySubNamespace:MyFinalNamespace:MyType;", syntax2.GetSourceText());
+            Assert.AreEqual("import", syntax2.StartToken.Text);
+            Assert.AreEqual(";", syntax2.EndToken.Text);
         }
 
         [TestMethod]

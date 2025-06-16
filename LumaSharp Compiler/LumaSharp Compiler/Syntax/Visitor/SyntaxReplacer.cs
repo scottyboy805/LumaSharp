@@ -1,4 +1,6 @@
 ﻿
+using System.Numerics;
+
 namespace LumaSharp.Compiler.AST.Visitor
 {
     public abstract class SyntaxReplacer : SyntaxRewriter
@@ -189,10 +191,18 @@ namespace LumaSharp.Compiler.AST.Visitor
             return new AttributeSyntax(hash, attributeType, argumentList);
         }
 
-        //public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax compilationUnit)
-        //{
-        //    bool modified = ReplaceMany(compilationUnit.GetSpan)
-        //}
+        public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax compilationUnit)
+        {
+            bool modified = ReplaceMany(compilationUnit.Imports, out IEnumerable<ImportSyntax> imports);
+            modified |= ReplaceMany(compilationUnit.NamespaceOrMembers, out IEnumerable<SyntaxNode> namespaceOrMembers);
+
+            // Check for modified
+            if (modified == false)
+                return compilationUnit;
+
+            // Create modified
+            return new CompilationUnitSyntax(imports.ToArray(), namespaceOrMembers.ToArray());
+        }
 
         public override SyntaxNode VisitConstructorInvoke(ConstructorInvokeSyntax constructorInvoke)
         {
@@ -206,6 +216,36 @@ namespace LumaSharp.Compiler.AST.Visitor
 
             // Create modified
             return new ConstructorInvokeSyntax(colon, baseOrThisKeyword, argumentList);
+        }
+
+        public override SyntaxNode VisitImport(ImportSyntax import)
+        {
+            bool modified = Replace(import.Keyword, out SyntaxToken keyword);
+            modified |= Replace(import.Name, out SeparatedTokenList name);
+            modified |= Replace(import.Semicolon, out SyntaxToken semicolon);
+
+            // Check for modified
+            if (modified == false)
+                return import;
+
+            // Create modified
+            return new ImportSyntax(keyword, name, semicolon);
+        }
+
+        public override SyntaxNode VisitImpotAlias(ImportAliasSyntax importAlias)
+        {
+            bool modified = Replace(importAlias.Keyword, out SyntaxToken keyword);
+            modified |= Replace(importAlias.Identifier, out SyntaxToken identifier);
+            modified |= Replace(importAlias.As, out SyntaxToken _as);
+            modified |= Replace(importAlias.Type, out TypeReferenceSyntax type);
+            modified |= Replace(importAlias.Semicolon, out SyntaxToken semicolon);
+
+            // Check for modified
+            if (modified == false)
+                return importAlias;
+
+            // Create modified
+            return new ImportAliasSyntax(keyword, identifier, _as, type, semicolon);
         }
 
         public override SyntaxNode VisitTypeReference(TypeReferenceSyntax typeReference)

@@ -181,6 +181,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             if (syntax.HasBody == true)
             {
 #pragma warning FIX THIS
+                this.bodyStatements = syntax.HasBody == true
+                    ? new[] { StatementModel.Any(model, this, syntax.Body, 0, this) }
+                    : Array.Empty<StatementModel>();
                 //this.bodyStatements = syntax.Body.Elements
                 //    .Select((s, i) => StatementModel.Any(model, this, s, i, this)).ToArray();
             }

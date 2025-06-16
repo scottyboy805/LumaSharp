@@ -46,6 +46,10 @@ namespace LumaSharp.Compiler.AST
 
         public static SyntaxTree Create(SyntaxNode root)
         {
+            // Check for compilation unit
+            if(root is not CompilationUnitSyntax)
+                root = new CompilationUnitSyntax(null, new[] { root });
+
             return new SyntaxTree(null, root, new CompileReport());
         }
 

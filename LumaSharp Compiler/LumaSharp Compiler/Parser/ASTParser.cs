@@ -96,6 +96,30 @@ namespace LumaSharp.Compiler.Parser
                 if(tokens.PeekKind() == SyntaxTokenKind.Identifier && tokens.PeekKind(1) == SyntaxTokenKind.AsKeyword)
                 {
                     // We are parsing an alias
+                    SyntaxToken identifier = tokens.Consume();
+                    SyntaxToken asToken = tokens.Consume();
+
+                    // Parse the type reference
+                    TypeReferenceSyntax importType = ParseTypeReference();
+
+                    // Expected type
+                    if(importType == null)
+                    {
+                        // Expected type
+                        report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
+                        return RecoverFromImportError();
+                    }
+
+                    // Expect semicolon
+                    if (tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
+                    {
+                        // Expected ';'
+                        report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                        return RecoverFromImportError();
+                    }
+
+                    // Create the alias
+                    return new ImportAliasSyntax(importToken, identifier, asToken, importType, semicolon);
                 }
                 else
                 {
@@ -111,7 +135,7 @@ namespace LumaSharp.Compiler.Parser
                     }
 
                     // Create the import
-                    return new ImportSyntax(importToken, importName);
+                    return new ImportSyntax(importToken, importName, semicolon);
                 }
             }
             return null;

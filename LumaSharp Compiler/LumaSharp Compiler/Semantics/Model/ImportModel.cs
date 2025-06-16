@@ -38,7 +38,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public string IdentifierName
         {
-            get { return syntax.AliasIdentifier.Text; }
+            get { return (syntax is ImportAliasSyntax alias) ? alias.Identifier.Text : null; }
         }
 
         public INamespaceReferenceSymbol ParentNamespace
@@ -94,7 +94,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public bool IsAlias
         {
-            get { return syntax.HasAlias; }
+            get { return syntax is ImportAliasSyntax; }
         }
 
         public ILibraryReferenceSymbol LibrarySymbol
@@ -123,7 +123,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             if(IsAlias == true)
             {
                 // Resolve alias type
-                aliasType = provider.ResolveTypeSymbol(namespaceSymbol, syntax.AliasTypeReference);
+                aliasType = provider.ResolveTypeSymbol(namespaceSymbol, (syntax as ImportAliasSyntax).Type);
             }
         }
     }

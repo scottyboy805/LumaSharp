@@ -35,6 +35,24 @@ namespace LumaSharp.Compiler.AST.Visitor
                 .WithTrailingTrivia(whitespace);
         }
 
+        public override SyntaxNode VisitImport(ImportSyntax import)
+        {
+            return new ImportSyntax(
+                import.Keyword.WithTrailingTrivia(whitespace),
+                VisitTokenList(import.Name, false, false),
+                import.Semicolon);
+        }
+
+        public override SyntaxNode VisitImpotAlias(ImportAliasSyntax importAlias)
+        {
+            return new ImportAliasSyntax(
+                importAlias.Keyword.WithTrailingTrivia(whitespace),
+                importAlias.Identifier.WithTrailingTrivia(whitespace),
+                importAlias.As.WithTrailingTrivia(whitespace),
+                DefaultVisit(importAlias.Type),
+                importAlias.Semicolon);
+        }
+
         public override SyntaxNode VisitNamespace(NamespaceSyntax ns)
         {
             return new NamespaceSyntax(

@@ -9,6 +9,7 @@ namespace LumaSharp.Compiler.AST.Visitor
 
         public abstract T VisitCompilationUnit(CompilationUnitSyntax compilationUnit);
         public abstract T VisitImport(ImportSyntax import);
+        public abstract T VisitImpotAlias(ImportAliasSyntax importAlias);
         public abstract T VisitNamespace(NamespaceSyntax ns);
 
         public abstract T VisitTokenList(SeparatedTokenList list);
