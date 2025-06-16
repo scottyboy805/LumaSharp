@@ -34,25 +34,28 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateStatement_Condition()
         {
             SyntaxNode syntax0 = Syntax.Condition(
-                Syntax.Binary(Syntax.VariableReference("myVariable"), Syntax.Token(SyntaxTokenKind.EqualitySymbol), Syntax.VariableReference("myOtherVariable")));
+                Syntax.Binary(Syntax.VariableReference("myVariable"), Syntax.Token(SyntaxTokenKind.EqualitySymbol), Syntax.VariableReference("myOtherVariable")))
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("if myVariable == myOtherVariable;", syntax0.GetSourceText());
+            Assert.AreEqual("if myVariable == myOtherVariable\n;", syntax0.GetSourceText());
             Assert.AreEqual("if", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Condition(
                 Syntax.Literal(true))
-                .WithInlineStatement(Syntax.Break());
+                .WithInlineStatement(Syntax.Break())
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("if true break;", syntax1.GetSourceText());
+            Assert.AreEqual("if true\nbreak;", syntax1.GetSourceText());
             Assert.AreEqual("if", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.Condition(
                 Syntax.Literal(true))
-                .WithStatementBlock(Syntax.Break());
+                .WithStatementBlock(Syntax.Break())
+                .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("if true\n{\nbreak;\n}", syntax2.GetSourceText());
@@ -62,35 +65,38 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             SyntaxNode syntax3 = Syntax.Condition(
                 Syntax.Literal(true))
                 .WithInlineStatement(Syntax.Break())
-                .WithAlternate(Syntax.Condition()
-                    .WithInlineStatement(Syntax.Continue()));
+                .WithAlternate(Syntax.AlternateCondition()
+                    .WithInlineStatement(Syntax.Continue()))
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("if true break; else continue;", syntax3.GetSourceText());
+            Assert.AreEqual("if true\nbreak;\nelse\ncontinue;", syntax3.GetSourceText());
             Assert.AreEqual("if", syntax3.StartToken.Text);
             Assert.AreEqual(";", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Condition(
                 Syntax.Literal(true))
                 .WithInlineStatement(Syntax.Break())
-                .WithAlternate(Syntax.Condition(Syntax.Literal(false))
-                    .WithInlineStatement(Syntax.Continue()));
+                .WithAlternate(Syntax.AlternateCondition(Syntax.Literal(false))
+                    .WithInlineStatement(Syntax.Continue()))
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("if true break; elif false continue;", syntax4.GetSourceText());
+            Assert.AreEqual("if true\nbreak;\nelif false\ncontinue;", syntax4.GetSourceText());
             Assert.AreEqual("if", syntax4.StartToken.Text);
             Assert.AreEqual(";", syntax4.EndToken.Text);
 
             SyntaxNode syntax5 = Syntax.Condition(
                 Syntax.Literal(true))
                 .WithInlineStatement(Syntax.Break())
-                .WithAlternate(Syntax.Condition(Syntax.Literal(false))
+                .WithAlternate(Syntax.AlternateCondition(Syntax.Literal(false))
                     .WithInlineStatement(Syntax.Continue())
-                    .WithAlternate(Syntax.Condition()                    
+                    .WithAlternate(Syntax.AlternateCondition()                    
                 .WithInlineStatement(Syntax.Assign(Syntax.VariableReference("myVar"),
-                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
+                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))))
+                .NormalizeWhitespace();
 
-            Assert.AreEqual("if true break; elif false continue; else myVar = 5;", syntax5 .GetSourceText());
+            Assert.AreEqual("if true\nbreak;\nelif false\ncontinue;\nelse\nmyVar = 5;", syntax5 .GetSourceText());
             Assert.AreEqual("if", syntax5.StartToken.Text);
             Assert.AreEqual(";", syntax5.EndToken.Text);
         }
@@ -143,7 +149,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("for ;;;", syntax0.GetSourceText());
+            Assert.AreEqual("for ;;\n;", syntax0.GetSourceText());
             Assert.AreEqual("for", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
@@ -151,7 +157,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("for MyType myVar;;;", syntax1.GetSourceText());
+            Assert.AreEqual("for MyType myVar;;\n;", syntax1.GetSourceText());
             Assert.AreEqual("for", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
@@ -159,7 +165,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("for ; true;;", syntax2.GetSourceText());
+            Assert.AreEqual("for ; true;\n;", syntax2.GetSourceText());
             Assert.AreEqual("for", syntax2.StartToken.Text);
             Assert.AreEqual(";", syntax2.EndToken.Text);
 
@@ -167,7 +173,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("for ;; i + 2;", syntax3.GetSourceText());
+            Assert.AreEqual("for ;; i + 2\n;", syntax3.GetSourceText());
             Assert.AreEqual("for", syntax3.StartToken.Text);
             Assert.AreEqual(";", syntax3.EndToken.Text);
 
@@ -176,7 +182,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("for MyType myVar; true; i + 2;", syntax4.GetSourceText());
+            Assert.AreEqual("for MyType myVar; true; i + 2\n;", syntax4.GetSourceText());
             Assert.AreEqual("for", syntax4.StartToken.Text);
             Assert.AreEqual(";", syntax4.EndToken.Text);
 
@@ -186,7 +192,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
                 .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("for ;; break;", syntax5.GetSourceText());
+            Assert.AreEqual("for ;;\nbreak;", syntax5.GetSourceText());
             Assert.AreEqual("for", syntax5.StartToken.Text);
             Assert.AreEqual(";", syntax5.EndToken.Text);
 
@@ -197,7 +203,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             // Get expression text
             Assert.AreEqual("for ;;\n{\nbreak;\n}", syntax6.GetSourceText());
             Assert.AreEqual("for", syntax6.StartToken.Text);
-            Assert.AreEqual(";", syntax6.EndToken.Text);
+            Assert.AreEqual("}", syntax6.EndToken.Text);
         }
 
         [TestMethod]

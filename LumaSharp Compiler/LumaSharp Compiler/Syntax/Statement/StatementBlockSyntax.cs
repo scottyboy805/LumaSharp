@@ -97,7 +97,7 @@ namespace LumaSharp.Compiler.AST
 
             // Statements
             foreach(StatementSyntax statement in statements)
-                statement.GetSourceText();
+                statement.GetSourceText(writer);
 
             // RBlock
             rBlock.GetSourceText(writer);

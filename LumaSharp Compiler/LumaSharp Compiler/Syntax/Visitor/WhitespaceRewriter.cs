@@ -1,4 +1,6 @@
 ﻿
+using System.Reflection.Metadata;
+
 namespace LumaSharp.Compiler.AST.Visitor
 {
     internal sealed class WhitespaceRewriter : SyntaxRewriter
@@ -33,6 +35,14 @@ namespace LumaSharp.Compiler.AST.Visitor
                 .WithTrailingTrivia(whitespace);
         }
 
+        public override SyntaxNode VisitNamespace(NamespaceSyntax ns)
+        {
+            return new NamespaceSyntax(
+                ns.Keyword.WithTrailingTrivia(whitespace),
+                VisitTokenList(ns.Name, false, false),
+                ns.Semicolon);
+        }
+
         public override SyntaxNode VisitVariableDeclaration(VariableDeclarationSyntax variableDeclaration)
         {
             return new VariableDeclarationSyntax(
@@ -62,7 +72,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             return VisitSyntaxList(list, false);
         }
 
-        private SeparatedSyntaxList<J> VisitSyntaxList<J>(SeparatedSyntaxList<J> list, bool leadingSeparatorSpace) where J : SyntaxNode
+        private SeparatedSyntaxList<J> VisitSyntaxList<J>(SeparatedSyntaxList<J> list, bool leadingSeparatorSpace, bool trailingSeparatorSpace = true) where J : SyntaxNode
         {
             // Check for null
             if (list == null)
@@ -74,14 +84,34 @@ namespace LumaSharp.Compiler.AST.Visitor
 
             // Create the new list with whitespace separators
             return new SeparatedSyntaxList<J>(list.SeparatorKind, list.Elements.Select(
-                e => new SeparatedSyntaxList<J>.SyntaxSeparatedElement(DefaultVisit(e.Syntax), e.Separator != null
-                    ? leadingSeparatorSpace == true
-                        ? e.Separator.Value.WithLeadingTrivia(whitespace).WithTrailingTrivia(whitespace)
-                        : e.Separator.Value.WithTrailingTrivia(whitespace)
-                    : (SyntaxToken?)null)));
+                e => new SeparatedSyntaxList<J>.SyntaxSeparatedElement(DefaultVisit(e.Syntax), GetSeparator(e.Separator))));
+
+            SyntaxToken? GetSeparator(SyntaxToken? separator)
+            {
+                // Check for null
+                if (separator == null)
+                    return (SyntaxToken?)null;
+
+                SyntaxToken val = separator.Value;
+
+                // Check for leading
+                if (leadingSeparatorSpace == true)
+                    val = val.WithLeadingTrivia(whitespace);
+
+                // Check for trailing
+                if (trailingSeparatorSpace == true)
+                    val = val.WithTrailingTrivia(whitespace);
+
+                return val;
+            }
         }
 
         public override SyntaxNode VisitTokenList(SeparatedTokenList list)
+        {
+            return VisitTokenList(list, false);
+        }
+
+        private SeparatedTokenList VisitTokenList(SeparatedTokenList list, bool leadingSeparatorSpace, bool trailingSeparatorSpace = true)
         {
             // Check for null
             if (list == null)
@@ -93,9 +123,26 @@ namespace LumaSharp.Compiler.AST.Visitor
 
             // Create the new list with whitespace separators
             return new SeparatedTokenList(list.SeparatorKind, list.Elements.Select(
-                e => new SeparatedTokenList.TokenSeparatedElement(e.Token, e.Separator != null
-                    ? e.Separator.Value.WithTrailingTrivia(whitespace)
-                    : (SyntaxToken?)null)), list.TokenKind);
+                e => new SeparatedTokenList.TokenSeparatedElement(e.Token, GetSeparator(e.Separator))), list.TokenKind);
+
+            SyntaxToken? GetSeparator(SyntaxToken? separator)
+            {
+                // Check for null
+                if (separator == null)
+                    return (SyntaxToken?)null;
+
+                SyntaxToken val = separator.Value;
+
+                // Check for leading
+                if (leadingSeparatorSpace == true)
+                    val = val.WithLeadingTrivia(whitespace);
+
+                // Check for trailing
+                if (trailingSeparatorSpace == true)
+                    val = val.WithTrailingTrivia(whitespace);
+
+                return val;
+            }
         }
 
         public override SyntaxNode VisitBaseTypeList(BaseTypeListSyntax baseTypeList)
@@ -227,6 +274,40 @@ namespace LumaSharp.Compiler.AST.Visitor
         #endregion        
 
         #region Statement
+        private StatementSyntax VisitInnerStatement(StatementSyntax statement)
+        {
+            // Default visit
+            StatementSyntax result = DefaultVisit(statement);
+
+            // Check for block
+            if (result is StatementBlockSyntax)
+                return result;
+
+            // Insert new line
+            return result.WithLeadingTrivia(newLine);
+        }
+
+        public override SyntaxNode VisitAssignStatement(AssignStatementSyntax assignStatement)
+        {
+            return new AssignStatementSyntax(
+                DefaultVisit(assignStatement.Left),
+                DefaultVisit(assignStatement.AssignExpression),
+                assignStatement.Semicolon);
+        }
+
+        public override SyntaxNode VisitConditionStatement(ConditionStatementSyntax conditionStatement)
+        {
+            return new ConditionStatementSyntax(
+                conditionStatement.IsAlternate == true
+                    ? conditionStatement.Keyword.Kind == SyntaxTokenKind.ElifKeyword
+                        ? conditionStatement.Keyword.WithLeadingTrivia(newLine).WithTrailingTrivia(whitespace)
+                        : conditionStatement.Keyword.WithLeadingTrivia(newLine)
+                    : conditionStatement.Keyword.WithTrailingTrivia(whitespace),
+                DefaultVisit(conditionStatement.Condition),
+                DefaultVisit(conditionStatement.Alternate),
+                VisitInnerStatement(conditionStatement.Statement));
+        }
+
         public override SyntaxNode VisitForStatement(ForStatementSyntax forStatement)
         {
             return new ForStatementSyntax(
@@ -236,7 +317,7 @@ namespace LumaSharp.Compiler.AST.Visitor
                 DefaultVisit(forStatement.Condition)?.WithLeadingTrivia(whitespace),
                 forStatement.ConditionSemicolon,
                 DefaultVisit(forStatement.Increments)?.WithLeadingTrivia(whitespace),
-                DefaultVisit(forStatement.Statement));
+                VisitInnerStatement(forStatement.Statement));
         }
 
         public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax returnStatement)
@@ -250,8 +331,8 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitStatementBlock(StatementBlockSyntax statementBlock)
         {
             return new StatementBlockSyntax(
-                statementBlock.LBlock.WithLeadingTrivia(newLine),
-                statementBlock.Statements,
+                statementBlock.LBlock.WithLeadingTrivia(newLine).WithTrailingTrivia(newLine),
+                statementBlock.Statements.Select(s => DefaultVisit(s)),
                 statementBlock.RBlock.WithLeadingTrivia(newLine));
         }
 
@@ -265,6 +346,14 @@ namespace LumaSharp.Compiler.AST.Visitor
 
 
         #region Expression
+        public override SyntaxNode VisitAssignExpression(AssignExpressionSyntax assignExpression)
+        {
+            return new AssignExpressionSyntax(
+                DefaultVisit(assignExpression.Left),
+                assignExpression.Assign.WithLeadingTrivia(whitespace).WithTrailingTrivia(whitespace),
+                DefaultVisit(assignExpression.Right));
+        }
+
         public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax binaryExpression)
         {
             return new BinaryExpressionSyntax(

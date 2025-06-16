@@ -88,7 +88,7 @@ namespace LumaSharp.Compiler.AST
         public static ImportSyntax Import(params SyntaxToken[] identifiers) => new ImportSyntax(new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier));
         //public static ImportSyntax ImportAlias(string alias, TypeReferenceSyntax aliasType, params string[] identifiers) => new ImportSyntax(null, alias, aliasType, identifiers);
         
-        public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier));
+        public static NamespaceSyntax Namespace(params SyntaxToken[] identifiers) => new NamespaceSyntax(new(SyntaxTokenKind.ColonSymbol, identifiers, SyntaxTokenKind.Identifier));
         public static TypeSyntax Type(SyntaxToken identifier) => new TypeSyntax(identifier, null, null, null, null, null, null);
         public static ContractSyntax Contract(SyntaxToken identifier) => new ContractSyntax( identifier, null, null, null, null, null);
         public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) => new EnumSyntax(identifier, null, null, underlyingType != null ? new(new(SyntaxTokenKind.CommaSymbol, underlyingType)) : null, null);
@@ -131,7 +131,8 @@ namespace LumaSharp.Compiler.AST
         public static AssignStatementSyntax Assign(ExpressionSyntax left, VariableAssignmentExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, new[] { left }), variableAssign);
         public static AssignStatementSyntax Assign(ExpressionSyntax[] left, VariableAssignmentExpressionSyntax variableAssign) => new AssignStatementSyntax(new(SyntaxTokenKind.CommaSymbol, left), variableAssign);
         public static BreakStatementSyntax Break() => new BreakStatementSyntax();
-        public static ConditionStatementSyntax Condition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(Token(SyntaxTokenKind.IfKeyword), condition, null, new EmptyStatementSyntax());
+        public static ConditionStatementSyntax Condition(ExpressionSyntax condition) => new ConditionStatementSyntax(Token(SyntaxTokenKind.IfKeyword), condition, null, new EmptyStatementSyntax());
+        public static ConditionStatementSyntax AlternateCondition(ExpressionSyntax condition = null) => new ConditionStatementSyntax(condition != null ? Token(SyntaxTokenKind.ElifKeyword) : Token(SyntaxTokenKind.ElseKeyword), condition, null, new EmptyStatementSyntax());
         public static ContinueStatementSyntax Continue() => new ContinueStatementSyntax();
         public static ForStatementSyntax For(VariableDeclarationSyntax variable, ExpressionSyntax condition, params ExpressionSyntax[] increments) => new ForStatementSyntax(variable, condition, new(SyntaxTokenKind.CommaSymbol, increments), new EmptyStatementSyntax());
         public static ReturnStatementSyntax Return(ExpressionSyntax expression = null) => new ReturnStatementSyntax(expression != null ? new(SyntaxTokenKind.CommaSymbol, new[] {expression}) : null);

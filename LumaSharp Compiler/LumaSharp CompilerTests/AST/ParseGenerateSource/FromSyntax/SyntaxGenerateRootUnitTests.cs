@@ -34,19 +34,21 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateRoot_Namespace()
         {
-            SyntaxNode syntax0 = Syntax.Namespace("MyNamespace");
+            SyntaxNode syntax0 = Syntax.Namespace("MyNamespace")
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("namespace MyNamespace{}", syntax0.GetSourceText());
+            Assert.AreEqual("namespace MyNamespace;", syntax0.GetSourceText());
             Assert.AreEqual("namespace", syntax0.StartToken.Text);
-            Assert.AreEqual("}", syntax0.EndToken.Text);
+            Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Namespace("MyNamespace", "MySubNamespace", "MyFinalNamespace");
+            SyntaxNode syntax1 = Syntax.Namespace("MyNamespace", "MySubNamespace", "MyFinalNamespace")
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("namespace MyNamespace:MySubNamespace:MyFinalNamespace{}", syntax1.GetSourceText());
+            Assert.AreEqual("namespace MyNamespace:MySubNamespace:MyFinalNamespace;", syntax1.GetSourceText());
             Assert.AreEqual("namespace", syntax1.StartToken.Text);
-            Assert.AreEqual("}", syntax1.EndToken.Text);
+            Assert.AreEqual(";", syntax1.EndToken.Text);
         }
 
         [TestMethod]

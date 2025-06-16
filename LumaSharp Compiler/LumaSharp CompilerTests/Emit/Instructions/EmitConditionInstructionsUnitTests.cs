@@ -150,7 +150,7 @@ namespace CompilerTests.Emit.Instructions
                 Syntax.Type("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Condition(Syntax.Literal(true)).WithInlineStatement(Syntax.Return())
-                .WithAlternate(Syntax.Condition().WithInlineStatement(Syntax.Return())))));
+                .WithAlternate(Syntax.AlternateCondition().WithInlineStatement(Syntax.Return())))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -212,7 +212,7 @@ namespace CompilerTests.Emit.Instructions
                 Syntax.Method("Test")
                 .WithBody(Syntax.Condition(Syntax.Literal(true)).WithInlineStatement(Syntax.Return())
                 .WithAlternate(Syntax.Condition(Syntax.Literal(false)).WithInlineStatement(Syntax.Return())
-                .WithAlternate(Syntax.Condition().WithInlineStatement(Syntax.Return()))))));
+                .WithAlternate(Syntax.AlternateCondition().WithInlineStatement(Syntax.Return()))))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -131,7 +131,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateMisc_GenericParameters()
         {
             SyntaxNode syntax0 = Syntax.Type("test")
-                .WithGenericParameters(Syntax.GenericParameter("T")).GenericParameters;
+                .WithGenericParameters(Syntax.GenericParameter("T")).GenericParameters
+                .NormalizeWhitespace();
 
             // Get expression text
             Assert.AreEqual("<T>", syntax0.GetSourceText());
@@ -139,26 +140,29 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(">", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Type("test")
-                .WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("enum"))).GenericParameters;
+                .WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("enum"))).GenericParameters
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("<T:enum>", syntax1.GetSourceText());
+            Assert.AreEqual("<T : enum>", syntax1.GetSourceText());
             Assert.AreEqual("<", syntax1.StartToken.Text);
             Assert.AreEqual(">", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.Type("test")
-                .WithGenericParameters(Syntax.GenericParameter("T"), Syntax.GenericParameter("Param")).GenericParameters;
+                .WithGenericParameters(Syntax.GenericParameter("T"), Syntax.GenericParameter("Param")).GenericParameters
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("<T,Param>", syntax2.GetSourceText());
+            Assert.AreEqual("<T, Param>", syntax2.GetSourceText());
             Assert.AreEqual("<", syntax2.StartToken.Text);
             Assert.AreEqual(">", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Type("test")
-                .WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("enum")), Syntax.GenericParameter("Param", Syntax.TypeReference("MyType"), Syntax.TypeReference("CDispose"))).GenericParameters;
+                .WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("enum")), Syntax.GenericParameter("Param", Syntax.TypeReference("MyType"), Syntax.TypeReference("CDispose"))).GenericParameters
+                .NormalizeWhitespace();
 
             // Get expression text
-            Assert.AreEqual("<T:enum,Param:MyType:CDispose>", syntax3.GetSourceText());
+            Assert.AreEqual("<T : enum, Param : MyType & CDispose>", syntax3.GetSourceText());
             Assert.AreEqual("<", syntax3.StartToken.Text);
             Assert.AreEqual(">", syntax3.EndToken.Text);
         }

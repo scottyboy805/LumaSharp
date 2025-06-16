@@ -1,5 +1,4 @@
-﻿
-using LumaSharp.Compiler.AST.Visitor;
+﻿using LumaSharp.Compiler.AST.Visitor;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -8,13 +7,9 @@ namespace LumaSharp.Compiler.AST
         // Private
         private readonly SyntaxToken keyword;
         private readonly SeparatedTokenList name;
+        private readonly SyntaxToken semicolon;
 
         // Properties
-        public SyntaxToken Keyword
-        {
-            get { return keyword; }
-        }
-
         public override SyntaxToken StartToken
         {
             get { return keyword; }
@@ -22,7 +17,17 @@ namespace LumaSharp.Compiler.AST
 
         public override SyntaxToken EndToken
         {
-            get { return name.EndToken; }
+            get { return semicolon; }
+        }
+
+        public SyntaxToken Keyword
+        {
+            get { return keyword; }
+        }
+
+        public SyntaxToken Semicolon
+        {
+            get { return semicolon; }
         }
 
         public SeparatedTokenList Name
@@ -39,15 +44,19 @@ namespace LumaSharp.Compiler.AST
         internal NamespaceSyntax(SeparatedTokenList name)
             : this(
                   Syntax.Token(SyntaxTokenKind.NamespaceKeyword),
-                  name)
+                  name,
+                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
         {
         }
 
-        internal NamespaceSyntax(SyntaxToken keyword, SeparatedTokenList name)
+        internal NamespaceSyntax(SyntaxToken keyword, SeparatedTokenList name, SyntaxToken semicolon)
         {
             // Check kind
             if(keyword.Kind != SyntaxTokenKind.NamespaceKeyword)
                 throw new ArgumentException(nameof(keyword) + " must be of kind: " + SyntaxTokenKind.NamespaceKeyword);
+
+            if (semicolon.Kind != SyntaxTokenKind.SemicolonSymbol)
+                throw new ArgumentException(nameof(semicolon) + " must be of kind: " + SyntaxTokenKind.SemicolonSymbol);
 
             // Check for null
             if(name == null)
@@ -55,6 +64,10 @@ namespace LumaSharp.Compiler.AST
 
             this.keyword = keyword;
             this.name = name;
+            this.semicolon = semicolon;
+
+            // Set parent
+            name.parent = this;
         }
 
         // Methods
@@ -75,6 +88,9 @@ namespace LumaSharp.Compiler.AST
 
             // Write namespace name
             name.GetSourceText(writer);
+
+            // Semicolon
+            semicolon.GetSourceText(writer);
         }
     }
 }
