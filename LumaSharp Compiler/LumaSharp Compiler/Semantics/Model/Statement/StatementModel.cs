@@ -4,10 +4,6 @@ namespace LumaSharp.Compiler.Semantics.Model
 {
     public abstract class StatementModel : SymbolModel
     {
-        // Private
-        private StatementSyntax syntax = null;
-        private int statementIndex = 0;
-
         // Properties
         public IReferenceSymbol ParentSymbol
         {
@@ -24,17 +20,10 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
         }
 
-        public int StatementIndex
-        {
-            get { return statementIndex; }
-        }
-
         // Constructor
-        internal StatementModel(SemanticModel model, SymbolModel parent, StatementSyntax syntax, int statementIndex)
-            : base(model, parent)
+        internal StatementModel(SyntaxSpan? span)
+            : base(span)
         {
-            this.syntax = syntax;
-            this.statementIndex = statementIndex;
         }
 
         // Methods
@@ -52,40 +41,48 @@ namespace LumaSharp.Compiler.Semantics.Model
             return model as T;
         }
 
-        internal static StatementModel Any(SemanticModel model, SymbolModel parent, StatementSyntax syntax, int statementIndex, IScopeModel scope = null)
+        internal static StatementModel Any(StatementSyntax syntax, SymbolModel parent)
         {
-            // Check for variable
-            if(syntax is VariableDeclarationStatementSyntax)
-            {
-                // Check for scope
-                if (scope != null)
-                    return scope.DeclareScopedLocal(model, syntax as VariableDeclarationStatementSyntax, statementIndex);
+            StatementModel model = null;
 
+            // Check for variable
+            if (syntax is VariableDeclarationStatementSyntax variable)
+            {
                 // Create variable
-                return new VariableModel(model, parent, syntax as VariableDeclarationStatementSyntax, statementIndex);
+                model = new VariableModel(variable);
+            }
+            // Check for return
+            else if (syntax is ReturnStatementSyntax _return)
+            {
+                model = new ReturnModel(_return);
+            }
+            // Check for assign
+            else if (syntax is AssignStatementSyntax assign)
+            {
+                model = new AssignModel(assign);
+            }
+            // Check for condition
+            else if (syntax is ConditionStatementSyntax condition)
+            {
+                model = new ConditionModel(condition);
+            }
+            // Check for for loop
+            else if (syntax is ForStatementSyntax _for)
+            {
+                model = new ForModel(_for);
+            }
+            // Check for method invoke
+            else if (syntax is MethodInvokeStatementSyntax methodInvoke)
+            {
+                model = new MethodInlineInvokeModel(methodInvoke);
             }
 
-            // Check for return
-            if(syntax is ReturnStatementSyntax)
-                return new ReturnModel(model, parent, syntax as ReturnStatementSyntax, statementIndex);
+            // Check for null
+            if(model == null)
+                throw new NotSupportedException("Specified syntax is not supported");
 
-            // Check for assign
-            if(syntax is AssignStatementSyntax)
-                return new AssignModel(model, parent, syntax as AssignStatementSyntax, statementIndex);
-
-            // Check for condition
-            if(syntax is ConditionStatementSyntax)
-                return new ConditionModel(model, parent, syntax as ConditionStatementSyntax, statementIndex);
-
-            // Check for for loop
-            if(syntax is ForStatementSyntax)
-                return new ForModel(model, parent, syntax as ForStatementSyntax, statementIndex);
-
-            // Check for method invoke
-            if(syntax is MethodInvokeStatementSyntax)
-                return new MethodInlineInvokeModel(model, parent, syntax as  MethodInvokeStatementSyntax, statementIndex);
-
-            throw new NotSupportedException("Specified syntax is not supported");
+            model.parent = parent;
+            return model;
         }
     }
 }

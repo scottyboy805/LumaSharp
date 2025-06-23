@@ -1,25 +1,7 @@
-﻿
-using LumaSharp.Compiler.AST.Visitor;
+﻿using LumaSharp.Compiler.AST.Visitor;
 
 namespace LumaSharp.Compiler.AST
 {
-    public enum BinaryOperation
-    {
-        Add,
-        Subtract, 
-        Multiply,
-        Divide,
-        Modulus,
-        Greater,
-        GreaterEqual,
-        Less,
-        LessEqual,
-        Equal,
-        NotEqual,
-        And,
-        Or
-    }
-
     public sealed class BinaryExpressionSyntax : ExpressionSyntax
     {
         // Private
@@ -51,31 +33,6 @@ namespace LumaSharp.Compiler.AST
         public ExpressionSyntax Right
         {
             get { return right; }
-        }
-
-        public BinaryOperation BinaryOperation
-        {
-            get
-            {
-                return operation.Text switch
-                {
-                    "+" => BinaryOperation.Add,
-                    "-" => BinaryOperation.Subtract,
-                    "*" => BinaryOperation.Multiply,
-                    "/" => BinaryOperation.Divide,
-                    "%" => BinaryOperation.Modulus,
-                    ">" => BinaryOperation.Greater,
-                    ">=" => BinaryOperation.GreaterEqual,
-                    "<" => BinaryOperation.Less,
-                    "<=" => BinaryOperation.LessEqual,
-                    "==" => BinaryOperation.Equal,
-                    "!=" => BinaryOperation.NotEqual,
-                    "&&" => BinaryOperation.And,
-                    "||" => BinaryOperation.Or,
-
-                    _ => throw new NotImplementedException(),
-                };
-            }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants

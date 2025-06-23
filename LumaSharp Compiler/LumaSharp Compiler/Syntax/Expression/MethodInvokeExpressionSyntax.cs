@@ -64,7 +64,12 @@ namespace LumaSharp.Compiler.AST
 
         public bool HasGenericArguments
         {
-            get { return genericArgumentList != null; }         // Possible to have empty generics Type<>
+            get { return genericArgumentList != null && genericArgumentList.Count > 0; }         // Possible to have empty generics Type<>
+        }
+
+        public bool HasArguments
+        {
+            get { return argumentList != null && argumentList.Count > 0; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants

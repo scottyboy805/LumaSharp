@@ -6,8 +6,6 @@ namespace LumaSharp.Compiler.Semantics
     public interface IMethodReferenceSymbol : IIdentifierReferenceSymbol
     {
         // Properties
-        string MethodName { get; }
-
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
         ITypeReferenceSymbol[] ReturnTypeSymbols { get; }

@@ -4,41 +4,65 @@ using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
-    public sealed class LocalOrParameterModel : ILocalIdentifierReferenceSymbol
+    public sealed class LocalOrParameterModel : SymbolModel, ILocalIdentifierReferenceSymbol
     {
+        // Type
+        [Flags]
+        public enum Attributes : uint
+        {
+            Local = 1 << 1,
+            Parameter = 1 << 2,
+
+            ByRef = 1 << 6,
+            Optional = 1 << 7,
+        }
+
         // Private
-        private SyntaxNode syntax = null;
-        private IReferenceSymbol parent = null;
-        private ITypeReferenceSymbol type = null;
-        private string identifier = null;
+        private readonly StringModel identifier;
+        private readonly TypeReferenceModel typeModel;
+        private readonly ExpressionModel assignModel;
+        private readonly Attributes attributes;
         private int index = 0;
-        private int statementIndex = 0;
-        private bool isByReference = false;
 
         // Properties
-        public SyntaxNode Syntax
+        public string IdentifierName
         {
-            get { return syntax; }
+            get { return identifier.Text; }
+        }
+
+        public StringModel Identifier
+        {
+            get { return identifier; }
+        }
+
+        public TypeReferenceModel Type
+        {
+            get { return typeModel; }
+        }
+
+        public ExpressionModel Assign
+        {
+            get { return assignModel; }
         }
 
         public bool IsLocal
         {
-            get { return syntax is VariableDeclarationStatementSyntax; }
+            get { return (attributes & Attributes.Local) != 0; }
         }
 
         public bool IsParameter
         {
-            get { return syntax is ParameterSyntax; }
+            get { return (attributes & Attributes.Parameter) != 0; }
         }
 
         public bool IsByReference
         {
-            get { return isByReference; }
+            get { return (attributes & Attributes.ByRef) != 0; }
         }
 
         public bool IsOptional
         {
-            get { return false; }
+            get { return (attributes & Attributes.Optional) != 0; }
         }
 
         public int Index
@@ -46,70 +70,112 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return index; }
         }
 
-        public int DeclareIndex
-        {
-            get { return statementIndex; }
-        }
-
-        public IReferenceSymbol ParentSymbol
-        {
-            get { return parent; }
-        }
-
         public ITypeReferenceSymbol TypeSymbol
         {
-            get { return type; }
+            get { return typeModel.EvaluatedTypeSymbol; }
         }
 
         public ILibraryReferenceSymbol LibrarySymbol
         {
-            get { return type.LibrarySymbol; }
+            get { return Model.LibrarySymbol; }
         }
 
-        public _TokenHandle SymbolToken
+        public _TokenHandle Token
         {
             get { return default; }
         }
 
-        public string IdentifierName
+        public override IEnumerable<SymbolModel> Descendants
         {
-            get { return identifier; }
+            get
+            {
+                yield return typeModel;
+
+                // Check for assign
+                if (assignModel != null)
+                    yield return assignModel;
+            }
         }
 
         // Constructor
-        public LocalOrParameterModel(VariableDeclarationStatementSyntax syntax, IReferenceSymbol parent, int localIndex, int variableIndex, int statementIndex)
+        internal LocalOrParameterModel(ParameterSyntax parameterSyntax, int index)
+            : base(parameterSyntax != null ? parameterSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
-            this.parent = parent;
-            this.identifier = syntax.Identifiers[variableIndex].Text;
-            this.index = localIndex;
-            this.statementIndex = statementIndex;
+            // Check for null
+            if(parameterSyntax == null)
+                throw new ArgumentNullException(nameof(parameterSyntax));
+
+            this.identifier = new StringModel(parameterSyntax.Identifier);
+            this.typeModel = new TypeReferenceModel(parameterSyntax.ParameterType);
+            this.assignModel = parameterSyntax.Assignment != null
+                ? ExpressionModel.Any(parameterSyntax.Assignment.AssignExpressions.First(), this)
+                : null;
+            this.index = index;
+
+            // Set parent
+            this.typeModel.parent = this;
         }
 
-        public LocalOrParameterModel(ParameterSyntax syntax, IReferenceSymbol parent, int paramIndex)
+        internal LocalOrParameterModel(SyntaxToken identifier, TypeReferenceModel type, ExpressionModel assign, int index, SyntaxSpan? span)
+            : base(span)
         {
-            this.syntax = syntax;
-            this.parent = parent;
-            this.identifier = syntax.Identifier.Text;
-            this.index = paramIndex;
-            this.isByReference = syntax.IsByReference;
+            // Check for invalid
+            if (string.IsNullOrEmpty(identifier.Text) == true)
+                throw new ArgumentException(nameof(identifier) + " cannot be null or empty");
+
+            // Check for null
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            this.identifier = new StringModel(identifier);
+            this.typeModel = type;
+            this.assignModel = assign;
+            this.index = index;
+
+            // Set parent
+            type.parent = this;
+
+            if (assign != null)
+                assign.parent = this;
         }
 
         // Methods
-        public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void Accept(ISemanticVisitor visitor)
         {
-            // Check for variable
-            if(syntax is VariableDeclarationStatementSyntax)
+            visitor.VisitLocalOrParameter(this);
+        }
+
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        {
+            // Resolve type
+            typeModel.ResolveSymbols(provider, report);
+
+            // Resolve assign
+            if(assignModel != null)
+                assignModel.ResolveSymbols(provider, report);
+        }
+
+        public static LocalOrParameterModel[] CreateLocalVariables(VariableDeclarationSyntax variable, SymbolModel parent)
+        {
+            // Check for null
+            if(variable == null)
+                throw new ArgumentNullException(nameof(variable));
+
+            // Create type model
+            TypeReferenceModel variableType = new TypeReferenceModel(variable.VariableType);
+            variableType.parent = parent;
+
+            // Create locals
+            return variable.Identifiers.Select((identifier, index) =>
             {
-                // Resolve variable type
-                type = provider.ResolveTypeSymbol(parent, ((VariableDeclarationStatementSyntax)syntax).VariableType);
-            }
-            // Check for parameter
-            else if(syntax is ParameterSyntax)
-            {
-                // Resolve parameter type
-                type = provider.ResolveTypeSymbol(parent, ((ParameterSyntax)syntax).ParameterType);
-            }
+                // Check for assign
+                ExpressionModel assign = variable.HasAssignment == true && index < variable.Assignment.AssignExpressions.Count
+                    ? ExpressionModel.Any(variable.Assignment.AssignExpressions[index], parent)
+                    : null;
+
+                // Create local
+                return new LocalOrParameterModel(identifier, variableType, assign, index, variable.GetSpan());
+            }).ToArray();
         }
     }
 }

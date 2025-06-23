@@ -6,7 +6,6 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class ThisModel : ExpressionModel
     {
         // Private
-        private ThisExpressionSyntax syntax = null;
         private ITypeReferenceSymbol thisTypeReference = null;
 
         // Properties
@@ -26,10 +25,14 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public ThisModel(SemanticModel model, SymbolModel parent, ThisExpressionSyntax syntax)
-            : base(model, parent, syntax)
+        public ThisModel(ThisExpressionSyntax syntax)
+            : base(syntax != null ? syntax.GetSpan() : null)
         {
-            this.syntax = syntax;
+        }
+
+        public ThisModel(SyntaxSpan? span)
+            : base(span)
+        {
         }
 
         // Methods
@@ -59,7 +62,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Must be invalid usage context
             if(thisMethodScope == null || thisMethodScope.IsGlobal == true)
             {
-                report.ReportDiagnostic(Code.KeywordNotValid, MessageSeverity.Error, syntax.StartToken.Span, syntax.Keyword.Text);
+                report.ReportDiagnostic(Code.KeywordNotValid, MessageSeverity.Error, Span, SyntaxToken.GetText(SyntaxTokenKind.ThisKeyword));
             }
         }
     }

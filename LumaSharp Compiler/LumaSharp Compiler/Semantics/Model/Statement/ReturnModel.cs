@@ -7,18 +7,17 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class ReturnModel : StatementModel
     {
         // Private
-        private ReturnStatementSyntax syntax = null;
-        private ExpressionModel[] returnModels = null;
+        private readonly ExpressionModel[] returnModels;
 
         // Properties
-        public ExpressionModel[] ReturnModelExpressions
+        public ExpressionModel[] ReturnModels
         {
             get { return returnModels; }
         }
 
-        public bool HasReturnExpression
+        public bool HasReturnValue
         {
-            get { return syntax.HasExpressions; }
+            get { return returnModels != null; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -34,13 +33,16 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public ReturnModel(SemanticModel model, SymbolModel parent, ReturnStatementSyntax syntax, int statementIndex)
-            : base(model, parent, syntax, statementIndex)
+        public ReturnModel(ReturnStatementSyntax returnSyntax)
+            : base(returnSyntax != null ? returnSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
+            // Check for null
+            if(returnSyntax == null)
+                throw new ArgumentNullException(nameof(returnSyntax));
 
-            if(syntax.Expressions != null)
-                this.returnModels = syntax.Expressions.Select(e => ExpressionModel.Any(model, this, e)).ToArray();
+            this.returnModels = returnSyntax.HasExpressions == true
+                ? returnSyntax.Expressions.Select(e => ExpressionModel.Any(e, this)).ToArray()
+                : null;
         }
 
         // Methods
@@ -52,10 +54,10 @@ namespace LumaSharp.Compiler.Semantics.Model
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Check if method has return
-            IMethodReferenceSymbol parentMethod = GetParentSymbol<IMethodReferenceSymbol>(); //ParentSymbol as IMethodReferenceSymbol;
+            IMethodReferenceSymbol parentMethod = GetParentSymbol<IMethodReferenceSymbol>();
 
             // Check for return
-            if(HasReturnExpression == true)
+            if(HasReturnValue == true)
             {
                 // Check for incorrect return count
                 if(returnModels.Length != parentMethod.ReturnTypeSymbols.Length)
@@ -74,7 +76,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                         // Check for return type conversion
                         if (TypeChecker.IsTypeAssignable(returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]) == false)
                         {
-                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Span, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
+                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, returnModels[i].Span, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
                         }
                     }
                 }
@@ -84,7 +86,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         public override void StaticallyEvaluateStatement(ISymbolProvider provider)
         {
             // Check for expression which can be statically evaluated
-            if(HasReturnExpression == true)
+            if(HasReturnValue == true)
             {
                 // Process all models
                 for(int i = 0; i < returnModels.Length; i++)

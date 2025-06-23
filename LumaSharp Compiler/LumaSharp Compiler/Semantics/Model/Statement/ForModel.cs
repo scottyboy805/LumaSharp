@@ -1,30 +1,18 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
-    public sealed class ForModel : StatementModel, IScopeModel, IScopedReferenceSymbol, IReferenceSymbol
+    public sealed class ForModel : StatementModel
     {
         // Private
-        private ForStatementSyntax syntax = null;
-        private VariableModel variableModel = null;
-        private ExpressionModel conditionModel = null;
-        private ExpressionModel[] incrementModels = null;
-        private StatementModel[] statements = null;
+        private readonly VariableModel variableModel = null;
+        private readonly ExpressionModel conditionModel = null;
+        private readonly ExpressionModel[] incrementModels = null;
+        private readonly ScopeModel scopeModel;
         private ILocalIdentifierReferenceSymbol[] localsInScope = null;
 
         // Properties
-        public string ScopeName
-        {
-            get { return "For Statement"; }
-        }
-
-        public ILocalIdentifierReferenceSymbol[] LocalsInScope
-        {
-            get { return localsInScope; }
-        }
-
         public VariableModel Variable
         {
             get { return variableModel; }
@@ -40,9 +28,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return incrementModels; }
         }
 
-        public StatementModel[] Statements
+        public ScopeModel Scope
         {
-            get { return statements; }
+            get { return scopeModel; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -61,44 +49,65 @@ namespace LumaSharp.Compiler.Semantics.Model
                         yield return model;
                 }
 
-                if(statements != null)
-                {
-                    foreach(StatementModel model in statements)
-                        yield return model;
-                }
+                if (scopeModel != null)
+                    yield return scopeModel;
             }
         }
 
-        public ILibraryReferenceSymbol LibrarySymbol
-        {
-            get { return null; }
-        }
-
-        public _TokenHandle SymbolToken
-        {
-            get { return default; }
-        }
-
         // Constructor
-        public ForModel(SemanticModel model, SymbolModel parent, ForStatementSyntax syntax, int index)
-            : base(model, parent, syntax, index)
+        public ForModel(ForStatementSyntax forSyntax)
+            : base(forSyntax != null ? forSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
+            // Check for null
+            if(forSyntax == null)
+                throw new ArgumentNullException(nameof(forSyntax));
 
-            // Variable
-            //if(syntax.HasVariable == true)
-            //    this.variableModel = StatementModel.Any(model, this, syntax.Variable, StatementIndex, this) as VariableModel;
+            // Create variable
+            if (forSyntax.HasVariable == true)
+            {
+                this.variableModel = new VariableModel(forSyntax.Variable);
+                this.variableModel.parent = this;
+            }
 
-            // Condition
-            if (syntax.HasCondition == true)
-                this.conditionModel = ExpressionModel.Any(model, this, syntax.Condition);
+            // Create condition
+            if (forSyntax.HasCondition == true)
+                this.conditionModel = ExpressionModel.Any(forSyntax.Condition, this);
 
-            // Increment
-            if (syntax.HasIncrements == true)
-                this.incrementModels = syntax.Increments.Select(i => ExpressionModel.Any(model, this, i)).ToArray();
+            // Create increments
+            if (forSyntax.HasIncrements == true)
+                this.incrementModels = forSyntax.Increments.Select(i => ExpressionModel.Any(i, this)).ToArray();
 
-            // Statements
-            BuildSyntaxBlock(syntax);
+            // Create scope
+            if (forSyntax.Statement != null)
+            {
+                this.scopeModel = new ScopeModel("For Body", forSyntax.Statement);
+                this.scopeModel.parent = this;
+            }
+        }
+
+        public ForModel(VariableModel variable, ExpressionModel condition, ExpressionModel[] increments, ScopeModel scope, SyntaxSpan? span)
+            : base(span)
+        {
+            this.variableModel = variable;
+            this.conditionModel = condition;
+            this.incrementModels = increments;
+            this.scopeModel = scope;
+
+            // Set parent
+            if (this.variableModel != null)
+                this.variableModel.parent = this;
+
+            if(this.conditionModel != null)
+                this.conditionModel.parent = this;
+
+            if(this.incrementModels != null)
+            {
+                foreach (ExpressionModel increment in incrementModels)
+                    increment.parent = this;
+            }
+
+            if(this.scopeModel != null)
+                this.scopeModel.parent = this;
         }
 
         // Methods
@@ -131,54 +140,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
 
             // Resolve statements
-            if(statements != null)
+            if(scopeModel != null)
             {
-                foreach(StatementModel statement in statements)
-                {
-                    statement.ResolveSymbols(provider, report);
-                }
-            }
-        }
-
-        public VariableModel DeclareScopedLocal(SemanticModel model, VariableDeclarationStatementSyntax syntax, int index)
-        {
-            // Create the variable
-            VariableModel variableModel = new VariableModel(model, this, syntax, index);
-
-            // Register locals
-            LocalOrParameterModel[] localModels = variableModel.VariableModels.Where(m => m != null).ToArray();
-
-            // Declare all
-            if (localModels.Length > 0)
-            {
-                // Make sure array is allocated
-                if (localsInScope == null)
-                    localsInScope = Array.Empty<LocalOrParameterModel>();
-
-                int startOffset = localsInScope.Length;
-
-                // Resize the array
-                Array.Resize(ref localsInScope, localsInScope.Length + localModels.Length);
-
-                // Append elements
-                for (int i = 0; i < localModels.Length; i++)
-                {
-                    localsInScope[startOffset + i] = localModels[i];
-                }
-            }
-            return variableModel;
-        }
-
-        private void BuildSyntaxBlock(ForStatementSyntax syntax)
-        {
-            // Check for block
-            if(syntax.Statement is StatementBlockSyntax statementBlock)
-            {
-                this.statements = statementBlock.Statements.Select((s, i) => StatementModel.Any(Model, this, s, StatementIndex + 1 + i, this)).ToArray();
-            }
-            else
-            {
-                this.statements = new StatementModel[] { StatementModel.Any(Model, this, syntax.Statement, StatementIndex + 1, this) };
+                scopeModel.ResolveSymbols(provider, report);
             }
         }
     }

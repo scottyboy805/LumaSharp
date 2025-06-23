@@ -18,7 +18,6 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
         // Private
         private string libraryName = null;
-        private _TokenHandle libraryToken = default;
         private List<ITypeReferenceSymbol> rootTypes = new List<ITypeReferenceSymbol>();
         private List<INamespaceReferenceSymbol> namedTypes = new List<INamespaceReferenceSymbol>();
         //private List<NamedTypeCollection> namedTypes = new List<NamedTypeCollection>();
@@ -34,11 +33,6 @@ namespace LumaSharp.Compiler.Semantics.Reference
             get { return this; }
         }
 
-        public _TokenHandle SymbolToken
-        {
-            get { return libraryToken; }
-        }
-
         public IReadOnlyList<ITypeReferenceSymbol> DeclaredTypes
         {
             get { return rootTypes; }
@@ -50,10 +44,9 @@ namespace LumaSharp.Compiler.Semantics.Reference
         }
 
         // Constructor
-        public ReferenceLibrary(string libraryName, _TokenHandle libraryToken = default)
+        public ReferenceLibrary(string libraryName)
         {
             this.libraryName = libraryName;
-            this.libraryToken = libraryToken;
         }
 
         // Methods

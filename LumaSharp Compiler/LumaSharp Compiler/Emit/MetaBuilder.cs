@@ -33,7 +33,7 @@ namespace LumaSharp.Compiler.Emit
             MetaTypeFlags typeFlags = type.TypeFlags;
 
             // Write metadata
-            writer.Write(type.SymbolToken.MetaToken);
+            writer.Write(type.Token.MetaToken);
             writer.Write(type.TypeName);
             writer.Write((ushort)typeFlags);
 
@@ -49,7 +49,7 @@ namespace LumaSharp.Compiler.Emit
             foreach (ITypeReferenceSymbol baseType in type.BaseTypeSymbols)
             {
                 // Write the type
-                writer.Write(baseType.SymbolToken.MetaToken);
+                writer.Write(baseType.Token.MetaToken);
             }
         }
 
@@ -59,9 +59,9 @@ namespace LumaSharp.Compiler.Emit
             MetaMethodFlags methodFlags = method.MethodFlags;
 
             // Write metadata
-            writer.Write(method.SymbolToken.MetaToken);
+            writer.Write(method.Token.MetaToken);
             writer.Write((ushort)methodFlags);
-            writer.Write(method.MethodName);            
+            writer.Write(method.IdentifierName);            
 
             // Rva - virtual address of method executable
             writer.Write(rva);
@@ -94,7 +94,7 @@ namespace LumaSharp.Compiler.Emit
             for (int i = 0; i < returnTypes.Length; i++)
             {
                 // Write type token
-                writer.Write(returnTypes[i].SymbolToken.MetaToken);
+                writer.Write(returnTypes[i].Token.MetaToken);
             }
         }
 
@@ -112,7 +112,7 @@ namespace LumaSharp.Compiler.Emit
                 if (parameterSymbols[i].IsOptional == true) parameterFlags |= MetaVariableFlags.DefaultValue;
 
                 // Write type token
-                writer.Write(parameterSymbols[i].SymbolToken.MetaToken);
+                writer.Write(parameterSymbols[i].Token.MetaToken);
 
                 // Write flags
                 writer.Write((ushort)parameterFlags);
@@ -140,7 +140,7 @@ namespace LumaSharp.Compiler.Emit
                 for(int j = 0; j < genericParameters[i].TypeConstraintSymbols.Length; j++)
                 {
                     // Write constraint type
-                    writer.Write(genericParameters[i].TypeConstraintSymbols[j].SymbolToken.MetaToken);
+                    writer.Write(genericParameters[i].TypeConstraintSymbols[j].Token.MetaToken);
                 }
             }
         }

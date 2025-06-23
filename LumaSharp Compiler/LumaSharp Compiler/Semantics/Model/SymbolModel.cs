@@ -1,17 +1,20 @@
-﻿using LumaSharp.Compiler.Reporting;
+﻿using LumaSharp.Compiler.AST;
+using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
-    public abstract class SymbolModel// : ModelNode
+    public abstract class SymbolModel
     {
-        // Private
-        private SemanticModel model = null;
-        private SymbolModel parent = null;
+        // Internal
+        internal SymbolModel parent;
+
+        // Protected
+        protected readonly SyntaxSpan? span;
 
         // Properties
         public SemanticModel Model
         {
-            get { return model; }
+            get { return parent?.Model; }
         }
 
         public SymbolModel Parent
@@ -19,13 +22,17 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return parent; }
         }
 
+        public SyntaxSpan? Span
+        {
+            get { return span; }
+        }
+
         public abstract IEnumerable<SymbolModel> Descendants { get; }
 
         // Constructor
-        protected SymbolModel(SemanticModel model, SymbolModel parent)
+        protected SymbolModel(SyntaxSpan? span) 
         {
-            this.model = model;
-            this.parent = parent;
+            this.span = span;
         }
 
         // Methods
@@ -33,7 +40,7 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public abstract void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report);
 
-        public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : class//SymbolModel
+        public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : class
         {
             foreach (SymbolModel node in Descendants)
             {

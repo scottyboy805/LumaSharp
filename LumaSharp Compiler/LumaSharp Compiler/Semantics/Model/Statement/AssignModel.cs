@@ -4,10 +4,18 @@ using LumaSharp.Compiler.Semantics.Reference;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
+    public enum AssignOperation
+    {
+        Assign,
+        AddAssign,
+        SubtractAssign,
+        MultiplyAssign,
+        DivideAssign,
+    }
+
     public sealed class AssignModel : StatementModel
     {
         // Private
-        //private AssignStatementSyntax syntax = null;
         private readonly SyntaxToken operationToken;
         private readonly ExpressionModel[] left;
         private readonly ExpressionModel[] right;
@@ -42,21 +50,45 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public AssignModel(SemanticModel model, SymbolModel parent, AssignStatementSyntax syntax, int statementIndex)
-            : base(model, parent, syntax, statementIndex)
+        public AssignModel(AssignStatementSyntax assignSyntax)
+            : base(assignSyntax != null ? assignSyntax.GetSpan() : null)
         {
-            //this.syntax = syntax;
-            this.operationToken = syntax.AssignExpression.Assign;
-            this.left = syntax.Left.Select(l => ExpressionModel.Any(model, this, l)).ToArray();
-            this.right = syntax.Right.Select(r => ExpressionModel.Any(model, this, r)).ToArray();
+            // Check for null
+            if(assignSyntax == null)
+                throw new ArgumentNullException(nameof(assignSyntax));
+
+            this.left = assignSyntax.Left.Select(e => ExpressionModel.Any(e, this)).ToArray();
+            this.operationToken = assignSyntax.AssignExpression.Assign;
+            this.right = assignSyntax.Right.Select(e => ExpressionModel.Any(e, this)).ToArray();
+
+            // Set parent
+            foreach (ExpressionModel l in left)
+                l.parent = this;
+
+            foreach (ExpressionModel r in right)
+                r.parent = this;
         }
 
-        public AssignModel(SemanticModel model, SymbolModel parent, VariableDeclarationStatementSyntax syntax, ExpressionModel left, ExpressionModel right, int statementIndex)
-            : base(model, parent, syntax, statementIndex)
+        public AssignModel(ExpressionModel[] left, AssignOperation operation, ExpressionModel[] right, SyntaxSpan? span)
+            : base(span)
         {
-            this.operationToken = syntax.Assignment.Assign;
-            this.left = new ExpressionModel[] { left };
-            this.right = new ExpressionModel[] { right };
+            // Check for null
+            if(left == null)
+                throw new ArgumentNullException(nameof(left));
+
+            if(right == null)
+                throw new ArgumentNullException(nameof(right));
+
+            this.left = left;
+            this.operationToken = CreateAssignOperation(operation);
+            this.right = right;
+
+            // Set parent
+            foreach (ExpressionModel l in left)
+                l.parent = this;
+
+            foreach (ExpressionModel r in right)
+                r.parent = this;
         }
 
         // Methods
@@ -67,6 +99,17 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Try to get assign operation
+            try
+            {
+                operation = GetAssignOperation(operationToken);
+            }
+            catch(Exception)
+            {
+                report.ReportDiagnostic(Code.InvalidOperation, MessageSeverity.Error, operationToken.Span);
+                return;
+            }
+
             // Resolve left
             foreach(ExpressionModel leftModel in left)
                 leftModel.ResolveSymbols(provider, report);
@@ -87,7 +130,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                         // Check for assignment
                         if (TypeChecker.IsTypeAssignable(right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol) == false)
                         {
-                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, right[i].Source, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
+                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, right[i].Span, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
                         }
                     }
                 }
@@ -109,7 +152,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                             // Check for assignment
                             if (TypeChecker.IsTypeAssignable(methodReturnSymbols[i], left[i].EvaluatedTypeSymbol) == false)
                             {
-                                report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, invokeMethod.Source, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
+                                report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, invokeMethod.Span, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
                             }
                         }
                     }
@@ -134,37 +177,34 @@ namespace LumaSharp.Compiler.Semantics.Model
             //        report.ReportMessage(Code.InvalidConversion, MessageSeverity.Error, right.Source, right.EvaluatedTypeSymbol, left.EvaluatedTypeSymbol);
             //    }
             //}
+        }
 
-
-            // Parse operation
-            switch(operationToken.Text)
+        private static AssignOperation GetAssignOperation(SyntaxToken op)
+        {
+            return op.Kind switch
             {
-                case "=":
-                    {
-                        operation = AssignOperation.Assign;
-                        break;
-                    }
-                case "+=": 
-                    {
-                        operation = AssignOperation.AddAssign;
-                        break;
-                    }
-                case "-=":
-                    {
-                        operation = AssignOperation.SubtractAssign;
-                        break;
-                    }
-                case "*=":
-                    {
-                        operation = AssignOperation.MultiplyAssign;
-                        break;
-                    }
-                case "/=":
-                    {
-                        operation = AssignOperation.DivideAssign;
-                        break;
-                    }
-            }
+                SyntaxTokenKind.AssignSymbol => AssignOperation.Assign,
+                SyntaxTokenKind.AssignPlusSymbol => AssignOperation.AddAssign,
+                SyntaxTokenKind.AssignMinusSymbol => AssignOperation.SubtractAssign,
+                SyntaxTokenKind.AssignMultiplySymbol => AssignOperation.MultiplyAssign,
+                SyntaxTokenKind.AssignDivideSymbol => AssignOperation.DivideAssign,
+
+                _ => throw new InvalidOperationException("Invalid assign operator: " + op.Kind)
+            };
+        }
+
+        private static SyntaxToken CreateAssignOperation(AssignOperation op)
+        {
+            return Syntax.Token(op switch
+            {
+                AssignOperation.Assign => SyntaxTokenKind.AssignSymbol,
+                AssignOperation.AddAssign => SyntaxTokenKind.AssignPlusSymbol,
+                AssignOperation.SubtractAssign => SyntaxTokenKind.AssignMinusSymbol,
+                AssignOperation.MultiplyAssign => SyntaxTokenKind.AssignMultiplySymbol,
+                AssignOperation.DivideAssign => SyntaxTokenKind.AssignDivideSymbol,
+
+                _ => throw new NotSupportedException(op.ToString())
+            });
         }
     }
 }

@@ -13,7 +13,5 @@ namespace LumaSharp.Compiler.Semantics
         bool IsOptional { get; }
 
         int Index { get; }
-
-        int DeclareIndex { get; }
     }
 }

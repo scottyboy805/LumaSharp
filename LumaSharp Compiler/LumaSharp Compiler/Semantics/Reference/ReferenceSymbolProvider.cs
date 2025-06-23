@@ -30,7 +30,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
         private ReferenceLibrary runtimeLibrary = null;
         private ReferenceLibrary thisLibrary = null;
         private ReferenceLibrary[] referenceLibraries = null;
-        private Dictionary<_TokenHandle, IReferenceSymbol> declaredSymbols = new Dictionary<_TokenHandle, IReferenceSymbol>();
+        private readonly ReferenceTokenProvider tokenProvider = new();
 
         private ICompileReportProvider report = null;
         private ReferenceNamespaceResolver namespaceResolver = null;
@@ -56,7 +56,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
                 _bool = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Bool, _any);
                 _char = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.Char, _any);
-                _string = new PrimitiveTypeSymbol(runtimeLibrary, "string", PrimitiveType.Any, _any);
+                _string = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.String, _any);
                 _i8 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I8, _any);
                 _u8 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.U8, _any);
                 _i16 = new PrimitiveTypeSymbol(runtimeLibrary, PrimitiveType.I16, _any);
@@ -73,31 +73,27 @@ namespace LumaSharp.Compiler.Semantics.Reference
         }
 
         // Methods
-        public _TokenHandle GetDeclaredSymbolToken(IReferenceSymbol symbol)
+        public _TokenHandle GetSymbolToken(IReferenceSymbol symbol)
         {
-            // Check for null
-            if (symbol == null)
-                throw new ArgumentNullException(nameof(symbol));
-            
-            // Check for already declared
-            if (declaredSymbols.ContainsKey(symbol.SymbolToken) == true)
-                return symbol.SymbolToken;
+            // Try to get the token
+            return tokenProvider.GetSymbolToken(symbol);
+        }
 
-            // Generate new token
-            _TokenHandle token = default;
+        public INamespaceReferenceSymbol ResolveNamespaceSymbol(string[] separatedName, SyntaxSpan? span)
+        {
+            // Check for null or empty
+            if (separatedName == null || separatedName.Length == 0)
+                return null;
 
-            // Get random
-            //Random rand = new Random();
-            //do
-            //{
-            //    // Get next id
-            //    token = rand.Next();
-            //}
-            //while (declaredSymbols.ContainsKey(token) == true);
+            INamespaceReferenceSymbol resolvedSymbol;
 
-            // Declare symbol
-            declaredSymbols[token] = symbol;
-            return token;
+            // Check for resolve namespaces
+            if (namespaceResolver.ResolveReferenceNamespaceSymbol(thisLibrary, referenceLibraries, name, out resolvedSymbol) == true)
+                return resolvedSymbol;
+
+            // Namespace not found error
+            report.ReportDiagnostic(Code.NamespaceNotFound, MessageSeverity.Error, name.StartToken.Span, name.GetSourceText());
+            return null;
         }
 
         public ITypeReferenceSymbol ResolveTypeSymbol(PrimitiveType primitiveType, SyntaxSpan? source)
@@ -142,20 +138,9 @@ namespace LumaSharp.Compiler.Semantics.Reference
             return primitive;
         }
 
-        public INamespaceReferenceSymbol ResolveNamespaceSymbol(SeparatedTokenList name)
-        {
-            INamespaceReferenceSymbol resolvedSymbol;
+        
 
-            // Check for resolve namespaces
-            if (namespaceResolver.ResolveReferenceNamespaceSymbol(thisLibrary, referenceLibraries, name, out resolvedSymbol) == true)
-                return resolvedSymbol;
-
-            // Namespace not found error
-            report.ReportDiagnostic(Code.NamespaceNotFound, MessageSeverity.Error, name.StartToken.Span, name.GetSourceText());
-            return null;
-        }
-
-        public ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, TypeReferenceSyntax reference)
+        public ITypeReferenceSymbol ResolveTypeSymbol(IReferenceSymbol context, string typeName, string[] separatedNamespace, )
         {
             // Check for primitive
             PrimitiveType primitive;
@@ -217,9 +202,20 @@ namespace LumaSharp.Compiler.Semantics.Reference
             return null;
         }
 
+        public IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, string identifier, SyntaxSpan? span)
+        {
+            IIdentifierReferenceSymbol resolvedSymbol;
 
+            // Try to resolve identifier
+            if (variableResolver.ResolveReferenceIdentifierSymbol(thisLibrary, context, identifier, out resolvedSymbol) == true)
+                return resolvedSymbol;
 
-        public IIdentifierReferenceSymbol ResolveFieldIdentifierSymbol(IReferenceSymbol context, MemberAccessExpressionSyntax reference)
+            // Failed to resolve
+            report.ReportDiagnostic(Code.IdentifierNotFound, MessageSeverity.Error, span, identifier);
+            return null;
+        }
+
+        public IIdentifierReferenceSymbol ResolveFieldAccessorIdentifierSymbol(IReferenceSymbol context, string fieldOrAccessorName, SyntaxSpan? span)
         {
             // Check for type
             if (context is ITypeReferenceSymbol typeReference)
@@ -227,12 +223,12 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Get all matches
                 int matchCount = 0;
                 IIdentifierReferenceSymbol matchSymbol = null;
-
+                
                 // Get all fields
                 foreach (IFieldReferenceSymbol field in typeReference.FieldMemberSymbols)
                 {
                     // Check for matched field name
-                    if (field.FieldName == reference.Identifier.Text)
+                    if (field.IdentifierName == fieldOrAccessorName)
                     {
                         matchCount++;
                         matchSymbol = field;
@@ -243,7 +239,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 foreach (IAccessorReferenceSymbol accessor in typeReference.AccessorMemberSymbols)
                 {
                     // Check for matched accessor name
-                    if (accessor.AccessorName == reference.Identifier.Text)
+                    if (accessor.IdentifierName == fieldOrAccessorName)
                     {
                         matchCount++;
                         matchSymbol = accessor;
@@ -256,7 +252,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
                 // Check for null
                 if (matchSymbol == null)
-                    report.ReportDiagnostic(Code.FieldAccessorNotFound, MessageSeverity.Error, reference.StartToken.Span, reference.Identifier.Text, typeReference.TypeName);
+                    report.ReportDiagnostic(Code.FieldAccessorNotFound, MessageSeverity.Error, span, fieldOrAccessorName, typeReference.TypeName);
 
                 return matchSymbol;
             }
@@ -265,7 +261,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
             throw new InvalidOperationException("Invalid context");
         }
 
-        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, MethodInvokeExpressionSyntax reference, ITypeReferenceSymbol[] argumentTypes)
+        public IIdentifierReferenceSymbol ResolveMethodIdentifierSymbol(IReferenceSymbol context, string methodName, ITypeReferenceSymbol[] genericArguments, ITypeReferenceSymbol[] argumentTypes, SyntaxSpan? span)
         {
             // Check for type reference
             if (context is ITypeReferenceSymbol typeReference)
@@ -277,7 +273,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 foreach(IMethodReferenceSymbol method in typeReference.MethodMemberSymbols)
                 {
                     // Check for matched name
-                    if(method.MethodName == reference.Identifier.Text)
+                    if(method.IdentifierName == methodName)
                     {
                         matchMethods.Add(method);
                     }
@@ -295,35 +291,22 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Check for no inferable match
                 else if(matchIndex == -1 && matchMethods.Count > 0)
                 {
-                    report.ReportDiagnostic(Code.MethodNoMatch, MessageSeverity.Error, reference.StartToken.Span);
+                    report.ReportDiagnostic(Code.MethodNoMatch, MessageSeverity.Error, span);
                 }
                 // Check for multiple equally inferable matches
                 else if(matchIndex == -2 && matchMethods.Count > 0)
                 {
-                    report.ReportDiagnostic(Code.MethodAmbiguousMatch, MessageSeverity.Error, reference.StartToken.Span);
+                    report.ReportDiagnostic(Code.MethodAmbiguousMatch, MessageSeverity.Error, span);
                 }
                 // Check for failure - report as error
                 else if (resolveMethod == null)
                 {
-                    report.ReportDiagnostic(Code.MethodNotFound, MessageSeverity.Error, reference.StartToken.Span, reference.Identifier.Text, typeReference.TypeName);
+                    report.ReportDiagnostic(Code.MethodNotFound, MessageSeverity.Error, span, methodName, typeReference.TypeName);
                 }
 
                 return resolveMethod;
             }
             
-            return null;
-        }
-
-        public IIdentifierReferenceSymbol ResolveIdentifierSymbol(IReferenceSymbol context, VariableReferenceExpressionSyntax reference)
-        {            
-            IIdentifierReferenceSymbol resolvedSymbol;
-
-            // Try to resolve identifier
-            if (variableResolver.ResolveReferenceIdentifierSymbol(thisLibrary, context, reference, out resolvedSymbol) == true)
-                return resolvedSymbol;
-
-            // Failed to resolve
-            report.ReportDiagnostic(Code.IdentifierNotFound, MessageSeverity.Error, reference.Identifier.Span, reference.Identifier.Text);
             return null;
         }
     }

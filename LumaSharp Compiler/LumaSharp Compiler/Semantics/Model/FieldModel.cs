@@ -9,43 +9,22 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class FieldModel : MemberModel, IFieldReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
-        private FieldSyntax syntax = null;
-        private TypeModel declaringType = null;
-        private ExpressionModel assignModel = null;
-        private TypeReferenceModel fieldTypeModel = null;
+        private readonly TypeModel declaringType;
+        private readonly TypeReferenceModel fieldTypeModel;
+        private readonly ExpressionModel assignModel;        
 
         private FieldFlags fieldFlags = default;
-        private _FieldHandle fieldHandle = default;
+        private _TokenHandle fieldToken = default;
 
         // Properties
         public string FieldName
         {
-            get { return syntax.Identifier.Text; }
+            get { return MemberName; }
         }
 
         public string IdentifierName
         {
-            get { return syntax.Identifier.Text; }
-        }
-
-        public bool IsExport
-        {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.ExportKeyword); }
-        }
-
-        public bool IsInternal
-        {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.InternalKeyword); }
-        }
-
-        public bool IsHidden
-        {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.HiddenKeyword); }
-        }
-
-        public bool IsGlobal
-        {
-            get { return syntax.HasAccessModifiers == true && syntax.AccessModifiers.Any(m => m.Kind == SyntaxTokenKind.GlobalKeyword); }
+            get { return MemberName; }
         }
 
         public ITypeReferenceSymbol DeclaringTypeSymbol
@@ -73,9 +52,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return fieldFlags; }
         }
 
-        public _FieldHandle FieldHandle
+        public override _TokenHandle Token
         {
-            get { return fieldHandle; }
+            get { return fieldToken; }
         }
 
         public override IEnumerable<SymbolModel> Descendants
@@ -84,15 +63,23 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        internal FieldModel(SemanticModel model, TypeModel parent, FieldSyntax syntax)
-            : base(model, parent, syntax)
+        internal FieldModel(FieldSyntax fieldSyntax, TypeModel declaringType)
+            : base(fieldSyntax != null ? fieldSyntax.Identifier : default, 
+                  fieldSyntax != null ? fieldSyntax.AccessModifiers : null, 
+                  fieldSyntax != null ? fieldSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
-            this.declaringType = parent;
-            this.fieldTypeModel = new TypeReferenceModel(model, this, syntax.FieldType);
-            this.assignModel = syntax.HasFieldAssignment == true
-                ? ExpressionModel.Any(model, this, syntax.FieldAssignment)
+            // Check for null
+            if(fieldSyntax == null)
+                throw new ArgumentNullException(nameof(fieldSyntax));
+
+            this.declaringType = declaringType;
+            this.fieldTypeModel = new TypeReferenceModel(fieldSyntax.FieldType);
+            this.assignModel = fieldSyntax.HasFieldAssignment == true
+                ? ExpressionModel.Any(fieldSyntax.FieldAssignment, this)
                 : null;
+
+            // Set parent
+            fieldTypeModel.parent = this;
 
             // Create flags
             this.fieldFlags = BuildFieldFlags();
@@ -106,8 +93,11 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve base
+            base.ResolveSymbols(provider, report);
+
             // Get symbol token
-            memberToken = provider.GetDeclaredSymbolToken(this);
+            fieldToken = provider.GetSymbolToken(this);
 
             // Resolve base symbols
             base.ResolveSymbols(provider, report);
@@ -127,37 +117,37 @@ namespace LumaSharp.Compiler.Semantics.Model
                     // Check for return type conversion
                     if (TypeChecker.IsTypeAssignable(assignModel.EvaluatedTypeSymbol, fieldTypeModel.EvaluatedTypeSymbol) == false)
                     {
-                        report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, syntax.StartToken.Span, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
+                        report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, assignModel.Span, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
                     }
                 }
             }
         }
 
-        public override void StaticallyEvaluateMember(ISymbolProvider provider)
-        {
-            // Check for expression which can be statically evaluated
-            if(assignModel != null && assignModel.IsStaticallyEvaluated == true)
-            {
-                // Evaluate the expression
-                assignModel = assignModel.StaticallyEvaluateExpression(provider);
-            }
-        }
+        //public override void StaticallyEvaluateMember(ISymbolProvider provider)
+        //{
+        //    // Check for expression which can be statically evaluated
+        //    if(assignModel != null && assignModel.IsStaticallyEvaluated == true)
+        //    {
+        //        // Evaluate the expression
+        //        assignModel = assignModel.StaticallyEvaluateExpression(provider);
+        //    }
+        //}
 
         private FieldFlags BuildFieldFlags()
         {
             FieldFlags flags = 0;
 
             // Check for export
-            if (IsExport == true) flags |= FieldFlags.Export;
+            if (HasAccessModifier(AccessModifier.Export) == true) flags |= FieldFlags.Export;
 
             // Check for internal
-            if (IsInternal == true) flags |= FieldFlags.Internal;
+            if (HasAccessModifier(AccessModifier.Internal) == true) flags |= FieldFlags.Internal;
 
             // Check for hidden
-            if (IsHidden == true) flags |= FieldFlags.Hidden;
+            if (HasAccessModifier(AccessModifier.Hidden) == true) flags |= FieldFlags.Hidden;
 
             // Check for global
-            if (IsGlobal == true) flags |= FieldFlags.Global;
+            if (HasAccessModifier(AccessModifier.Global) == true) flags |= FieldFlags.Global;
 
             return flags;
         }

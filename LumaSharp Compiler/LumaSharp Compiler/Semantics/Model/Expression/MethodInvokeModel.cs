@@ -6,9 +6,9 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class MethodInvokeModel : ExpressionModel
     {
         // Private
-        private MethodInvokeExpressionSyntax syntax = null;
-        private ExpressionModel accessModel = null;
-        private ExpressionModel[] argumentModels = null;
+        private readonly ExpressionModel accessModel = null;
+        private readonly ExpressionModel[] genericArgumentModels = null;
+        private readonly ExpressionModel[] argumentModels = null;
         private IMethodReferenceSymbol methodIdentifierSymbol = null;
 
         // Properties
@@ -34,12 +34,17 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return methodIdentifierSymbol; }
         }
 
-        public ExpressionModel AccessModelExpression
+        public ExpressionModel AccessModel
         {
             get { return accessModel; }
         }
 
-        public ExpressionModel[] ArgumentModelExpressions
+        public ExpressionModel[] GenericArgumentModels
+        {
+            get { return argumentModels; }
+        }
+
+        public ExpressionModel[] ArgumentModels
         {
             get { return argumentModels; }
         }
@@ -50,17 +55,49 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public MethodInvokeModel(SemanticModel model, SymbolModel parent, MethodInvokeExpressionSyntax syntax)
-            : base(model, parent, syntax)
+        public MethodInvokeModel(MethodInvokeExpressionSyntax invokeSyntax)
+            : base(invokeSyntax != null ? invokeSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
-            this.accessModel = syntax.AccessExpression != null
-                ? ExpressionModel.Any(model, this, syntax.AccessExpression)
-                : new ThisModel(model, this, Syntax.This());
-            this.argumentModels = (syntax.ArgumentCount > 0)
-                ? syntax.ArgumentList.Select(a => ExpressionModel.Any(model, this, a)).ToArray()
-                : null;
+            // Check for null
+            if(invokeSyntax == null)
+                throw new ArgumentNullException(nameof(invokeSyntax));
+
+            this.accessModel = ExpressionModel.Any(invokeSyntax.AccessExpression, this);
+            this.genericArgumentModels = invokeSyntax.HasGenericArguments == true
+                ? invokeSyntax.GenericArgumentList.Select(a => new TypeReferenceModel(a)).ToArray() 
+                : Array.Empty<TypeReferenceModel>();
+            this.argumentModels = invokeSyntax.HasArguments == true
+                ? invokeSyntax.ArgumentList.Select(a => ExpressionModel.Any(a, this)).ToArray()
+                : Array.Empty<ExpressionModel>();
         }
+
+        public MethodInvokeModel(ExpressionModel accessModel, ExpressionModel[] genericArguments, ExpressionModel[] arguments, SyntaxSpan? span)
+            : base(span)
+        {
+            // Check for null
+            if(accessModel == null)
+                throw new ArgumentNullException(nameof(accessModel));
+
+            this.accessModel = accessModel;
+            this.genericArgumentModels = genericArguments != null ? genericArguments : Array.Empty<TypeReferenceModel>();
+            this.argumentModels = arguments != null ? arguments : Array.Empty<ExpressionModel>();
+
+            // Set parent
+            this.accessModel.parent = this;
+
+            if(genericArguments != null)
+            {
+                foreach (ExpressionModel genericArgument in genericArguments)
+                    genericArgument.parent = this;
+            }
+
+            if(arguments != null)
+            {
+                foreach(ExpressionModel argument in arguments)
+                    argument.parent = this;
+            }
+        }
+
 
         // Methods
         public override void Accept(ISemanticVisitor visitor)
@@ -93,14 +130,34 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Resolve method if accessor is valid - require that arguments are resolved because we will use them to resolve method overloading
             if (accessModel.EvaluatedTypeSymbol != null && argumentsResolved == true)
             {
+                // Select generic argument evaluated types used to infer method overloads
+                ITypeReferenceSymbol[] genericArgumentTypes = (genericArgumentModels != null && genericArgumentModels.Length > 0)
+                    ? genericArgumentModels.Select(g => g.EvaluatedTypeSymbol).ToArray()
+                    : null;
+
                 // Select argument evaluated types used to infer method overloads
                 ITypeReferenceSymbol[] argumentTypes = (argumentModels != null && argumentModels.Length > 0)
                     ? argumentModels.Select(a => a.EvaluatedTypeSymbol).ToArray()
                     : null;
                 
                 // Try to resolve the method with arguments
-                methodIdentifierSymbol = provider.ResolveMethodIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax, argumentTypes) as IMethodReferenceSymbol;                
+                methodIdentifierSymbol = provider.ResolveMethodIdentifierSymbol(accessModel.EvaluatedTypeSymbol, GetMethodIdentifier(), genericArgumentTypes, argumentTypes, Span) as IMethodReferenceSymbol;                
             }
+        }
+
+        private string GetMethodIdentifier()
+        {
+            // Check for variable
+            if(accessModel is VariableReferenceModel variable)
+            {
+                return variable.Identifier.Text;
+            }
+            // Check for field
+            else if(accessModel is FieldAccessorReferenceModel fieldAccessor)
+            {
+                return fieldAccessor.Identifier.Text;
+            }
+            throw new NotSupportedException();
         }
     }
 }

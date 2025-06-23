@@ -24,8 +24,8 @@ namespace CompilerTests.Semantic.Symbols
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
-            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
-            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.IsNotNull(methodModel.AccessModel.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModel.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
@@ -47,8 +47,8 @@ namespace CompilerTests.Semantic.Symbols
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
-            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
-            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.IsNotNull(methodModel.AccessModel.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModel.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
@@ -71,8 +71,8 @@ namespace CompilerTests.Semantic.Symbols
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
-            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
-            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.IsNotNull(methodModel.AccessModel.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModel.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
@@ -94,8 +94,8 @@ namespace CompilerTests.Semantic.Symbols
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
-            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
-            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.IsNotNull(methodModel.AccessModel.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModel.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
 
@@ -118,8 +118,8 @@ namespace CompilerTests.Semantic.Symbols
             Assert.IsNotNull(model);
             Assert.IsNotNull(methodModel);
             Assert.IsNotNull(methodModel.EvaluatedTypeSymbol);
-            Assert.IsNotNull(methodModel.AccessModelExpression.EvaluatedTypeSymbol);
-            Assert.AreEqual("Test", methodModel.AccessModelExpression.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
+            Assert.IsNotNull(methodModel.AccessModel.EvaluatedTypeSymbol);
+            Assert.AreEqual("Test", methodModel.AccessModel.EvaluatedTypeSymbol.TypeName); // `this` should be mapped to `Test`
             Assert.AreEqual(0, model.Report.DiagnosticCount);
         }
     }

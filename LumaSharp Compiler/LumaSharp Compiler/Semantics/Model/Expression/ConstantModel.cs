@@ -121,37 +121,27 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Get the constant type
             ConstantType constantType = ResolveConstantType(literal, descriptor);
 
-            // Check for string
-            if (constantType == ConstantType.LiteralString)
+            // Map to primitive value
+            PrimitiveType primitiveType = constantType switch
             {
-                // Resolve symbol
-                this.constantTypeSymbol = provider.ResolveTypeSymbol(null, 
-                    Syntax.TypeReference(PrimitiveType.String));
-            }
-            else
-            {
-                // Map to primitive value
-                PrimitiveType primitiveType = constantType switch
-                {
-                    ConstantType.Null => PrimitiveType.Any,
-                    ConstantType.LiteralString => PrimitiveType.Any,
-                    ConstantType.Hexadecimal => PrimitiveType.I32,
-                    ConstantType.Hexadecimal_Long => PrimitiveType.I64,
-                    ConstantType.Integer => PrimitiveType.I32,
-                    ConstantType.Integer_Unsigned => PrimitiveType.U32,
-                    ConstantType.Integer_Long => PrimitiveType.I64,
-                    ConstantType.Integer_UnsignedLong => PrimitiveType.U64,
-                    ConstantType.Decimal_Single => PrimitiveType.F32,
-                    ConstantType.Decimal_Double => PrimitiveType.F64,
-                    ConstantType.True => PrimitiveType.Bool,
-                    ConstantType.False => PrimitiveType.Bool,
+                ConstantType.Null => PrimitiveType.Any,
+                ConstantType.LiteralString => PrimitiveType.String,
+                ConstantType.Hexadecimal => PrimitiveType.I32,
+                ConstantType.Hexadecimal_Long => PrimitiveType.I64,
+                ConstantType.Integer => PrimitiveType.I32,
+                ConstantType.Integer_Unsigned => PrimitiveType.U32,
+                ConstantType.Integer_Long => PrimitiveType.I64,
+                ConstantType.Integer_UnsignedLong => PrimitiveType.U64,
+                ConstantType.Decimal_Single => PrimitiveType.F32,
+                ConstantType.Decimal_Double => PrimitiveType.F64,
+                ConstantType.True => PrimitiveType.Bool,
+                ConstantType.False => PrimitiveType.Bool,
 
-                    _ => throw new NotImplementedException(),
-                };
+                _ => throw new NotImplementedException(),
+            };
 
-                // Resolve symbol
-                this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType, literal.Span);
-            }
+            // Resolve symbol
+            this.constantTypeSymbol = provider.ResolveTypeSymbol(primitiveType, null, literal.Span);
         }
 
         public override object GetStaticallyEvaluatedValue()

@@ -6,19 +6,19 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class AccessorModel : MemberModel, IAccessorReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
-        private AccessorSyntax syntax = null;
+        //private AccessorSyntax syntax = null;
         private TypeModel declaringType = null;
         private ITypeReferenceSymbol accessorTypeSymbol = null;
 
         // Properties
         public string AccessorName
         {
-            get { return syntax.Identifier.Text; }
+            get { return MemberName; }
         }
 
         public string IdentifierName
         {
-            get { return syntax.Identifier.Text; }
+            get { return MemberName; }
         }
 
         public bool IsGlobal
@@ -76,6 +76,9 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve base
+            base.ResolveSymbols(provider, report);
+
             // Get symbol token
             memberToken = provider.GetDeclaredSymbolToken(this);
 
@@ -83,8 +86,8 @@ namespace LumaSharp.Compiler.Semantics.Model
             accessorTypeSymbol = provider.ResolveTypeSymbol(declaringType, syntax.AccessorType);
         }
 
-        public override void StaticallyEvaluateMember(ISymbolProvider provider)
-        {
-        }
+        //public override void StaticallyEvaluateMember(ISymbolProvider provider)
+        //{
+        //}
     }
 }

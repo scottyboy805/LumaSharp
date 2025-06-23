@@ -15,27 +15,19 @@ namespace LumaSharp.Compiler.Semantics.Model
     public abstract class MemberModel : SymbolModel, IReferenceSymbol
     {
         // Private
-        private MemberSyntax syntax = null;
-        private MemberModel parent = null;
+        private readonly StringModel identifier;
+        private readonly SyntaxToken[] accessModifierTokens;
         private AccessModifier[] accessModifiers = null;
-
-        // Internal
-        internal _TokenHandle memberToken = default;
 
         // Properties
         public string MemberName
         {
-            get { return syntax.Identifier.Text; }
+            get { return identifier.Text; }
         }
 
         public AccessModifier[] AccessModifiers
         {
             get { return accessModifiers; }
-        }
-
-        public new MemberModel Parent
-        {
-            get { return parent; }
         }
 
         public int AccessModifierCount
@@ -53,27 +45,24 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return accessModifiers != null; }
         }
 
+        public bool IsGlobal
+        {
+            get { return HasAccessModifier(AccessModifier.Global); }
+        }
+
         public ILibraryReferenceSymbol LibrarySymbol
         {
             get { return Model; }
         }
 
-        public _TokenHandle SymbolToken
-        {
-            get { return memberToken; }
-        }
+        public abstract _TokenHandle Token { get; }
 
         // Constructor
-        protected MemberModel(SemanticModel model, SymbolModel parent, MemberSyntax syntax)
-            : base(model, parent)
+        protected MemberModel(SyntaxToken identifier, SyntaxToken[] accessModifiers, SyntaxSpan? span)
+            : base(span)
         {
-            this.syntax = syntax;
-            
-            if(parent is MemberModel)
-                this.parent = parent as MemberModel;   
-
-            if (syntax.HasAccessModifiers == true)
-                accessModifiers = GetAccessModifiers(syntax.AccessModifiers);
+            this.identifier = new StringModel(identifier);
+            this.accessModifierTokens = accessModifiers;
         }
 
         // Methods
@@ -83,21 +72,21 @@ namespace LumaSharp.Compiler.Semantics.Model
             if (accessModifiers != null)
             {
                 // Check for multiple access modifiers
-                if ((accessModifiers.Contains(AccessModifier.Internal) == true && accessModifiers.Contains(AccessModifier.Hidden) == true)
-                    || (accessModifiers.Contains(AccessModifier.Internal) == true && accessModifiers.Contains(AccessModifier.Export) == true)
-                    || (accessModifiers.Contains(AccessModifier.Hidden) == true && accessModifiers.Contains(AccessModifier.Export) == true))
+                if ((HasAccessModifier(AccessModifier.Internal) == true && HasAccessModifier(AccessModifier.Hidden) == true)
+                    || (HasAccessModifier(AccessModifier.Internal) == true && HasAccessModifier(AccessModifier.Export) == true)
+                    || (HasAccessModifier(AccessModifier.Hidden) == true && HasAccessModifier(AccessModifier.Export) == true))
                 {
                     report.ReportDiagnostic(Code.MultipleAccessModifiers, MessageSeverity.Error, syntax.AccessModifiers[0].Span);
                 }
 
                 // Check for type
-                if ((this is TypeModel) && accessModifiers.Contains(AccessModifier.Global) == true)
+                if ((this is TypeModel) && HasAccessModifier(AccessModifier.Global) == true)
                     report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, syntax.AccessModifiers.First(m => m.Text == "global").Span, "global");
 
                 // Check for contract or enum parent
-                if (parent is TypeModel && ((TypeModel)parent).IsContract == true || ((TypeModel)parent).IsEnum == true)
+                if (this is not TypeModel && parent is TypeModel parentType && (parentType.IsContract == true || parentType.IsEnum == true))
                 {
-                    foreach (SyntaxToken token in syntax.AccessModifiers)
+                    foreach (SyntaxToken token in accessModifierTokens)
                     {
                         report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, token.Span, token.Text);
                     }
@@ -105,11 +94,23 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
         }
 
-        public abstract void StaticallyEvaluateMember(ISymbolProvider provider);
+        /*public abstract void StaticallyEvaluateMember(ISymbolProvider provider)*/
 
         public bool HasAccessModifier(AccessModifier accessModifier)
         {
             return accessModifiers.Contains(accessModifier);
+        }
+
+        public bool HasAccessModifier(AccessModifier accessModifier, out SyntaxSpan span)
+        {
+            span = default;
+            int index = Array.IndexOf(accessModifiers, accessModifier);
+
+            // Check for modifier
+            if (index != -1)
+                span = accessModifierTokens[index].Span;
+
+            return index != -1;
         }
 
         private AccessModifier[] GetAccessModifiers(SyntaxToken[] modifiers)
@@ -118,12 +119,12 @@ namespace LumaSharp.Compiler.Semantics.Model
 
             for (int i = 0; i < modifiers.Length; i++)
             {
-                switch (modifiers[i].Text)
+                switch (modifiers[i].Kind)
                 {
-                    case "export": result.Add(AccessModifier.Export); break;
-                    case "internal": result.Add(AccessModifier.Internal); break;
-                    case "hidden": result.Add(AccessModifier.Hidden); break;
-                    case "global": result.Add(AccessModifier.Global); break;
+                    case SyntaxTokenKind.ExportKeyword: result.Add(AccessModifier.Export); break;
+                    case SyntaxTokenKind.InternalKeyword: result.Add(AccessModifier.Internal); break;
+                    case SyntaxTokenKind.HiddenKeyword: result.Add(AccessModifier.Hidden); break;
+                    case SyntaxTokenKind.GlobalKeyword: result.Add(AccessModifier.Global); break;
                 }
             }
 

@@ -256,7 +256,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
         public static void CheckSpecialOpUsage(MethodModel method, ISymbolProvider provider, ICompileReportProvider report)
         {
             // Get operator first
-            string methodName = method.MethodName;
+            string methodName = method.IdentifierName;
 
             // Get return type - special operators should only have 1
             ITypeReferenceSymbol returnTypeSymbol = method.ReturnTypeSymbols[0];
@@ -273,7 +273,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                 // Check for global
                 if(method.IsGlobal == false)
                 {
-                    report.ReportDiagnostic(Code.OperatorMustBeGlobal, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName);
+                    report.ReportDiagnostic(Code.OperatorMustBeGlobal, MessageSeverity.Error, method.Span, methodName);
                 }
 
                 // Check usage
@@ -284,7 +284,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if(returnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.MethodSyntax.StartToken.Span));
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, null, method.Span));
                             }
 
                             // Check for parameters
@@ -293,7 +293,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                 // Check parameter count
                                 if (method.ParameterSymbols.Length != (method.IsGlobal == true ? 2 : 3))
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // Check parameter types
@@ -302,7 +302,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                     // Check for expected type
                                     if (method.ParameterSymbols[i].TypeSymbol != method.DeclaringTypeSymbol)
                                     {
-                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                     }
                                 }
                             }
@@ -313,31 +313,31 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.I32)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.I32, method.MethodSyntax.StartToken.Span));
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.I32, null, method.Span));
                             }
 
                             // Check for parameters
                             if (method.IsGlobal == true && method.ParameterSymbols != null && method.ParameterSymbols.Length > 0)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName);
+                                report.ReportDiagnostic(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.Span, methodName);
                             }
                             break;
                         }
                     case SpecialOperator.OpString:
                         {
                             // Resolve string symbol
-                            ITypeReferenceSymbol stringSymbol = provider.ResolveTypeSymbol(null, Syntax.TypeReference(PrimitiveType.String));
+                            ITypeReferenceSymbol stringSymbol = provider.ResolveTypeSymbol(PrimitiveType.String, null, method.Span);
 
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.Any && returnTypeSymbol != stringSymbol)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, stringSymbol);
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, stringSymbol);
                             }
 
                             // Check for parameters
                             if (method.IsGlobal == true && method.ParameterSymbols != null && method.ParameterSymbols.Length > 0)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName);
+                                report.ReportDiagnostic(Code.OperatorIncorrectVoidParameter, MessageSeverity.Error, method.Span, methodName);
                             }
                             break;
                         }
@@ -348,13 +348,13 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             {
                                 if (method.ParameterSymbols == null || method.ParameterSymbols.Length != 2)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // First parameter must be of declaring type
                                 if(method.ParameterSymbols != null && method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                 }
                             }
                             break;
@@ -366,13 +366,13 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             {
                                 if (method.ParameterSymbols == null || method.ParameterSymbols.Length != 2)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // First parameter must be of declaring type
                                 if (method.ParameterSymbols != null && method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                 }
                             }
                             break;
@@ -384,13 +384,13 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             {
                                 if (method.ParameterSymbols == null || method.ParameterSymbols.Length != 2)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // First parameter must be of declaring type
                                 if (method.ParameterSymbols != null && method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                 }
                             }
                             break;
@@ -402,13 +402,13 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             {
                                 if (method.ParameterSymbols == null || method.ParameterSymbols.Length != 2)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // First parameter must be of declaring type
                                 if (method.ParameterSymbols != null && method.ParameterSymbols.Length >= 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                 }
                             }
                             break;
@@ -418,7 +418,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if(returnTypeSymbol != method.DeclaringTypeSymbol)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                             }
 
                             // Check parameter count
@@ -427,13 +427,13 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                 // Check for incorrect parameter count
                                 if(method.ParameterSymbols == null || method.ParameterSymbols.Length != 1)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 1);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 1);
                                 }
 
                                 // Single parameter must be of declaring type
                                 if(method.ParameterSymbols != null && method.ParameterSymbols.Length == 1 && method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                 }
                             }
                             break;
@@ -443,7 +443,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.MethodSyntax.StartToken.Span));
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, null, method.Span));
                             }
 
                             // Check for parameters
@@ -452,7 +452,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                 // Check parameter count
                                 if (method.ParameterSymbols.Length != (method.IsGlobal == true ? 2 : 3))
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // Check parameter types
@@ -461,7 +461,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                     // Check for expected type
                                     if (method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                     {
-                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                     }
                                 }
                             }
@@ -472,7 +472,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.MethodSyntax.StartToken.Span));
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, null, method.Span));
                             }
 
                             // Check for parameters
@@ -481,7 +481,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                 // Check parameter count
                                 if (method.ParameterSymbols.Length != (method.IsGlobal == true ? 2 : 3))
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // Check parameter types
@@ -490,7 +490,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                     // Check for expected type
                                     if (method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                     {
-                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                     }
                                 }
                             }
@@ -501,7 +501,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.MethodSyntax.StartToken.Span));
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, null, method.MethodSyntax.StartToken.Span));
                             }
 
                             // Check for parameters
@@ -510,7 +510,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                 // Check parameter count
                                 if (method.ParameterSymbols.Length != (method.IsGlobal == true ? 2 : 3))
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // Check parameter types
@@ -519,7 +519,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                     // Check for expected type
                                     if (method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                     {
-                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                     }
                                 }
                             }
@@ -530,7 +530,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                             // Check return type
                             if (returnTypeSymbol.PrimitiveType != PrimitiveType.Bool)
                             {
-                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, method.MethodSyntax.StartToken.Span));
+                                report.ReportDiagnostic(Code.OperatorIncorrectReturn, MessageSeverity.Error, method.Span, methodName, provider.ResolveTypeSymbol(PrimitiveType.Bool, null, method.Span));
                             }
 
                             // Check for parameters
@@ -539,7 +539,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                 // Check parameter count
                                 if (method.ParameterSymbols.Length != (method.IsGlobal == true ? 2 : 3))
                                 {
-                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, 2);
+                                    report.ReportDiagnostic(Code.OperatorIncorrectParameterCount, MessageSeverity.Error, method.Span, methodName, 2);
                                 }
 
                                 // Check parameter types
@@ -548,7 +548,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
                                     // Check for expected type
                                     if (method.ParameterSymbols[0].TypeSymbol != method.DeclaringTypeSymbol)
                                     {
-                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.MethodSyntax.StartToken.Span, methodName, method.DeclaringTypeSymbol);
+                                        report.ReportDiagnostic(Code.OperatorIncorrectParameter, MessageSeverity.Error, method.Span, methodName, method.DeclaringTypeSymbol);
                                     }
                                 }
                             }

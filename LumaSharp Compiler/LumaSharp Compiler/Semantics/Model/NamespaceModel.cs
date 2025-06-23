@@ -1,33 +1,42 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
 using LumaSharp.Runtime.Handle;
-using System.Linq;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
-    public sealed class NamespaceModel : INamespaceReferenceSymbol
+    public sealed class NamespaceModel : SymbolModel, INamespaceReferenceSymbol
     {
         // Private
-        private string name = "";
-        private int depth = 0;
-        private INamespaceReferenceSymbol parentNamespace = null;
-        private List<INamespaceReferenceSymbol> namespaceMembers = null;
-        private List<ITypeReferenceSymbol> typeMembers = null;
+        private readonly StringModel namespaceName;
+        private readonly List<NamespaceModel> namespaceMembers = new();
+        private readonly List<TypeModel> typeMembers = new();
 
         // Properties
         public string NamespaceName
         {
-            get { return name; }
+            get { return namespaceName.Text; }
         }
 
         public int NamespaceDepth
         {
-            get { return depth; }
+            get
+            {
+                int depth = 1;
+                NamespaceModel current = this.Parent as NamespaceModel;
+
+                // move up the hierarchy searching for parent namespaces
+                while(current != null)
+                {
+                    depth++;
+                    current = current.Parent as NamespaceModel;
+                }
+                return depth;
+            }
         }
 
         public INamespaceReferenceSymbol ParentNamespace
         {
-            get { return parentNamespace; }
+            get { return Parent as INamespaceReferenceSymbol; }
         }
 
         public IReadOnlyList<INamespaceReferenceSymbol> NamespacesInScope
@@ -42,66 +51,47 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public ILibraryReferenceSymbol LibrarySymbol
         {
-            get { return null; }
+            get { return Model.LibrarySymbol; }
         }
 
-        public _TokenHandle SymbolToken
+        public _TokenHandle Token
         {
             get { return default; }
         }
 
         // Constructor
-        public NamespaceModel(string name, int depth = 0, INamespaceReferenceSymbol parentNamespace = null)
+        public NamespaceModel(SyntaxToken namespaceName, NamespaceModel parent)
+            : base(namespaceName.Span)
         {
-            this.name = name;
-            this.depth = depth;
-            this.parentNamespace = parentNamespace;
-
-            //// Build types
-            //List<TypeModel> types = new List<TypeModel>();
-
-            //// Add all types
-            //types.AddRange(syntax.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(model, this, t)));
-
-            //// Add all contracts
-            //types.AddRange(syntax.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(model, this, c)));
-
-            //// Add all enums
-            //types.AddRange(syntax.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(model, this, e)));
-
-            //this.typeMembers = types.ToArray();
+            this.namespaceName = new StringModel(namespaceName);
+            this.parent = parent;
         }
 
-        public void AddType(ITypeReferenceSymbol typeSymbol)
+        public void AddType(TypeModel typeModel)
         {
             // Check for null
-            if(typeSymbol == null)
-                throw new ArgumentNullException(nameof(typeSymbol));
-
-            // Create collection
-            if (typeMembers == null)
-                typeMembers = new List<ITypeReferenceSymbol>();
+            if(typeModel == null)
+                throw new ArgumentNullException(nameof(typeModel));
 
             // Add member
-            typeMembers.Add(typeSymbol);
+            typeMembers.Add(typeModel);
         }
 
-        public void AddNamespace(INamespaceReferenceSymbol namespaceSymbol)
+        public void AddNamespace(NamespaceModel namespaceModel)
         {
             // Check for null
-            if(namespaceSymbol == null)
-                throw new ArgumentNullException(nameof(namespaceSymbol));
-
-            // Create collection
-            if (namespaceMembers == null)
-                namespaceMembers = new List<INamespaceReferenceSymbol>();
+            if(namespaceModel == null)
+                throw new ArgumentNullException(nameof(namespaceModel));
 
             // Add member
-            namespaceMembers.Add(namespaceSymbol);
+            namespaceMembers.Add(namespaceModel);
         }
 
-        public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
+            // Resolve name
+            namespaceName.ResolveSymbols(provider, report);
+
             // Resolve all types
             foreach(TypeModel typeModel in typeMembers)
             {

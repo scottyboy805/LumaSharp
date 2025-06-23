@@ -21,6 +21,9 @@ namespace LumaSharp.Runtime.Handle
         FieldDefinition,
         AccessorDefinition,
         MethodDefinition,        
+
+        GenericTypeParameter = 128,
+        GenericMethodParameter,
     }
 
     /// <summary>
@@ -71,6 +74,11 @@ namespace LumaSharp.Runtime.Handle
         public override int GetHashCode()
         {
             return MetaToken.GetHashCode();
+        }
+
+        public static _TokenHandle String(int row)
+        {
+            return new _TokenHandle(TokenKind.StringReference, row);
         }
 
         public static _TokenHandle FieldRef(int row)

@@ -6,13 +6,13 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class VariableReferenceModel : ExpressionModel
     {
         // Private
-        private VariableReferenceExpressionSyntax syntax = null;
+        private readonly StringModel identifier;
         private IIdentifierReferenceSymbol identifierSymbol = null;
 
         // Properties
-        public string Identifier
+        public StringModel Identifier
         {
-            get { return syntax.Identifier.Text; }
+            get { return identifier; }
         }
 
         public override bool IsStaticallyEvaluated
@@ -42,10 +42,24 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        internal VariableReferenceModel(SemanticModel model, SymbolModel parent, VariableReferenceExpressionSyntax syntax)
-            : base(model, parent, syntax)
+        internal VariableReferenceModel(VariableReferenceExpressionSyntax variableReferenceSyntax)
+            : base(variableReferenceSyntax != null ? variableReferenceSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
+            // Check for null
+            if(variableReferenceSyntax == null)
+                throw new ArgumentNullException(nameof(variableReferenceSyntax));
+
+            this.identifier = new StringModel(variableReferenceSyntax.Identifier);
+        }
+
+        internal VariableReferenceModel(string identifier, SyntaxSpan? span)
+            : base(span)
+        {
+            // Check for null or empty
+            if (string.IsNullOrEmpty(identifier) == true)
+                throw new ArgumentException(nameof(identifier) + " cannot be null or empty");
+
+            this.identifier = new StringModel(identifier, span);
         }
 
         // Methods
@@ -57,7 +71,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Try to resolve symbol
-            this.identifierSymbol = provider.ResolveIdentifierSymbol(ParentSymbol, syntax);
+            this.identifierSymbol = provider.ResolveIdentifierSymbol(ParentSymbol, identifier.Text, Span);
 
             // Check for symbol resolved
             if(identifierSymbol != null && identifierSymbol is ILocalIdentifierReferenceSymbol localIdentifier)
@@ -71,7 +85,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                 // Check for local
                 if(current != null && localIdentifier.IsLocal == true && localIdentifier.DeclareIndex > ((StatementModel)current).StatementIndex)
                 {
-                    report.ReportDiagnostic(Code.IdentifierUsedBeforeDeclared, MessageSeverity.Error, syntax.StartToken.Span, syntax.Identifier.Text);
+                    report.ReportDiagnostic(Code.IdentifierUsedBeforeDeclared, MessageSeverity.Error, Span, identifier);
                 }
             }
         }

@@ -25,9 +25,9 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return thisLibrary; }
         } 
 
-        public _TokenHandle SymbolToken
+        public _TokenHandle Token
         {
-            get { return thisLibrary.SymbolToken; }
+            get { return thisLibrary.Token; }
         }
 
         public IReadOnlyList<TypeModel> TypeModels
@@ -100,7 +100,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             int index = 0;
 
             List<ImportModel> importModels = new List<ImportModel>();
-            List<NamespaceSyntax> namespaceDeclarations = new List<NamespaceSyntax>();
+            //List<NamespaceSyntax> namespaceDeclarations = new List<NamespaceSyntax>();
 
             // Build semantic model
             foreach (SyntaxTree tree in syntaxTrees)
@@ -119,32 +119,32 @@ namespace LumaSharp.Compiler.Semantics.Model
                 }
 
                 // Add root namespaces
-                namespaceDeclarations.AddRange(tree.Root.DescendantsOfType<NamespaceSyntax>());
+                //namespaceDeclarations.AddRange(tree.Root.DescendantsOfType<NamespaceSyntax>());
 
                 // Add root types
-                typeModels.AddRange(tree.Root.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t, scopedImportModels)));
+                typeModels.AddRange(tree.Root.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(t, null)));
                 //rootTypes.AddRange(tree.DescendantsOfType<TypeSyntax>());
 
                 // Add root contracts
-                typeModels.AddRange(tree.Root.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(this, null, c, scopedImportModels)));
+                typeModels.AddRange(tree.Root.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(c, null)));
                 //rootContracts.AddRange(tree.DescendantsOfType<ContractSyntax>());
 
                 // Add root enums
-                typeModels.AddRange(tree.Root.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(this, null, e, scopedImportModels)));
+                typeModels.AddRange(tree.Root.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(e, null)));
                 //rootEnums.AddRange(tree.DescendantsOfType<EnumSyntax>());
 
                 // Add namespace
-                foreach(NamespaceSyntax rootNamespace in tree.Root.DescendantsOfType<NamespaceSyntax>())
-                {
-                    // Add all types
-                    typeModels.AddRange(rootNamespace.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t, scopedImportModels)));
+                //foreach(NamespaceSyntax rootNamespace in tree.Root.DescendantsOfType<NamespaceSyntax>())
+                //{
+                //    // Add all types
+                //    typeModels.AddRange(rootNamespace.DescendantsOfType<TypeSyntax>().Select(t => new TypeModel(this, null, t, scopedImportModels)));
 
-                    // Add all contracts
-                    typeModels.AddRange(rootNamespace.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(this, null, c, scopedImportModels)));
+                //    // Add all contracts
+                //    typeModels.AddRange(rootNamespace.DescendantsOfType<ContractSyntax>().Select(c => new TypeModel(this, null, c, scopedImportModels)));
 
-                    // Add all enums
-                    typeModels.AddRange(rootNamespace.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(this, null, e, scopedImportModels)));
-                }
+                //    // Add all enums
+                //    typeModels.AddRange(rootNamespace.DescendantsOfType<EnumSyntax>().Select(e => new TypeModel(this, null, e, scopedImportModels)));
+                //}
 
                 // Combine the report
                 if (index > 1) report.Combine(tree.Report);
@@ -153,10 +153,10 @@ namespace LumaSharp.Compiler.Semantics.Model
 
 
             // Define all namespaces
-            foreach(NamespaceSyntax namespaceSyntax in namespaceDeclarations)
-            {
-                thisLibrary.DeclareNamespace(namespaceSyntax.Name);
-            }
+            //foreach(NamespaceSyntax namespaceSyntax in namespaceDeclarations)
+            //{
+            //    thisLibrary.DeclareNamespace(namespaceSyntax.Name);
+            //}
 
             // Define this library with all types
             foreach (TypeModel type in typeModels)
@@ -203,13 +203,13 @@ namespace LumaSharp.Compiler.Semantics.Model
             }
         }
 
-        public void StaticallyEvaluate()
-        {
-            foreach(TypeModel type in typeModels)
-            {
-                type.StaticallyEvaluateMember(symbolProvider);
-            }
-        }
+        //public void StaticallyEvaluate()
+        //{
+        //    foreach(TypeModel type in typeModels)
+        //    {
+        //        type.StaticallyEvaluateMember(symbolProvider);
+        //    }
+        //}
 
         public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : SymbolModel
         {

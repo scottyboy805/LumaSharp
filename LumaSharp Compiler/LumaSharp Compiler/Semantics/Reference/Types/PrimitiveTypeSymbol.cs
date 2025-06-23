@@ -39,7 +39,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
         public ITypeReferenceSymbol[] TypeMemberSymbols => null;
 
-        public IFieldReferenceSymbol[] FieldMemberSymbols => null;
+        public IFieldAccessorReferenceSymbol[] FieldMemberSymbols => null;
 
         public IAccessorReferenceSymbol[] AccessorMemberSymbols => null;
 
@@ -49,7 +49,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
         public ILibraryReferenceSymbol LibrarySymbol => library;
 
-        public _TokenHandle SymbolToken => typeHandle.TypeToken;
+        public _TokenHandle Token => typeHandle.TypeToken;
 
         public string LibraryName => "runtime";
 

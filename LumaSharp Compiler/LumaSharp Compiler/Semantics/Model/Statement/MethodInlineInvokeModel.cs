@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class MethodInlineInvokeModel : StatementModel
     {
         // Private
-        private MethodInvokeModel invokeModel = null;
+        private readonly MethodInvokeModel invokeModel;
 
         // Properties
         public MethodInvokeModel InvokeModel
@@ -20,10 +20,30 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public MethodInlineInvokeModel(SemanticModel model, SymbolModel parent, MethodInvokeStatementSyntax syntax, int statementIndex)
-            : base(model, parent, syntax, statementIndex)
+        public MethodInlineInvokeModel(MethodInvokeStatementSyntax invokeSyntax)
+            : base(invokeSyntax != null ? invokeSyntax.GetSpan() : null)
         {
-            this.invokeModel = new MethodInvokeModel(model, this, syntax.InvokeExpression);
+            // Check for null
+            if(invokeSyntax == null)
+                throw new ArgumentNullException(nameof(invokeSyntax));
+
+            this.invokeModel = new MethodInvokeModel(invokeSyntax.InvokeExpression);
+
+            // Set parent
+            invokeModel.parent = this;
+        }
+
+        public MethodInlineInvokeModel(MethodInvokeModel invokeModel, SyntaxSpan? span)
+            : base(span)
+        {
+            // Check for null
+            if(invokeModel == null)
+                throw new ArgumentNullException(nameof(invokeModel));
+
+            this.invokeModel = invokeModel;
+
+            // Set parent
+            invokeModel.parent = this;
         }
 
         // Methods

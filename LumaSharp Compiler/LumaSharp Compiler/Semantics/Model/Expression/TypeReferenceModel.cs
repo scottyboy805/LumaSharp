@@ -6,15 +6,58 @@ namespace LumaSharp.Compiler.Semantics.Model
 {
     public sealed class TypeReferenceModel : ExpressionModel
     {
+        // Type
+        public sealed class ParentTypeReference
+        {
+            // Private
+            private readonly StringModel name;
+            private readonly TypeReferenceModel[] genericArgumentModels;
+
+            // Properties
+            public StringModel Name
+            {
+                get { return name; }
+            }
+
+            public TypeReferenceModel[] GenericArguments
+            {
+                get { return genericArgumentModels; }
+            }
+
+            public bool IsGenericType
+            {
+                get { return genericArgumentModels != null; }
+            }
+
+            // Constructor
+            internal ParentTypeReference(string name, TypeReferenceModel[] genericArgumentModels)
+            {
+                // Check for null or empty
+                if (string.IsNullOrEmpty(name) == true)
+                    throw new ArgumentException(nameof(name) + " cannot be null or empty");
+
+                this.name = new StringModel(name);
+                this.genericArgumentModels = genericArgumentModels;
+            }
+        }
+
         // Private
-        private TypeReferenceSyntax syntax = null;
-        private ITypeReferenceSymbol typeSymbol = null;
-        private TypeReferenceModel[] genericArgumentModels= null;
+        private readonly StringModel namespaceName;
+        private readonly StringModel typeName;
+        private readonly ParentTypeReference[] parentTypes;
+        private readonly TypeReferenceModel[] genericArgumentModels;
+        private readonly int arrayRank = -1;
+        private ITypeReferenceSymbol typeSymbol = null;        
 
         // Properties
-        public TypeReferenceSyntax Syntax
+        public StringModel Namespace
         {
-            get { return syntax; }
+            get { return namespaceName; }
+        }
+
+        public StringModel TypeName
+        {
+            get { return typeName; }
         }
 
         public override bool IsStaticallyEvaluated
@@ -27,21 +70,94 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return typeSymbol; }
         }
 
+        public ITypeReferenceSymbol[] EvaluatedGenericTypeSymbols
+        {
+            get { return genericArgumentModels.Select(g => g.EvaluatedTypeSymbol).ToArray(); }
+        }
+
         public override IEnumerable<SymbolModel> Descendants
         {
             get { yield break; }
         }
 
-        // Constructor
-        internal TypeReferenceModel(SemanticModel model, SymbolModel parent, TypeReferenceSyntax syntax)
-            : base(model, parent, syntax)
+        public bool IsResolved
         {
-            this.syntax = syntax;
+            get { return typeSymbol != null; }
+        }
 
-            if (syntax.GenericArgumentCount > 0)
+        public bool HasNamespace
+        {
+            get { return namespaceName != null; }
+        }
+
+        public bool IsNestedType
+        {
+            get { return parentTypes != null; }
+        }
+
+        public bool IsGenericType
+        {
+            get { return genericArgumentModels != null; }
+        }
+
+        private string[] NamespaceNames
+        {
+            get 
             {
-                this.genericArgumentModels = syntax.GenericArguments.Select(
-                    t => new TypeReferenceModel(model, this, t)).ToArray();
+                return namespaceName != null
+                    ? namespaceName.Text.Split(SyntaxToken.GetText(SyntaxTokenKind.ColonSymbol))
+                    : null;
+            }
+        }
+
+        // Constructor
+        internal TypeReferenceModel(TypeReferenceSyntax typeSyntax)
+            : base(typeSyntax != null ? typeSyntax.GetSpan() : null)
+        {
+            // Check for null
+            if (typeSyntax == null)
+                throw new ArgumentNullException(nameof(typeSyntax));
+
+            this.typeName = new StringModel(typeSyntax.Identifier);
+            this.namespaceName = typeSyntax.HasNamespace == true
+                ? new StringModel(typeSyntax.Namespace.NormalizeWhitespace().ToString())
+                : null;        
+            this.parentTypes = typeSyntax.IsNested == true
+                ? typeSyntax.ParentTypes.Select(p => new ParentTypeReference(p.Identifier.Text,
+                    p.GenericArguments.Select(a => new TypeReferenceModel(a)).ToArray()))
+                    .ToArray()
+                : null;
+            this.genericArgumentModels = typeSyntax.IsGenericType == true
+                ? typeSyntax.GenericArguments.Select(g => new TypeReferenceModel(g)).ToArray()
+                : null;
+            this.arrayRank = typeSyntax.IsArrayType == true
+                ? typeSyntax.ArrayParameterRank
+                : -1;
+
+            // Set parent
+            if (genericArgumentModels != null)
+            {
+                foreach (TypeReferenceModel genericArgument in genericArgumentModels)
+                    genericArgument.parent = this;
+            }
+        }
+
+        internal TypeReferenceModel(string typeName, string[] namespaceNames, ParentTypeReference[] parentTypes, TypeReferenceModel[] genericArguments = null, int arrayRank = -1, SyntaxSpan? span = null)
+            : base(span)
+        {
+            this.typeName = new StringModel(typeName);
+            this.namespaceName = namespaceNames != null
+                ? new StringModel(string.Concat(namespaceNames))
+                : null;
+            this.parentTypes = parentTypes;
+            this.genericArgumentModels = genericArguments;
+            this.arrayRank = arrayRank;
+
+            // Set parent
+            if(genericArgumentModels != null)
+            {
+                foreach (TypeReferenceModel genericArgument in genericArgumentModels)
+                    genericArgument.parent = this;
             }
         }
 
@@ -53,54 +169,60 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
-            // Try to resolve symbol
-            this.typeSymbol = provider.ResolveTypeSymbol(ParentSymbol, syntax);
-
             // Resolve generic arguments
+            bool didResolveGenerics = false;
             if (genericArgumentModels != null)
             {
                 for (int i = 0; i < genericArgumentModels.Length; i++)
                 {
+                    // Try to resolve the symbol
                     genericArgumentModels[i].ResolveSymbols(provider, report);
+
+                    // Check for resolved
+                    didResolveGenerics |= genericArgumentModels[i].IsResolved;
                 }
             }
+
+            // Try to resolve symbol
+            if(IsGenericType == true && didResolveGenerics == true)
+                this.typeSymbol = provider.ResolveTypeSymbol(ParentSymbol, typeName.Text, NamespaceNames, parentTypes, EvaluatedGenericTypeSymbols, arrayRank, Span);            
 
             // Check for generic argument usage
             if (typeSymbol != null)
             {
                 // Check for generic type
-                if (syntax.IsGenericType == true && genericArgumentModels != null)
+                if (IsGenericType == true)
                 {
                     // Check all generic arguments
-                    CheckGenericArguments(typeSymbol, syntax.GenericArguments.ToArray(), genericArgumentModels, report);
+                    CheckGenericArguments(typeSymbol, genericArgumentModels, report);
                 }
             }
         }
 
-        private void CheckGenericArguments(ITypeReferenceSymbol typeSymbol, TypeReferenceSyntax[] genericArgumentTypes, TypeReferenceModel[] genericArgumentTypeSymbols, ICompileReportProvider report)
+        private void CheckGenericArguments(ITypeReferenceSymbol typeSymbol, TypeReferenceModel[] genericArgumentTypeSymbols, ICompileReportProvider report)
         {
             // Check for generic argument mismatch
             if(typeSymbol.GenericParameterSymbols == null)
             {
-                report.ReportDiagnostic(Code.InvalidNoGenericArgument, MessageSeverity.Error, genericArgumentTypes[0].StartToken.Span, typeSymbol);
+                report.ReportDiagnostic(Code.InvalidNoGenericArgument, MessageSeverity.Error, Span, typeSymbol);
                 return;
             }
 
             // Check for mismatch generic argument count
-            if(typeSymbol.GenericParameterSymbols.Length != genericArgumentTypes.Length)
+            if(typeSymbol.GenericParameterSymbols.Length != genericArgumentTypeSymbols.Length)
             {
-                report.ReportDiagnostic(Code.InvalidCountGenericArgument, MessageSeverity.Error, genericArgumentTypes[0].StartToken.Span, typeSymbol, genericArgumentTypes.Length);
+                report.ReportDiagnostic(Code.InvalidCountGenericArgument, MessageSeverity.Error, Span, typeSymbol, genericArgumentTypeSymbols.Length);
                 return;
             }
 
             // Check all generic arguments
             for(int i = 0; i < genericArgumentTypeSymbols.Length; i++)
             {
-                CheckGenericArgument(typeSymbol.GenericParameterSymbols[i], genericArgumentTypes[i], genericArgumentTypeSymbols[i], report);
+                CheckGenericArgument(typeSymbol.GenericParameterSymbols[i], genericArgumentTypeSymbols[i], report);
             }
         }
 
-        private void CheckGenericArgument(IGenericParameterIdentifierReferenceSymbol genericParameter, TypeReferenceSyntax syntax, TypeReferenceModel genericArgument, ICompileReportProvider report)
+        private void CheckGenericArgument(IGenericParameterIdentifierReferenceSymbol genericParameter, TypeReferenceModel genericArgument, ICompileReportProvider report)
         {
             // Check for any constraints
             if(genericParameter.TypeConstraintSymbols != null && genericParameter.TypeConstraintSymbols.Length > 0)
@@ -112,7 +234,7 @@ namespace LumaSharp.Compiler.Semantics.Model
                     if(TypeChecker.IsTypeAssignable(genericArgument.EvaluatedTypeSymbol, genericConstraint) == false)
                     {
                         // Constraint is not implemented
-                        report.ReportDiagnostic(Code.InvalidConstraintGenericArgument, MessageSeverity.Error, syntax.StartToken.Span, genericArgument, genericConstraint);
+                        report.ReportDiagnostic(Code.InvalidConstraintGenericArgument, MessageSeverity.Error, Span, genericArgument, genericConstraint);
                     }
                 }
             }

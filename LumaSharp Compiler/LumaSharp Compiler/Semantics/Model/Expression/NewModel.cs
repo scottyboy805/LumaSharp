@@ -6,8 +6,8 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class NewModel : ExpressionModel
     {
         // Private
-        private NewExpressionSyntax syntax = null;
-        private TypeReferenceModel newTypeModel = null;
+        private readonly TypeReferenceModel newTypeModel = null;
+        private readonly ExpressionModel[] argumentModels = null;
 
         // Properties
         public override bool IsStaticallyEvaluated
@@ -20,22 +20,50 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return newTypeModel.EvaluatedTypeSymbol; }
         }
 
-        public TypeReferenceModel NewTypeExpression
-        {
-            get { return newTypeModel; }
-        }
-
         public override IEnumerable<SymbolModel> Descendants
         {
             get { yield return newTypeModel; }
         }
 
         // Constructor
-        public NewModel(SemanticModel model, SymbolModel parent, NewExpressionSyntax syntax)
-            : base(model, parent, syntax)
+        public NewModel(NewExpressionSyntax newSyntax)
+            : base(newSyntax != null ? newSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
-            this.newTypeModel = new TypeReferenceModel(model, this, syntax.NewType);
+            // Check for null
+            if (newSyntax == null)
+                throw new ArgumentNullException(nameof(newSyntax));
+
+            this.newTypeModel = new TypeReferenceModel(newSyntax.NewType);
+            this.argumentModels = newSyntax.HasArguments == true
+                ? newSyntax.ArgumentList.Select(a => ExpressionModel.Any(a, this)).ToArray()
+                : null;
+
+            // Set parent
+            newTypeModel.parent = this;
+            if (argumentModels != null)
+            {
+                foreach (ExpressionModel argumentModel in argumentModels)
+                    argumentModel.parent = this;
+            }
+        }
+
+        public NewModel(TypeReferenceModel newTypeModel, ExpressionModel[] argumentModels, SyntaxSpan? span)
+            : base(span)
+        {
+            // Check for null
+            if(newTypeModel == null)
+                throw new ArgumentNullException(nameof(newTypeModel));
+
+            this.newTypeModel = newTypeModel;
+            this.argumentModels = argumentModels;
+
+            // Set parent
+            newTypeModel.parent = this;
+            if(argumentModels != null)
+            {
+                foreach (ExpressionModel argumentModel in argumentModels)
+                    argumentModel.parent = this;
+            }
         }
 
         // Methods
@@ -48,6 +76,14 @@ namespace LumaSharp.Compiler.Semantics.Model
         {
             // Resolve type
             newTypeModel.ResolveSymbols(provider, report);
+
+            // Check for resolved
+            if (newTypeModel.IsResolved == true)
+            {
+                // TODO - resolve constructor from arguments
+
+                //newTypeModel.EvaluatedTypeSymbol.me
+            }
         }
     }
 }

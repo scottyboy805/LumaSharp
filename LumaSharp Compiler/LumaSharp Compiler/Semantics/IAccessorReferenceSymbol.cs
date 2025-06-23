@@ -4,8 +4,6 @@ namespace LumaSharp.Compiler.Semantics
     public interface IAccessorReferenceSymbol : IIdentifierReferenceSymbol
     {
         // Properties
-        string AccessorName { get; }
-
         ITypeReferenceSymbol DeclaringTypeSymbol { get; }
 
         bool HasReadBody { get; }

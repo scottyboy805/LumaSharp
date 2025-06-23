@@ -142,7 +142,7 @@ namespace LumaSharp.Compiler.Emit
             _MethodBodyHandle bodyHandle = new _MethodBodyHandle((ushort)0, (ushort)localHandles.Count, (uint)0);
 
             // Build the method handle
-            _MethodHandle methodHandle = new _MethodHandle(methodModel.SymbolToken, methodModel.DeclaringTypeSymbol.SymbolToken, signatureHandle, bodyHandle);
+            _MethodHandle methodHandle = new _MethodHandle(methodModel.Token, methodModel.DeclaringTypeSymbol.Token, signatureHandle, bodyHandle);
 
 
             // Finally emit the method

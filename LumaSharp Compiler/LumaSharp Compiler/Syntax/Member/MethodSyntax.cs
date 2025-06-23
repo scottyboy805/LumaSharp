@@ -78,6 +78,11 @@ namespace LumaSharp.Compiler.AST
             get { return lambda; }
         }
 
+        public bool HasReturnType
+        {
+            get { return returnTypes != null && returnTypes.Count > 0; }
+        }
+
         public bool HasGenericParameters
         {
             get { return genericParameters != null && genericParameters.HasGenericParameters; }

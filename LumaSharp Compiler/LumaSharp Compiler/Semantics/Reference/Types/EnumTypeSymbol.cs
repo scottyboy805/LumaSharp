@@ -49,7 +49,7 @@ namespace LumaSharp.Compiler.Semantics.Reference
 
         public _TypeHandle TypeHandle => typeHandle;
 
-        public _TokenHandle SymbolToken => default;// new _TokenHandle(TokenKind.TypeReference, 0, 1);
+        public _TokenHandle Token => default;// new _TokenHandle(TokenKind.TypeReference, 0, 1);
 
         // Constructor
         internal EnumTypeSymbol(ReferenceLibrary runtimeLibrary, ITypeReferenceSymbol baseType)

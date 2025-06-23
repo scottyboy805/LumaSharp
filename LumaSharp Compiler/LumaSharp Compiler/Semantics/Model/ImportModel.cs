@@ -4,7 +4,7 @@ using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
-    public sealed class ImportModel : IAliasIdentifierReferenceSymbol, INamespaceReferenceSymbol
+    public sealed class ImportModel : SymbolModel, IAliasIdentifierReferenceSymbol, INamespaceReferenceSymbol
     {
         // Private
         private ImportSyntax syntax = null;
@@ -102,7 +102,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return null; }
         }
 
-        public _TokenHandle SymbolToken
+        public _TokenHandle Token
         {
             get { return default; }
         }
@@ -117,7 +117,7 @@ namespace LumaSharp.Compiler.Semantics.Model
         public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
         {
             // Resolve namespace names
-            namespaceSymbol = provider.ResolveNamespaceSymbol(syntax.Name);
+            namespaceSymbol = provider.ResolveNamespaceSymbol(syntax.Name, Span);
 
             // Resolve alias type
             if(IsAlias == true)

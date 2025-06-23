@@ -6,11 +6,16 @@ namespace LumaSharp.Compiler.Semantics.Model
     public sealed class FieldAccessorReferenceModel : ExpressionModel
     {
         // Private
-        private MemberAccessExpressionSyntax syntax = null;
-        private ExpressionModel accessModel = null;
+        private readonly ExpressionModel accessModel;
+        private readonly StringModel identifier;
         private IIdentifierReferenceSymbol fieldAccessorIdentifierSymbol = null;
 
         // Properties
+        public StringModel Identifier
+        {
+            get { return identifier; }
+        }
+
         public override bool IsStaticallyEvaluated
         {
             get { return false; }
@@ -66,11 +71,36 @@ namespace LumaSharp.Compiler.Semantics.Model
         }
 
         // Constructor
-        public FieldAccessorReferenceModel(SemanticModel model, SymbolModel parent, MemberAccessExpressionSyntax syntax)
-            : base(model, parent, syntax)
+        public FieldAccessorReferenceModel(MemberAccessExpressionSyntax memberAccessSyntax)
+            : base(memberAccessSyntax != null ? memberAccessSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
-            this.accessModel = ExpressionModel.Any(model, this, syntax.AccessExpression);
+            // Check for null
+            if(memberAccessSyntax == null)
+                throw new ArgumentNullException(nameof(memberAccessSyntax));
+
+            this.accessModel = ExpressionModel.Any(memberAccessSyntax.AccessExpression, this);
+            this.identifier = new StringModel(memberAccessSyntax.Identifier);
+
+            // Set parent
+            accessModel.parent = this;
+        }
+
+        public FieldAccessorReferenceModel(ExpressionModel accessModel, string fieldName, SyntaxSpan? span)
+            : base(span)
+        {
+            // Check for null
+            if(accessModel == null)
+                throw new ArgumentNullException(nameof(accessModel));
+
+            // Check for empty
+            if (string.IsNullOrEmpty(fieldName) == true)
+                throw new ArgumentException(nameof(fieldName) + " cannot be null or empty");
+
+            this.accessModel = accessModel;
+            this.identifier = new StringModel(fieldName);
+
+            // Set parent
+            accessModel.parent = this;
         }
 
         // Methods
@@ -88,7 +118,7 @@ namespace LumaSharp.Compiler.Semantics.Model
             if(accessModel.EvaluatedTypeSymbol != null)
             {
                 // Try to resolve the field first of all
-                fieldAccessorIdentifierSymbol = provider.ResolveFieldIdentifierSymbol(accessModel.EvaluatedTypeSymbol, syntax);
+                fieldAccessorIdentifierSymbol = provider.ResolveFieldAccessorIdentifierSymbol(accessModel.EvaluatedTypeSymbol, identifier.Text, identifier.Span);
 
 
                 // Check for valid access of field
@@ -97,16 +127,14 @@ namespace LumaSharp.Compiler.Semantics.Model
                     // Check for instance field accessed via type reference
                     if(fieldIdentifier.IsGlobal == false && accessModel is TypeReferenceModel)
                     {
-                        report.ReportDiagnostic(Code.FieldRequiresInstance, MessageSeverity.Error, syntax.StartToken.Span, fieldIdentifier.IdentifierName);
+                        report.ReportDiagnostic(Code.FieldRequiresInstance, MessageSeverity.Error, identifier.Span, fieldIdentifier.IdentifierName);
                     }
                     // Check for global field accessed via anything other than type reference
                     else if(fieldIdentifier.IsGlobal == true && (accessModel is TypeReferenceModel) == false)
                     {
-                        report.ReportDiagnostic(Code.FieldRequiresType, MessageSeverity.Error, syntax.StartToken.Span, fieldIdentifier.IdentifierName);
+                        report.ReportDiagnostic(Code.FieldRequiresType, MessageSeverity.Error, identifier.Span, fieldIdentifier.IdentifierName);
                     }
-                }
-
-                
+                }                
             }
         }
     }

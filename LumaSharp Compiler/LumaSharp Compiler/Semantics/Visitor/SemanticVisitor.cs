@@ -5,6 +5,16 @@ namespace LumaSharp.Compiler.Semantics.Visitor
     public abstract class SemanticVisitor : ISemanticVisitor
     {
         // Methods
+        public virtual void VisitLocalOrParameter(LocalOrParameterModel localOrParameter)
+        {
+
+        }
+
+        public virtual void VisitGenericParameter(GenericParameterModel genericParameter)
+        {
+
+        }
+
         public virtual void VisitAccessor(AccessorModel model)
         {
 
@@ -85,14 +95,14 @@ namespace LumaSharp.Compiler.Semantics.Visitor
 
         public virtual void VisitMethodInvoke(MethodInvokeModel model)
         {
-            VisitExpression(model.AccessModelExpression);
+            VisitExpression(model.AccessModel);
 
             // Visit arguments
-            if (model.ArgumentModelExpressions != null)
+            if (model.ArgumentModels != null)
             {
-                for (int i = 0; i < model.ArgumentModelExpressions.Length; i++)
+                for (int i = 0; i < model.ArgumentModels.Length; i++)
                 {
-                    VisitExpression(model.ArgumentModelExpressions[i]);
+                    VisitExpression(model.ArgumentModels[i]);
                 }
             }
         }
@@ -127,9 +137,9 @@ namespace LumaSharp.Compiler.Semantics.Visitor
 
         public virtual void VisitReturn(ReturnModel model)
         {
-            if (model.HasReturnExpression == true)
+            if (model.HasReturnValue == true)
             {
-                foreach(ExpressionModel returnExpression in model.ReturnModelExpressions)
+                foreach(ExpressionModel returnExpression in model.ReturnModels)
                     VisitExpression(returnExpression);
             }
         }
@@ -241,12 +251,12 @@ namespace LumaSharp.Compiler.Semantics.Visitor
             VisitTypeReference(model.NewTypeExpression);
         }
 
-        public virtual void VisitSize(SizeModel model)
+        public virtual void VisitSize(SizeofModel model)
         {
             VisitTypeReference(model.SizeTypeExpression);
         }
 
-        public virtual void VisitTypeToken(TypeTokenModel model)
+        public virtual void VisitTypeToken(TypeofModel model)
         {
             VisitTypeReference(model.TypeTokenExpression);
         }

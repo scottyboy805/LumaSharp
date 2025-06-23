@@ -5,25 +5,26 @@ using LumaSharp.Runtime.Handle;
 
 namespace LumaSharp.Compiler.Semantics.Model
 {
-    public sealed class GenericParameterModel : IGenericParameterIdentifierReferenceSymbol
+    public sealed class GenericParameterModel : SymbolModel, IGenericParameterIdentifierReferenceSymbol
     {
         // Private
-        private GenericParameterSyntax syntax = null;
-        private IReferenceSymbol parent = null;
-        private ITypeReferenceSymbol[] genericConstraints = null;
-        private ITypeReferenceSymbol anyType = null;
+        private readonly StringModel identifier;
+        private readonly TypeReferenceModel[] genericConstraintModels;
+        private ITypeReferenceSymbol[] resolvedGenericConstraints = null;
+        private ITypeReferenceSymbol resolvedAnyType = null;
 
         private IFieldReferenceSymbol[] fieldMembers = null;
         private IAccessorReferenceSymbol[] accessorMembers = null;
         private IMethodReferenceSymbol[] methodMembers = null;
         private IMethodReferenceSymbol[] operatorMembers = null;
 
+        private _TokenHandle token = default;
         private _TypeHandle typeHandle = default;
 
         // Properties
         public string TypeName
         {
-            get { return syntax.Identifier.Text; }
+            get { return identifier.Text; }
         }
 
         public string[] NamespaceName
@@ -68,17 +69,17 @@ namespace LumaSharp.Compiler.Semantics.Model
 
         public IGenericParameterIdentifierReferenceSymbol[] GenericParameterSymbols
         {
-            get { return null; }
+            get { return null; } // Cannot have generic parameter with geneirc parameters
         }
 
         public ITypeReferenceSymbol[] BaseTypeSymbols
         {
-            get { return genericConstraints; }
+            get { return resolvedGenericConstraints; }
         }
 
         public ITypeReferenceSymbol[] TypeMemberSymbols
         {
-            get { return null; }
+            get { return null; } // No nested types allowed for generic parameter
         }
 
         public IFieldReferenceSymbol[] FieldMemberSymbols
@@ -111,41 +112,32 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return parent is IMethodReferenceSymbol; }
         }
 
-        public int Index
-        {
-            get { return syntax.GetPositionIndex(); }
-        }
-
-        public IReferenceSymbol ParentSymbol
-        {
-            get { return parent; }
-        }
-
         public ITypeReferenceSymbol[] TypeConstraintSymbols
         {
-            get { return genericConstraints; }
+            get { return resolvedGenericConstraints; }
         }
 
         public ITypeReferenceSymbol TypeSymbol
         {
             get
             {
-                if (genericConstraints != null && genericConstraints.Length == 1)
-                    return genericConstraints[0];
+                // The generic constraint members will be forwarded onto this type
+                if (resolvedGenericConstraints != null && resolvedGenericConstraints.Length >= 1)
+                    return this;
 
-                // Type cannot be inferred
-                return anyType;
+                // Type cannot be inferred or is not constrained, so default to any
+                return resolvedAnyType;
             }
         }
 
         public ILibraryReferenceSymbol LibrarySymbol
         {
-            get { return parent.LibrarySymbol; }
+            get { return Model.LibrarySymbol; }
         }
 
-        public _TokenHandle SymbolToken
+        public _TokenHandle Token
         {
-            get { return default; }
+            get { return token; }
         }
 
         public _TypeHandle TypeHandle
@@ -153,45 +145,97 @@ namespace LumaSharp.Compiler.Semantics.Model
             get { return typeHandle; }
         }
 
-        public string IdentifierName
+        public override IEnumerable<SymbolModel> Descendants
         {
-            get { return syntax.Identifier.Text; }
+            get
+            {
+                if(genericConstraintModels != null)
+                {
+                    foreach(TypeReferenceModel genericConstraint in genericConstraintModels)
+                        yield return genericConstraint;
+                }
+            }
         }
 
         // Constructor
-        public GenericParameterModel(GenericParameterSyntax syntax, IReferenceSymbol parent)
+        public GenericParameterModel(GenericParameterSyntax genericParameterSyntax)
+            : base(genericParameterSyntax != null ? genericParameterSyntax.GetSpan() : null)
         {
-            this.syntax = syntax;
-            this.parent = parent;
+            // Check for null
+            if(genericParameterSyntax == null)
+                throw new ArgumentNullException(nameof(genericParameterSyntax));
+
+            this.identifier = new StringModel(genericParameterSyntax.Identifier);
+            this.genericConstraintModels = genericParameterSyntax.HasConstraints == true
+                ? genericParameterSyntax.Constraints.Constraints.Select(c => new TypeReferenceModel(c)).ToArray() 
+                : null;
+
+            // Set parent
+            if(genericConstraintModels != null)
+            {
+                foreach (TypeReferenceModel genericConstraintModel in genericConstraintModels)
+                    genericConstraintModel.parent = this;
+            }
         }
 
-        // Methods
-        public void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public GenericParameterModel(string identifier, TypeReferenceModel[] genericConstraintTypes = null, SyntaxSpan? span = null)
+            : base(span)
         {
-            // Resolve any
-            anyType = provider.ResolveTypeSymbol(PrimitiveType.Any, syntax.StartToken.Span);
+            // Check for null or empty
+            if(string.IsNullOrEmpty(identifier) == true)
+                throw new ArgumentException(nameof(identifier) + " cannot be null or empty");
 
-            // Resolve constraints
-            if (syntax.HasConstraints == true)
+            this.identifier = new StringModel(identifier);
+            this.genericConstraintModels = genericConstraintTypes;
+
+            // Set parent
+            if (genericConstraintModels != null)
             {
-                // Get generic constraints
-                genericConstraints = new ITypeReferenceSymbol[syntax.ConstraintCount];
+                foreach (TypeReferenceModel genericConstraintModel in genericConstraintModels)
+                    genericConstraintModel.parent = this;
+            }
+        }
 
-                // Resolve all
-                for (int i = 0; i < genericConstraints.Length; i++)
+
+        // Methods
+        public override void Accept(ISemanticVisitor visitor)
+        {
+            visitor.VisitGenericParameter(this);
+        }
+
+        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        {
+            // Resolve constraints
+            if (genericConstraintModels != null)
+            {
+                // Resolve all constraints
+                foreach(TypeReferenceModel genericConstraint in genericConstraintModels)
                 {
-                    genericConstraints[i] = provider.ResolveTypeSymbol(parent, syntax.Constraints.Constraints[i]);
+                    genericConstraint.ResolveSymbols(provider, report);
                 }
 
+                // Get generic constraints that have been resolved
+                resolvedGenericConstraints = genericConstraintModels
+                    .Select(c => c.IsResolved == true ? c.EvaluatedTypeSymbol : null)
+                    .ToArray();
+
                 // Check constrains type usage
-                CheckConstraintTypes(genericConstraints, report);
+                CheckConstraintTypes(resolvedGenericConstraints, report);
 
                 // Update members
-                fieldMembers = genericConstraints.Where(c => c.FieldMemberSymbols != null).SelectMany(c => c.FieldMemberSymbols).ToArray();
-                accessorMembers = genericConstraints.Where(c => c.AccessorMemberSymbols != null).SelectMany(c => c.AccessorMemberSymbols).ToArray();
-                methodMembers = genericConstraints.Where(c => c.MethodMemberSymbols != null).SelectMany(c => c.MethodMemberSymbols).ToArray();
-                operatorMembers = genericConstraints.Where(c => c.OperatorMemberSymbols != null).SelectMany(c => c.OperatorMemberSymbols).ToArray();
+                fieldMembers = resolvedGenericConstraints.Where(c => c.FieldMemberSymbols != null).SelectMany(c => c.FieldMemberSymbols).ToArray();
+                accessorMembers = resolvedGenericConstraints.Where(c => c.AccessorMemberSymbols != null).SelectMany(c => c.AccessorMemberSymbols).ToArray();
+                methodMembers = resolvedGenericConstraints.Where(c => c.MethodMemberSymbols != null).SelectMany(c => c.MethodMemberSymbols).ToArray();
+                operatorMembers = resolvedGenericConstraints.Where(c => c.OperatorMemberSymbols != null).SelectMany(c => c.OperatorMemberSymbols).ToArray();
             }
+            else
+            {
+                // Resolve any - treat the constraint type as any - Allows use of common methods like string
+                resolvedAnyType = provider.ResolveTypeSymbol(PrimitiveType.Any, null, Span);
+            }
+
+            // Get the token
+            this.token = GetGenericParameterToken();
         }
 
         private void CheckConstraintTypes(ITypeReferenceSymbol[] genericConstraints, ICompileReportProvider report)
@@ -208,7 +252,41 @@ namespace LumaSharp.Compiler.Semantics.Model
             // Check for primitive
             if(genericConstraint.IsPrimitive == true)
             {
-                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, syntax.Constraints.Constraints[index].StartToken.Span, genericConstraint);
+                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, Span, genericConstraint);
+            }
+        }
+
+        private _TokenHandle GetGenericParameterToken()
+        {
+            // Check parent type
+            if(parent is TypeModel parentType)
+            {
+                // Get the index of this parameter
+                int index = Array.IndexOf(parentType.GenericParameterSymbols, this);
+
+                // Check for invalid index
+                if (index == -1)
+                    throw new Exception("Generic parameter could not be indexed in parent: " + parent);
+
+                // Create the token
+                return new _TokenHandle(TokenKind.GenericTypeParameter, index);
+            }
+            // Check parent method
+            else if(parent is MethodModel parentMethod)
+            {
+                // Get the index of this parameter
+                int index = Array.IndexOf(parentMethod.GenericParameterSymbols, this);
+
+                // Check for invalid index
+                if (index == -1)
+                    throw new Exception("Generic parameter could not be indexed in parent: " + parent);
+
+                // Create the token
+                return new _TokenHandle(TokenKind.GenericMethodParameter, index);
+            }
+            else
+            {
+                throw new Exception("Cannot determine context of generic parameter: " + parent);
             }
         }
     }

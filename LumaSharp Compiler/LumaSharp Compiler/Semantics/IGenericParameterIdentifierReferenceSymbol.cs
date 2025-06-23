@@ -7,8 +7,6 @@ namespace LumaSharp.Compiler.Semantics
 
         bool IsMethodParameter { get; }
 
-        int Index { get; }
-
         ITypeReferenceSymbol[] TypeConstraintSymbols { get; }
     }
 }

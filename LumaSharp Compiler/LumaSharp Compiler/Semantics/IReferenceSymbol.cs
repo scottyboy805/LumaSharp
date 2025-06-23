@@ -7,6 +7,6 @@ namespace LumaSharp.Compiler.Semantics
         // Properties
         ILibraryReferenceSymbol LibrarySymbol { get; }
 
-        _TokenHandle SymbolToken { get; }
+        _TokenHandle Token { get; }
     }
 }

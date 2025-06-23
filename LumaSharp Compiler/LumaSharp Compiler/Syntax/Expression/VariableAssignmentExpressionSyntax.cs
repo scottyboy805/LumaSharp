@@ -2,16 +2,7 @@
 using LumaSharp.Compiler.AST.Visitor;
 
 namespace LumaSharp.Compiler.AST
-{
-    public enum AssignOperation
-    {
-        Assign,
-        AddAssign,
-        SubtractAssign,
-        MultiplyAssign,
-        DivideAssign,
-    }
-
+{   
     public sealed class VariableAssignmentExpressionSyntax : ExpressionSyntax
     {
         // Private

@@ -441,14 +441,14 @@ namespace LumaSharp.Compiler.Emit
         public override void VisitMethodInvoke(MethodInvokeModel model)
         {
             // Visit access expression
-            model.AccessModelExpression.Accept(this);
+            model.AccessModel.Accept(this);
 
             // Visit arguments
-            if (model.ArgumentModelExpressions != null)
+            if (model.ArgumentModels != null)
             {
-                for (int i = 0; i < model.ArgumentModelExpressions.Length; i++)
+                for (int i = 0; i < model.ArgumentModels.Length; i++)
                 {
-                    model.ArgumentModelExpressions[i].Accept(this);
+                    model.ArgumentModels[i].Accept(this);
                 }
             }
 

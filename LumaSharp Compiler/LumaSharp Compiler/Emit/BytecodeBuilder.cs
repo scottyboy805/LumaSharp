@@ -236,10 +236,10 @@ namespace LumaSharp.Compiler.Emit
             int offset = CurrentOffset;
 
             // Emit the opcode with operand
-            generator.EmitToken(code, symbol.SymbolToken.MetaToken);
+            generator.EmitToken(code, symbol.Token.MetaToken);
 
             // Get the operation
-            BytecodeOperation op = new BytecodeOperation(offset, code, OperandType.InlineToken, 4, symbol.SymbolToken);
+            BytecodeOperation op = new BytecodeOperation(offset, code, OperandType.InlineToken, 4, symbol.Token);
 
             // Add operation
             operations.Add(op);

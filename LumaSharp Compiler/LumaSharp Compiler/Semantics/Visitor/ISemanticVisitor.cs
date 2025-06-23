@@ -5,6 +5,10 @@ namespace LumaSharp.Compiler.Semantics
     public interface ISemanticVisitor
     {
         // Methods
+        void VisitLocalOrParameter(LocalOrParameterModel localOrParameter);
+
+        void VisitGenericParameter(GenericParameterModel genericParameter);
+
         #region Root
         void VisitMember(MemberModel model);
 
@@ -18,7 +22,7 @@ namespace LumaSharp.Compiler.Semantics
         #endregion
 
         #region Statement
-        void VisitStatement(StatementModel model);
+        void VisitScope(ScopeModel mode);
 
         void VisitAssign(AssignModel model);
 
@@ -52,9 +56,9 @@ namespace LumaSharp.Compiler.Semantics
 
         void VisitNew(NewModel model);
 
-        void VisitSize(SizeModel model);
+        void VisitSize(SizeofModel model);
 
-        void VisitTypeToken(TypeTokenModel model);
+        void VisitTypeToken(TypeofModel model);
         #endregion
     }
 }
