@@ -1,0 +1,5 @@
+FileVersion = 1
+
+[Project]
+Name = "LumaSharp VM Beef"
+StartupObject = "LumaSharpVMBeef.Program"

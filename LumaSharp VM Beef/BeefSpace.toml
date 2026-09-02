@@ -1,0 +1,5 @@
+FileVersion = 1
+Projects = {"LumaSharp VM Beef" = {Path = "."}}
+
+[Workspace]
+StartupProject = "LumaSharp VM Beef"

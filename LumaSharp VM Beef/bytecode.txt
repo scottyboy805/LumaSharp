@@ -1,0 +1,14 @@
+Ld_I1 6
+Ld_I1 5
+Ld_I2 23
+Add
+Add
+Neg
+ret
+
+Ld_I1 23
+Ld_I1 19
+Sub
+Ld_I4_0
+Cmp_Ge
+Jmp_1 5

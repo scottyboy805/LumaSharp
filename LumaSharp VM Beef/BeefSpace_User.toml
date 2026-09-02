@@ -1,0 +1,496 @@
+FileVersion = 1
+LastConfig = "Debug"
+LastPlatform = "Win64"
+RecentFilesList = ["src\\Reflection\\LumaType.bf", "src\\Meta\\LumaTypeDefinition.bf", "src\\VM\\LumaTypeHandle.bf", "src\\LumaAssemblyContext.bf", "src\\LumaAssemblyReader.bf", "src\\Meta\\LumaAssemblyReference.bf", "src\\LumaToken.bf", "src\\Meta\\LumaTypeSpecification.bf", "src\\Meta\\LumaMemberReference.bf", "src\\Meta\\LumaTypeReference.bf", "src\\Meta\\LumaMemberDefinition.bf", "src\\Reflection\\LumaField.bf", "src\\Meta\\LumaMethodDefinition.bf", "src\\Reflection\\LumaMethod.bf", "src\\Meta\\LumaFieldDefinition.bf", "src\\VM\\LumaFieldHandle.bf", "src\\Reflection\\LumaMember.bf", "src\\LumaBytecodeReader.bf", "src\\VM\\LumaMethodHandle.bf", "src\\VM\\Execution\\LumaInterpreter.bf"]
+
+[MainWindow]
+X = 2295
+Y = 77
+Width = 1169
+Height = 877
+ShowKind = "ShowMaximized"
+
+[MainDockingFrame]
+Type = "DockingFrame"
+SplitType = 1
+
+[[MainDockingFrame.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 965.0
+SizePriority = 250.0
+Type = "DockingFrame"
+SplitType = 2
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets]]
+RequestedWidth = 237.0
+RequestedHeight = 2114.72
+SizePriority = 2114.72
+Type = "DockingFrame"
+SplitType = 1
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets]]
+RequestedWidth = 578.0
+RequestedHeight = 715.0
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "Workspace"
+TabWidth = 112.1952
+TabIsPinned = false
+Type = "ProjectPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets]]
+IsFillWidget = true
+RequestedWidth = 3264.5
+RequestedHeight = 64.0
+SizePriority = 3264.5
+DefaultDocumentsTabbedView = true
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaAssemblyReference.bf"
+TabWidth = 186.0977
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaAssemblyReference.bf"
+CursorPos = 199
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaToken.bf"
+TabWidth = 108.6586
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\LumaToken.bf"
+CursorPos = 220
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaTypeSpecification.bf"
+TabWidth = 173.9025
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaTypeSpecification.bf"
+CursorPos = 168
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMemberReference.bf"
+TabWidth = 180.0001
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaMemberReference.bf"
+CursorPos = 254
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaTypeReference.bf"
+TabWidth = 158.6586
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaTypeReference.bf"
+CursorPos = 205
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaField.bf"
+TabWidth = 101.9513
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Reflection\\LumaField.bf"
+CursorPos = 492
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaAssemblyReader.bf"
+TabWidth = 168.4147
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\LumaAssemblyReader.bf"
+CursorPos = 664
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaFieldDefinition.bf"
+TabWidth = 157.4391
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaFieldDefinition.bf"
+CursorPos = 472
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "LumaType.bf"
+TabWidth = 101.9513
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Reflection\\LumaType.bf"
+CursorPos = 844
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMethodHandle.bf"
+TabWidth = 160.4879
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaMethodHandle.bf"
+CursorPos = 329
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMember.bf"
+TabWidth = 122.683
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Reflection\\LumaMember.bf"
+CursorPos = 631
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaTypeCode.bf"
+TabWidth = 131.2196
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaTypeCode.bf"
+CursorPos = 147
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "String.bf"
+TabWidth = 76.95125
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Program Files\\BeefLang\\BeefLibs\\corlib\\src\\String.bf"
+CursorPos = 76024
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaArray.bf"
+TabWidth = 105.0
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaArray.bf"
+CursorPos = 257
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaClass.bf"
+TabWidth = 104.3903
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaClass.bf"
+CursorPos = 136
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaFieldHandle.bf"
+TabWidth = 142.1952
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaFieldHandle.bf"
+CursorPos = 70
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Program.bf"
+TabWidth = 92.80492
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Program.bf"
+CursorPos = 216
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "System.bf"
+TabWidth = 84.87808
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Program Files\\BeefLang\\BeefLibs\\corlib\\src\\System.bf"
+CursorPos = 5059
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Thread.bf"
+TabWidth = 83.65857
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "c:\\Program Files\\BeefLang\\BeefLibs\\corlib\\src\\Threading\\Thread.bf"
+CursorPos = 2164
+ProjectName = "corlib"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaConvert.bf"
+TabWidth = 120.244
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\Execution\\LumaConvert.bf"
+CursorPos = 670
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaThreadContext.bf"
+TabWidth = 158.6586
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\LumaThreadContext.bf"
+CursorPos = 2492
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaArithmetic.bf"
+TabWidth = 134.2684
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\Execution\\LumaArithmetic.bf"
+CursorPos = 7105
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaStackValue.bf"
+TabWidth = 136.0976
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaStackValue.bf"
+CursorPos = 1412
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaAssemblyContext.bf"
+TabWidth = 173.2928
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\LumaAssemblyContext.bf"
+CursorPos = 166
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaInterpreter.bf"
+TabWidth = 134.8781
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\Execution\\LumaInterpreter.bf"
+CursorPos = 1874
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets]]
+IsFillWidget = true
+RequestedWidth = 3264.72
+RequestedHeight = 2114.72
+SizePriority = 3264.72
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaTypeDefinition.bf"
+TabWidth = 157.4391
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaTypeDefinition.bf"
+CursorPos = 705
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMemberDefinition.bf"
+TabWidth = 178.7806
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaMemberDefinition.bf"
+CursorPos = 453
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMemberDefinition.bf"
+TabWidth = 178.7806
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaMemberDefinition.bf"
+CursorPos = 45
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMethodDefinition.bf"
+TabWidth = 175.7318
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaMethodDefinition.bf"
+CursorPos = 314
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMethod.bf"
+TabWidth = 120.244
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Reflection\\LumaMethod.bf"
+CursorPos = 503
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaTypeHandle.bf"
+TabWidth = 142.1952
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaTypeHandle.bf"
+CursorPos = 347
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaBytecodeReader.bf"
+TabWidth = 166.5854
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\LumaBytecodeReader.bf"
+CursorPos = 587
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaArithmetic.bf"
+TabWidth = 134.2684
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\Execution\\LumaArithmetic.bf"
+CursorPos = 387
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "LumaTypeDefinition.bf"
+TabWidth = 157.4391
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\Meta\\LumaTypeDefinition.bf"
+CursorPos = 386
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaOpCode.bf"
+TabWidth = 122.0732
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaOpCode.bf"
+CursorPos = 2776
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaMethodHandle.bf"
+TabWidth = 160.4879
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaMethodHandle.bf"
+CursorPos = 283
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaStackContext.bf"
+TabWidth = 148.9025
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaStackContext.bf"
+CursorPos = 9235
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaStackContext.bf"
+TabWidth = 148.9025
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaStackContext.bf"
+CursorPos = 1658
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "LumaTypeCode.bf"
+TabWidth = 131.2196
+TabIsPinned = false
+Type = "SourceViewPanel"
+FilePath = "src\\VM\\LumaTypeCode.bf"
+CursorPos = 595
+ProjectName = "LumaSharp VM Beef"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 479.0
+Type = "DockingFrame"
+SplitType = 1
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 250.0
+SizePriority = 1918.0
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Memory"
+TabWidth = 97.561
+TabIsPinned = false
+Type = "MemoryPanel"
+AutoResize = "Auto_Mul8"
+RequestedWidth = 300.0
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Watch"
+TabWidth = 85.97563
+TabIsPinned = false
+Type = "WatchPanel"
+Columns = [{Width = 212.0}, {Width = 212.0}, {Width = 212.0}]
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs.Items]]
+EvalStr = ""
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "Auto"
+TabWidth = 77.43904
+TabIsPinned = false
+Type = "AutoWatchPanel"
+Columns = [{Width = 375.0}, {Width = 212.0}, {Width = 212.0}]
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets]]
+RequestedWidth = 250.0
+RequestedHeight = 250.0
+SizePriority = 1918.0
+Type = "TabbedView"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Find Results"
+TabWidth = 117.683
+TabIsPinned = false
+Type = "FindResultsPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Threads"
+TabWidth = 94.51222
+TabIsPinned = false
+Type = "ThreadPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Call Stack"
+TabWidth = 103.6586
+TabIsPinned = false
+Type = "CallStackPanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+TabLabel = "Immediate"
+TabWidth = 110.3659
+TabIsPinned = false
+Type = "ImmediatePanel"
+
+[[MainDockingFrame.DockedWidgets.DockedWidgets.DockedWidgets.Tabs]]
+Active = true
+TabLabel = "Output"
+TabWidth = 90.24393
+TabIsPinned = false
+Type = "OutputPanel"
+
+[[BookmarkFolders]]
+Title = ""
+
+[OutputFilters]
+ModuleLoadMessages = false
+ModuleUnloadMessages = false
+ProcessExitMessages = false
+ThreadCreateMessages = false
+ThreadExitMessages = false
+SymbolLoadMessages = false
+ProgramOutput = false
