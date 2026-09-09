@@ -40,7 +40,7 @@ namespace LumaSharp.Compiler.Reporting
             return builder.ToString();
         }
 
-        public void ReportDiagnostic(Code id, MessageSeverity severity, SyntaxSpan source, params object[] args)
+        public void ReportDiagnostic(Code id, MessageSeverity severity, SyntaxSpan? source, params object[] args)
         {
             Dictionary<Code, string> messageSet;
 
@@ -66,7 +66,8 @@ namespace LumaSharp.Compiler.Reporting
             // Build error string
             try
             {
-                diagnostics.Add(new CompileDiagnostic((int)id, severity, source,
+                diagnostics.Add(new CompileDiagnostic((int)id, severity, 
+                    source != null ? source.Value : default,
                     string.Format(message, args)));
             }
             catch(FormatException)

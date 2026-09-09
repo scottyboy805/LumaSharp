@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Reporting
@@ -12,9 +12,9 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportKeywordMessages_InvalidThis_GlobalMethod()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithMembers(
+                Syntax.Class("Test").WithMembers(
                 Syntax.Method("Test", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithBody(Syntax.Return(Syntax.This()))));
 
             // Create model
@@ -31,7 +31,7 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportKeywordMessages_InvalidThis_Field()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithMembers(
+                Syntax.Class("Test").WithMembers(
                 Syntax.Field("myField", Syntax.TypeReference("Test"), Syntax.VariableAssignment(Syntax.This()))));
 
             // Create model

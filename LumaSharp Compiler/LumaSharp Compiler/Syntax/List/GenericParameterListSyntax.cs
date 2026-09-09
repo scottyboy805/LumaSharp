@@ -89,4 +89,12 @@ namespace LumaSharp.Compiler.AST
             rGeneric.GetSourceText(writer);
         }
     }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static GenericParameterListSyntax GenericParameterList(params GenericParameterSyntax[] genericParameters) 
+            => new (new(SyntaxTokenKind.CommaSymbol, genericParameters));
+
+    }
 }

@@ -25,12 +25,12 @@ namespace LumaSharp.Compiler.Parser
         internal CompilationUnitSyntax ParseCompilationUnit()
         {
             // Parse imports
-            ImportSyntax[] imports = null;
+            UsingSyntax[] imports = null;
 
-            while(tokens.PeekKind() == SyntaxTokenKind.ImportKeyword)
+            while(tokens.PeekKind() == SyntaxTokenKind.UsingKeyword)
             {
                 // Parse the import
-                ImportSyntax import = ParseImport();
+                UsingSyntax import = ParseUsing();
 
                 // Check for null
                 if (import == null)
@@ -43,7 +43,7 @@ namespace LumaSharp.Compiler.Parser
                 }
                 else
                 {
-                    imports = new ImportSyntax[1];
+                    imports = new UsingSyntax[1];
                 }
 
                 // Add import
@@ -84,10 +84,10 @@ namespace LumaSharp.Compiler.Parser
             return new CompilationUnitSyntax(imports, namespaceOrMembers);
         }
 
-        internal ImportSyntax ParseImport()
+        internal UsingSyntax ParseUsing()
         {
             // Check for import
-            if(tokens.PeekKind() == SyntaxTokenKind.ImportKeyword)
+            if(tokens.PeekKind() == SyntaxTokenKind.UsingKeyword)
             {
                 // Consume the token
                 SyntaxToken importToken = tokens.Consume();
@@ -107,7 +107,7 @@ namespace LumaSharp.Compiler.Parser
                     {
                         // Expected type
                         report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
-                        return RecoverFromImportError();
+                        return RecoverFromUsingError();
                     }
 
                     // Expect semicolon
@@ -115,11 +115,11 @@ namespace LumaSharp.Compiler.Parser
                     {
                         // Expected ';'
                         report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
-                        return RecoverFromImportError();
+                        return RecoverFromUsingError();
                     }
 
                     // Create the alias
-                    return new ImportAliasSyntax(importToken, identifier, asToken, importType, semicolon);
+                    return new UsingAliasSyntax(importToken, identifier, asToken, importType, semicolon);
                 }
                 else
                 {
@@ -131,11 +131,11 @@ namespace LumaSharp.Compiler.Parser
                     {
                         // Expected ';'
                         report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
-                        return RecoverFromImportError();
+                        return RecoverFromUsingError();
                     }
 
                     // Create the import
-                    return new ImportSyntax(importToken, importName, semicolon);
+                    return new UsingSyntax(importToken, importName, semicolon);
                 }
             }
             return null;
@@ -174,64 +174,6 @@ namespace LumaSharp.Compiler.Parser
         //    }
         //    return namespaceName;
         //}
-
-        internal AttributeSyntax[] ParseAttributes()
-        {
-            // Parse an attribute
-            AttributeSyntax attribute = ParseAttribute();
-
-            // Create array
-            AttributeSyntax[] attributes = null;
-
-            // Check for not null
-            while (attribute != null)
-            {
-                // Update the array
-                if (attributes != null)
-                {
-                    Array.Resize(ref attributes, attributes.Length + 1);
-                }
-                else
-                {
-                    attributes = new AttributeSyntax[1];
-                }
-
-                // Update element
-                attributes[attributes.Length - 1] = attribute;
-
-                // Parse next
-                attribute = ParseAttribute();
-            }
-            return attributes;
-        }
-
-        internal AttributeSyntax ParseAttribute()
-        {
-            // Check for hash
-            if(tokens.PeekKind() == SyntaxTokenKind.HashSymbol)
-            {
-                // Get the hash token
-                SyntaxToken hashToken = tokens.Consume();
-
-                // Get the type reference
-                TypeReferenceSyntax attributeTypeReference = ParseFullTypeReference();
-
-                // Check for type
-                if (attributeTypeReference == null)
-                {
-                    // Expected type reference
-                    report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
-                    return null; // Cannot recover from here - need to process each following token manually
-                }
-
-                // Get the argument list
-                ArgumentListSyntax argumentList = ParseArgumentList();
-
-                // Create attribute
-                return new AttributeSyntax(hashToken, attributeTypeReference, argumentList);
-            }
-            return null;
-        }
 
         internal ArrayParametersSyntax ParseArrayParameters()
         {
@@ -300,19 +242,21 @@ namespace LumaSharp.Compiler.Parser
             // Check for primitive token
             switch (kind)
             {
-                case SyntaxTokenKind.AnyKeyword:
+                case SyntaxTokenKind.ObjectKeyword:
                 case SyntaxTokenKind.BoolKeyword:
                 case SyntaxTokenKind.CharKeyword:
-                case SyntaxTokenKind.I8Keyword:
-                case SyntaxTokenKind.U8Keyword:
-                case SyntaxTokenKind.I16Keyword:
-                case SyntaxTokenKind.U16Keyword:
-                case SyntaxTokenKind.I32Keyword:
-                case SyntaxTokenKind.U32Keyword:
-                case SyntaxTokenKind.I64Keyword:
-                case SyntaxTokenKind.U64Keyword:
-                case SyntaxTokenKind.F32Keyword:
-                case SyntaxTokenKind.F64Keyword:
+                case SyntaxTokenKind.Int8Keyword:
+                case SyntaxTokenKind.UInt8Keyword:
+                case SyntaxTokenKind.Int16Keyword:
+                case SyntaxTokenKind.UInt16Keyword:
+                case SyntaxTokenKind.Int32Keyword:
+                case SyntaxTokenKind.UInt32Keyword:
+                case SyntaxTokenKind.Int64Keyword:
+                case SyntaxTokenKind.UInt64Keyword:
+                case SyntaxTokenKind.Intkeyword:
+                case SyntaxTokenKind.UIntKeyword:
+                case SyntaxTokenKind.FloatKeyword:
+                case SyntaxTokenKind.DoubleKeyword:
                 case SyntaxTokenKind.StringKeyword:
                 case SyntaxTokenKind.VoidKeyword:
                     {
@@ -399,7 +343,7 @@ namespace LumaSharp.Compiler.Parser
         }
 
 
-        private ImportSyntax RecoverFromImportError()
+        private UsingSyntax RecoverFromUsingError()
         {
             // An error occurred while parsing an import - To recover we should consume all tokens until we reach a semicolon or end of stream
             while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.SemicolonSymbol)

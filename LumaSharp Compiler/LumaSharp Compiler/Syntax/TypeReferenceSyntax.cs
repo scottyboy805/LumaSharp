@@ -2,25 +2,25 @@
 
 namespace LumaSharp.Compiler.AST
 {
-    public enum PrimitiveType : byte
+    public enum ReservedType : byte
     {
         Void,
-        Any = 1,
+        Object = 1,
         Bool,
         Char,
         String,
-        I8,
-        U8,
-        I16,
-        U16,
-        I32,
-        U32,
-        I64,
-        U64,
-        F32,
-        F64,
-        Ptr,
-        UPtr,
+        Int8,
+        UInt8,
+        Int16,
+        UInt16,
+        Int32,
+        UInt32,
+        Int64,
+        UInt64,
+        Float,
+        Double,
+        Int,
+        UInt,
     }
 
     public sealed class ParentTypeReferenceSyntax : SyntaxNode
@@ -248,9 +248,9 @@ namespace LumaSharp.Compiler.AST
             get { return arrayParameters != null; }
         }
 
-        public bool IsPrimitiveType
+        public bool IsReservedType
         {
-            get { return GetPrimitiveType(out _); }
+            get { return GetReservedType(out _); }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -262,16 +262,16 @@ namespace LumaSharp.Compiler.AST
         internal TypeReferenceSyntax(MemberSyntax fromMember)
         {
             // Check for type
-            if (fromMember is TypeSyntax)
+            if (fromMember is ClassSyntax)
             {
-                TypeSyntax fromType = (TypeSyntax)fromMember;
+                ClassSyntax fromType = (ClassSyntax)fromMember;
                 this.identifier = fromType.Identifier;
                 this.namespaceName = fromType.Namespace;
             }
             // Check for contract
-            else if (fromMember is ContractSyntax)
+            else if (fromMember is InterfaceSyntax)
             {
-                ContractSyntax fromContract = (ContractSyntax)fromMember;
+                InterfaceSyntax fromContract = (InterfaceSyntax)fromMember;
                 this.identifier = fromContract.Identifier;
                 this.namespaceName = fromContract.Namespace;
             }
@@ -286,25 +286,25 @@ namespace LumaSharp.Compiler.AST
                 throw new NotSupportedException("Cannot create type reference from non-type member: " + fromMember);
         }
 
-        internal TypeReferenceSyntax(PrimitiveType primitive, ArrayParametersSyntax arrayParameters)
+        internal TypeReferenceSyntax(ReservedType primitive, ArrayParametersSyntax arrayParameters)
         {
             this.identifier = Syntax.Token(primitive switch
             {
-                PrimitiveType.Void => SyntaxTokenKind.VoidKeyword,
-                PrimitiveType.Bool => SyntaxTokenKind.BoolKeyword,
-                PrimitiveType.Char => SyntaxTokenKind.CharKeyword,
-                PrimitiveType.String => SyntaxTokenKind.StringKeyword,
-                PrimitiveType.I8 => SyntaxTokenKind.I8Keyword,
-                PrimitiveType.U8 => SyntaxTokenKind.U8Keyword,
-                PrimitiveType.I16 => SyntaxTokenKind.I16Keyword,
-                PrimitiveType.U16 => SyntaxTokenKind.U16Keyword,
-                PrimitiveType.I32 => SyntaxTokenKind.I32Keyword,
-                PrimitiveType.U32 => SyntaxTokenKind.U32Keyword,
-                PrimitiveType.I64 => SyntaxTokenKind.I64Keyword,
-                PrimitiveType.U64 => SyntaxTokenKind.U64Keyword,
-                PrimitiveType.F32 => SyntaxTokenKind.F32Keyword,
-                PrimitiveType.F64 => SyntaxTokenKind.F64Keyword,
-                PrimitiveType.Any => SyntaxTokenKind.AnyKeyword,
+                ReservedType.Void => SyntaxTokenKind.VoidKeyword,
+                ReservedType.Bool => SyntaxTokenKind.BoolKeyword,
+                ReservedType.Char => SyntaxTokenKind.CharKeyword,
+                ReservedType.String => SyntaxTokenKind.StringKeyword,
+                ReservedType.Int8 => SyntaxTokenKind.Int8Keyword,
+                ReservedType.UInt8 => SyntaxTokenKind.UInt8Keyword,
+                ReservedType.Int16 => SyntaxTokenKind.Int16Keyword,
+                ReservedType.UInt16 => SyntaxTokenKind.UInt16Keyword,
+                ReservedType.Int32 => SyntaxTokenKind.Int32Keyword,
+                ReservedType.UInt32 => SyntaxTokenKind.UInt32Keyword,
+                ReservedType.Int64 => SyntaxTokenKind.Int64Keyword,
+                ReservedType.UInt64 => SyntaxTokenKind.UInt64Keyword,
+                ReservedType.Float => SyntaxTokenKind.FloatKeyword,
+                ReservedType.Double => SyntaxTokenKind.DoubleKeyword,
+                ReservedType.Object => SyntaxTokenKind.ObjectKeyword,
 
                 _ => throw new NotSupportedException(primitive.ToString()),
             });
@@ -382,13 +382,13 @@ namespace LumaSharp.Compiler.AST
                 arrayParameters.GetSourceText(writer);
         }
 
-        internal bool GetPrimitiveType(out PrimitiveType primitiveType)
+        internal bool GetReservedType(out ReservedType primitiveType)
         {
             // Get all available primitives
-            PrimitiveType[] primitiveTypes = Enum.GetValues<PrimitiveType>();
+            ReservedType[] primitiveTypes = Enum.GetValues<ReservedType>();
 
             // Check for all 
-            foreach (PrimitiveType type in primitiveTypes)
+            foreach (ReservedType type in primitiveTypes)
             {
                 // Check for matched - lower case enum
                 if (type.ToString().ToLower() == identifier.Text)

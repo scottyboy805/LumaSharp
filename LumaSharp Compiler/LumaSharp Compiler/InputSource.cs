@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 
+[assembly: InternalsVisibleTo("LumaSharp Compiler.App")]
 [assembly: InternalsVisibleTo("LumaSharp CompilerTests")]
 
 namespace LumaSharp.Compiler

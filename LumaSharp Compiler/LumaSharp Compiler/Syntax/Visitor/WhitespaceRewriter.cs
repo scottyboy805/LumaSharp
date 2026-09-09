@@ -13,7 +13,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitTypeReference(TypeReferenceSyntax typeReference)
         {
             // Check for primitive
-            if (typeReference.IsPrimitiveType == true)
+            if (typeReference.IsReservedType == true)
                 return new TypeReferenceSyntax(
                     typeReference.Identifier,
                     DefaultVisit(typeReference.ArrayParameters));
@@ -29,23 +29,22 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitAttribute(AttributeSyntax attribute)
         {
             return new AttributeSyntax(
-                attribute.Hash,
                 DefaultVisit(attribute.AttributeType),
                 DefaultVisit(attribute.ArgumentList))
                 .WithTrailingTrivia(whitespace);
         }
 
-        public override SyntaxNode VisitImport(ImportSyntax import)
+        public override SyntaxNode VisitUsing(UsingSyntax import)
         {
-            return new ImportSyntax(
+            return new UsingSyntax(
                 import.Keyword.WithTrailingTrivia(whitespace),
                 VisitTokenList(import.Name, false, false),
                 import.Semicolon);
         }
 
-        public override SyntaxNode VisitImpotAlias(ImportAliasSyntax importAlias)
+        public override SyntaxNode VisitUsingAlias(UsingAliasSyntax importAlias)
         {
-            return new ImportAliasSyntax(
+            return new UsingAliasSyntax(
                 importAlias.Keyword.WithTrailingTrivia(whitespace),
                 importAlias.Identifier.WithTrailingTrivia(whitespace),
                 importAlias.As.WithTrailingTrivia(whitespace),
@@ -203,7 +202,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitParameter(ParameterSyntax parameter)
         {
             return new ParameterSyntax(
-                parameter.Attributes?.Select(p => DefaultVisit(p)).ToArray(),
+                DefaultVisit(parameter.Attributes),
                 DefaultVisit(parameter.ParameterType),
                 parameter.Identifier.WithLeadingTrivia(whitespace),
                 DefaultVisit(parameter.Assignment),
@@ -212,13 +211,13 @@ namespace LumaSharp.Compiler.AST.Visitor
         #endregion
 
         #region Member
-        public override SyntaxNode VisitContract(ContractSyntax contract)
+        public override SyntaxNode VisitInterface(InterfaceSyntax contract)
         {
-            return new ContractSyntax(
+            return new InterfaceSyntax(                
+                contract.Attributes,
+                contract.Modifiers?.Select(m => m.WithTrailingTrivia(whitespace)).ToArray(),
                 contract.Keyword.WithTrailingTrivia(whitespace),
                 contract.Identifier,
-                contract.Attributes?.Select(a => DefaultVisit(a)).ToArray(),
-                contract.AccessModifiers?.Select(m => m.WithTrailingTrivia(whitespace)).ToArray(),
                 DefaultVisit(contract.GenericParameters),
                 DefaultVisit(contract.BaseTypes),
                 DefaultVisit(contract.Members));
@@ -226,11 +225,11 @@ namespace LumaSharp.Compiler.AST.Visitor
 
         public override SyntaxNode VisitEnum(EnumSyntax e)
         {
-            return new EnumSyntax(
+            return new EnumSyntax(                
+                e.Attributes,
+                e.Modifiers?.Select(m => m.WithTrailingTrivia(whitespace)).ToArray(),
                 e.Keyword.WithTrailingTrivia(whitespace),
                 e.Identifier,
-                e.Attributes?.Select(a => DefaultVisit(a)).ToArray(),
-                e.AccessModifiers?.Select(m => m.WithTrailingTrivia(whitespace)).ToArray(),
                 DefaultVisit(e.UnderlyingType),
                 DefaultVisit(e.Body));
         }
@@ -245,21 +244,22 @@ namespace LumaSharp.Compiler.AST.Visitor
 
         public override SyntaxNode VisitField(FieldSyntax field)
         {
-            return new FieldSyntax(
-                field.Identifier.WithLeadingTrivia(whitespace),
+            return new FieldSyntax(                
                 field.Attributes,
-                field.AccessModifiers,
+                field.Modifiers,
                 DefaultVisit(field.FieldType),
-                DefaultVisit(field.FieldAssignment));
+                field.Identifier.WithLeadingTrivia(whitespace),
+                DefaultVisit(field.FieldAssignment),
+                field.Semicolon);
         }
 
         public override SyntaxNode VisitMethod(MethodSyntax method)
         {
-            return new MethodSyntax(
-                method.Identifier.WithLeadingTrivia(whitespace),
+            return new MethodSyntax(                
                 method.Attributes,
-                method.AccessModifiers,
-                DefaultVisit(method.ReturnTypes),
+                method.Modifiers,
+                DefaultVisit(method.ReturnType),
+                method.Identifier.WithLeadingTrivia(whitespace),
                 DefaultVisit(method.GenericParameters),
                 DefaultVisit(method.Parameters),
                 method.Override,
@@ -267,17 +267,14 @@ namespace LumaSharp.Compiler.AST.Visitor
                 DefaultVisit(method.Lambda));
         }
 
-        public override SyntaxNode VisitType(TypeSyntax type)
+        public override SyntaxNode VisitClass(ClassSyntax type)
         {
-            return new TypeSyntax(
+            return new ClassSyntax(                
+                type.Attributes,
+                type.Modifiers?.Select(m => m.WithTrailingTrivia(whitespace)).ToArray(),
                 type.Keyword.WithTrailingTrivia(whitespace),
                 type.Identifier,
-                type.Attributes?.Select(a => DefaultVisit(a)).ToArray(),
-                type.AccessModifiers?.Select(m => m.WithTrailingTrivia(whitespace)).ToArray(),
                 DefaultVisit(type.GenericParameters),
-                type.Override != null
-                    ? type.Override.Value.WithLeadingTrivia(whitespace)
-                    : (SyntaxToken?)null,
                 DefaultVisit(type.BaseTypes),
                 DefaultVisit(type.Members));
         }
@@ -313,28 +310,35 @@ namespace LumaSharp.Compiler.AST.Visitor
                 assignStatement.Semicolon);
         }
 
-        public override SyntaxNode VisitConditionStatement(ConditionStatementSyntax conditionStatement)
+        public override SyntaxNode VisitIfStatement(IfStatementSyntax ifStatement)
         {
-            return new ConditionStatementSyntax(
-                conditionStatement.IsAlternate == true
-                    ? conditionStatement.Keyword.Kind == SyntaxTokenKind.ElifKeyword
-                        ? conditionStatement.Keyword.WithLeadingTrivia(newLine).WithTrailingTrivia(whitespace)
-                        : conditionStatement.Keyword.WithLeadingTrivia(newLine)
-                    : conditionStatement.Keyword.WithTrailingTrivia(whitespace),
-                DefaultVisit(conditionStatement.Condition),
-                DefaultVisit(conditionStatement.Alternate),
-                VisitInnerStatement(conditionStatement.Statement));
+            return new IfStatementSyntax(
+                ifStatement.Keyword.WithLeadingTrivia(newLine),
+                ifStatement.LParen.WithLeadingTrivia(newLine),
+                DefaultVisit(ifStatement.Condition),
+                ifStatement.RParen,
+                VisitInnerStatement(ifStatement.Statement),
+                DefaultVisit(ifStatement.Alternate));
+        }
+
+        public override SyntaxNode VisitElseClause(ElseClauseSyntax elseStatement)
+        {
+            return new ElseClauseSyntax(
+                elseStatement.Keyword.WithTrailingTrivia(whitespace),
+                DefaultVisit(elseStatement.Statement));
         }
 
         public override SyntaxNode VisitForStatement(ForStatementSyntax forStatement)
         {
             return new ForStatementSyntax(
                 forStatement.Keyword.WithTrailingTrivia(whitespace),
+                forStatement.LParen,
                 DefaultVisit(forStatement.Variable),
                 forStatement.VariableSemicolon,
                 DefaultVisit(forStatement.Condition)?.WithLeadingTrivia(whitespace),
                 forStatement.ConditionSemicolon,
                 DefaultVisit(forStatement.Increments)?.WithLeadingTrivia(whitespace),
+                forStatement.RParen,
                 VisitInnerStatement(forStatement.Statement));
         }
 
@@ -342,7 +346,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         {
             return new ReturnStatementSyntax(
                 returnStatement.Keyword.WithTrailingTrivia(whitespace),
-                DefaultVisit(returnStatement.Expressions),
+                DefaultVisit(returnStatement.Expression),
                 returnStatement.Semicolon);
         }
 

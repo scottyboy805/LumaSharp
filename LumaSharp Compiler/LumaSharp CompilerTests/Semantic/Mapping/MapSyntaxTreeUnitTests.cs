@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 
 namespace CompilerTests.Semantic.Mapping
 {
@@ -12,7 +12,7 @@ namespace CompilerTests.Semantic.Mapping
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Namespace("MyNamespace"),
-                Syntax.Type("MyType"));
+                Syntax.Class("MyType"));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -25,8 +25,8 @@ namespace CompilerTests.Semantic.Mapping
 
             Assert.AreEqual("MyType", type.TypeName);
             Assert.AreEqual("MyNamespace", type.NamespaceName[0]);
-            Assert.IsTrue(type.IsType);
-            Assert.IsFalse(type.IsContract);
+            Assert.IsTrue(type.IsClass);
+            Assert.IsFalse(type.IsInterface);
             Assert.IsFalse(type.IsEnum);
             Assert.IsFalse(type.IsPrimitive);
         }
@@ -35,7 +35,7 @@ namespace CompilerTests.Semantic.Mapping
         public void MapSyntaxTree_Type()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("MyType"));
+                Syntax.Class("MyType"));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -47,8 +47,8 @@ namespace CompilerTests.Semantic.Mapping
             TypeModel type = model.TypeModels[0];
 
             Assert.AreEqual("MyType", type.TypeName);
-            Assert.IsTrue(type.IsType);
-            Assert.IsFalse(type.IsContract);
+            Assert.IsTrue(type.IsClass);
+            Assert.IsFalse(type.IsInterface);
             Assert.IsFalse(type.IsEnum);
             Assert.IsFalse(type.IsPrimitive);
         }
@@ -57,7 +57,7 @@ namespace CompilerTests.Semantic.Mapping
         public void MapSyntaxTree_Contract()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("MyContract"));
+                Syntax.Interface("MyContract"));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -69,8 +69,8 @@ namespace CompilerTests.Semantic.Mapping
             TypeModel type = model.TypeModels[0];
 
             Assert.AreEqual("MyContract", type.TypeName);
-            Assert.IsFalse(type.IsType);
-            Assert.IsTrue(type.IsContract);
+            Assert.IsFalse(type.IsClass);
+            Assert.IsTrue(type.IsInterface);
             Assert.IsFalse(type.IsEnum);
             Assert.IsFalse(type.IsPrimitive);
         }
@@ -91,8 +91,8 @@ namespace CompilerTests.Semantic.Mapping
             TypeModel type = model.TypeModels[0];
 
             Assert.AreEqual("MyEnum", type.TypeName);
-            Assert.IsFalse(type.IsType);
-            Assert.IsFalse(type.IsContract);
+            Assert.IsFalse(type.IsClass);
+            Assert.IsFalse(type.IsInterface);
             Assert.IsTrue(type.IsEnum);
             Assert.IsFalse(type.IsPrimitive);
         }

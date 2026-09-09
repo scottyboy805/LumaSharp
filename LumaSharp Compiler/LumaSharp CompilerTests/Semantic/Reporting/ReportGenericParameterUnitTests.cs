@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Reporting
@@ -12,7 +12,7 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportGenericParameterMessages_Constraint_Primitive()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference(PrimitiveType.I32))));
+                Syntax.Class("Test").WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference(ReservedType.Int32))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

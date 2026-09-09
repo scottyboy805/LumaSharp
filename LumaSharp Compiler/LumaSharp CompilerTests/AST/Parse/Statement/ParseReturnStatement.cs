@@ -8,10 +8,9 @@ namespace CompilerTests.AST.Parse.Statement
     {
         // Methods
         [DataTestMethod]
-        [DataRow("return;")]
+        [DataRow("return ;")]
         [DataRow("return val;")]
-        [DataRow("return a,b;")]
-        [DataRow("return a,b,c;")]
+        [DataRow("return a;")]
         public void ParseAsReturnStatement(string input)
         {
             // Try to parse the tree
@@ -51,22 +50,6 @@ namespace CompilerTests.AST.Parse.Statement
             Assert.AreEqual(SyntaxTokenKind.ReturnKeyword, statement.StartToken.Kind);
             Assert.AreEqual(SyntaxTokenKind.SemicolonSymbol, statement.EndToken.Kind);
             Assert.AreEqual(1, statement.Descendants.Count());
-        }
-
-        [DataTestMethod]
-        [DataRow("return true, false;")]
-        public void ParseReturnMultipleNode(string input)
-        {
-            // Try to parse the tree
-            ReturnStatementSyntax statement = TestUtils.ParseInputStringStatement(input,
-                p => p.ParseReturnStatement() as ReturnStatementSyntax);
-
-            Assert.IsNotNull(statement);
-            Assert.AreEqual(SyntaxTokenKind.ReturnKeyword, statement.Keyword.Kind);
-            Assert.AreEqual(SyntaxTokenKind.SemicolonSymbol, statement.Semicolon.Kind);
-            Assert.AreEqual(SyntaxTokenKind.ReturnKeyword, statement.StartToken.Kind);
-            Assert.AreEqual(SyntaxTokenKind.SemicolonSymbol, statement.EndToken.Kind);
-            Assert.AreEqual(1, statement.Descendants.Count());  // This is a separated list no matter how many return values
         }
     }
 }

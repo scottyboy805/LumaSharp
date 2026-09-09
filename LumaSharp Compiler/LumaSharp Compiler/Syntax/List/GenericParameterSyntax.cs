@@ -110,4 +110,11 @@ namespace LumaSharp.Compiler.AST
             return -1;
         }
     }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static GenericParameterSyntax GenericParameter(SyntaxToken identifier, params TypeReferenceSyntax[] constrainTypes) 
+            => new (identifier, constrainTypes != null && constrainTypes.Length > 0 ? new(Token(SyntaxTokenKind.ColonSymbol), new(SyntaxTokenKind.BitwiseAndSymbol, constrainTypes)) : null);
+    }
 }

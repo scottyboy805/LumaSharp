@@ -1,5 +1,6 @@
 ﻿
 using System.Numerics;
+using System.Reflection.Metadata;
 
 namespace LumaSharp.Compiler.AST.Visitor
 {
@@ -179,8 +180,7 @@ namespace LumaSharp.Compiler.AST.Visitor
 
         public override SyntaxNode VisitAttribute(AttributeSyntax attribute)
         {
-            bool modified = Replace(attribute.Hash, out SyntaxToken hash);
-            modified |= Replace(attribute.AttributeType, out TypeReferenceSyntax attributeType);
+            bool modified = Replace(attribute.AttributeType, out TypeReferenceSyntax attributeType);
             modified |= Replace(attribute.ArgumentList, out ArgumentListSyntax argumentList);
 
             // Check for modified
@@ -188,12 +188,12 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return attribute;
 
             // Create modified
-            return new AttributeSyntax(hash, attributeType, argumentList);
+            return new AttributeSyntax(attributeType, argumentList);
         }
 
         public override SyntaxNode VisitCompilationUnit(CompilationUnitSyntax compilationUnit)
         {
-            bool modified = ReplaceMany(compilationUnit.Imports, out IEnumerable<ImportSyntax> imports);
+            bool modified = ReplaceMany(compilationUnit.Imports, out IEnumerable<UsingSyntax> imports);
             modified |= ReplaceMany(compilationUnit.NamespaceOrMembers, out IEnumerable<SyntaxNode> namespaceOrMembers);
 
             // Check for modified
@@ -218,7 +218,7 @@ namespace LumaSharp.Compiler.AST.Visitor
             return new ConstructorInvokeSyntax(colon, baseOrThisKeyword, argumentList);
         }
 
-        public override SyntaxNode VisitImport(ImportSyntax import)
+        public override SyntaxNode VisitUsing(UsingSyntax import)
         {
             bool modified = Replace(import.Keyword, out SyntaxToken keyword);
             modified |= Replace(import.Name, out SeparatedTokenList name);
@@ -229,10 +229,10 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return import;
 
             // Create modified
-            return new ImportSyntax(keyword, name, semicolon);
+            return new UsingSyntax(keyword, name, semicolon);
         }
 
-        public override SyntaxNode VisitImpotAlias(ImportAliasSyntax importAlias)
+        public override SyntaxNode VisitUsingAlias(UsingAliasSyntax importAlias)
         {
             bool modified = Replace(importAlias.Keyword, out SyntaxToken keyword);
             modified |= Replace(importAlias.Identifier, out SyntaxToken identifier);
@@ -245,12 +245,12 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return importAlias;
 
             // Create modified
-            return new ImportAliasSyntax(keyword, identifier, _as, type, semicolon);
+            return new UsingAliasSyntax(keyword, identifier, _as, type, semicolon);
         }
 
         public override SyntaxNode VisitTypeReference(TypeReferenceSyntax typeReference)
         {
-            if(typeReference.IsPrimitiveType == true)
+            if(typeReference.IsReservedType == true)
             {
                 bool modified = Replace(typeReference.Identifier, out SyntaxToken identifier);
                 modified |= Replace(typeReference.ArrayParameters, out ArrayParametersSyntax arrayParameters);
@@ -390,7 +390,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         {
             SyntaxToken? enumerable = null;
 
-            bool modified = ReplaceMany(parameter.Attributes, out IEnumerable<AttributeSyntax> attributes);
+            bool modified = Replace(parameter.Attributes, out AttributeListSyntax attributes);
             modified |= Replace(parameter.ParameterType, out TypeReferenceSyntax parameterType);
             modified |= Replace(parameter.Identifier, out SyntaxToken identifier);
             modified |= Replace(parameter.Assignment, out VariableAssignmentExpressionSyntax assignment);
@@ -405,7 +405,7 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return parameter;
 
             // Create modified
-            return new ParameterSyntax(attributes.ToArray(), parameterType, identifier, assignment, enumerable);
+            return new ParameterSyntax(attributes, parameterType, identifier, assignment, enumerable);
         }
 
         public override SyntaxNode VisitSyntaxList<J>(SeparatedSyntaxList<J> list)
@@ -484,8 +484,8 @@ namespace LumaSharp.Compiler.AST.Visitor
             SyntaxToken? _override = null;
 
             bool modified = Replace(accessor.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(accessor.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(accessor.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(accessor.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(accessor.Modifiers, out IEnumerable<SyntaxToken> modifiers);
             modified |= Replace(accessor.AccessorType, out TypeReferenceSyntax accessorType);
             if(accessor.Override != null)
             {
@@ -500,14 +500,14 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return accessor;
 
             // Create modified
-            return new AccessorSyntax(identifier, attributes.ToArray(), modifiers.ToArray(), accessorType, _override, bodies.ToArray(), lambda);
+            return new AccessorSyntax(identifier, attributes, modifiers.ToArray(), accessorType, _override, bodies.ToArray(), lambda);
         }
 
         public override SyntaxNode VisitConstructor(ConstructorSyntax constructor)
         {
             bool modified = Replace(constructor.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(constructor.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(constructor.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(constructor.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(constructor.Modifiers, out IEnumerable<SyntaxToken> modifiers);
             modified |= Replace(constructor.Parameters, out ParameterListSyntax parameters);
             modified |= Replace(constructor.ConstructorInvoke, out ConstructorInvokeSyntax constructorInvoke);
             modified |= Replace(constructor.Body, out StatementBlockSyntax body);
@@ -518,25 +518,25 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return constructor;
 
             // Create modified
-            return new ConstructorSyntax(identifier, attributes.ToArray(), modifiers.ToArray(), parameters, constructorInvoke, body, lambda);
+            return new ConstructorSyntax(attributes, modifiers.ToArray(), identifier, parameters, constructorInvoke, body, lambda);
         }
 
-        public override SyntaxNode VisitContract(ContractSyntax contract)
+        public override SyntaxNode VisitInterface(InterfaceSyntax _interface)
         {
-            bool modified = Replace(contract.Keyword, out SyntaxToken keyword);
-            modified |= Replace(contract.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(contract.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(contract.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
-            modified |= Replace(contract.GenericParameters, out GenericParameterListSyntax genericParameters);
-            modified |= Replace(contract.BaseTypes, out BaseTypeListSyntax baseTypes);
-            modified |= Replace(contract.Members, out MemberBlockSyntax members);
+            bool modified = Replace(_interface.Keyword, out SyntaxToken keyword);
+            modified |= Replace(_interface.Identifier, out SyntaxToken identifier);
+            modified |= Replace(_interface.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(_interface.Modifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(_interface.GenericParameters, out GenericParameterListSyntax genericParameters);
+            modified |= Replace(_interface.BaseTypes, out BaseTypeListSyntax baseTypes);
+            modified |= Replace(_interface.Members, out MemberBlockSyntax members);
 
             // Check for modified
             if (modified == false)
-                return contract;
+                return _interface;
 
             // Create modified
-            return new ContractSyntax(keyword, identifier, attributes.ToArray(), modifiers.ToArray(), genericParameters, baseTypes, members);
+            return new InterfaceSyntax(attributes, modifiers.ToArray(), keyword, identifier, genericParameters, baseTypes, members);
         }
 
         public override SyntaxNode VisitEnumBlock(EnumBlockSyntax enumBlock)
@@ -568,37 +568,38 @@ namespace LumaSharp.Compiler.AST.Visitor
             return new EnumFieldSyntax(identifier, fieldAssignment);
         }
 
-        public override SyntaxNode VisitEnum(EnumSyntax e)
+        public override SyntaxNode VisitEnum(EnumSyntax _enum)
         {
-            bool modified = Replace(e.Keyword, out SyntaxToken keyword);
-            modified |= Replace(e.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(e.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(e.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
-            modified |= Replace(e.UnderlyingType, out BaseTypeListSyntax underlyingType);
-            modified |= Replace(e.Body, out EnumBlockSyntax body);
+            bool modified = Replace(_enum.Keyword, out SyntaxToken keyword);
+            modified |= Replace(_enum.Identifier, out SyntaxToken identifier);
+            modified |= Replace(_enum.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(_enum.Modifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(_enum.UnderlyingType, out BaseTypeListSyntax underlyingType);
+            modified |= Replace(_enum.Body, out EnumBlockSyntax body);
 
             // Check for modified
             if(modified == false)
-                return e;
+                return _enum;
 
             // Create modified
-            return new EnumSyntax(keyword, identifier, attributes.ToArray(), modifiers.ToArray(), underlyingType, body);
+            return new EnumSyntax(attributes, modifiers.ToArray(), keyword, identifier, underlyingType, body);
         }
 
         public override SyntaxNode VisitField(FieldSyntax field)
         {
             bool modified = Replace(field.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(field.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(field.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(field.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(field.Modifiers, out IEnumerable<SyntaxToken> modifiers);
             modified |= Replace(field.FieldType, out TypeReferenceSyntax typeReference);
             modified |= Replace(field.FieldAssignment, out VariableAssignmentExpressionSyntax fieldAssignment);
+            modified |= Replace(field.Semicolon, out SyntaxToken semicolon);
 
             // Check for modified
             if (modified == false)
                 return field;
 
             // Create modified
-            return new FieldSyntax(identifier, attributes.ToArray(), modifiers.ToArray(), typeReference, fieldAssignment);
+            return new FieldSyntax(attributes, modifiers.ToArray(), typeReference, identifier, fieldAssignment, semicolon);
         }
 
         public override SyntaxNode VisitMemberBlock(MemberBlockSyntax memberBlock)
@@ -620,9 +621,9 @@ namespace LumaSharp.Compiler.AST.Visitor
             SyntaxToken? _override = null;
 
             bool modified = Replace(method.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(method.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(method.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
-            modified |= Replace(method.ReturnTypes, out SeparatedSyntaxList<TypeReferenceSyntax> returnTypes);
+            modified |= Replace(method.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(method.Modifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(method.ReturnType, out TypeReferenceSyntax returnType);
             modified |= Replace(method.GenericParameters, out GenericParameterListSyntax genericParameters);
             modified |= Replace(method.Parameters, out ParameterListSyntax parameters);
             if(method.Override != null)
@@ -638,32 +639,43 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return method;
 
             // Create modified
-            return new MethodSyntax(identifier, attributes.ToArray(), modifiers.ToArray(), returnTypes, genericParameters, parameters, _override, body, lambda);
+            return new MethodSyntax(attributes, modifiers.ToArray(), returnType, identifier, genericParameters, parameters, _override, body, lambda);
         }
 
-        public override SyntaxNode VisitType(TypeSyntax type)
+        public override SyntaxNode VisitClass(ClassSyntax _class)
         {
-            SyntaxToken? _override = null;
-
-            bool modified = Replace(type.Keyword, out SyntaxToken keyword);
-            modified |= Replace(type.Identifier, out SyntaxToken identifier);
-            modified |= ReplaceMany(type.Attributes, out IEnumerable<AttributeSyntax> attributes);
-            modified |= ReplaceMany(type.AccessModifiers, out IEnumerable<SyntaxToken> modifiers);
-            modified |= Replace(type.GenericParameters, out GenericParameterListSyntax genericParameters);
-            if (type.Override != null)
-            {
-                modified |= Replace(type.Override.Value, out SyntaxToken o);
-                _override = o;
-            }
-            modified |= Replace(type.BaseTypes, out BaseTypeListSyntax baseTypes);
-            modified |= Replace(type.Members, out MemberBlockSyntax members);
+            bool modified = Replace(_class.Keyword, out SyntaxToken keyword);
+            modified |= Replace(_class.Identifier, out SyntaxToken identifier);
+            modified |= Replace(_class.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(_class.Modifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(_class.GenericParameters, out GenericParameterListSyntax genericParameters);
+            modified |= Replace(_class.BaseTypes, out BaseTypeListSyntax baseTypes);
+            modified |= Replace(_class.Members, out MemberBlockSyntax members);
 
             // Check for modified
             if (modified == false)
-                return type;
+                return _class;
 
             // Create modified
-            return new TypeSyntax(keyword, identifier, attributes.ToArray(), modifiers.ToArray(), genericParameters, _override, baseTypes, members);
+            return new ClassSyntax(attributes, modifiers.ToArray(), keyword, identifier, genericParameters, baseTypes, members);
+        }
+
+        public override SyntaxNode VisitStruct(StructSyntax _struct)
+        {
+            bool modified = Replace(_struct.Keyword, out SyntaxToken keyword);
+            modified |= Replace(_struct.Identifier, out SyntaxToken identifier);
+            modified |= Replace(_struct.Attributes, out AttributeListSyntax attributes);
+            modified |= ReplaceMany(_struct.Modifiers, out IEnumerable<SyntaxToken> modifiers);
+            modified |= Replace(_struct.GenericParameters, out GenericParameterListSyntax genericParameters);
+            modified |= Replace(_struct.BaseTypes, out BaseTypeListSyntax baseTypes);
+            modified |= Replace(_struct.Members, out MemberBlockSyntax members);
+
+            // Check for modified
+            if (modified == false)
+                return _struct;
+
+            // Create modified
+            return new StructSyntax(attributes, modifiers.ToArray(), keyword, identifier, genericParameters, baseTypes, members);
         }
         #endregion
 
@@ -685,6 +697,14 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitBreakStatement(BreakStatementSyntax breakStatement)
         {
             bool modified = Replace(breakStatement.Keyword, out SyntaxToken keyword);
+
+            SyntaxToken? label = null;
+            if (breakStatement.Label != null)
+            {
+                modified |= Replace(breakStatement.Label.Value, out SyntaxToken labelValue);
+                label = labelValue;
+            }
+
             modified |= Replace(breakStatement.Semicolon, out SyntaxToken semicolon);
 
             // Check for modified
@@ -692,22 +712,35 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return breakStatement;
 
             // Create modified
-            return new BreakStatementSyntax(keyword, semicolon);
+            return new BreakStatementSyntax(keyword, label, semicolon);
         }
 
-        public override SyntaxNode VisitConditionStatement(ConditionStatementSyntax conditionStatement)
+        public override SyntaxNode VisitIfStatement(IfStatementSyntax ifStatement)
         {
-            bool modified = Replace(conditionStatement.Keyword, out SyntaxToken keyword);
-            modified |= Replace(conditionStatement.Condition, out ExpressionSyntax condition);
-            modified |= Replace(conditionStatement.Alternate, out ConditionStatementSyntax alternate);
-            modified |= Replace(conditionStatement.Statement, out StatementSyntax statement);
+            bool modified = Replace(ifStatement.Keyword, out SyntaxToken keyword);
+            modified |= Replace(ifStatement.Condition, out ExpressionSyntax condition);
+            modified |= Replace(ifStatement.Statement, out StatementSyntax statement);
+            modified |= Replace(ifStatement.Alternate, out ElseClauseSyntax alternate);            
 
             // Check for modified
             if(modified == false)
-                return conditionStatement;
+                return ifStatement;
 
             // Create modified
-            return new ConditionStatementSyntax(keyword, condition, alternate, statement);
+            return new IfStatementSyntax(keyword, ifStatement.LParen, condition, ifStatement.RParen, statement, alternate);
+        }
+
+        public override SyntaxNode VisitElseClause(ElseClauseSyntax elseStatement)
+        {
+            bool modified = Replace(elseStatement.Keyword, out SyntaxToken keyword);
+            modified |= Replace(elseStatement.Statement, out StatementSyntax statement);
+
+            // Check for modified
+            if(modified == false)
+                return elseStatement;
+
+            // Create modified
+            return new ElseClauseSyntax(keyword, statement);
         }
 
         public override SyntaxNode VisitContinueStatement(ContinueStatementSyntax continueStatement)
@@ -755,11 +788,13 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitForStatement(ForStatementSyntax forStatement)
         {
             bool modified = Replace(forStatement.Keyword, out SyntaxToken keyword);
+            modified |= Replace(forStatement.LParen, out SyntaxToken lParen);
             modified |= Replace(forStatement.Variable, out VariableDeclarationSyntax variable);
             modified |= Replace(forStatement.VariableSemicolon, out SyntaxToken variableSemicolon);
             modified |= Replace(forStatement.Condition, out ExpressionSyntax condition);
             modified |= Replace(forStatement.ConditionSemicolon, out SyntaxToken conditionSemicolon);
             modified |= Replace(forStatement.Increments, out SeparatedSyntaxList<ExpressionSyntax> increments);
+            modified |= Replace(forStatement.RParen, out SyntaxToken rParen);
             modified |= Replace(forStatement.Statement, out StatementSyntax statement);
 
             // Check for modified
@@ -767,7 +802,7 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return forStatement;
 
             // Create modified
-            return new ForStatementSyntax(keyword, variable, variableSemicolon, condition, conditionSemicolon, increments, statement);
+            return new ForStatementSyntax(keyword, lParen, variable, variableSemicolon, condition, conditionSemicolon, increments, rParen, statement);
         }
 
         public override SyntaxNode VisitMethodInvokeStatement(MethodInvokeStatementSyntax methodInvokeStatement)
@@ -786,7 +821,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitReturnStatement(ReturnStatementSyntax returnStatement)
         {
             bool modified = Replace(returnStatement.Keyword, out SyntaxToken keyword);
-            modified |= Replace(returnStatement.Expressions, out SeparatedSyntaxList<ExpressionSyntax> expressions);
+            modified |= Replace(returnStatement.Expression, out ExpressionSyntax expression);
             modified |= Replace(returnStatement.Semicolon, out SyntaxToken semicolon);
 
             // Check for modified
@@ -794,7 +829,7 @@ namespace LumaSharp.Compiler.AST.Visitor
                 return returnStatement;
 
             // Create modified
-            return new ReturnStatementSyntax(keyword, expressions, semicolon);
+            return new ReturnStatementSyntax(keyword, expression, semicolon);
         }
 
         public override SyntaxNode VisitStatementBlock(StatementBlockSyntax statementBlock)

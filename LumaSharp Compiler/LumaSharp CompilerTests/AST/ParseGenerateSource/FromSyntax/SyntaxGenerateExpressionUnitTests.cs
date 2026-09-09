@@ -32,7 +32,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_Typeof()
         {
             SyntaxNode syntax0 = Syntax.Typeof(
-                Syntax.TypeReference(PrimitiveType.I32));
+                Syntax.TypeReference(ReservedType.Int32));
 
             // Get expression text
             Assert.AreEqual("typeof(i32)", syntax0.GetSourceText());
@@ -52,7 +52,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         public void GenerateExpression_Sizeof()
         {
             SyntaxNode syntax0 = Syntax.Sizeof(
-                Syntax.TypeReference(PrimitiveType.I32));
+                Syntax.TypeReference(ReservedType.Int32));
 
             // Get expression text
             Assert.AreEqual("sizeof(i32)", syntax0.GetSourceText());
@@ -132,7 +132,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax2 = Syntax.MethodInvoke(
                 Syntax.MemberReference(Syntax.VariableReference("myVariable"), "myMethod"), 
-                Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("MyType")));
+                Syntax.GenericArgumentList(Syntax.TypeReference(ReservedType.Int32), Syntax.TypeReference("MyType")));
 
             // Get expression text
             Assert.AreEqual("myVariable.myMethod<i32,MyType>()", syntax2.GetSourceText());
@@ -141,7 +141,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
 
             SyntaxNode syntax3 = Syntax.MethodInvoke(
                 Syntax.MemberReference(Syntax.VariableReference("myVariable"), "myMethod"), 
-                Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference("MyType")),
+                Syntax.GenericArgumentList(Syntax.TypeReference(ReservedType.Int32), Syntax.TypeReference("MyType")),
                 Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false)));
 
             // Get expression text

@@ -51,14 +51,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AssignStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> left, VariableAssignmentExpressionSyntax assign)
-            : this(
-                  left, 
-                  assign,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
-        {
-        }
-
         internal AssignStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> left, VariableAssignmentExpressionSyntax assign, SyntaxToken semicolon)
         {
             // Check null
@@ -103,5 +95,14 @@ namespace LumaSharp.Compiler.AST
             // Semicolon
             semicolon.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static AssignStatementSyntax Assign(ExpressionSyntax left, VariableAssignmentExpressionSyntax variableAssign) 
+            => new (new(SyntaxTokenKind.CommaSymbol, new[] { left }), variableAssign, Token(SyntaxTokenKind.SemicolonSymbol));
+        public static AssignStatementSyntax Assign(ExpressionSyntax[] left, VariableAssignmentExpressionSyntax variableAssign) 
+            => new (new(SyntaxTokenKind.CommaSymbol, left), variableAssign, Token(SyntaxTokenKind.SemicolonSymbol));
     }
 }

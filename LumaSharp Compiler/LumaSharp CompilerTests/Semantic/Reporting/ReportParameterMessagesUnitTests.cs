@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Reporting
@@ -12,7 +12,7 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportParameterMessages_MissingIdentifier()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithMembers(
+                Syntax.Class("Test").WithMembers(
                 Syntax.Method("Test")
                 .WithBody(Syntax.Return(Syntax.VariableReference("var")))));
 
@@ -30,10 +30,10 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportParameterMessages_MultipleParameters_2()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithMembers(
+                Syntax.Class("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "par"),
-                Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Bool), "par"))));
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "par"),
+                Syntax.Parameter(Syntax.TypeReference(ReservedType.Bool), "par"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -49,11 +49,11 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportParameterMessages_MultipleParameters_3()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithMembers(
+                Syntax.Class("Test").WithMembers(
                 Syntax.Method("Test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "par"),
-                Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Bool), "par"),
-                Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Any), "par"))));
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "par"),
+                Syntax.Parameter(Syntax.TypeReference(ReservedType.Bool), "par"),
+                Syntax.Parameter(Syntax.TypeReference(ReservedType.Object), "par"))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

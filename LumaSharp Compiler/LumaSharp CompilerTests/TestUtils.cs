@@ -39,14 +39,14 @@ namespace CompilerTests
             return CreateParser(input, p => p.ParseMember());
         }
 
-        public static TypeSyntax ParseTypeDeclaration(string input)
+        public static ClassSyntax ParseTypeDeclaration(string input)
         {
-            return CreateParser(input, p => p.ParseTypeDeclaration());
+            return CreateParser(input, p => p.ParseClassDeclaration());
         }
 
-        public static ContractSyntax ParseContractDeclaration(string input)
+        public static InterfaceSyntax ParseContractDeclaration(string input)
         {
-            return CreateParser(input, p => p.ParseContractDeclaration());
+            return CreateParser(input, p => p.ParseInterfaceDeclaration());
         }
 
         public static EnumSyntax ParseEnumDeclaration(string input)

@@ -20,8 +20,8 @@ namespace LumaSharp.Compiler.AST
                     return Attributes[0].StartToken;
 
                 // Check for modifiers
-                if (HasAccessModifiers == true)
-                    return AccessModifiers[0];
+                if (HasModifiers == true)
+                    return Modifiers[0];
 
                 return fieldType.StartToken;
             }
@@ -66,18 +66,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal FieldSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment)
-            : this(
-                  identifier,
-                  attributes,
-                  accessModifiers,
-                  fieldType,
-                  fieldAssignment,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
-        {
-        }
-
-        internal FieldSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment, SyntaxToken semicolon)
+        internal FieldSyntax(AttributeListSyntax attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax fieldType, SyntaxToken identifier, VariableAssignmentExpressionSyntax fieldAssignment, SyntaxToken semicolon)
             : base(identifier, attributes, accessModifiers)
         {
             // Check kind
@@ -121,5 +110,19 @@ namespace LumaSharp.Compiler.AST
             // Semicolon
             semicolon.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static FieldSyntax Field(SyntaxToken identifier, TypeReferenceSyntax fieldType, VariableAssignmentExpressionSyntax fieldAssignment = null) 
+            => new (null, null, fieldType, identifier, fieldAssignment, Token(SyntaxTokenKind.SemicolonSymbol));
+
+
+        public static FieldSyntax WithAttributes(this FieldSyntax field, AttributeListSyntax attributes)
+            => new (attributes, field.Modifiers, field.FieldType, field.Identifier, field.FieldAssignment, field.Semicolon);
+
+        public static FieldSyntax WithAccessModifiers(this FieldSyntax field, params SyntaxToken[] modifiers)
+            => new (field.Attributes, modifiers, field.FieldType, field.Identifier, field.FieldAssignment, field.Semicolon);
     }
 }

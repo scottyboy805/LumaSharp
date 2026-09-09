@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.AST
     public sealed class ParameterSyntax : SyntaxNode
     {
         // Private
-        private readonly AttributeSyntax[] attributes;
+        private readonly AttributeListSyntax attributes;
         private readonly TypeReferenceSyntax parameterType;
         private readonly VariableAssignmentExpressionSyntax assignment;
         private readonly SyntaxToken identifier;
@@ -45,7 +45,7 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public AttributeSyntax[] Attributes
+        public AttributeListSyntax Attributes
         {
             get { return attributes; }
         }
@@ -104,7 +104,7 @@ namespace LumaSharp.Compiler.AST
             this.identifier = Syntax.Identifier("Error");
         }
 
-        internal ParameterSyntax(AttributeSyntax[] attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment, SyntaxToken? enumerable)
+        internal ParameterSyntax(AttributeListSyntax attributes, TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment, SyntaxToken? enumerable)
         {
             // Check null
             if (parameterType == null)
@@ -175,5 +175,28 @@ namespace LumaSharp.Compiler.AST
             // Invalid index
             return -1;
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier) 
+            => new (null, parameterType, identifier, null, null);
+
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment)
+            => new(null, parameterType, identifier, assignment, null);
+
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, SyntaxToken enumerable)
+            => new(null, parameterType, identifier, null, enumerable);
+
+        public static ParameterSyntax Parameter(TypeReferenceSyntax parameterType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment, SyntaxToken enumerable)
+            => new(null, parameterType, identifier, assignment, enumerable);
+
+
+        public static ParameterSyntax WithAttribute(this ParameterSyntax parameter, AttributeSyntax attribute)
+            => new(AttributeList(attribute), parameter.ParameterType, parameter.Identifier, parameter.Assignment, parameter.Enumerable);
+
+        public static ParameterSyntax WithAttributes(this ParameterSyntax parameter, AttributeListSyntax attributes)
+            => new (attributes, parameter.ParameterType, parameter.Identifier, parameter.Assignment, parameter.Enumerable);
     }
 }

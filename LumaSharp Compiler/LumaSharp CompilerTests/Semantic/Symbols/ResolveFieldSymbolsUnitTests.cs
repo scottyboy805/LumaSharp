@@ -1,5 +1,5 @@
 ﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Symbols
@@ -11,8 +11,8 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveFieldSymbols_LocalThis()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
-                .WithMembers(Syntax.Field("myField", Syntax.TypeReference(PrimitiveType.I32)),
+                Syntax.Class("Test")
+                .WithMembers(Syntax.Field("myField", Syntax.TypeReference(ReservedType.Int32)),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(Syntax.MemberReference(Syntax.This(), "myField"),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
@@ -33,7 +33,7 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveFieldSymbols_LocalVariable()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
+                Syntax.Class("Test")
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.LocalVariable(Syntax.TypeReference("Test"), "myVar"),
@@ -56,9 +56,9 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveFieldSymbols_LocalType()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
+                Syntax.Class("Test")
                 .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)),
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.StaticKeyword)),
                 Syntax.Method("Test")
                 .WithBody(Syntax.LocalVariable(Syntax.TypeReference("Test"), "myVar"),
                     Syntax.Assign(Syntax.MemberReference(Syntax.TypeReference("Test"), "myField"),

@@ -8,21 +8,21 @@ namespace CompilerTests.AST.Parse.Complete
     {
         // Private
         private const string source = @"
-import Collections:Generic;
+using Collections:Generic;
 
-export type Main
+public class Main
 {
     List<i32> unsortedValues = { 800, 11, 50, 771, 649 };
 
-    global void BubbleSort(List<i32> values)
+    public void BubbleSort(List<i32> values)
     {
         i32 temp = 0;
         
-        for i32 i = 0; i < values.Count; i++
+        for (i32 i = 0; i < values.Count; i++)
         {
-            for i32 j = 0; j < values.Count - 1; j++
+            for (i32 j = 0; j < values.Count - 1; j++)
             {
-                if values[j] > values[j + 1]
+                if (values[j] > values[j + 1])
                 {
                     temp = values[j + 1];
                     values[j + 1] = values[j];
@@ -42,6 +42,7 @@ export type Main
             CompilationUnitSyntax unit = TestUtils.ParseInputStringCompilationUnit(input);
 
             Assert.IsNotNull(unit);
+            Assert.IsNotNull(unit.SyntaxTree);
             Assert.IsInstanceOfType(unit, typeof(CompilationUnitSyntax));
         }
     }

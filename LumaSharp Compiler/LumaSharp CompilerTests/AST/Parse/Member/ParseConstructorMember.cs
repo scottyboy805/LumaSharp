@@ -9,8 +9,7 @@ namespace CompilerTests.AST.Parse.Member
         // Methods
         [DataTestMethod]
         [DataRow("this(){}")]
-        [DataRow("export this(){}")]
-        [DataRow("#copy export this(){}")]
+        [DataRow("public this(){}")]
         [DataRow("this():base(){}")]
         [DataRow("this():base(5){}")]
         [DataRow("this():this(){}")]

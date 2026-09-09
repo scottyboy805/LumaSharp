@@ -61,13 +61,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal VariableDeclarationStatementSyntax(VariableDeclarationSyntax variable)
-            : this(
-                  variable,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
-        {
-        }
-
         internal VariableDeclarationStatementSyntax(VariableDeclarationSyntax variable, SyntaxToken semicolon)
         {
             // Check for null
@@ -103,5 +96,16 @@ namespace LumaSharp.Compiler.AST
             // Semicolon
             semicolon.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static VariableDeclarationStatementSyntax LocalVariable(VariableDeclarationSyntax variable) 
+            => new (variable, Token(SyntaxTokenKind.SemicolonSymbol));
+        public static VariableDeclarationStatementSyntax LocalVariable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null) 
+            => new (Variable(variableType, identifier, assignment), Token(SyntaxTokenKind.SemicolonSymbol));
+        public static VariableDeclarationStatementSyntax LocalVariable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) 
+            => new (Variable(variableType, identifiers, assignment), Token(SyntaxTokenKind.SemicolonSymbol));
     }
 }

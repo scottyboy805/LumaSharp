@@ -9,20 +9,20 @@ namespace CompilerTests.AST.Parse.Statement
         // Methods
         [DataTestMethod]
         // If
-        [DataRow("if true;")]
-        [DataRow("if false{}")]
-        [DataRow("if a + b;")]
-        [DataRow("if c+ d{}")]
+        [DataRow("if (true);")]
+        [DataRow("if (false){}")]
+        [DataRow("if (a + b);")]
+        [DataRow("if (c+ d){}")]
         [DataRow("if (1);")]
         [DataRow("if (2){}")]
         [DataRow("if (aa + bb);")]
         [DataRow("if( cc+ dd){}")]
 
         // If else
-        [DataRow("if true; else;")]
-        [DataRow("if false{}else{}")]
-        [DataRow("if a + b;else;")]
-        [DataRow("if c+ d{}else;")]
+        [DataRow("if (true); else;")]
+        [DataRow("if (false){}else{}")]
+        [DataRow("if (a + b);else;")]
+        [DataRow("if (c+ d){}else;")]
         [DataRow("if (1);else;")]
         [DataRow("if (2){}else;")]
         [DataRow("if (aa + bb);else;")]
@@ -33,7 +33,7 @@ namespace CompilerTests.AST.Parse.Statement
             StatementSyntax statement = TestUtils.ParseInputStringStatement(input);
 
             Assert.IsNotNull(statement);
-            Assert.IsInstanceOfType(statement, typeof(ConditionStatementSyntax));
+            Assert.IsInstanceOfType(statement, typeof(IfStatementSyntax));
         }
     }
 }

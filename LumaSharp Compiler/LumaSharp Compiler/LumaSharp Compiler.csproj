@@ -1,11 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <RootNamespace>LumaSharp_Compiler</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>LumaSharp.Compiler</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -16,8 +17,8 @@
     <NoWarn>1701;1702;3021</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\LumaSharp Runtime\LumaSharp Runtime\LumaSharp Runtime.csproj" />
+  <ItemGroup>    
+    <PackageReference Include="LLVMSharp" Version="22.1.8" />
   </ItemGroup>
 
 </Project>

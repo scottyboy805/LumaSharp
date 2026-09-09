@@ -100,6 +100,9 @@ namespace LumaSharp.Compiler.AST
             this.separatorKind = separatorKind;
             this.syntaxList = new();
             this.syntaxList.Add(new SyntaxSeparatedElement(syntaxSingle, null));
+
+            // Set parent
+            syntaxSingle.parent = this;
         }
 
         internal SeparatedSyntaxList(SyntaxTokenKind separatorKind, IEnumerable<T> elements)
@@ -135,6 +138,9 @@ namespace LumaSharp.Compiler.AST
                     // Check kind
                     if (item.Separator != null && item.Separator.Value.Kind != separatorKind)
                         throw new ArgumentException("Separator must be of kind: " + separatorKind);
+
+                    // Set parent
+                    item.Syntax.parent = this;
 
                     current++;
                 }

@@ -36,19 +36,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal GenericArgumentListSyntax()
-            : this(null)
-        {
-        }
-
-        internal GenericArgumentListSyntax(SeparatedSyntaxList<TypeReferenceSyntax> genericArguments)
-            : this(
-                  Syntax.Token(SyntaxTokenKind.LessSymbol),
-                  genericArguments,
-                  Syntax.Token(SyntaxTokenKind.GreaterSymbol))
-        {
-        }
-
         internal GenericArgumentListSyntax(SyntaxToken lGeneric, SeparatedSyntaxList<TypeReferenceSyntax> genericArguments, SyntaxToken rGeneric)
             : base(genericArguments)
         {
@@ -88,5 +75,15 @@ namespace LumaSharp.Compiler.AST
             // Generic end
             rGeneric.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        internal static GenericArgumentListSyntax EmptyGenericArgumentList()
+            => new(Token(SyntaxTokenKind.LessSymbol), null, Token(SyntaxTokenKind.GreaterSymbol));
+
+        public static GenericArgumentListSyntax GenericArgumentList(params TypeReferenceSyntax[] genericTypeArguments)
+            => new(Token(SyntaxTokenKind.LessSymbol), new(SyntaxTokenKind.CommaSymbol, genericTypeArguments), Token(SyntaxTokenKind.GreaterSymbol));
     }
 }

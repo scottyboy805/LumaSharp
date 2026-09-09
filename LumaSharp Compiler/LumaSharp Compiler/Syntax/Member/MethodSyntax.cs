@@ -6,7 +6,7 @@ namespace LumaSharp.Compiler.AST
     public sealed class MethodSyntax : MemberSyntax
     {
         // Private
-        private readonly SeparatedSyntaxList<TypeReferenceSyntax> returnTypes;
+        private readonly TypeReferenceSyntax returnType;
         private readonly GenericParameterListSyntax genericParameters;
         private readonly ParameterListSyntax parameters;
         private readonly StatementSyntax body;
@@ -23,11 +23,11 @@ namespace LumaSharp.Compiler.AST
                     return Attributes[0].StartToken;
 
                 // Check for modifiers
-                if (HasAccessModifiers == true)
-                    return AccessModifiers[0];
+                if (HasModifiers == true)
+                    return Modifiers[0];
 
                 // Return type
-                return returnTypes.StartToken;
+                return returnType.StartToken;
             }
         }
 
@@ -53,9 +53,9 @@ namespace LumaSharp.Compiler.AST
             get { return overrideKeyword; }
         }
 
-        public SeparatedSyntaxList<TypeReferenceSyntax> ReturnTypes
+        public TypeReferenceSyntax ReturnType
         {
-            get { return returnTypes; }
+            get { return returnType; }
         }
 
         public GenericParameterListSyntax GenericParameters
@@ -80,7 +80,7 @@ namespace LumaSharp.Compiler.AST
 
         public bool HasReturnType
         {
-            get { return returnTypes != null && returnTypes.Count > 0; }
+            get { return returnType != null; }
         }
 
         public bool HasGenericParameters
@@ -109,7 +109,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, SeparatedSyntaxList<TypeReferenceSyntax> returnTypes, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementSyntax body, LambdaSyntax lambda)
+        internal MethodSyntax(AttributeListSyntax attributes, SyntaxToken[] accessModifiers, TypeReferenceSyntax returnType, SyntaxToken identifier, GenericParameterListSyntax genericParameters, ParameterListSyntax parameters, SyntaxToken? overrideToken, StatementSyntax body, LambdaSyntax lambda)
             : base(identifier, attributes, accessModifiers)
         {
             // Check for parameters
@@ -121,21 +121,28 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException("Body must be a statement block or empty statement");
 
             // Check for no return
-            if (returnTypes == null)
-                returnTypes = new SeparatedSyntaxList<TypeReferenceSyntax>(SyntaxTokenKind.CommaSymbol,
-                    new TypeReferenceSyntax(PrimitiveType.Void, null));
+            if (returnType == null)
+                returnType = new TypeReferenceSyntax(ReservedType.Void, null);
 
             // Check for no body
             if (body == null && lambda == null)
                 body = new EmptyStatementSyntax();
 
-            this.returnTypes = returnTypes;
+            this.returnType = returnType;
             this.genericParameters = genericParameters;
             this.parameters = parameters;
             this.overrideKeyword = overrideToken;
 
             this.body = body;
             this.lambda = lambda;
+
+            // Set parent
+            attributes?.parent = this;
+            returnType.parent = this;
+            genericParameters?.parent = this;
+            parameters?.parent = this;
+            body?.parent = this;
+            lambda?.parent = this;
         }
 
         // Methods
@@ -155,7 +162,7 @@ namespace LumaSharp.Compiler.AST
             base.GetSourceText(writer);
 
             // Return type
-            returnTypes.GetSourceText(writer);
+            returnType.GetSourceText(writer);
 
             // Identifier
             identifier.GetSourceText(writer);
@@ -181,5 +188,47 @@ namespace LumaSharp.Compiler.AST
                 lambda.GetSourceText(writer);
             }
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static MethodSyntax Method(SyntaxToken identifier, TypeReferenceSyntax returnType) 
+            => new (null, null, returnType, identifier, null, null, null, null, null);
+
+        public static MethodSyntax Method(SyntaxToken identifier) 
+            => new (null, null, null, identifier, null, null, null, null, null);
+
+
+        public static MethodSyntax WithAttributes(this MethodSyntax method, AttributeListSyntax attributes)
+            => new (attributes, method.Modifiers, method.ReturnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
+
+        public static MethodSyntax WithAccessModifiers(this MethodSyntax method, params SyntaxToken[] modifiers)
+            => new (method.Attributes, modifiers, method.ReturnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
+
+        public static MethodSyntax WithReturn(this MethodSyntax method, TypeReferenceSyntax returnType)
+            => new (method.Attributes, method.Modifiers, returnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
+
+
+        public static MethodSyntax WithGenericParameters(this MethodSyntax method, params GenericParameterSyntax[] genericParameters)
+            => method.WithGenericParameters(new GenericParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, genericParameters)));
+
+        public static MethodSyntax WithGenericParameters(this MethodSyntax method, GenericParameterListSyntax genericParameters)
+            => new (method.Attributes, method.Modifiers, method.ReturnType, method.Identifier, genericParameters, method.Parameters, method.Override, method.Body, method.Lambda);
+
+        public static MethodSyntax WithParameters(this MethodSyntax method, params ParameterSyntax[] parameters)
+            => new (method.Attributes, method.Modifiers, method.ReturnType, method.Identifier, method.GenericParameters, new ParameterListSyntax(new(SyntaxTokenKind.CommaSymbol, parameters)), method.Override, method.Body, method.Lambda);
+
+        public static MethodSyntax WithBody(this MethodSyntax method, params StatementSyntax[] bodyStatements)
+            => new (method.Attributes, method.Modifiers, method.ReturnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, new StatementBlockSyntax(bodyStatements), null);
+
+        public static MethodSyntax WithBody(this MethodSyntax method, StatementBlockSyntax body)
+            => new (method.Attributes, method.Modifiers, method.ReturnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, body, null);
+
+        public static MethodSyntax WithLambda(this MethodSyntax method, StatementSyntax inlineStatement)
+            => new (method.Attributes, method.Modifiers, method.ReturnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, null, new LambdaSyntax(inlineStatement));
+
+        public static MethodSyntax WithLambda(this MethodSyntax method, LambdaSyntax lambda)
+            => new (method.Attributes, method.Modifiers, method.ReturnType, method.Identifier, method.GenericParameters, method.Parameters, method.Override, null, lambda);
     }
 }

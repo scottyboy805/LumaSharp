@@ -37,13 +37,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal MethodInvokeStatementSyntax(MethodInvokeExpressionSyntax invokeExpression)
-            : this(
-                  invokeExpression,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
-        {
-        }
-
         internal MethodInvokeStatementSyntax(MethodInvokeExpressionSyntax invokeExpression, SyntaxToken semicolon)
         {
             // Check for null
@@ -80,5 +73,15 @@ namespace LumaSharp.Compiler.AST
             // Semicolon
             semicolon.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static MethodInvokeStatementSyntax MethodInvoke(MethodInvokeExpressionSyntax invokeExpression) 
+            => new (invokeExpression, Token(SyntaxTokenKind.SemicolonSymbol));
+
+        public static MethodInvokeStatementSyntax MethodInvoke(MethodInvokeExpressionSyntax invokeExpression, SyntaxToken semicolon)
+            => new(invokeExpression, semicolon);
     }
 }

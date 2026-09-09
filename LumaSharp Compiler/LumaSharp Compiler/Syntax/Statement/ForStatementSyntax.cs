@@ -8,11 +8,13 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SyntaxToken keyword;
+        private readonly SyntaxToken lParen;
         private readonly VariableDeclarationSyntax variable;
         private readonly SyntaxToken variableSemicolon;
         private readonly ExpressionSyntax condition;
         private readonly SyntaxToken conditionSemicolon;
         private readonly SeparatedSyntaxList<ExpressionSyntax> increments;
+        private readonly SyntaxToken rParen;
         private readonly StatementSyntax statement;
 
         // Properties
@@ -29,6 +31,16 @@ namespace LumaSharp.Compiler.AST
         public SyntaxToken Keyword
         {
             get { return keyword; }
+        }
+
+        public SyntaxToken LParen
+        {
+            get { return lParen; }
+        }
+
+        public SyntaxToken RParen
+        {
+            get { return rParen; }
         }
 
         public SyntaxToken VariableSemicolon
@@ -92,19 +104,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ForStatementSyntax(VariableDeclarationSyntax variable, ExpressionSyntax condition, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
-            : this(
-                  Syntax.Token(SyntaxTokenKind.ForKeyword),
-                  variable,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol),
-                  condition,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol),
-                  increments,
-                  statement)
-        {
-        }
-
-        internal ForStatementSyntax(SyntaxToken keyword, VariableDeclarationSyntax variable, SyntaxToken variableSemicolon, ExpressionSyntax condition, SyntaxToken conditionSemicolon, SeparatedSyntaxList<ExpressionSyntax> increments, StatementSyntax statement)
+        internal ForStatementSyntax(SyntaxToken keyword, SyntaxToken lParen, VariableDeclarationSyntax variable, SyntaxToken variableSemicolon, ExpressionSyntax condition, SyntaxToken conditionSemicolon, SeparatedSyntaxList<ExpressionSyntax> increments, SyntaxToken rParen, StatementSyntax statement)
         {
             // Check kind
             if(keyword.Kind != SyntaxTokenKind.ForKeyword)
@@ -115,11 +115,13 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentNullException(nameof(statement));
 
             this.keyword = keyword;
+            this.lParen = lParen;
             this.variable = variable;
             this.variableSemicolon = variableSemicolon;
             this.condition = condition;
             this.conditionSemicolon = conditionSemicolon;
             this.increments = increments;
+            this.rParen = rParen;
             this.statement = statement;
 
             // Set parent
@@ -145,6 +147,9 @@ namespace LumaSharp.Compiler.AST
             // Keyword
             keyword.GetSourceText(writer);
 
+            // LParen
+            LParen.GetSourceText(writer);
+
             // Variable
             if(HasVariable == true)
                 variable.GetSourceText(writer);
@@ -163,8 +168,29 @@ namespace LumaSharp.Compiler.AST
             if (HasIncrements == true) 
                 increments.GetSourceText(writer);
 
+            // RParen
+            RParen.GetSourceText(writer);
+
             // Statement
             statement.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static ForStatementSyntax For(VariableDeclarationSyntax variable, ExpressionSyntax condition, ExpressionSyntax increment, StatementSyntax statement = null)
+            => new(Token(SyntaxTokenKind.ForKeyword), Token(SyntaxTokenKind.LParenSymbol), variable, Token(SyntaxTokenKind.SemicolonSymbol), condition, Token(SyntaxTokenKind.SemicolonSymbol), new(SyntaxTokenKind.CommaSymbol, increment), Token(SyntaxTokenKind.RParenSymbol), statement ?? new EmptyStatementSyntax());
+
+
+        public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, params StatementSyntax[] statements)
+            => new (forStatement.Keyword, forStatement.LParen, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, forStatement.RParen, new StatementBlockSyntax(statements));
+
+        public static ForStatementSyntax WithStatementBlock(this ForStatementSyntax forStatement, StatementBlockSyntax block)
+            => new (forStatement.Keyword, forStatement.LParen, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, forStatement.RParen, block);
+
+        public static ForStatementSyntax WithInlineStatement(this ForStatementSyntax forStatement, StatementSyntax statement)
+            => new (forStatement.Keyword, forStatement.LParen, forStatement.Variable, forStatement.VariableSemicolon, forStatement.Condition, forStatement.ConditionSemicolon, forStatement.Increments, forStatement.RParen, statement);
+
     }
 }

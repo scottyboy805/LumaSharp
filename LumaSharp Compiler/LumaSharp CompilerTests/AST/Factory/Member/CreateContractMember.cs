@@ -10,7 +10,7 @@ namespace CompilerTests.AST.Factory.Member
         [TestMethod]
         public void CreateContract()
         {
-            ContractSyntax contract = Syntax.Contract("Test");
+            InterfaceSyntax contract = Syntax.Interface("Test");
 
             Assert.IsNotNull(contract);
             Assert.AreEqual("Test", contract.Identifier);
@@ -20,7 +20,7 @@ namespace CompilerTests.AST.Factory.Member
         [ExpectedException(typeof(ArgumentException))]
         public void CreateContractInvalidIdentifier()
         {
-            Syntax.Contract(Syntax.Token(SyntaxTokenKind.Invalid));
+            Syntax.Interface(Syntax.Token(SyntaxTokenKind.Invalid));
         }
     }
 }

@@ -22,8 +22,8 @@ namespace LumaSharp.Compiler.AST
                     return Attributes[0].StartToken;
 
                 // Check for modifiers
-                if (HasAccessModifiers == true)
-                    return AccessModifiers[0];
+                if (HasModifiers == true)
+                    return Modifiers[0];
 
                 // Return type
                 return thisKeyword;
@@ -102,7 +102,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ConstructorSyntax(SyntaxToken thisKeyword, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, ParameterListSyntax parameters, ConstructorInvokeSyntax constructorInvoke, StatementBlockSyntax body, LambdaSyntax lambda)
+        internal ConstructorSyntax(AttributeListSyntax attributes, SyntaxToken[] accessModifiers, SyntaxToken thisKeyword, ParameterListSyntax parameters, ConstructorInvokeSyntax constructorInvoke, StatementBlockSyntax body, LambdaSyntax lambda)
             : base(new SyntaxToken(SyntaxTokenKind.Identifier, thisKeyword.Text, thisKeyword.Span), attributes, accessModifiers)
         {
             // Check kind

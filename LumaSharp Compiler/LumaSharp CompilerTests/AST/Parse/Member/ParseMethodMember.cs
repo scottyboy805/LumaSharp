@@ -9,16 +9,16 @@ namespace CompilerTests.AST.Parse.Member
         // Methods
         [DataTestMethod]
         [DataRow("i32 a(){}")]
-        [DataRow("export MyType b(){}")]
-        [DataRow("#copy string c(){}")]
-        [DataRow("#copy export SomeType d(){}")]
-        [DataRow("i32, f32 e(){}")]
+        [DataRow("public MyType b(){}")]
+        [DataRow("virtual string c(){}")]
+        [DataRow("virtual public SomeType d(){}")]
+        [DataRow("static i32 e(){}")]
         [DataRow("f32 f() => return null;")]
         [DataRow("void g(){}")]
         [DataRow("void h<T>(){}")]
         [DataRow("void i(i32 val){}")]
         [DataRow("void j<T>(T val){}")]
-        [DataRow("void k() override;")]
+        [DataRow("virtual void k();")]
         public void ParseAsMethodMember(string input)
         {
             // Try to parse the tree

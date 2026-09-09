@@ -36,13 +36,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ContinueStatementSyntax()
-            : this(
-                  Syntax.Token(SyntaxTokenKind.ContinueKeyword),
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
-        {
-        }
-
         internal ContinueStatementSyntax(SyntaxToken keyword, SyntaxToken semicolon)
         {
             // Check kind
@@ -73,5 +66,15 @@ namespace LumaSharp.Compiler.AST
             keyword.GetSourceText(writer);
             semicolon.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static ContinueStatementSyntax Continue() => 
+            new (Token(SyntaxTokenKind.ContinueKeyword), Token(SyntaxTokenKind.SemicolonSymbol));
+
+        public static ContinueStatementSyntax Continue(SyntaxToken keyword, SyntaxToken semicolon) =>
+            new(keyword, semicolon);
     }
 }

@@ -8,13 +8,13 @@ namespace CompilerTests.AST.Parse.Statement
     {
         // Methods
         [DataTestMethod]
-        [DataRow("for ;;;")]
-        [DataRow("for;;{}")]
-        [DataRow("for i32 i;;{}")]
-        [DataRow("for i32 val = 0;;{}")]
-        [DataRow("for;i<10;{}")]
-        [DataRow("for;;i += 5{}")]
-        [DataRow("for i32 i = 0; i < 10 ; i++ {}")]
+        [DataRow("for (;;);")]
+        [DataRow("for(;;){}")]
+        [DataRow("for (i32 i;;){}")]
+        [DataRow("for (i32 val = 0;;){}")]
+        [DataRow("for(;i<10;){}")]
+        [DataRow("for(;;i += 5){}")]
+        [DataRow("for (i32 i = 0; i < 10 ; i++) {}")]
         public void ParseAsForStatement(string input)
         {
             // Try to parse the tree

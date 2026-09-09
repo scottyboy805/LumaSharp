@@ -9,9 +9,9 @@ namespace CompilerTests.AST.Parse.Member
         // Methods
         [DataTestMethod]
         [DataRow("enum a{}")]
-        [DataRow("export enum b{}")]
-        [DataRow("#copy enum c{}")]
-        [DataRow("#copy export enum d{}")]
+        [DataRow("public enum b{}")]
+        [DataRow("internal enum c{}")]
+        [DataRow("static private enum d{}")]
         [DataRow("enum f : other{}")]
         [DataRow("enum g : some, extra{}")]
         public void ParseAsEnumMember(string input)

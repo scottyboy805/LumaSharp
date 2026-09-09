@@ -1,5 +1,5 @@
 ﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Symbols
@@ -11,7 +11,7 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveGenericParameterSymbols_MethodReturn()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("test")
+                Syntax.Class("test")
                 .WithMembers(Syntax.Method("test", Syntax.TypeReference("T"))
                 .WithGenericParameters(Syntax.GenericParameter("T"))
                 .WithBody(Syntax.Return(Syntax.New(Syntax.TypeReference("T"))))));
@@ -28,7 +28,7 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveGenericParameterSymbols_TypeReturn()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("test")
+                Syntax.Class("test")
                 .WithGenericParameters(Syntax.GenericParameter("T"))
                 .WithMembers(Syntax.Method("test")                
                 .WithBody(Syntax.LocalVariable(Syntax.TypeReference("T"), "var"))));
@@ -45,9 +45,9 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveGenericParameterSymbols_SubTypeReturn()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("test")
+                Syntax.Class("test")
                 .WithGenericParameters(Syntax.GenericParameter("T"))
-                .WithMembers(Syntax.Type("Sub")
+                .WithMembers(Syntax.Class("Sub")
                 .WithGenericParameters(Syntax.GenericParameter("M"))
                 .WithMembers(Syntax.Method("test")
                 .WithBody(Syntax.LocalVariable(Syntax.TypeReference("T"), "var1"),

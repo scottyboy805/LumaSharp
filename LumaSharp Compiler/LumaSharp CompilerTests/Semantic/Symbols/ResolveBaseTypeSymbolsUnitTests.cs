@@ -1,7 +1,7 @@
 ﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LumaSharp.Compiler.Semantics.Reference;
+using LumaSharp.Compiler.SemanticsOld.Reference;
 
 namespace CompilerTests.Semantic.Symbols
 {
@@ -12,7 +12,7 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveBaseTypeSymbols_DefaultAny()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test"));
+                Syntax.Class("Test"));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -30,8 +30,8 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveBaseTypeSymbols_DefaultAnyContract_1()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("C"),
-                Syntax.Type("Test").WithBaseTypes(Syntax.TypeReference("C")));
+                Syntax.Interface("C"),
+                Syntax.Class("Test").WithBaseTypes(Syntax.TypeReference("C")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -49,8 +49,8 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveBaseTypeSymbols_DefaultAnyContract_2()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("C"), Syntax.Contract("C1"),
-                Syntax.Type("Test").WithBaseTypes(Syntax.TypeReference("C"), Syntax.TypeReference("C1")));
+                Syntax.Interface("C"), Syntax.Interface("C1"),
+                Syntax.Class("Test").WithBaseTypes(Syntax.TypeReference("C"), Syntax.TypeReference("C1")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

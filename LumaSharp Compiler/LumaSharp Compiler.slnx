@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="LumaSharp Compiler.App/LumaSharp Compiler.App.csproj" />
+  <Project Path="LumaSharp Compiler/LumaSharp Compiler.csproj" />
+  <Project Path="LumaSharp CompilerTests/LumaSharp CompilerTests.csproj" />
+</Solution>

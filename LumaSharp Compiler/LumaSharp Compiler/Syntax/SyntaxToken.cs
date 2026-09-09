@@ -60,44 +60,51 @@ namespace LumaSharp.Compiler.AST
         TernarySymbol,
 
         VoidKeyword,
-        AnyKeyword,
+        ObjectKeyword,
         BoolKeyword,
         CharKeyword,
-        I8Keyword,
-        U8Keyword,
-        I16Keyword,
-        U16Keyword,
-        I32Keyword,
-        U32Keyword,
-        I64Keyword,
-        U64Keyword,
-        F32Keyword,
-        F64Keyword,
+        Int8Keyword,
+        UInt8Keyword,
+        Int16Keyword,
+        UInt16Keyword,
+        Int32Keyword,
+        UInt32Keyword,
+        Int64Keyword,
+        UInt64Keyword,
+        Intkeyword,
+        UIntKeyword,
+        FloatKeyword,
+        DoubleKeyword,
         StringKeyword,
 
-        ImportKeyword,
+        UsingKeyword,
         NamespaceKeyword,
-        TypeKeyword,
-        AttributeKeyword,
-        ContractKeyword,
+        ClassKeyword,
+        StructKeyword,
+        InterfaceKeyword,
         EnumKeyword,
-        GlobalKeyword,
-        ExportKeyword,
+        StaticKeyword,
+        PublicKeyword,
         InternalKeyword,
-        HiddenKeyword,
+        ProtectedKeyword,
+        PrivateKeyword,
+        ConstKeyword,
+        ReadonlyKeyword,
+        MutKeyword,
         AsKeyword,
         ContinueKeyword,
         BreakKeyword,
         ReturnKeyword,
+        VirtualKeyword,
         OverrideKeyword,
         IfKeyword,
-        ElifKeyword,
         ElseKeyword,
         TrueKeyword,
         FalseKeyword,
         NullKeyword,
         InKeyword,
         ForKeyword,
+        WhileKeyword,
         SelectKeyword,
         MatchKeyword,
         DefaultKeyword,
@@ -106,8 +113,8 @@ namespace LumaSharp.Compiler.AST
         FinallyKeyword,
         TypeofKeyword,
         SizeofKeyword,
-        ReadKeyword,
-        WriteKeyword,
+        GetKeyword,
+        SetKeyword,        
         ThisKeyword,
         BaseKeyword,
         NewKeyword,
@@ -178,44 +185,51 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.TernarySymbol, "?" },
 
             { SyntaxTokenKind.VoidKeyword, "void" },
-            { SyntaxTokenKind.AnyKeyword, "any" },
+            { SyntaxTokenKind.ObjectKeyword, "object" },
             { SyntaxTokenKind.BoolKeyword, "bool" },
             { SyntaxTokenKind.CharKeyword, "char" },
-            { SyntaxTokenKind.I8Keyword, "i8" },
-            { SyntaxTokenKind.U8Keyword, "u8" },
-            { SyntaxTokenKind.I16Keyword, "i16" },
-            { SyntaxTokenKind.U16Keyword, "u16" },
-            { SyntaxTokenKind.I32Keyword, "i32" },
-            { SyntaxTokenKind.U32Keyword, "u32" },
-            { SyntaxTokenKind.I64Keyword, "i64" },
-            { SyntaxTokenKind.U64Keyword, "u64" },
-            { SyntaxTokenKind.F32Keyword, "f32" },
-            { SyntaxTokenKind.F64Keyword, "f64" },
+            { SyntaxTokenKind.Int8Keyword, "int8" },
+            { SyntaxTokenKind.UInt8Keyword, "uint8" },
+            { SyntaxTokenKind.Int16Keyword, "int16" },
+            { SyntaxTokenKind.UInt16Keyword, "uint16" },
+            { SyntaxTokenKind.Int32Keyword, "int32" },
+            { SyntaxTokenKind.UInt32Keyword, "uint32" },
+            { SyntaxTokenKind.Int64Keyword, "int64" },
+            { SyntaxTokenKind.UInt64Keyword, "uint64" },
+            { SyntaxTokenKind.Intkeyword, "int" },
+            { SyntaxTokenKind.UIntKeyword, "uint" },
+            { SyntaxTokenKind.FloatKeyword, "float" },
+            { SyntaxTokenKind.DoubleKeyword, "double" },
             { SyntaxTokenKind.StringKeyword, "string" },
 
-            { SyntaxTokenKind.ImportKeyword, "import" },
+            { SyntaxTokenKind.UsingKeyword, "using" },
             { SyntaxTokenKind.NamespaceKeyword, "namespace" },
-            { SyntaxTokenKind.TypeKeyword, "type" },
-            { SyntaxTokenKind.AttributeKeyword, "attribute" },
-            { SyntaxTokenKind.ContractKeyword, "contract" },
+            { SyntaxTokenKind.ClassKeyword, "class" },
+            { SyntaxTokenKind.StructKeyword, "struct" },
+            { SyntaxTokenKind.InterfaceKeyword, "interface" },
             { SyntaxTokenKind.EnumKeyword, "enum" },
-            { SyntaxTokenKind.GlobalKeyword, "global" },
-            { SyntaxTokenKind.ExportKeyword, "export" },
+            { SyntaxTokenKind.StaticKeyword, "static" },
+            { SyntaxTokenKind.PublicKeyword, "public" },
             { SyntaxTokenKind.InternalKeyword, "internal" },
-            { SyntaxTokenKind.HiddenKeyword, "hidden" },
+            { SyntaxTokenKind.ProtectedKeyword, "protected" },
+            { SyntaxTokenKind.PrivateKeyword, "private" },
             { SyntaxTokenKind.AsKeyword, "as" },
             { SyntaxTokenKind.ContinueKeyword, "continue" },
             { SyntaxTokenKind.BreakKeyword, "break" },
             { SyntaxTokenKind.ReturnKeyword, "return" },
+            { SyntaxTokenKind.VirtualKeyword, "virtual" },
             { SyntaxTokenKind.OverrideKeyword, "override" },
+            { SyntaxTokenKind.ConstKeyword, "const" },
+            { SyntaxTokenKind.ReadonlyKeyword, "readonly" },
+            { SyntaxTokenKind.MutKeyword, "mut" },
             { SyntaxTokenKind.IfKeyword, "if" },
-            { SyntaxTokenKind.ElifKeyword, "elif" },
             { SyntaxTokenKind.ElseKeyword, "else" },
             { SyntaxTokenKind.TrueKeyword, "true" },
             { SyntaxTokenKind.FalseKeyword, "false" },
             { SyntaxTokenKind.NullKeyword, "null" },
             { SyntaxTokenKind.InKeyword, "in" },
             { SyntaxTokenKind.ForKeyword, "for" },
+            { SyntaxTokenKind.WhileKeyword, "while" },
             { SyntaxTokenKind.SelectKeyword, "select" },
             { SyntaxTokenKind.MatchKeyword, "match" },
             { SyntaxTokenKind.DefaultKeyword, "default" },
@@ -224,8 +238,8 @@ namespace LumaSharp.Compiler.AST
             { SyntaxTokenKind.FinallyKeyword, "finally" },
             { SyntaxTokenKind.TypeofKeyword, "typeof" },
             { SyntaxTokenKind.SizeofKeyword, "sizeof" },
-            { SyntaxTokenKind.ReadKeyword, "read" },
-            { SyntaxTokenKind.WriteKeyword, "write" },
+            { SyntaxTokenKind.GetKeyword, "get" },
+            { SyntaxTokenKind.SetKeyword, "set" },            
             { SyntaxTokenKind.ThisKeyword, "this" },
             { SyntaxTokenKind.BaseKeyword, "base" },
             { SyntaxTokenKind.NewKeyword, "new" },
@@ -247,7 +261,7 @@ namespace LumaSharp.Compiler.AST
         public bool IsSymbol => IsSymbolKind(Kind);
         public bool IsLiteral => IsLiteralKind(Kind);
         public bool IsPrimitiveType => IsPrimitiveTypeKind(Kind);
-        public bool IsAccessModifier => IsAccessModifierKind(Kind);
+        public bool IsModifier => IsModifierKind(Kind);
         public bool IsRange => IsRangeKind(Kind);
         public bool IsBinaryOperand => IsBinaryOperandKind(Kind);
         public bool IsUnaryOperand => IsUnaryOperandKind(Kind);
@@ -428,18 +442,18 @@ namespace LumaSharp.Compiler.AST
         {
             switch(kind)
             {
-                case SyntaxTokenKind.AnyKeyword:
+                case SyntaxTokenKind.ObjectKeyword:
                 case SyntaxTokenKind.BoolKeyword:
-                case SyntaxTokenKind.I8Keyword:
-                case SyntaxTokenKind.U8Keyword:
-                case SyntaxTokenKind.I16Keyword:
-                case SyntaxTokenKind.U16Keyword:
-                case SyntaxTokenKind.I32Keyword:
-                case SyntaxTokenKind.U32Keyword:
-                case SyntaxTokenKind.I64Keyword:
-                case SyntaxTokenKind.U64Keyword:
-                case SyntaxTokenKind.F32Keyword:
-                case SyntaxTokenKind.F64Keyword:
+                case SyntaxTokenKind.Int8Keyword:
+                case SyntaxTokenKind.UInt8Keyword:
+                case SyntaxTokenKind.Int16Keyword:
+                case SyntaxTokenKind.UInt16Keyword:
+                case SyntaxTokenKind.Int32Keyword:
+                case SyntaxTokenKind.UInt32Keyword:
+                case SyntaxTokenKind.Int64Keyword:
+                case SyntaxTokenKind.UInt64Keyword:
+                case SyntaxTokenKind.FloatKeyword:
+                case SyntaxTokenKind.DoubleKeyword:
                 case SyntaxTokenKind.StringKeyword:
                 case SyntaxTokenKind.VoidKeyword:
                     return true;
@@ -447,14 +461,26 @@ namespace LumaSharp.Compiler.AST
             return false;
         }
 
-        public static bool IsAccessModifierKind(SyntaxTokenKind kind)
+        public static bool IsModifierKind(SyntaxTokenKind kind)
         {
             switch(kind)
             {
-                case SyntaxTokenKind.ExportKeyword:
-                case SyntaxTokenKind.GlobalKeyword:
-                case SyntaxTokenKind.HiddenKeyword:
+                // Static
+                case SyntaxTokenKind.StaticKeyword:
+
+                // Visibility
+                case SyntaxTokenKind.PublicKeyword:                
+                case SyntaxTokenKind.ProtectedKeyword:
+                case SyntaxTokenKind.PrivateKeyword:
                 case SyntaxTokenKind.InternalKeyword:
+
+                // Inheritance
+                case SyntaxTokenKind.VirtualKeyword:
+                case SyntaxTokenKind.OverrideKeyword:
+
+                // Accessible
+                case SyntaxTokenKind.ConstKeyword:
+                case SyntaxTokenKind.ReadonlyKeyword:
                     return true;
             }
             return false;

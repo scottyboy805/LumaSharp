@@ -6,7 +6,8 @@ namespace LumaSharp.Compiler.AST
     public sealed class CompilationUnitSyntax : SyntaxNode
     {
         // Private
-        private readonly ImportSyntax[] imports;
+        private readonly SyntaxTree syntaxTree;
+        private readonly UsingSyntax[] imports;
         private readonly SyntaxNode[] namespaceOrMembers;
 
         // Properties
@@ -44,7 +45,7 @@ namespace LumaSharp.Compiler.AST
             }
         }
 
-        public ImportSyntax[] Imports
+        public UsingSyntax[] Imports
         {
             get { return imports; }
         }
@@ -54,13 +55,18 @@ namespace LumaSharp.Compiler.AST
             get { return namespaceOrMembers; }
         }
 
+        public override SyntaxTree SyntaxTree
+        {
+            get { return syntaxTree; }
+        }
+
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
             {
                 if(imports != null)
                 {
-                    foreach (ImportSyntax i in imports)
+                    foreach (UsingSyntax i in imports)
                         yield return i;
                 }
 
@@ -73,8 +79,9 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal CompilationUnitSyntax(ImportSyntax[] imports, SyntaxNode[] namespaceOrMembers)
+        internal CompilationUnitSyntax(UsingSyntax[] imports, SyntaxNode[] namespaceOrMembers)
         {
+            this.syntaxTree = SyntaxTree.Create(this);
             this.imports = imports;
             this.namespaceOrMembers = namespaceOrMembers;
         }
@@ -94,7 +101,7 @@ namespace LumaSharp.Compiler.AST
         {
             if (imports != null)
             {
-                foreach (ImportSyntax i in imports)
+                foreach (UsingSyntax i in imports)
                     i.GetSourceText(writer);
             }
 

@@ -36,19 +36,6 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal ArgumentListSyntax()
-            : this(null)
-        {
-        }
-
-        internal ArgumentListSyntax(SeparatedSyntaxList<ExpressionSyntax> argumentExpressions)
-            : this(
-                  Syntax.Token(SyntaxTokenKind.LParenSymbol),
-                  argumentExpressions,
-                  Syntax.Token(SyntaxTokenKind.RParenSymbol))
-        {
-        }
-
         internal ArgumentListSyntax(SyntaxToken lParen, SeparatedSyntaxList<ExpressionSyntax> argumentExpressions, SyntaxToken rParen)
             : base(argumentExpressions)
         {
@@ -88,5 +75,15 @@ namespace LumaSharp.Compiler.AST
             // Argument end
             rParen.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static ArgumentListSyntax EmptyArgumentList()
+            => new (Token(SyntaxTokenKind.LParenSymbol), null, Token(SyntaxTokenKind.RParenSymbol));
+
+        public static ArgumentListSyntax ArgumentList(params ExpressionSyntax[] argumentExpressions) 
+            => new (Token(SyntaxTokenKind.LParenSymbol), new(SyntaxTokenKind.CommaSymbol, argumentExpressions), Token(SyntaxTokenKind.RParenSymbol));
     }
 }

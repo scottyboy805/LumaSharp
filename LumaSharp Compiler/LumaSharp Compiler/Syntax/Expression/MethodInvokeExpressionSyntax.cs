@@ -99,7 +99,7 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentNullException(nameof(accessExpression));
 
             if (arguments == null)
-                arguments = new ArgumentListSyntax(null);
+                arguments = Syntax.EmptyArgumentList();
 
             this.accessExpression = accessExpression;
             this.genericArgumentList = genericArguments;

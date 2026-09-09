@@ -50,12 +50,12 @@ namespace LumaSharp.Compiler.AST
 
         public bool IsReadBody
         {
-            get { return keyword.Kind == SyntaxTokenKind.ReadKeyword; }
+            get { return keyword.Kind == SyntaxTokenKind.GetKeyword; }
         }
 
         public bool IsWriteBody
         {
-            get { return keyword.Kind == SyntaxTokenKind.WriteKeyword; }
+            get { return keyword.Kind == SyntaxTokenKind.SetKeyword; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
@@ -80,7 +80,7 @@ namespace LumaSharp.Compiler.AST
             if (lambda.Kind != SyntaxTokenKind.LambdaSymbol)
                 throw new ArgumentException(nameof(lambda) + " must be of kind: " + SyntaxTokenKind.LambdaSymbol);
 
-            if (keyword.Kind != SyntaxTokenKind.ReadKeyword && keyword.Kind != SyntaxTokenKind.WriteKeyword)
+            if (keyword.Kind != SyntaxTokenKind.GetKeyword && keyword.Kind != SyntaxTokenKind.SetKeyword)
                 throw new ArgumentException(nameof(keyword) + " must be a valid accessor keyword");
 
             if(colon.Kind != SyntaxTokenKind.ColonSymbol)

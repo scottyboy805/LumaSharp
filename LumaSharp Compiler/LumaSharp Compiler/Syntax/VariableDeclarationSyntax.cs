@@ -112,4 +112,13 @@ namespace LumaSharp.Compiler.AST
             }
         }
     }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken identifier, VariableAssignmentExpressionSyntax assignment = null)
+            => new (variableType, new(SyntaxTokenKind.CommaSymbol, new[] { identifier }, SyntaxTokenKind.Identifier), assignment);
+        public static VariableDeclarationSyntax Variable(TypeReferenceSyntax variableType, SyntaxToken[] identifiers, VariableAssignmentExpressionSyntax assignment = null) => 
+            new (variableType, new(SyntaxTokenKind.CommaSymbol, identifiers, SyntaxTokenKind.Identifier), assignment);
+    }
 }

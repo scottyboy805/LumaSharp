@@ -31,7 +31,7 @@ namespace LumaSharp.Compiler.Parser
 
                 // Check for condition
                 if (statement == null)
-                    statement = ParseConditionStatement();
+                    statement = ParseIfStatement();
 
                 // Check for return
                 if (statement == null)
@@ -113,13 +113,21 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        internal StatementSyntax ParseConditionStatement()
+        internal StatementSyntax ParseIfStatement()
         {
             // Check for if keyword
             if(tokens.PeekKind() == SyntaxTokenKind.IfKeyword)
             {
                 // Consume the token
                 SyntaxToken ifToken = tokens.Consume();
+
+                // Expect opening brace
+                if (tokens.ConsumeExpect(SyntaxTokenKind.LParenSymbol, out SyntaxToken lParen) == false)
+                {
+                    // Expected '('
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.LParenSymbol));
+                    return RecoverFromStatementError();
+                }
 
                 // Parse the condition expression
                 ExpressionSyntax conditionExpression = ParseExpression();
@@ -129,6 +137,14 @@ namespace LumaSharp.Compiler.Parser
                 {
                     // Expected expression
                     report.ReportDiagnostic(Code.ExpectedExpression, MessageSeverity.Error, tokens.Peek().Span);
+                    return RecoverFromStatementError();
+                }
+
+                // Expect closing brace
+                if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
+                {
+                    // Expected ')'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
                     return RecoverFromStatementError();
                 }
 
@@ -144,28 +160,21 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Parse optional alternate recursively
-                ConditionStatementSyntax alternate = ParseConditionAlternateStatement() as ConditionStatementSyntax;
+                ElseClauseSyntax alternate = ParseElseClause();
 
                 // Create if
-                return new ConditionStatementSyntax(ifToken, conditionExpression, alternate, statement);
+                return new IfStatementSyntax(ifToken, lParen, conditionExpression, rParen, statement, alternate);
             }
             return null;
         }
 
-        private StatementSyntax ParseConditionAlternateStatement()
+        private ElseClauseSyntax ParseElseClause()
         {
             // Check for else
-            if(tokens.PeekKind() == SyntaxTokenKind.ElseKeyword || tokens.PeekKind() == SyntaxTokenKind.ElifKeyword)
+            if(tokens.PeekKind() == SyntaxTokenKind.ElseKeyword)
             {
                 // Consume token
-                SyntaxToken elseOrElifToken = tokens.Consume();
-
-                // Get condition
-                ExpressionSyntax conditionExpression = null;
-
-                // Check for conditioned if
-                if (tokens.PeekKind() == SyntaxTokenKind.ElifKeyword)
-                    conditionExpression = ParseExpression();
+                SyntaxToken elseToken = tokens.Consume();
 
                 // Must be just an else clause
                 // Parse the statement
@@ -176,14 +185,12 @@ namespace LumaSharp.Compiler.Parser
                 {
                     // Expected statement
                     report.ReportDiagnostic(Code.ExpectedStatement, MessageSeverity.Error, tokens.Peek().Span);
-                    return RecoverFromStatementError();
+                    RecoverFromStatementError();
+                    return null;                    
                 }
 
-                // Parse optional alternate recursively
-                ConditionStatementSyntax alternate = ParseConditionAlternateStatement() as ConditionStatementSyntax;
-
                 // Create the alternate condition
-                return new ConditionStatementSyntax(elseOrElifToken, conditionExpression, alternate, statement);
+                return new ElseClauseSyntax(elseToken, statement);
             }
             return null;
         }
@@ -262,6 +269,14 @@ namespace LumaSharp.Compiler.Parser
                 // Consume token
                 SyntaxToken forToken = tokens.Consume();
 
+                // Expect opening brace
+                if(tokens.ConsumeExpect(SyntaxTokenKind.LParenSymbol, out SyntaxToken lParen) == false)
+                {
+                    // Expected '('
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.LParenSymbol));
+                    return RecoverFromStatementError();
+                }
+
                 // Parse variable
                 VariableDeclarationSyntax variable = ParseVariableDeclaration();
 
@@ -287,11 +302,19 @@ namespace LumaSharp.Compiler.Parser
                 // Parse increment expressions
                 SeparatedSyntaxList<ExpressionSyntax> increments = ParseSeparatedSyntaxList(ParseOptionalExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Invalid);
 
+                // Expect closing brace
+                if (tokens.ConsumeExpect(SyntaxTokenKind.RParenSymbol, out SyntaxToken rParen) == false)
+                {
+                    // Expected ')'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RParenSymbol));
+                    return RecoverFromStatementError();
+                }
+
                 // Parse statement
                 StatementSyntax statement = ParseStatement();
 
                 // Create for
-                return new ForStatementSyntax(forToken, variable, variableSemicolon, condition, conditionSemicolon, increments, statement);
+                return new ForStatementSyntax(forToken, lParen, variable, variableSemicolon, condition, conditionSemicolon, increments, rParen, statement);
             }
             return null;
         }
@@ -389,7 +412,11 @@ namespace LumaSharp.Compiler.Parser
                 SyntaxToken returnToken = tokens.Consume();
 
                 // Check for optional expression list
-                SeparatedSyntaxList<ExpressionSyntax> returnExpressions = ParseSeparatedSyntaxList(ParseExpression, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.SemicolonSymbol);
+                ExpressionSyntax returnExpression = null;
+                
+                // Check for semicolon
+                if(tokens.PeekKind() != SyntaxTokenKind.SemicolonSymbol)
+                    returnExpression = ParseExpression();
 
                 // Require semicolon
                 if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
@@ -400,7 +427,7 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Create return
-                return new ReturnStatementSyntax(returnToken, returnExpressions, semicolon);
+                return new ReturnStatementSyntax(returnToken, returnExpression, semicolon);
             }
             return null;
         }
@@ -413,6 +440,11 @@ namespace LumaSharp.Compiler.Parser
                 // Consume token
                 SyntaxToken breakToken = tokens.Consume();
 
+                // Optional label
+                SyntaxToken? label = null;
+                if (tokens.PeekKind() == SyntaxTokenKind.Identifier)
+                    label = tokens.Consume();
+
                 // Require semicolon
                 if (tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                 {
@@ -422,7 +454,7 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Create break statement
-                return new BreakStatementSyntax(breakToken, semicolon);
+                return new BreakStatementSyntax(breakToken, label, semicolon);
             }
             return null;
         }

@@ -10,7 +10,7 @@ namespace CompilerTests.AST.Factory.Member
         [TestMethod]
         public void CreateType()
         {
-            TypeSyntax type = Syntax.Type("Test");
+            ClassSyntax type = Syntax.Class("Test");
 
             Assert.IsNotNull(type);
             Assert.AreEqual("Test", type.Identifier);
@@ -20,7 +20,7 @@ namespace CompilerTests.AST.Factory.Member
         [ExpectedException(typeof(ArgumentException))]
         public void CreateTypeInvalidIdentifier()
         {
-            Syntax.Type(Syntax.Token(SyntaxTokenKind.Invalid));
+            Syntax.Class(Syntax.Token(SyntaxTokenKind.Invalid));
         }
     }
 }

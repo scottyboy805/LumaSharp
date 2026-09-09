@@ -1,7 +1,4 @@
-﻿
-using LumaSharp.Compiler.AST.Visitor;
-using System.Reflection.Metadata;
-using System.Runtime.CompilerServices;
+﻿using LumaSharp.Compiler.AST.Visitor;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -22,8 +19,8 @@ namespace LumaSharp.Compiler.AST
                     return attributes[0].StartToken;
 
                 // Check for modifiers
-                if (accessModifiers != null)
-                    return accessModifiers[0];
+                if (modifiers != null)
+                    return modifiers[0];
 
                 // Fallback to keyword
                 return keyword;
@@ -77,18 +74,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal EnumSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, BaseTypeListSyntax underlyingType, EnumBlockSyntax body)
-            : this(
-                  Syntax.Token(SyntaxTokenKind.EnumKeyword),
-                  identifier,
-                  attributes,
-                  accessModifiers,
-                  underlyingType,
-                  body)
-        {
-        }
-
-        internal EnumSyntax(SyntaxToken keyword, SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers, BaseTypeListSyntax underlyingType, EnumBlockSyntax body)
+        internal EnumSyntax(AttributeListSyntax attributes, SyntaxToken[] accessModifiers, SyntaxToken keyword, SyntaxToken identifier, BaseTypeListSyntax underlyingType, EnumBlockSyntax body)
             : base(identifier, attributes, accessModifiers)
         {
             // Check kind
@@ -145,5 +131,31 @@ namespace LumaSharp.Compiler.AST
             // Member block
             body.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static EnumSyntax Enum(SyntaxToken identifier, TypeReferenceSyntax underlyingType = null) 
+            => new (null, null, Token(SyntaxTokenKind.EnumKeyword), identifier, underlyingType != null ? new(new(SyntaxTokenKind.CommaSymbol, underlyingType)) : null, null);
+
+
+        public static EnumSyntax WithAttribute(this EnumSyntax _enum, AttributeSyntax attribute)
+            => new(AttributeList(attribute), _enum.Modifiers, _enum.Keyword, _enum.Identifier, _enum.UnderlyingType, _enum.Body);
+
+        public static EnumSyntax WithAttributes(this EnumSyntax _enum, params AttributeSyntax[] attributes)
+            => new(AttributeList(attributes), _enum.Modifiers, _enum.Keyword, _enum.Identifier, _enum.UnderlyingType, _enum.Body);
+
+        public static EnumSyntax WithAttributes(this EnumSyntax _enum, AttributeListSyntax attributes)
+            => new (attributes, _enum.Modifiers, _enum.Keyword, _enum.Identifier, _enum.UnderlyingType, _enum.Body);
+
+        public static EnumSyntax WithAccessModifiers(this EnumSyntax _enum, params SyntaxToken[] modifiers)
+            => new (_enum.Attributes, modifiers, _enum.Keyword, _enum.Identifier, _enum.UnderlyingType, _enum.Body);
+
+        public static EnumSyntax WithMembers(this EnumSyntax _enum, params EnumFieldSyntax[] fields)
+            => new (_enum.Attributes, _enum.Modifiers, _enum.Keyword, _enum.Identifier, _enum.UnderlyingType, new EnumBlockSyntax(new SeparatedSyntaxList<EnumFieldSyntax>(SyntaxTokenKind.CommaSymbol, fields)));
+
+        public static EnumSyntax WithUnderlyingType(this EnumSyntax _enum, TypeReferenceSyntax underlyingType)
+            => new (_enum.Attributes, _enum.Modifiers, _enum.Keyword, _enum.Identifier, new(new(SyntaxTokenKind.CommaSymbol, underlyingType)), _enum.Body);
     }
 }

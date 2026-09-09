@@ -1,21 +1,11 @@
 ﻿
-using LumaSharp.Compiler.AST.Visitor;
-
 namespace LumaSharp.Compiler.AST
 {
-    public enum AccessModifier
-    {
-        Export,
-        Internal,
-        Hidden,
-        Global,
-    }
-
     public abstract class MemberSyntax : SyntaxNode
     {
         // Protected
-        protected readonly AttributeSyntax[] attributes;
-        protected readonly SyntaxToken[] accessModifiers;
+        protected readonly AttributeListSyntax attributes;
+        protected readonly SyntaxToken[] modifiers;
         protected readonly SyntaxToken identifier;
 
         // Properties
@@ -28,21 +18,21 @@ namespace LumaSharp.Compiler.AST
                     return attributes[0].StartToken;
 
                 // Check for modifiers
-                if (HasAccessModifiers == true)
-                    return accessModifiers[0];
+                if (HasModifiers == true)
+                    return modifiers[0];
 
                 return identifier;
             }
         }
 
-        public AttributeSyntax[] Attributes
+        public AttributeListSyntax Attributes
         {
             get { return attributes; }
         }
 
-        public SyntaxToken[] AccessModifiers
+        public SyntaxToken[] Modifiers
         {
-            get { return accessModifiers; }
+            get { return modifiers; }
         }
 
         public SyntaxToken Identifier
@@ -52,12 +42,12 @@ namespace LumaSharp.Compiler.AST
 
         public int AttributeCount
         {
-            get { return HasAttributes ? attributes.Length : 0; }
+            get { return HasAttributes ? attributes.Count : 0; }
         }
 
-        public int AccessModifierCount
+        public int ModifierCount
         {
-            get { return HasAccessModifiers ? accessModifiers.Length : 0; }
+            get { return HasModifiers ? modifiers.Length : 0; }
         }
 
         public bool HasAttributes
@@ -65,13 +55,13 @@ namespace LumaSharp.Compiler.AST
             get { return attributes != null; }
         }
 
-        public bool HasAccessModifiers
+        public bool HasModifiers
         {
-            get { return accessModifiers != null; }
+            get { return modifiers != null; }
         }
 
         // Constructor
-        protected MemberSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] accessModifiers)
+        protected MemberSyntax(SyntaxToken identifier, AttributeListSyntax attributes, SyntaxToken[] modifiers)
         {
             // Check for identifier
             if(identifier.Kind != SyntaxTokenKind.Identifier)
@@ -79,7 +69,7 @@ namespace LumaSharp.Compiler.AST
 
             this.identifier = identifier;
             this.attributes = attributes;
-            this.accessModifiers = accessModifiers;
+            this.modifiers = modifiers;
         }
 
         // Methods
@@ -94,10 +84,10 @@ namespace LumaSharp.Compiler.AST
                 }
             }
 
-            if (HasAccessModifiers == true)
+            if (HasModifiers == true)
             {
-                // Get access modifiers
-                foreach (SyntaxToken modifier in accessModifiers)
+                // Get modifiers
+                foreach (SyntaxToken modifier in modifiers)
                 {
                     modifier.GetSourceText(writer);
                 }

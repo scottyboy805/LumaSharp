@@ -116,6 +116,48 @@ namespace LumaSharp.Compiler.Parser
             return tokenList;
         }
 
+        internal AttributeListSyntax ParseAttributeList()
+        {
+            // Check for attribute start
+            if(tokens.PeekKind() == SyntaxTokenKind.LArraySymbol)
+            {
+                // Consume the symbol
+                SyntaxToken lBracket = tokens.Consume();
+
+                // Parse the attributes
+                SeparatedSyntaxList<AttributeSyntax> attributes = ParseSeparatedSyntaxList(ParseAttribute, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.RArraySymbol);
+
+                // Expect the end token
+                if(tokens.ConsumeExpect(SyntaxTokenKind.RArraySymbol, out SyntaxToken rBracket) == false)
+                {
+                    // Expected ']'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
+                    return RecoverFromAttributeListError();
+                }
+
+                // Get attribute list
+                return new AttributeListSyntax(lBracket, attributes, rBracket);
+            }
+            return null;
+        }
+
+        internal AttributeSyntax ParseAttribute()
+        {
+            // Get the type reference
+            TypeReferenceSyntax attributeTypeReference = ParseFullTypeReference();
+
+            // Check for hash
+            if (attributeTypeReference != null)
+            {
+                // Get the argument list
+                ArgumentListSyntax argumentList = ParseArgumentList();
+
+                // Create attribute
+                return new AttributeSyntax(attributeTypeReference, argumentList);
+            }
+            return null;
+        }
+
         internal GenericParameterListSyntax ParseGenericParameterList()
         {
             // Check for generic
@@ -256,7 +298,7 @@ namespace LumaSharp.Compiler.Parser
         internal ParameterSyntax ParseParameter()
         {
             // Parse attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse type reference
             TypeReferenceSyntax parameterType = ParseTypeReference();
@@ -372,6 +414,20 @@ namespace LumaSharp.Compiler.Parser
             return false;
         }
 
+        private AttributeListSyntax RecoverFromAttributeListError()
+        {
+            // An error occurred while parsing a generic parameter list - To recover we should consume all tokens until we reach a rgeneric or end of stream
+            while (tokens.EOF == false && tokens.PeekKind() != SyntaxTokenKind.RArraySymbol)
+                tokens.Consume();
+
+            // Consume the rParen
+            if (tokens.EOF == false)
+                tokens.Consume();
+
+            // Always null - just means we can return from calling control easily
+            return Syntax.EmptyAttributeList();
+        }
+
         private GenericParameterListSyntax RecoverFromGenericParameterListError()
         {
             // An error occurred while parsing a generic parameter list - To recover we should consume all tokens until we reach a rgeneric or end of stream
@@ -431,7 +487,7 @@ namespace LumaSharp.Compiler.Parser
                 tokens.Consume();
 
             // Always null - just means we can return from calling control easily
-            return new GenericArgumentListSyntax(null);
+            return Syntax.EmptyGenericArgumentList();
         }
 
         private ArgumentListSyntax RecoverFromArgumentListError()
@@ -445,7 +501,7 @@ namespace LumaSharp.Compiler.Parser
                 tokens.Consume();
 
             // Always null - just means we can return from calling control easily
-            return new ArgumentListSyntax(null);
+            return Syntax.EmptyArgumentList();
         }
     }
 }

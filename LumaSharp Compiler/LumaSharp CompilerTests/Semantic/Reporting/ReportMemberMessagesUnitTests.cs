@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Reporting
@@ -12,8 +12,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_ContractGlobal()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))));
+                Syntax.Interface("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.StaticKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -29,8 +29,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_ContractExport()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))));
+                Syntax.Interface("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -46,8 +46,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_ContractHidden()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.HiddenKeyword))));
+                Syntax.Interface("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PrivateKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -63,8 +63,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportMemberMessages_ModifierInvalid_ContractInternal()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword))));
+                Syntax.Interface("Test").WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test"))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.StaticKeyword))));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -82,7 +82,7 @@ namespace CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.StaticKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -99,7 +99,7 @@ namespace CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword)));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -116,7 +116,7 @@ namespace CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("Test").WithMembers(Syntax.EnumField("myField"))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.HiddenKeyword)));
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PrivateKeyword)));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

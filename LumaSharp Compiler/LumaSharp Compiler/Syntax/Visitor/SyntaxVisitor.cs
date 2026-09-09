@@ -8,8 +8,8 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitTrivia(SyntaxTrivia trivia) { }
 
         public virtual void VisitCompilationUnit(CompilationUnitSyntax compilationUnit) { }
-        public virtual void VisitImport(ImportSyntax import) { }
-        public virtual void VisitImpotAlias(ImportAliasSyntax importAlias) { }
+        public virtual void VisitImport(UsingSyntax import) { }
+        public virtual void VisitImpotAlias(UsingAliasSyntax importAlias) { }
         public virtual void VisitNamespace(NamespaceSyntax ns) { }
 
         public virtual void VisitTokenList(SeparatedTokenList list) { }
@@ -23,6 +23,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitParameter(ParameterSyntax parameter) { }
         public virtual void VisitArgumentList(ArgumentListSyntax argumentList) { }
         public virtual void VisitArrayParameters(ArrayParametersSyntax arrayParameterList) { }
+        public virtual void VisitAttributeList(AttributeListSyntax attributeList) { }
         public virtual void VisitAttribute(AttributeSyntax attribute) { }
 
         public virtual void VisitParentTypeReference(ParentTypeReferenceSyntax parentTypeReference) { }
@@ -32,9 +33,10 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitVariableDeclaration(VariableDeclarationSyntax variableDeclaration) { }
 
         #region Member
-        public virtual void VisitType(TypeSyntax type) { }
-        public virtual void VisitContract(ContractSyntax contract) { }
-        public virtual void VisitEnum(EnumSyntax e) { }
+        public virtual void VisitClass(ClassSyntax _class) { }
+        public virtual void VisitStruct(StructSyntax _struct) { }
+        public virtual void VisitInterface(InterfaceSyntax _interface) { }
+        public virtual void VisitEnum(EnumSyntax _enum) { }
         public virtual void VisitEnumBlock(EnumBlockSyntax enumBlock) { }
         public virtual void VisitEnumField(EnumFieldSyntax enumField) { }
         public virtual void VisitField(FieldSyntax field) { }
@@ -49,7 +51,8 @@ namespace LumaSharp.Compiler.AST.Visitor
         #region Statement
         public virtual void VisitAssignStatement(AssignStatementSyntax assignStatement) { }
         public virtual void VisitBreakStatement(BreakStatementSyntax breakStatement) { }
-        public virtual void VisitConditionStatement(ConditionStatementSyntax conditionStatement) { }
+        public virtual void VisitIfStatement(IfStatementSyntax ifStatement) { }
+        public virtual void VisitElseStatement(ElseClauseSyntax elseStatement) { }
         public virtual void VisitContinueStatement(ContinueStatementSyntax continueStatement) { }
         public virtual void VisitEmptyStatement(EmptyStatementSyntax emptyStatement) { }
         public virtual void VisitForeachStatement(ForeachStatementSyntax foreachStatement) { }

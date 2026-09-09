@@ -58,6 +58,18 @@ namespace LumaSharp.Compiler.AST
             return new SyntaxSpan(start.Document, start.Start, end.End);
         }
 
+        public T ParentOfType<T>() where T : SyntaxNode
+        {
+            SyntaxNode current = this;
+
+            // Move up until found
+            while(current != null && current is not T)
+                current = current.Parent;
+
+            // Try to get as T
+            return current as T;
+        }
+
         public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : SyntaxNode
         {
             foreach(SyntaxNode node in Descendants)

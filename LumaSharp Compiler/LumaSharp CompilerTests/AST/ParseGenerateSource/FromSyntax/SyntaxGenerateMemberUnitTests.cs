@@ -9,7 +9,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateMember_Field()
         {
-            SyntaxNode syntax0 = Syntax.Field("MyField", Syntax.TypeReference(PrimitiveType.I32))
+            SyntaxNode syntax0 = Syntax.Field("MyField", Syntax.TypeReference(ReservedType.Int32))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -38,7 +38,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateMember_Accessor()
         {
-            SyntaxNode syntax0 = Syntax.Accessor("MyAccessor", Syntax.TypeReference(PrimitiveType.I32));
+            SyntaxNode syntax0 = Syntax.Accessor("MyAccessor", Syntax.TypeReference(ReservedType.Int32));
 
             // Get expression text
             Assert.AreEqual("i32 MyAccessor;", syntax0.GetSourceText());
@@ -98,7 +98,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateMember_Method()
         {
-            SyntaxNode syntax0 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
+            SyntaxNode syntax0 = Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -106,7 +106,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("i32", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
+            SyntaxNode syntax1 = Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
                 .WithBody()
                 .NormalizeWhitespace();
 
@@ -115,8 +115,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("i32", syntax1.StartToken.Text);
             Assert.AreEqual("}", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "MyParam"))
+            SyntaxNode syntax2 = Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "MyParam"))
                 .WithBody()
                 .NormalizeWhitespace();
 
@@ -125,8 +125,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("i32", syntax2.StartToken.Text);
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "MyParam"), Syntax.Parameter(Syntax.TypeReference("MyType"), "Extra"))
+            SyntaxNode syntax3 = Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "MyParam"), Syntax.Parameter(Syntax.TypeReference("MyType"), "Extra"))
                 .WithBody()
                 .NormalizeWhitespace();
 

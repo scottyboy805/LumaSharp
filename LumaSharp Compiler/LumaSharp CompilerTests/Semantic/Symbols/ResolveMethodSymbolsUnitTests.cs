@@ -1,5 +1,5 @@
 ﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Symbols
@@ -11,8 +11,8 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveMethodSymbols_ParameterLess()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
-                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32)),
+                Syntax.Class("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(ReservedType.Int32)),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.This(), "myMethod")),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
@@ -33,9 +33,9 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveMethodSymbols_ParameterLess_Global()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
-                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.GlobalKeyword)),
+                Syntax.Class("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(ReservedType.Int32))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.StaticKeyword)),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod")),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));
@@ -56,9 +56,9 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveMethodSymbols_Parameter_1()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
-                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg")),
+                Syntax.Class("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(ReservedType.Int32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "arg")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(
                     Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod"), Syntax.ArgumentList(Syntax.Literal(5))),
@@ -80,8 +80,8 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveMethodSymbols_Parameter_1Type()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
-                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
+                Syntax.Class("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(ReservedType.Int32))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("Test"), "arg")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod"), Syntax.ArgumentList(Syntax.New(Syntax.TypeReference("Test")))),
@@ -103,10 +103,10 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveMethodSymbols_Parameter_2()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test")
-                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(PrimitiveType.I32))
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "arg0"),
-                Syntax.Parameter(Syntax.TypeReference(PrimitiveType.Any), "arg1")),
+                Syntax.Class("Test")
+                .WithMembers(Syntax.Method("myMethod", Syntax.TypeReference(ReservedType.Int32))
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "arg0"),
+                Syntax.Parameter(Syntax.TypeReference(ReservedType.Object), "arg1")),
                 Syntax.Method("Test")
                 .WithBody(Syntax.Assign(Syntax.MethodInvoke(Syntax.MemberReference(Syntax.TypeReference("Test"), "myMethod"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal("Hello"))),
                     Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))))));

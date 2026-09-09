@@ -9,7 +9,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateRoot_Import()
         {
-            SyntaxNode syntax0 = Syntax.Import("MyNamespace")
+            SyntaxNode syntax0 = Syntax.Using("MyNamespace")
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -17,7 +17,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("import", syntax0.StartToken.Text);
             Assert.AreEqual(";", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Import("MyNamespace", "MySubNamespace", "MyFinalNamespace")
+            SyntaxNode syntax1 = Syntax.Using("MyNamespace", "MySubNamespace", "MyFinalNamespace")
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -25,7 +25,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("import", syntax1.StartToken.Text);
             Assert.AreEqual(";", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.ImportAlias("MyAlias", Syntax.TypeReference(new[] { "MyNamespace", "MySubNamespace", "MyFinalNamespace" }, "MyType"))
+            SyntaxNode syntax2 = Syntax.UsingAlias("MyAlias", Syntax.TypeReference(new[] { "MyNamespace", "MySubNamespace", "MyFinalNamespace" }, "MyType"))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -57,7 +57,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateRoot_Type()
         {
-            SyntaxNode syntax0 = Syntax.Type("MyType")
+            SyntaxNode syntax0 = Syntax.Class("MyType")
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -65,8 +65,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax0.StartToken.Text);
             Assert.AreEqual("}", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))
+            SyntaxNode syntax1 = Syntax.Class("MyType")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -74,8 +74,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("export", syntax1.StartToken.Text);
             Assert.AreEqual("}", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax2 = Syntax.Class("MyType")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -83,9 +83,9 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("export", syntax2.StartToken.Text);
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
-                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")))
+            SyntaxNode syntax3 = Syntax.Class("MyType")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
+                .WithAttribute(Syntax.Attribute(Syntax.TypeReference("Tag")))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -93,9 +93,9 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("#", syntax3.StartToken.Text);
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
-            SyntaxNode syntax4 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
-                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))))
+            SyntaxNode syntax4 = Syntax.Class("MyType")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
+                .WithAttribute(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -103,8 +103,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("#", syntax4.StartToken.Text);
             Assert.AreEqual("}", syntax4.EndToken.Text);
 
-            SyntaxNode syntax5 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax5 = Syntax.Class("MyType")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")), Syntax.Attribute(Syntax.TypeReference("Range")))
                 .NormalizeWhitespace();
 
@@ -113,8 +113,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("#", syntax5.StartToken.Text);
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
-            SyntaxNode syntax6 = Syntax.Type("MyType")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax6 = Syntax.Class("MyType")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))),
                 Syntax.Attribute(Syntax.TypeReference("Range"), Syntax.ArgumentList(Syntax.Literal(true))))
                 .NormalizeWhitespace();
@@ -125,7 +125,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax6.EndToken.Text);
 
 
-            SyntaxNode syntax7 = Syntax.Type("MyType")
+            SyntaxNode syntax7 = Syntax.Class("MyType")
                 .WithGenericParameters(Syntax.GenericParameter("T"))
                 .NormalizeWhitespace();
 
@@ -134,7 +134,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax7.StartToken.Text);
             Assert.AreEqual("}", syntax7.EndToken.Text);
 
-            SyntaxNode syntax8 = Syntax.Type("MyType")
+            SyntaxNode syntax8 = Syntax.Class("MyType")
                 .WithGenericParameters(Syntax.GenericParameter("T0"), Syntax.GenericParameter("T1"))
                 .NormalizeWhitespace();
 
@@ -143,7 +143,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax8.StartToken.Text);
             Assert.AreEqual("}", syntax8.EndToken.Text);
 
-            SyntaxNode syntax9 = Syntax.Type("MyType")
+            SyntaxNode syntax9 = Syntax.Class("MyType")
                 .WithGenericParameters(Syntax.GenericParameter("T0", Syntax.TypeReference("CDispose")), Syntax.GenericParameter("T1"))
                 .NormalizeWhitespace();
 
@@ -152,7 +152,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax9.StartToken.Text);
             Assert.AreEqual("}", syntax9.EndToken.Text);
 
-            SyntaxNode syntax10 = Syntax.Type("MyType")
+            SyntaxNode syntax10 = Syntax.Class("MyType")
                 .WithGenericParameters(Syntax.GenericParameter("T0", Syntax.TypeReference("CDispose"), Syntax.TypeReference("enum")), Syntax.GenericParameter("T1"))
                 .NormalizeWhitespace();
 
@@ -161,7 +161,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax10.StartToken.Text);
             Assert.AreEqual("}", syntax10.EndToken.Text);
 
-            SyntaxNode syntax11 = Syntax.Type("MyType")
+            SyntaxNode syntax11 = Syntax.Class("MyType")
                 .WithBaseTypes(Syntax.TypeReference("MyBase"))
                 .NormalizeWhitespace();
 
@@ -170,7 +170,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax11.StartToken.Text);
             Assert.AreEqual("}", syntax11.EndToken.Text);
 
-            SyntaxNode syntax12 = Syntax.Type("MyType")
+            SyntaxNode syntax12 = Syntax.Class("MyType")
                 .WithBaseTypes(Syntax.TypeReference("MyBase"), Syntax.TypeReference("MyContract"))
                 .NormalizeWhitespace();
 
@@ -179,7 +179,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax12.StartToken.Text);
             Assert.AreEqual("}", syntax12.EndToken.Text);
 
-            SyntaxNode syntax13 = Syntax.Type("MyType")
+            SyntaxNode syntax13 = Syntax.Class("MyType")
                 .WithGenericParameters(Syntax.GenericParameter("T0", Syntax.TypeReference("CDispose"), Syntax.TypeReference("enum")), Syntax.GenericParameter("T1"))
                 .WithBaseTypes(Syntax.TypeReference("MyBase"), Syntax.TypeReference("MyContract"), Syntax.TypeReference("OtherContract"))
                 .NormalizeWhitespace();
@@ -189,9 +189,9 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("type", syntax13.StartToken.Text);
             Assert.AreEqual("}", syntax13.EndToken.Text);
 
-            SyntaxNode syntax14 = Syntax.Type("MyType")
+            SyntaxNode syntax14 = Syntax.Class("MyType")
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("copy")), Syntax.Attribute(Syntax.TypeReference("serialize")))
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithGenericParameters(Syntax.GenericParameter("T0", Syntax.TypeReference("CDispose"), Syntax.TypeReference("enum")), Syntax.GenericParameter("T1"))
                 .WithBaseTypes(Syntax.TypeReference("MyBase"), Syntax.TypeReference("MyContract"), Syntax.TypeReference("OtherContract"))
                 .NormalizeWhitespace();
@@ -205,7 +205,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateRoot_Contract()
         {
-            SyntaxNode syntax0 = Syntax.Contract("MyContract")
+            SyntaxNode syntax0 = Syntax.Interface("MyContract")
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -213,8 +213,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("contract", syntax0.StartToken.Text);
             Assert.AreEqual("}", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))
+            SyntaxNode syntax1 = Syntax.Interface("MyContract")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -222,8 +222,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("export", syntax1.StartToken.Text);
             Assert.AreEqual("}", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax2 = Syntax.Interface("MyContract")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -231,9 +231,9 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("export", syntax2.StartToken.Text);
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
-                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")))
+            SyntaxNode syntax3 = Syntax.Interface("MyContract")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
+                .WithAttribute(Syntax.Attribute(Syntax.TypeReference("Tag")))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -241,8 +241,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("#", syntax3.StartToken.Text);
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
-            SyntaxNode syntax4 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax4 = Syntax.Interface("MyContract")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))))
                 .NormalizeWhitespace();
 
@@ -251,8 +251,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("#", syntax4.StartToken.Text);
             Assert.AreEqual("}", syntax4.EndToken.Text);
 
-            SyntaxNode syntax5 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax5 = Syntax.Interface("MyContract")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")), Syntax.Attribute(Syntax.TypeReference("Range")))
                 .NormalizeWhitespace();
 
@@ -261,8 +261,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("#", syntax5.StartToken.Text);
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
-            SyntaxNode syntax6 = Syntax.Contract("MyContract")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+            SyntaxNode syntax6 = Syntax.Interface("MyContract")
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))),
                 Syntax.Attribute(Syntax.TypeReference("Range"), Syntax.ArgumentList(Syntax.Literal(true))))
                 .NormalizeWhitespace();
@@ -273,7 +273,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax6.EndToken.Text);
 
 
-            SyntaxNode syntax7 = Syntax.Contract("MyContract")
+            SyntaxNode syntax7 = Syntax.Interface("MyContract")
                 .WithGenericParameters(Syntax.GenericParameter("T"))
                 .NormalizeWhitespace();
 
@@ -282,7 +282,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("contract", syntax7.StartToken.Text);
             Assert.AreEqual("}", syntax7.EndToken.Text);
 
-            SyntaxNode syntax8 = Syntax.Contract("MyContract")
+            SyntaxNode syntax8 = Syntax.Interface("MyContract")
                 .WithGenericParameters(Syntax.GenericParameter("T0"), Syntax.GenericParameter("T1"))
                 .NormalizeWhitespace();
 
@@ -291,7 +291,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("contract", syntax8.StartToken.Text);
             Assert.AreEqual("}", syntax8.EndToken.Text);
 
-            SyntaxNode syntax9 = Syntax.Contract("MyContract")
+            SyntaxNode syntax9 = Syntax.Interface("MyContract")
                 .WithGenericParameters(Syntax.GenericParameter("T0", Syntax.TypeReference("CDispose")), Syntax.GenericParameter("T1"))
                 .NormalizeWhitespace();
 
@@ -300,7 +300,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("contract", syntax9.StartToken.Text);
             Assert.AreEqual("}", syntax9.EndToken.Text);
 
-            SyntaxNode syntax10 = Syntax.Contract("MyContract")
+            SyntaxNode syntax10 = Syntax.Interface("MyContract")
                 .WithGenericParameters(Syntax.GenericParameter("T0", Syntax.TypeReference("CDispose"), Syntax.TypeReference("enum")), Syntax.GenericParameter("T1"))
                 .NormalizeWhitespace();
 
@@ -309,7 +309,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("contract", syntax10.StartToken.Text);
             Assert.AreEqual("}", syntax10.EndToken.Text);
 
-            SyntaxNode syntax11 = Syntax.Contract("MyContract")
+            SyntaxNode syntax11 = Syntax.Interface("MyContract")
                 .WithBaseTypes(Syntax.TypeReference("MyBase"))
                 .NormalizeWhitespace();
 
@@ -318,7 +318,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("contract", syntax11.StartToken.Text);
             Assert.AreEqual("}", syntax11.EndToken.Text);
 
-            SyntaxNode syntax12 = Syntax.Contract("MyContract")
+            SyntaxNode syntax12 = Syntax.Interface("MyContract")
                 .WithBaseTypes(Syntax.TypeReference("MyBase"), Syntax.TypeReference("MyOtherContract"))
                 .NormalizeWhitespace();
 
@@ -338,7 +338,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("enum", syntax0.StartToken.Text);
             Assert.AreEqual("}", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Enum("MyEnum", Syntax.TypeReference(PrimitiveType.I8))
+            SyntaxNode syntax1 = Syntax.Enum("MyEnum", Syntax.TypeReference(ReservedType.Int8))
                 .NormalizeWhitespace();
 
             Assert.AreEqual("enum MyEnum : i8\n{\n}", syntax1.GetSourceText());
@@ -347,7 +347,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
 
 
             SyntaxNode syntax2 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -356,7 +356,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -365,8 +365,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
-                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
+                .WithAttribute(Syntax.Attribute(Syntax.TypeReference("Tag")))
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -375,7 +375,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax4.EndToken.Text);
 
             SyntaxNode syntax5 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))))
                 .NormalizeWhitespace();
 
@@ -385,7 +385,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax5.EndToken.Text);
 
             SyntaxNode syntax6 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag")), Syntax.Attribute(Syntax.TypeReference("Range")))
                 .NormalizeWhitespace();
 
@@ -395,7 +395,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("}", syntax6.EndToken.Text);
 
             SyntaxNode syntax7 = Syntax.Enum("MyEnum")
-                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.ExportKeyword), Syntax.Token(SyntaxTokenKind.GlobalKeyword))
+                .WithAccessModifiers(Syntax.Token(SyntaxTokenKind.PublicKeyword), Syntax.Token(SyntaxTokenKind.StaticKeyword))
                 .WithAttributes(Syntax.Attribute(Syntax.TypeReference("Tag"), Syntax.ArgumentList(Syntax.Literal(5), Syntax.Literal(false))),
                 Syntax.Attribute(Syntax.TypeReference("Range"), Syntax.ArgumentList(Syntax.Literal(true))))
                 .NormalizeWhitespace();

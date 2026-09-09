@@ -89,4 +89,11 @@ namespace LumaSharp.Compiler.AST
             rParen.GetSourceText(writer);
         }
     }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static ParameterListSyntax ParameterList(params ParameterSyntax[] parameters) 
+            => new (new(SyntaxTokenKind.CommaSymbol, parameters));
+    }
 }

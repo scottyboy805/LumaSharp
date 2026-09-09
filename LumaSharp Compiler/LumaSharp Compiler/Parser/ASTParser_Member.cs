@@ -84,11 +84,11 @@ namespace LumaSharp.Compiler.Parser
 
             // Parse type
             if (member == null)
-                member = ParseTypeDeclaration();
+                member = ParseClassDeclaration();
 
             // Parse contract
             if (member == null)
-                member = ParseContractDeclaration();
+                member = ParseInterfaceDeclaration();
 
             // Parse enum
             if(member == null)
@@ -121,22 +121,22 @@ namespace LumaSharp.Compiler.Parser
             return member;
         }
 
-        internal TypeSyntax ParseTypeDeclaration()
+        internal ClassSyntax ParseClassDeclaration()
         {
             // Store position
             int position = tokens.Position;
 
             // Parse attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Check for type
-            if (tokens.PeekKind() == SyntaxTokenKind.TypeKeyword)
+            if (tokens.PeekKind() == SyntaxTokenKind.ClassKeyword)
             {
                 // Consume keyword
-                SyntaxToken typeToken = tokens.Consume();
+                SyntaxToken classToken = tokens.Consume();
 
                 // Parse identifier
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
@@ -148,20 +148,21 @@ namespace LumaSharp.Compiler.Parser
                 // Parse generic parameters
                 GenericParameterListSyntax genericParameters = ParseGenericParameterList();
 
-                // Override keyword
-                SyntaxToken? overrideToken = null;
-
-                if(tokens.PeekKind() == SyntaxTokenKind.OverrideKeyword)
-                    overrideToken = tokens.Consume();
-
                 // Base types
                 BaseTypeListSyntax baseTypes = ParseBaseTypes();
+
+                // Expect body
+                if(tokens.PeekKind() != SyntaxTokenKind.LBlockSymbol)
+                {
+                    // Expected '{'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.LBlockSymbol));
+                }
 
                 // Parse members
                 MemberBlockSyntax members = ParseMemberBlock();
 
                 // Create type declaration
-                return new TypeSyntax(identifier, attributes, modifiers, genericParameters, overrideToken, baseTypes, members);
+                return new ClassSyntax(attributes, modifiers, classToken, identifier, genericParameters, baseTypes, members);
             }
 
             // Retrace to original position because we are not working with a type
@@ -169,22 +170,22 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }
 
-        internal ContractSyntax ParseContractDeclaration()
+        internal InterfaceSyntax ParseInterfaceDeclaration()
         {
             // Store position
             int position = tokens.Position;
 
             // Parse attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Check for contract
-            if (tokens.PeekKind() == SyntaxTokenKind.ContractKeyword)
+            if (tokens.PeekKind() == SyntaxTokenKind.InterfaceKeyword)
             {
                 // Consume keyword
-                SyntaxToken contractToken = tokens.Consume();
+                SyntaxToken interfaceToken = tokens.Consume();
 
                 // Parse identifier
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
@@ -199,11 +200,18 @@ namespace LumaSharp.Compiler.Parser
                 // Base types
                 BaseTypeListSyntax baseTypes = ParseBaseTypes();
 
+                // Expect body
+                if (tokens.PeekKind() != SyntaxTokenKind.LBlockSymbol)
+                {
+                    // Expected '{'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.LBlockSymbol));
+                }
+
                 // Parse members
                 MemberBlockSyntax members = ParseMemberBlock();
 
                 // Create contract declaration
-                return new ContractSyntax(identifier, attributes, modifiers, genericParameters, baseTypes, members);
+                return new InterfaceSyntax(attributes, modifiers, interfaceToken, identifier, genericParameters, baseTypes, members);
             }
 
             // Retrace to original position because we are not working with a type
@@ -217,16 +225,16 @@ namespace LumaSharp.Compiler.Parser
             int position = tokens.Position;
 
             // Parse attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Check for enum
             if (tokens.PeekKind() == SyntaxTokenKind.EnumKeyword)
             {
                 // Consume keyword
-                SyntaxToken contractToken = tokens.Consume();
+                SyntaxToken enumToken = tokens.Consume();
 
                 // Parse identifier
                 if (tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == false)
@@ -238,11 +246,18 @@ namespace LumaSharp.Compiler.Parser
                 // Base types
                 BaseTypeListSyntax baseTypes = ParseBaseTypes();
 
+                // Expect body
+                if (tokens.PeekKind() != SyntaxTokenKind.LBlockSymbol)
+                {
+                    // Expected '{'
+                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.LBlockSymbol));
+                }
+
                 // Parse members
                 EnumBlockSyntax members = ParseEnumMemberBlock();
 
                 // Create enum declaration
-                return new EnumSyntax(identifier, attributes, modifiers, baseTypes, members);
+                return new EnumSyntax(attributes, modifiers, enumToken, identifier, baseTypes, members);
             }
 
             // Retrace to original position because we are not working with a type
@@ -256,10 +271,10 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Parse the field type
             TypeReferenceSyntax fieldType = ParseTypeReference();
@@ -287,7 +302,7 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Create the field
-                return new FieldSyntax(identifier, attributes, modifiers, fieldType, assignExpression, semicolon);
+                return new FieldSyntax(attributes, modifiers, fieldType, identifier, assignExpression, semicolon);
             }
 
             // Retrace to starting position
@@ -317,10 +332,10 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Parse the field type
             TypeReferenceSyntax accessorType = ParseTypeReference();
@@ -370,7 +385,7 @@ namespace LumaSharp.Compiler.Parser
             AccessorBodySyntax[] bodies = null;
 
             // Check for lambda followed by read or write
-            while(tokens.PeekKind() == SyntaxTokenKind.LambdaSymbol && (tokens.PeekKind(1) == SyntaxTokenKind.ReadKeyword || tokens.PeekKind(1) == SyntaxTokenKind.WriteKeyword))
+            while(tokens.PeekKind() == SyntaxTokenKind.LambdaSymbol && (tokens.PeekKind(1) == SyntaxTokenKind.GetKeyword || tokens.PeekKind(1) == SyntaxTokenKind.SetKeyword))
             {
                 // Consume lambda
                 SyntaxToken lambda = tokens.Consume();
@@ -454,10 +469,10 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Expect this keyword
             if(tokens.PeekKind() == SyntaxTokenKind.ThisKeyword)
@@ -491,7 +506,7 @@ namespace LumaSharp.Compiler.Parser
                 }
 
                 // Create constructor
-                return new ConstructorSyntax(thisKeyword, attributes, modifiers, parameters, constructorInvoke, body, lambda);
+                return new ConstructorSyntax(attributes, modifiers, thisKeyword, parameters, constructorInvoke, body, lambda);
             }
             tokens.Retrace(initialPosition);
             return null;
@@ -531,16 +546,16 @@ namespace LumaSharp.Compiler.Parser
             int initialPosition = tokens.Position;
 
             // Parse optional attributes
-            AttributeSyntax[] attributes = ParseAttributes();
+            AttributeListSyntax attributes = ParseAttributeList();
 
             // Parse access modifiers
-            SyntaxToken[] modifiers = ParseAccessModifiers();
+            SyntaxToken[] modifiers = ParseModifiers();
 
             // Parse method return values
-            SeparatedSyntaxList<TypeReferenceSyntax> returnTypes = ParseSeparatedSyntaxList(ParseTypeReference, SyntaxTokenKind.CommaSymbol, SyntaxTokenKind.Invalid);
+            TypeReferenceSyntax returnType = ParseTypeReference();
 
             // Check for return types available
-            if(returnTypes != null)
+            if(returnType != null)
             {
                 // Expect identifier at this point
                 if(tokens.ConsumeExpect(SyntaxTokenKind.Identifier, out SyntaxToken identifier) == true)
@@ -580,7 +595,7 @@ namespace LumaSharp.Compiler.Parser
                         }
 
                         // Build the method
-                        return new MethodSyntax(identifier, attributes, modifiers, returnTypes, genericParameters, parameters, overrideKeyword, body, lambda);
+                        return new MethodSyntax(attributes, modifiers, returnType, identifier, genericParameters, parameters, overrideKeyword, body, lambda);
                     }
                 }
             }
@@ -590,7 +605,7 @@ namespace LumaSharp.Compiler.Parser
             return null;
         }        
 
-        internal SyntaxToken[] ParseAccessModifiers()
+        internal SyntaxToken[] ParseModifiers()
         {
             // Check for modifier
             SyntaxToken modifierToken = tokens.Peek();
@@ -599,7 +614,7 @@ namespace LumaSharp.Compiler.Parser
             SyntaxToken[] modifierList = null;
 
             // Check for modifier
-            while(modifierToken.IsAccessModifier == true)
+            while(modifierToken.IsModifier == true)
             {
                 // Consume the token
                 tokens.Consume();

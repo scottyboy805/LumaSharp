@@ -1,5 +1,4 @@
-﻿
-using LumaSharp.Compiler.AST.Visitor;
+﻿using LumaSharp.Compiler.AST.Visitor;
 
 namespace LumaSharp.Compiler.AST
 {
@@ -7,7 +6,7 @@ namespace LumaSharp.Compiler.AST
     {
         // Private
         private readonly SyntaxToken keyword;
-        private readonly SeparatedSyntaxList<ExpressionSyntax> expressions;
+        private readonly ExpressionSyntax expression;
         private readonly SyntaxToken semicolon;
 
         // Properties
@@ -31,35 +30,27 @@ namespace LumaSharp.Compiler.AST
             get { return semicolon; }
         }
 
-        public SeparatedSyntaxList<ExpressionSyntax> Expressions
+        public ExpressionSyntax Expression
         {
-            get { return expressions; }
+            get { return expression; }
         }
 
-        public bool HasExpressions
+        public bool HasExpression
         {
-            get { return expressions != null; }
+            get { return expression != null; }
         }
 
         internal override IEnumerable<SyntaxNode> Descendants
         {
             get
             {
-                if (HasExpressions == true)
-                    yield return expressions;
+                if (HasExpression == true)
+                    yield return expression;
             }
         }
 
         // Constructor
-        internal ReturnStatementSyntax(SeparatedSyntaxList<ExpressionSyntax> expressions)
-            : this(
-                  Syntax.Token(SyntaxTokenKind.ReturnKeyword),
-                  expressions,
-                  Syntax.Token(SyntaxTokenKind.SemicolonSymbol))
-        {
-        }
-
-        internal ReturnStatementSyntax(SyntaxToken keyword, SeparatedSyntaxList<ExpressionSyntax> expressions, SyntaxToken semicolon)
+        internal ReturnStatementSyntax(SyntaxToken keyword, ExpressionSyntax expression, SyntaxToken semicolon)
         {
             // Check kind
             if(keyword.Kind != SyntaxTokenKind.ReturnKeyword)
@@ -71,11 +62,11 @@ namespace LumaSharp.Compiler.AST
 
 
             this.keyword = keyword;
-            this.expressions = expressions;
+            this.expression = expression;
             this.semicolon = semicolon;
 
             // Set parent
-            if(expressions != null) expressions.parent = this;
+            if(expression != null) expression.parent = this;
         }
 
         // Methods
@@ -95,13 +86,22 @@ namespace LumaSharp.Compiler.AST
             keyword.GetSourceText(writer);
 
             // Return statement
-            if(HasExpressions == true)
+            if(HasExpression == true)
             {
-                expressions.GetSourceText(writer);
+                expression.GetSourceText(writer);
             }
 
             // Semicolon
             semicolon.GetSourceText(writer);
         }
+    }
+
+    public static partial class Syntax
+    {
+        // Methods
+        public static ReturnStatementSyntax Return(ExpressionSyntax expression = null) 
+            => new (Token(SyntaxTokenKind.ReturnKeyword), expression, Token(SyntaxTokenKind.SemicolonSymbol));
+        public static ReturnStatementSyntax Return(SyntaxToken keyword, SyntaxToken semicolon, ExpressionSyntax expression = null) 
+            => new (keyword, expression, semicolon);
     }
 }

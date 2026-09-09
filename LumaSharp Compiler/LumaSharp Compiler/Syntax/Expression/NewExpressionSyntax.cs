@@ -73,7 +73,7 @@ namespace LumaSharp.Compiler.AST
                 throw new ArgumentException(nameof(keyword) + " must be of kind: " +  SyntaxTokenKind.NewKeyword);
 
             if (arguments == null)
-                arguments = new ArgumentListSyntax(null);
+                arguments = Syntax.EmptyArgumentList();
 
             this.keyword = keyword;
             this.newType = newType;

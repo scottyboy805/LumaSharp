@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Reporting
@@ -15,8 +15,8 @@ namespace CompilerTests.Semantic.Reporting
             public void ReportGenericArgumentMessages_Generic_Empty()
             {
                 SyntaxTree tree = SyntaxTree.Create(
-                    Syntax.Type("Test")
-                    .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test", Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32))))));
+                    Syntax.Class("Test")
+                    .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test", Syntax.GenericArgumentList(Syntax.TypeReference(ReservedType.Int32))))));
 
                 // Create model
                 SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -32,8 +32,8 @@ namespace CompilerTests.Semantic.Reporting
             public void ReportGenericArgumentMessages_Generic_InvalidCount()
             {
                 SyntaxTree tree = SyntaxTree.Create(
-                    Syntax.Type("Test").WithGenericParameters(Syntax.GenericParameter("T"), Syntax.GenericParameter("J"))
-                    .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test", Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32))))));
+                    Syntax.Class("Test").WithGenericParameters(Syntax.GenericParameter("T"), Syntax.GenericParameter("J"))
+                    .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test", Syntax.GenericArgumentList(Syntax.TypeReference(ReservedType.Int32))))));
 
                 // Create model
                 SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -49,8 +49,8 @@ namespace CompilerTests.Semantic.Reporting
             public void ReportGenericArgumentMessages_Generic_InvalidConstraint()
             {
                 SyntaxTree tree = SyntaxTree.Create(
-                    Syntax.Type("Test").WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("Test")))
-                    .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test", Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32))))));
+                    Syntax.Class("Test").WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("Test")))
+                    .WithMembers(Syntax.Field("myField", Syntax.TypeReference("Test", Syntax.GenericArgumentList(Syntax.TypeReference(ReservedType.Int32))))));
 
                 // Create model
                 SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

@@ -1,4 +1,4 @@
-﻿using LumaSharp.Compiler.Semantics.Model;
+﻿using LumaSharp.Compiler.SemanticsOld.Model;
 using LumaSharp.Compiler.AST;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -11,11 +11,11 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveParameterSymbols_Local()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("MyType")
-                    .WithMembers(Syntax.Method("MyMethod", Syntax.TypeReference(PrimitiveType.I32))
-                        .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "myParam"))
+                Syntax.Class("MyType")
+                    .WithMembers(Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
+                        .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "myParam"))
                         .WithBody(
-                            Syntax.LocalVariable(Syntax.TypeReference(PrimitiveType.I32), "myVar"),
+                            Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar"),
                             Syntax.Assign(Syntax.VariableReference("myVar"),
                                 Syntax.VariableAssignment(Syntax.Literal(5))))));
 
@@ -31,8 +31,8 @@ namespace CompilerTests.Semantic.Symbols
             TypeModel type = model.TypeModels[0];
 
             Assert.AreEqual("MyType", type.TypeName);
-            Assert.IsTrue(type.IsType);
-            Assert.IsFalse(type.IsContract);
+            Assert.IsTrue(type.IsClass);
+            Assert.IsFalse(type.IsInterface);
             Assert.IsFalse(type.IsEnum);
             Assert.IsFalse(type.IsPrimitive);
         }
@@ -41,7 +41,7 @@ namespace CompilerTests.Semantic.Symbols
         public void ResolveParameterSymbols_Return()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("test")
+                Syntax.Class("test")
                 .WithMembers(Syntax.Method("test", Syntax.TypeReference("test"))
                 .WithParameters(Syntax.Parameter(Syntax.TypeReference("test"), "myVal"))
                 .WithBody(Syntax.Return(Syntax.VariableReference("myVal")))));

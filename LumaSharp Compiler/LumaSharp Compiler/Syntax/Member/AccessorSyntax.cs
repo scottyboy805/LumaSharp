@@ -70,7 +70,7 @@ namespace LumaSharp.Compiler.AST
         }
 
         // Constructor
-        internal AccessorSyntax(SyntaxToken identifier, AttributeSyntax[] attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, SyntaxToken? overrideToken, AccessorBodySyntax[] accessorBodies, AccessorLambdaSyntax lambda)
+        internal AccessorSyntax(SyntaxToken identifier, AttributeListSyntax attributes, SyntaxToken[] modifiers, TypeReferenceSyntax type, SyntaxToken? overrideToken, AccessorBodySyntax[] accessorBodies, AccessorLambdaSyntax lambda)
             : base(identifier, attributes, modifiers)
         {
             // Accessor type

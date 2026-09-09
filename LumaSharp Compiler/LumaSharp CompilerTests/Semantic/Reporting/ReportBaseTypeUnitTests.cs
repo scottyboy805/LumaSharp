@@ -1,6 +1,6 @@
 ﻿using LumaSharp.Compiler.AST;
 using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.Semantics.Model;
+using LumaSharp.Compiler.SemanticsOld.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CompilerTests.Semantic.Reporting
@@ -12,7 +12,7 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportBaseTypeMessages_Type_InheritanceCycle()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("Test").WithBaseTypes(Syntax.TypeReference("Test")));
+                Syntax.Class("Test").WithBaseTypes(Syntax.TypeReference("Test")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -29,7 +29,7 @@ namespace CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("MyEnum"),
-                Syntax.Type("Test").WithBaseTypes(Syntax.TypeReference("MyEnum")));
+                Syntax.Class("Test").WithBaseTypes(Syntax.TypeReference("MyEnum")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -45,8 +45,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportBaseTypeMessages_Type_MultipleBase()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("MyType"), Syntax.Type("MyOtherType"),
-                Syntax.Type("Test").WithBaseTypes(Syntax.TypeReference("MyType"), Syntax.TypeReference("MyOtherType")));
+                Syntax.Class("MyType"), Syntax.Class("MyOtherType"),
+                Syntax.Class("Test").WithBaseTypes(Syntax.TypeReference("MyType"), Syntax.TypeReference("MyOtherType")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -62,8 +62,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportBaseTypeMessages_Type_BaseTypeFirst()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("MyContract"), Syntax.Type("MyOtherType"),
-                Syntax.Type("Test").WithBaseTypes(Syntax.TypeReference("MyContract"), Syntax.TypeReference("MyOtherType")));
+                Syntax.Interface("MyContract"), Syntax.Class("MyOtherType"),
+                Syntax.Class("Test").WithBaseTypes(Syntax.TypeReference("MyContract"), Syntax.TypeReference("MyOtherType")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -79,7 +79,7 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportBaseTypeMessages_Contract_InheritanceCycle()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Contract("Test").WithBaseTypes(Syntax.TypeReference("Test")));
+                Syntax.Interface("Test").WithBaseTypes(Syntax.TypeReference("Test")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -96,7 +96,7 @@ namespace CompilerTests.Semantic.Reporting
         {
             SyntaxTree tree = SyntaxTree.Create(
                 Syntax.Enum("MyEnum"),
-                Syntax.Contract("Test").WithBaseTypes(Syntax.TypeReference("MyEnum")));
+                Syntax.Interface("Test").WithBaseTypes(Syntax.TypeReference("MyEnum")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
@@ -112,8 +112,8 @@ namespace CompilerTests.Semantic.Reporting
         public void ReportBaseTypeMessages_Contract_Type()
         {
             SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Type("MyType"),
-                Syntax.Contract("Test").WithBaseTypes(Syntax.TypeReference("MyType")));
+                Syntax.Class("MyType"),
+                Syntax.Interface("Test").WithBaseTypes(Syntax.TypeReference("MyType")));
 
             // Create model
             SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);

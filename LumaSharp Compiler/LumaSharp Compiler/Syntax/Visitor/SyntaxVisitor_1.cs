@@ -8,8 +8,8 @@ namespace LumaSharp.Compiler.AST.Visitor
         public abstract T VisitTrivia(SyntaxTrivia trivia);
 
         public abstract T VisitCompilationUnit(CompilationUnitSyntax compilationUnit);
-        public abstract T VisitImport(ImportSyntax import);
-        public abstract T VisitImpotAlias(ImportAliasSyntax importAlias);
+        public abstract T VisitUsing(UsingSyntax import);
+        public abstract T VisitUsingAlias(UsingAliasSyntax importAlias);
         public abstract T VisitNamespace(NamespaceSyntax ns);
 
         public abstract T VisitTokenList(SeparatedTokenList list);
@@ -23,6 +23,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public abstract T VisitParameter(ParameterSyntax parameter);
         public abstract T VisitArgumentList(ArgumentListSyntax argumentList);
         public abstract T VisitArrayParameters(ArrayParametersSyntax arrayParameterList);
+        public abstract T VisitAttributeList(AttributeListSyntax attributeList);
         public abstract T VisitAttribute(AttributeSyntax attribute);
 
         public abstract T VisitParentTypeReference(ParentTypeReferenceSyntax parentTypeReference);
@@ -32,9 +33,10 @@ namespace LumaSharp.Compiler.AST.Visitor
         public abstract T VisitVariableDeclaration(VariableDeclarationSyntax variableDeclaration);
 
         #region Member
-        public abstract T VisitType(TypeSyntax type);
-        public abstract T VisitContract(ContractSyntax contract);
-        public abstract T VisitEnum(EnumSyntax e);
+        public abstract T VisitClass(ClassSyntax _class);
+        public abstract T VisitStruct(StructSyntax _struct);
+        public abstract T VisitInterface(InterfaceSyntax _interface);
+        public abstract T VisitEnum(EnumSyntax _enum);
         public abstract T VisitEnumBlock(EnumBlockSyntax enumBlock);
         public abstract T VisitEnumField(EnumFieldSyntax enumField);
         public abstract T VisitField(FieldSyntax field);
@@ -49,7 +51,8 @@ namespace LumaSharp.Compiler.AST.Visitor
         #region Statement
         public abstract T VisitAssignStatement(AssignStatementSyntax assignStatement);
         public abstract T VisitBreakStatement(BreakStatementSyntax breakStatement);
-        public abstract T VisitConditionStatement(ConditionStatementSyntax conditionStatement);
+        public abstract T VisitIfStatement(IfStatementSyntax conditionStatement);
+        public abstract T VisitElseClause(ElseClauseSyntax elseStatement);
         public abstract T VisitContinueStatement(ContinueStatementSyntax continueStatement);
         public abstract T VisitEmptyStatement(EmptyStatementSyntax emptyStatement);
         public abstract T VisitForeachStatement(ForeachStatementSyntax foreachStatement);

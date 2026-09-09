@@ -9,7 +9,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateMisc_TypeReference()
         {
-            SyntaxNode syntax0 = Syntax.TypeReference(PrimitiveType.I32);
+            SyntaxNode syntax0 = Syntax.TypeReference(ReservedType.Int32);
 
             // Get expression text
             Assert.AreEqual("i32", syntax0.GetSourceText());
@@ -59,7 +59,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("]", syntax6.EndToken.Text);
 
             SyntaxNode syntax7 = Syntax.TypeReference(new string[] { "MyNamespace" }, Syntax.ParentTypeReference("SomeType"), "MyType",
-                Syntax.GenericArgumentList((Syntax.TypeReference(PrimitiveType.I32))), 2);
+                Syntax.GenericArgumentList((Syntax.TypeReference(ReservedType.Int32))), 2);
 
             // Get expression text
             Assert.AreEqual("MyNamespace:SomeType.MyType<i32>[,]", syntax7.GetSourceText());
@@ -67,7 +67,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("]", syntax7.EndToken.Text);
 
             SyntaxNode syntax8 = Syntax.TypeReference(new string[] { "MyNamespace" }, Syntax.ParentTypeReference("SomeType"), "MyType", 
-                Syntax.GenericArgumentList(Syntax.TypeReference(PrimitiveType.I32), Syntax.TypeReference(new string[] { "NS" }, "OtherType")), 2);
+                Syntax.GenericArgumentList(Syntax.TypeReference(ReservedType.Int32), Syntax.TypeReference(new string[] { "NS" }, "OtherType")), 2);
 
             // Get expression text
             Assert.AreEqual("MyNamespace:SomeType.MyType<i32,NS:OtherType>[,]", syntax8.GetSourceText());
@@ -87,7 +87,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax0.EndToken.Text);
 
             SyntaxNode syntax1 = Syntax.Method("test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val")).Parameters
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "val")).Parameters
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -96,7 +96,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax1.EndToken.Text);
 
             SyntaxNode syntax2 = Syntax.Method("test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val"),
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "val"),
                 Syntax.Parameter(Syntax.TypeReference("MyType"), "arg")).Parameters
                 .NormalizeWhitespace();
 
@@ -106,8 +106,8 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax2.EndToken.Text);
 
             SyntaxNode syntax3 = Syntax.Method("test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val"),
-                Syntax.Parameter(Syntax.TypeReference("MyType"), "arg", true)).Parameters
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "val"),
+                Syntax.Parameter(Syntax.TypeReference("MyType"), "arg", Syntax.Token(SyntaxTokenKind.EnumerableSymbol))).Parameters
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -116,9 +116,9 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual(")", syntax3.EndToken.Text);
 
             SyntaxNode syntax4 = Syntax.Method("test")
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference(PrimitiveType.I32), "val"),
+                .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "val"),
                 Syntax.Parameter(Syntax.TypeReference("MyType"), "arg")
-                .WithAttributes(Syntax.Attribute(Syntax.TypeReference("ref")))).Parameters
+                .WithAttribute(Syntax.Attribute(Syntax.TypeReference("ref")))).Parameters
                 .NormalizeWhitespace();
 
             // Get expression text
@@ -130,7 +130,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
         [TestMethod]
         public void GenerateMisc_GenericParameters()
         {
-            SyntaxNode syntax0 = Syntax.Type("test")
+            SyntaxNode syntax0 = Syntax.Class("test")
                 .WithGenericParameters(Syntax.GenericParameter("T")).GenericParameters
                 .NormalizeWhitespace();
 
@@ -139,7 +139,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("<", syntax0.StartToken.Text);
             Assert.AreEqual(">", syntax0.EndToken.Text);
 
-            SyntaxNode syntax1 = Syntax.Type("test")
+            SyntaxNode syntax1 = Syntax.Class("test")
                 .WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("enum"))).GenericParameters
                 .NormalizeWhitespace();
 
@@ -148,7 +148,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("<", syntax1.StartToken.Text);
             Assert.AreEqual(">", syntax1.EndToken.Text);
 
-            SyntaxNode syntax2 = Syntax.Type("test")
+            SyntaxNode syntax2 = Syntax.Class("test")
                 .WithGenericParameters(Syntax.GenericParameter("T"), Syntax.GenericParameter("Param")).GenericParameters
                 .NormalizeWhitespace();
 
@@ -157,7 +157,7 @@ namespace CompilerTests.AST.ParseGenerateSource.FromSyntax
             Assert.AreEqual("<", syntax2.StartToken.Text);
             Assert.AreEqual(">", syntax2.EndToken.Text);
 
-            SyntaxNode syntax3 = Syntax.Type("test")
+            SyntaxNode syntax3 = Syntax.Class("test")
                 .WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference("enum")), Syntax.GenericParameter("Param", Syntax.TypeReference("MyType"), Syntax.TypeReference("CDispose"))).GenericParameters
                 .NormalizeWhitespace();
 
