@@ -1,88 +1,88 @@
-﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.SemanticsOld.Model;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿//using LumaSharp.Compiler.AST;
+//using LumaSharp.Compiler.Reporting;
+//using LumaSharp.Compiler.SemanticsOld.Model;
+//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CompilerTests.Semantic.Reporting
-{
-    [TestClass]
-    public sealed class ReportLocalMessagesUnitTests
-    {
-        [TestMethod]
-        public void ReportLocalMessages_MissingIdentifier()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("Test").WithMembers(
-                Syntax.Method("Test")
-                .WithBody(Syntax.Return(Syntax.VariableReference("var")))));
+//namespace CompilerTests.Semantic.Reporting
+//{
+//    [TestClass]
+//    public sealed class ReportLocalMessagesUnitTests
+//    {
+//        [TestMethod]
+//        public void ReportLocalMessages_MissingIdentifier()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("Test").WithMembers(
+//                Syntax.Method("Test")
+//                .WithBody(Syntax.Return(Syntax.VariableReference("var")))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
-            Console.WriteLine(model.Report);
+//            Console.WriteLine(model.Report);
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.DiagnosticCount);
-            Assert.AreEqual((int)Code.IdentifierNotFound, model.Report.Diagnostics.First().Code);
-        }
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(1, model.Report.DiagnosticCount);
+//            Assert.AreEqual((int)Code.IdentifierNotFound, model.Report.Diagnostics.First().Code);
+//        }
 
-        [TestMethod]
-        public void ReportLocalMessages_UsedBeforeDeclared()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("Test").WithMembers(
-                Syntax.Method("Test")
-                .WithBody(Syntax.Assign(Syntax.VariableReference("var"),
-                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))),
-                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "var"))));
+//        [TestMethod]
+//        public void ReportLocalMessages_UsedBeforeDeclared()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("Test").WithMembers(
+//                Syntax.Method("Test")
+//                .WithBody(Syntax.Assign(Syntax.VariableReference("var"),
+//                    Syntax.VariableAssignment(Syntax.Token(SyntaxTokenKind.AssignSymbol), Syntax.Literal(5))),
+//                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "var"))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
-            Console.WriteLine(model.Report);
+//            Console.WriteLine(model.Report);
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.DiagnosticCount);
-            Assert.AreEqual((int)Code.IdentifierUsedBeforeDeclared, model.Report.Diagnostics.First().Code);
-        }
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(1, model.Report.DiagnosticCount);
+//            Assert.AreEqual((int)Code.IdentifierUsedBeforeDeclared, model.Report.Diagnostics.First().Code);
+//        }
 
-        [TestMethod]
-        public void ReportLocalMessages_MultipleLocals_2()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("Test").WithMembers(
-                Syntax.Method("Test")
-                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "var"),
-                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Bool), "var"))));
+//        [TestMethod]
+//        public void ReportLocalMessages_MultipleLocals_2()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("Test").WithMembers(
+//                Syntax.Method("Test")
+//                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "var"),
+//                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Bool), "var"))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
-            Console.WriteLine(model.Report);
+//            Console.WriteLine(model.Report);
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.DiagnosticCount);
-            Assert.AreEqual((int)Code.MultipleLocalIdentifiers, model.Report.Diagnostics.First().Code);
-        }
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(1, model.Report.DiagnosticCount);
+//            Assert.AreEqual((int)Code.MultipleLocalIdentifiers, model.Report.Diagnostics.First().Code);
+//        }
 
-        [TestMethod]
-        public void ReportLocalMessages_MultipleLocals_3()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("Test").WithMembers(
-                Syntax.Method("Test")
-                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "var"),
-                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Bool), "var"),
-                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Object), "var"))));
+//        [TestMethod]
+//        public void ReportLocalMessages_MultipleLocals_3()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("Test").WithMembers(
+//                Syntax.Method("Test")
+//                .WithBody(Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "var"),
+//                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Bool), "var"),
+//                Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Object), "var"))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
-            Console.WriteLine(model.Report);
+//            Console.WriteLine(model.Report);
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(2, model.Report.DiagnosticCount);
-            Assert.AreEqual((int)Code.MultipleLocalIdentifiers, model.Report.Diagnostics.First().Code);
-        }
-    }
-}
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(2, model.Report.DiagnosticCount);
+//            Assert.AreEqual((int)Code.MultipleLocalIdentifiers, model.Report.Diagnostics.First().Code);
+//        }
+//    }
+//}

@@ -188,6 +188,8 @@ namespace LumaSharp.Compiler.Emit.LLVM
             LLVMBasicBlockRef loopBodyBlock = function.AppendBasicBlock("for.body");
             LLVMBasicBlockRef loopIncrementBlock = function.AppendBasicBlock("for.increment");
             LLVMBasicBlockRef loopEndBlock = function.AppendBasicBlock("for.end");
+            
+            // 
 
             // Emit variable
             //LLVMTypeRef variableType = GetLLVMTypeRef(forStatement.Variable.VariableType);

@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class ThisModel : ExpressionModel
+    internal sealed class ThisModel : ExpressionModel
     {
         // Private
         private ITypeReferenceSymbol thisTypeReference = null;
@@ -41,7 +41,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitThis(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Get parent type
             SymbolModel current = this;
@@ -62,7 +62,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             // Must be invalid usage context
             if(thisMethodScope == null || thisMethodScope.IsStatic == true)
             {
-                report.ReportDiagnostic(Code.KeywordNotValid, MessageSeverity.Error, Span, SyntaxToken.GetText(SyntaxTokenKind.ThisKeyword));
+                report.Report(Code.KeywordNotValid, DiagnosticSeverity.Error, Span, SyntaxToken.GetText(SyntaxTokenKind.ThisKeyword));
             }
         }
     }

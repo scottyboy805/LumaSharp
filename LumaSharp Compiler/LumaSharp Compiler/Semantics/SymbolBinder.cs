@@ -47,7 +47,46 @@ namespace LumaSharp.Compiler.Semantics
 
         public IMethodSymbol ResolveMethod(MethodInvokeExpressionSyntax methodInvoke)
         {
-            throw new NotImplementedException();
+            // Check for resolve context
+            switch(methodInvoke.AccessExpression)
+            {
+                case VariableReferenceExpressionSyntax variableReference:
+                    {
+                        // Get the identifier
+                        string methodIdentifier = variableReference.Identifier.Text;
+
+                        // Get declaring type
+                        MemberSyntax current = methodInvoke.ParentOfType<ClassSyntax>();
+
+                        // Check for struct
+                        if (current == null)
+                            current = methodInvoke.ParentOfType<StructSyntax>();
+
+                        // Get type symbol
+                        ITypeSymbol declaringTypeSymbol = model.GetSymbol(current).Symbol as ITypeSymbol;
+
+                        // Check for found
+                        if(declaringTypeSymbol != null)
+                        {
+                            // Search for matching methods
+                            IMethodSymbol[] matchingMethods = declaringTypeSymbol.GetMembers()
+                                .Where(m => m is IMethodSymbol method && method.IsConstructor == false && method.Name == methodIdentifier)
+                                .Cast<IMethodSymbol>()
+                                .ToArray();
+
+                            // Check for single
+                            if(matchingMethods.Length == 1)
+                            {
+                                // TODO - check argument binding
+                                return matchingMethods[0];
+                            }
+                        }
+                        break;
+                    }
+            }
+
+            // No symbol
+            return null;
         }
 
         public IMemberSymbol ResolveMember(MemberAccessExpressionSyntax memberAccess)

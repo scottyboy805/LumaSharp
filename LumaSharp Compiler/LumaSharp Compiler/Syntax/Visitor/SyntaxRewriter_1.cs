@@ -88,5 +88,6 @@ namespace LumaSharp.Compiler.AST.Visitor
         public override SyntaxNode VisitVariableDeclaration(VariableDeclarationSyntax variableDeclaration) => variableDeclaration;
         public override SyntaxNode VisitVariableDeclarationStatement(VariableDeclarationStatementSyntax variableDeclarationStatement) => variableDeclarationStatement;
         public override SyntaxNode VisitVariableReferenceExpression(VariableReferenceExpressionSyntax variableReferenceExpression) => variableReferenceExpression;
+        public override SyntaxNode VisitWhileStatement(WhileStatement whileStatement) => whileStatement;
     }
 }

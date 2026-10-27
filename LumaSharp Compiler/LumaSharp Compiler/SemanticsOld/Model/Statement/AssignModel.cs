@@ -13,7 +13,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         DivideAssign,
     }
 
-    public sealed class AssignModel : StatementModel
+    internal sealed class AssignModel : StatementModel
     {
         // Private
         private readonly SyntaxToken operationToken;
@@ -97,7 +97,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitAssign(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Try to get assign operation
             try
@@ -106,7 +106,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
             catch(Exception)
             {
-                report.ReportDiagnostic(Code.InvalidOperation, MessageSeverity.Error, operationToken.Span);
+                report.Report(Code.InvalidOperation, DiagnosticSeverity.Error, operationToken.Span);
                 return;
             }
 
@@ -130,7 +130,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                         // Check for assignment
                         if (TypeChecker.IsTypeAssignable(right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol) == false)
                         {
-                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, right[i].Span, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
+                            report.Report(Code.InvalidConversion, DiagnosticSeverity.Error, right[i].Span, right[i].EvaluatedTypeSymbol, left[i].EvaluatedTypeSymbol);
                         }
                     }
                 }
@@ -152,7 +152,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                             // Check for assignment
                             if (TypeChecker.IsTypeAssignable(methodReturnSymbols[i], left[i].EvaluatedTypeSymbol) == false)
                             {
-                                report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, invokeMethod.Span, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
+                                report.Report(Code.InvalidConversion, DiagnosticSeverity.Error, invokeMethod.Span, methodReturnSymbols[i], left[i].EvaluatedTypeSymbol);
                             }
                         }
                     }

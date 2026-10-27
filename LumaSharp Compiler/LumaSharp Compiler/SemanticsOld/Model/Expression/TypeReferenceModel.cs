@@ -4,7 +4,7 @@ using LumaSharp.Compiler.SemanticsOld.Reference;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class TypeReferenceModel : ExpressionModel
+    internal sealed class TypeReferenceModel : ExpressionModel
     {
         // Type
         public sealed class ParentTypeReference
@@ -167,7 +167,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitTypeReference(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve generic arguments
             bool didResolveGenerics = false;
@@ -199,19 +199,19 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
         }
 
-        private void CheckGenericArguments(ITypeReferenceSymbol typeSymbol, TypeReferenceModel[] genericArgumentTypeSymbols, ICompileReportProvider report)
+        private void CheckGenericArguments(ITypeReferenceSymbol typeSymbol, TypeReferenceModel[] genericArgumentTypeSymbols, IDiagnosticReporter report)
         {
             // Check for generic argument mismatch
             if(typeSymbol.GenericParameterSymbols == null)
             {
-                report.ReportDiagnostic(Code.InvalidNoGenericArgument, MessageSeverity.Error, Span, typeSymbol);
+                report.Report(Code.InvalidNoGenericArgument, DiagnosticSeverity.Error, Span, typeSymbol);
                 return;
             }
 
             // Check for mismatch generic argument count
             if(typeSymbol.GenericParameterSymbols.Length != genericArgumentTypeSymbols.Length)
             {
-                report.ReportDiagnostic(Code.InvalidCountGenericArgument, MessageSeverity.Error, Span, typeSymbol, genericArgumentTypeSymbols.Length);
+                report.Report(Code.InvalidCountGenericArgument, DiagnosticSeverity.Error, Span, typeSymbol, genericArgumentTypeSymbols.Length);
                 return;
             }
 
@@ -222,7 +222,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
         }
 
-        private void CheckGenericArgument(IGenericParameterIdentifierReferenceSymbol genericParameter, TypeReferenceModel genericArgument, ICompileReportProvider report)
+        private void CheckGenericArgument(IGenericParameterIdentifierReferenceSymbol genericParameter, TypeReferenceModel genericArgument, IDiagnosticReporter report)
         {
             // Check for any constraints
             if(genericParameter.TypeConstraintSymbols != null && genericParameter.TypeConstraintSymbols.Length > 0)
@@ -234,7 +234,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     if(TypeChecker.IsTypeAssignable(genericArgument.EvaluatedTypeSymbol, genericConstraint) == false)
                     {
                         // Constraint is not implemented
-                        report.ReportDiagnostic(Code.InvalidConstraintGenericArgument, MessageSeverity.Error, Span, genericArgument, genericConstraint);
+                        report.Report(Code.InvalidConstraintGenericArgument, DiagnosticSeverity.Error, Span, genericArgument, genericConstraint);
                     }
                 }
             }

@@ -12,6 +12,8 @@ namespace LumaSharp.Compiler.Emit.LLVM
             switch(expression)
             {
                 case VariableReferenceExpressionSyntax variable: return EmitVariableReferenceExpression(variable, functionBuilder, asPointer);
+                case MethodInvokeExpressionSyntax invoke: return EmitMethodInvokeExpression(invoke, functionBuilder);
+                case BinaryExpressionSyntax binary: return EmitBinaryExpression(binary, functionBuilder, asPointer);
                 case SizeofExpressionSyntax size: return EmitSizeofExpression(size);
                 case LiteralExpressionSyntax literal: return EmitLiteralExpression(literal);
                 default: throw new NotSupportedException(expression.ToString());
@@ -27,43 +29,111 @@ namespace LumaSharp.Compiler.Emit.LLVM
             LLVMVariable variable = functionBuilder.GetVariable(identifierSymbol);
 
             // Check for pointer
-            if (asPointer == true)
+            if (asPointer == true || identifierSymbol is IParameterSymbol)
                 return new LLVMValue(variable.TypeRef, variable.ValueRef, true);
 
             // Load value
             return new LLVMValue(variable.TypeRef, builder.BuildLoad2(variable.TypeRef, variable.ValueRef, identifierSymbol.Name + "_value"), false);
+        }
 
-            //// Get identifier
-            //string identifier = variableReference.Identifier.Text;
+        private LLVMValue EmitMethodInvokeExpression(MethodInvokeExpressionSyntax methodInvoke, LLVMFunctionBuilder functionBuilder)
+        {
+            // Get symbol
+            IMethodSymbol methodSymbol = model.GetSymbol(methodInvoke).Symbol as IMethodSymbol;
 
-            //// Check for parameter first
-            //LLVMParameter parameter = null;
-            //if((parameter = functionBuilder.GetParameter(identifier)) != null)
-            //{
-            //    // Check for pointer
-            //    if (asPointer == true)
-            //        return new LLVMValue(parameter.ParameterType, parameter.ParameterValue, true);
+            // Get return type
+            ITypeSymbol returnTypeSymbol = methodSymbol.GetReturnType();
 
-            //    // Bind to parameter
-            //    return new LLVMValue(
-            //        parameter.ParameterType,
-            //        builder.BuildLoad2(parameter.ParameterType, parameter.ParameterValue, identifier + "_value"));
-            //}
+            // Get parameters
+            IReadOnlyList<IParameterSymbol> parameters = methodSymbol.GetParameters();
 
-            //// Check for local
-            //LLVMVariable local = null;
-            //if((local = functionBuilder.GetVariable(identifier)) != null)
-            //{
-            //    // Check for pointer
-            //    if (asPointer == true)
-            //        return new LLVMValue(local.TypeRef, local.ValueRef);
+            // Create arguments
+            LLVMValue[] arguments = parameters.Count > 0
+                ? new LLVMValue[parameters.Count]
+                : [] ;
 
-            //    // Bind to local
-            //    return new LLVMValue(
-            //        local.TypeRef,
-            //        builder.BuildLoad2(local.TypeRef, local.ValueRef, identifier + "_value"));
-            //}
-            throw new NotSupportedException();
+            // Process arguments
+            for(int i = 0; i < parameters.Count; i++)
+            {
+                // Get parameter symbol
+                IParameterSymbol parameterSymbol = parameters[i];
+
+                // Check for by ref
+                bool byRef = false;// parameterSymbol.IsIn || parameterSymbol.IsOut || parameterSymbol.IsRef;
+
+                // Check if argument was provided
+                bool hasArgument = i <= methodInvoke.ArgumentCount;
+
+                // Get argument or default value
+                arguments[i] = hasArgument == true
+                    ? EmitExpression(methodInvoke.ArgumentList[i], functionBuilder, byRef)
+                    : default;
+            }
+
+            // Get return type
+            LLVMTypeRef returnType = GetLLVMTypeRef(returnTypeSymbol);
+
+            // Build argument types
+            LLVMTypeRef[] parameterTypes = parameters.Select(p => GetLLVMTypeRef(p.GetParameterType())).ToArray();
+
+            // Build argument ref values
+            LLVMValueRef[] argumentValues = arguments.Select(a => a.Value).ToArray();
+
+            // Create function type
+            LLVMTypeRef functionType = LLVMTypeRef.CreateFunction(returnType, parameterTypes, false);
+
+            // Get the function to call
+            LLVMValueRef functionInstance = module.GetNamedFunction(methodSymbol.Name);
+
+            // Build call
+            return new LLVMValue(returnType,
+                builder.BuildCall2(functionType, functionInstance, argumentValues, methodSymbol.Name + "_invoke"));
+        }
+
+        private LLVMValue EmitBinaryExpression(BinaryExpressionSyntax binary, LLVMFunctionBuilder functionBuilder, bool asPointer)
+        {
+            // Get operation
+            IOperation operation = model.GetOperation(binary);
+
+            // Get type
+            ITypeSymbol operationTypeSymbol = operation.GetOperationType();
+
+            // Check for floating point
+            bool isFloatingPoint = operationTypeSymbol.ReservedType == ReservedType.Float || operationTypeSymbol.ReservedType == ReservedType.Double;
+            bool isSignedType = GetLLVMTypeIsSigned(operationTypeSymbol);
+
+            // Get left and right
+            LLVMValue left = EmitExpression(binary.Left, functionBuilder, false);
+            LLVMValue right = EmitExpression(binary.Right, functionBuilder, false);
+
+            // Get the operation type
+            LLVMTypeRef operationType = GetLLVMTypeRef(operationTypeSymbol);
+
+            // Check kind
+            switch (operation.Kind)
+            {
+                case OperationKind.BinaryAdd:
+                    {
+                        // Check for float
+                        return new LLVMValue(operationType, isFloatingPoint == true
+                            ? builder.BuildFAdd(left.Value, right.Value, "add.float")
+                            : builder.BuildAdd(left.Value, right.Value, "add.integer"));
+                    }
+                case OperationKind.BinarySubtract:
+                    {
+                        // Check for float
+                        return new LLVMValue(operationType, isFloatingPoint == true
+                            ? builder.BuildFSub(left.Value, right.Value, "subtract.float")
+                            : builder.BuildSub(left.Value, right.Value, "subtract.integer"));
+                    }
+                case OperationKind.BinaryLess:
+                    {
+                        return new LLVMValue(operationType, isFloatingPoint == true
+                            ? builder.BuildFCmp(LLVMRealPredicate.LLVMRealOLT, left.Value, right.Value, "clt.float")
+                            : builder.BuildICmp(isSignedType == true ? LLVMIntPredicate.LLVMIntSLT : LLVMIntPredicate.LLVMIntULT, left.Value, right.Value, "clt.integer"));
+                    }
+            }
+            throw new NotSupportedException(operation.Kind.ToString());
         }
 
         //private LLVMValue EmitIndexExpression(IndexExpressionSyntax indexExpression, LLVMFunctionBuilder functionBuilder, bool asPointer)
@@ -103,6 +173,10 @@ namespace LumaSharp.Compiler.Emit.LLVM
             // Get llvm type
             LLVMTypeRef typeRef = GetLLVMTypeRef(type);
 
+            // Check for small int - promote to 32bit
+            if (constant.ConstantKind == ConstantKind.Integer && typeRef.IntWidth < 32)
+                typeRef = LLVMTypeRef.Int32;
+            
             // Create value
             LLVMValueRef valueRef = constant.ConstantKind switch
             {
@@ -115,89 +189,7 @@ namespace LumaSharp.Compiler.Emit.LLVM
             };
 
             // Create value
-            return new LLVMValue(typeRef, valueRef, constant.ConstantKind == ConstantKind.String);
-
-            // Create the literal type
-
-            //// Check kind
-            //switch(constant.ConstantKind)
-            //{
-            //    //case ConstantKind.Null:
-            //    //    {
-            //    //        return LLVMValueRef.CreateConstNull();
-            //    //    }
-            //    case ConstantKind.Boolean:
-            //        {
-            //            // Get bool value
-            //            bool value = constant.BooleanValue.Value;
-
-            //            // Create const int I1
-            //            return new LLVMValue(
-            //                LLVMTypeRef.Int1,
-            //                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int1, value == true ? 1ul : 0));
-            //        }
-            //    case ConstantKind.Integer:
-            //        {
-            //            // Get int value
-            //            ulong integerValue = constant.IntegerValue.Value;
-
-            //            // Check for int8
-            //            if (integerValue < byte.MaxValue)
-            //            {
-            //                return new LLVMValue(
-            //                    LLVMTypeRef.Int8,
-            //                    LLVMValueRef.CreateConstInt(LLVMTypeRef.Int8, integerValue));
-            //            }
-
-            //            // Check for int 16
-            //            if (integerValue < ushort.MaxValue)
-            //            {
-            //                return new LLVMValue(
-            //                    LLVMTypeRef.Int16,
-            //                    LLVMValueRef.CreateConstInt(LLVMTypeRef.Int16, integerValue));
-            //            }
-
-            //            // Check for int 32
-            //            if (integerValue < uint.MaxValue)
-            //            {
-            //                return new LLVMValue(
-            //                    LLVMTypeRef.Int32,
-            //                    LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, integerValue));
-            //            }
-
-            //            // Must be 64
-            //            return new LLVMValue(
-            //                LLVMTypeRef.Int64,
-            //                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int64, integerValue));
-            //        }
-            //    case ConstantKind.Decimal:
-            //        {
-            //            // Get decimal value
-            //            double decimalValue = constant.DecimalValue.Value;
-
-            //            // Check for float
-            //            if (decimalValue >= float.MinValue && decimalValue <= float.MaxValue)
-            //            {
-            //                return new LLVMValue(
-            //                    LLVMTypeRef.Float,
-            //                    LLVMValueRef.CreateConstReal(LLVMTypeRef.Float, decimalValue));
-            //            }
-
-            //            // Must be 64
-            //            return new LLVMValue(
-            //                LLVMTypeRef.Double,
-            //                LLVMValueRef.CreateConstReal(LLVMTypeRef.Double, decimalValue));
-            //        }
-            //    case ConstantKind.String:
-            //        {
-            //            // Create global string
-            //            return new LLVMValue(
-            //                LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0),
-            //                builder.BuildGlobalStringPtr(literalExpression.Value.Text), true);
-            //        }
-            //}
-
-            
+            return new LLVMValue(typeRef, valueRef, constant.ConstantKind == ConstantKind.String);            
         }
     }
 }

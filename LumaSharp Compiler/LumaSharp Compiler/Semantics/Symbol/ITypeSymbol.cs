@@ -3,6 +3,18 @@ using LumaSharp.Compiler.AST;
 
 namespace LumaSharp.Compiler.Semantics
 {
+    public enum SpecialOperation
+    {
+        Add,
+        Subtract,
+        Multiply,
+        Divide,
+        Equal,
+        NotEqual,
+        ImplicitConvert,
+        ExplicitConvert,
+    }
+
     public interface ITypeSymbol : IMemberSymbol
     {
         // Properties
@@ -10,7 +22,7 @@ namespace LumaSharp.Compiler.Semantics
         ReservedType ReservedType { get; }
         bool IsClass { get; }
         bool IsStruct { get; }
-        bool IsInterfalce { get; }
+        bool IsInterface { get; }
         bool IsEnum { get; }
         bool IsVirtual { get; }
         bool IsNested { get; }
@@ -23,6 +35,6 @@ namespace LumaSharp.Compiler.Semantics
         IReadOnlyList<IMethodSymbol> GetConstructors();
         IMethodSymbol GetStaticConstructor();
         IReadOnlyList<IMemberSymbol> GetMembers();
-        IReadOnlyList<IMemberSymbol> GetMembers(string name);
+        IMethodSymbol GetSpecialOperation(SpecialOperation operation, ITypeSymbol left, ITypeSymbol right);
     }
 }

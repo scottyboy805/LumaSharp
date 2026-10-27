@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class FieldAccessorReferenceModel : ExpressionModel
+    internal sealed class FieldAccessorReferenceModel : ExpressionModel
     {
         // Private
         private readonly ExpressionModel accessModel;
@@ -109,7 +109,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitFieldAccessorReference(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve accessor
             accessModel.ResolveSymbols(provider, report);
@@ -127,12 +127,12 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     // Check for instance field accessed via type reference
                     if(fieldIdentifier.IsStatic == false && accessModel is TypeReferenceModel)
                     {
-                        report.ReportDiagnostic(Code.FieldRequiresInstance, MessageSeverity.Error, identifier.Span, fieldIdentifier.IdentifierName);
+                        report.Report(Code.FieldRequiresInstance, DiagnosticSeverity.Error, identifier.Span, fieldIdentifier.IdentifierName);
                     }
                     // Check for global field accessed via anything other than type reference
                     else if(fieldIdentifier.IsStatic == true && (accessModel is TypeReferenceModel) == false)
                     {
-                        report.ReportDiagnostic(Code.FieldRequiresType, MessageSeverity.Error, identifier.Span, fieldIdentifier.IdentifierName);
+                        report.Report(Code.FieldRequiresType, DiagnosticSeverity.Error, identifier.Span, fieldIdentifier.IdentifierName);
                     }
                 }                
             }

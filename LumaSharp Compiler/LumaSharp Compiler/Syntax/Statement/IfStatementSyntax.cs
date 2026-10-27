@@ -112,9 +112,9 @@ namespace LumaSharp.Compiler.AST
             this.alternate = alternate;
             
             // Set parent
-            if (condition != null) condition.parent = this;
-            if (alternate != null) alternate.parent = this;
-            statement.parent = this;
+            if (condition != null) this.condition.parent = this;
+            if (alternate != null) this.alternate.parent = this;
+            this.statement.parent = this;
         }
 
         // Methods

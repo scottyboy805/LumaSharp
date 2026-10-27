@@ -82,7 +82,7 @@ namespace CompilerTests
         private static T CreateParser<T>(string input, Func<ASTParser, T> parse) where T : SyntaxNode
         {
             // Create the report
-            CompileReport report = new CompileReport();
+            CompilerDiagnosticCollection diagnostics = new CompilerDiagnosticCollection();
 
             // Create the text view
             TextView textView = new TextView(new StringReader(input));
@@ -91,7 +91,7 @@ namespace CompilerTests
             TokenParser tokenParser = new TokenParser(textView, null);
 
             // Create parser
-            ASTParser parser = new ASTParser(tokenParser.GetEnumerator(), report);
+            ASTParser parser = new ASTParser(tokenParser.GetEnumerator(), diagnostics);
 
             // Try to parse
             T result = parse(parser);
@@ -101,7 +101,7 @@ namespace CompilerTests
                 Debug.WriteLine(result.GetSourceText());
 
             // Check for errors
-            foreach(ICompileDiagnostic message in report.Diagnostics)
+            foreach(CompilerDiagnostic message in diagnostics.AllDiagnostics)
             {
                 Debug.WriteLine(message);
             }

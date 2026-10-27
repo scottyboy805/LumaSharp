@@ -2,7 +2,7 @@
 
 namespace LumaSharp.Compiler.SemanticsOld
 {
-    public interface ISemanticVisitor
+    internal interface ISemanticVisitor
     {
         // Methods
         void VisitLocalOrParameter(LocalOrParameterModel localOrParameter);

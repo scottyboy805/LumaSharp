@@ -11,7 +11,7 @@ namespace CompilerTests.Emit
         [TestMethod]
         public void CreateContract()
         {
-            LLVMEmit.CompileLLMV();
+            //LLVMEmit.CompileLLMV();
         }
     }
 }

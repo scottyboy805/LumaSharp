@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class LocalOrParameterModel : SymbolModel, ILocalIdentifierReferenceSymbol
+    internal sealed class LocalOrParameterModel : SymbolModel, ILocalIdentifierReferenceSymbol
     {
         // Type
         [Flags]
@@ -139,7 +139,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitLocalOrParameter(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve type
             typeModel.ResolveSymbols(provider, report);

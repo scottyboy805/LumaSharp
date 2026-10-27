@@ -4,13 +4,13 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class SemanticModel : ILibraryReferenceSymbol
+    internal sealed class SemanticModel : ILibraryReferenceSymbol
     {
         // Private
         private string libraryName = "";
         private ReferenceLibrary thisLibrary = null;
         private List<TypeModel> typeModels = new List<TypeModel>();
-        private CompileReport report = null;
+        //private CompileReport report = null;
 
         // Properties
         public string LibraryName
@@ -28,9 +28,9 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             get { return typeModels; }
         }
 
-        public ICompileReportProvider Report
+        internal IDiagnosticReporter Report
         {
-            get { return report; }
+            get { return null /*report*/; }
         }
 
         // Constructor
@@ -83,13 +83,13 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             // Create library
             this.thisLibrary = new ReferenceLibrary(libraryName);
 
-            // Get combined report
-            CompileReport report = syntaxTrees.Length > 0
-                ? (CompileReport)syntaxTrees[0].Report
-                : new CompileReport();
+            //// Get combined report
+            //CompileReport report = syntaxTrees.Length > 0
+            //    ? (CompileReport)syntaxTrees[0].Report
+            //    : new CompileReport();
 
-            // Store report
-            this.report = report;
+            //// Store report
+            //this.report = report;
             int index = 0;
 
             List<ImportModel> importModels = new List<ImportModel>();
@@ -140,7 +140,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                 //}
 
                 // Combine the report
-                if (index > 1) report.Combine(tree.Report);
+                //if (index > 1) report.Combine(tree.Report);
                 index++;
             }
 

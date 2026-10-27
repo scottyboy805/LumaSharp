@@ -50,6 +50,9 @@ namespace LumaSharp.Compiler.AST
 
             this.keyword = keyword;
             this.statement = statement;
+
+            // Set parent
+            this.statement.parent = this;
         }
 
         // Methods

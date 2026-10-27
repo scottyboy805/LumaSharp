@@ -11,7 +11,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         Static,
     }
 
-    public abstract class MemberModel : SymbolModel, IReferenceSymbol
+    internal abstract class MemberModel : SymbolModel, IReferenceSymbol
     {
         // Private
         private readonly StringModel identifier;
@@ -63,7 +63,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Check for access modifiers
             if (accessModifiers != null)
@@ -85,7 +85,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                 {
                     foreach (SyntaxToken token in accessModifierTokens)
                     {
-                        report.ReportDiagnostic(Code.AccessModifierNotValid, MessageSeverity.Error, token.Span, token.Text);
+                        report.Report(Code.ModifierNotValid, DiagnosticSeverity.Error, token.Span, token.Text);
                     }
                 }
             }

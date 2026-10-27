@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class ForModel : StatementModel
+    internal sealed class ForModel : StatementModel
     {
         // Private
         private readonly VariableModel variableModel = null;
@@ -116,7 +116,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitFor(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve variable symbols
             if(variableModel != null)

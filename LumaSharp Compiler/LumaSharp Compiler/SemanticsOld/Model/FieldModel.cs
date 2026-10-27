@@ -4,7 +4,7 @@ using LumaSharp.Compiler.SemanticsOld.Reference;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class FieldModel : MemberModel, IFieldReferenceSymbol, IIdentifierReferenceSymbol
+    internal sealed class FieldModel : MemberModel, IFieldReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
         private readonly TypeModel declaringType;
@@ -73,7 +73,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitField(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve base
             base.ResolveSymbols(provider, report);
@@ -96,7 +96,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     // Check for return type conversion
                     if (TypeChecker.IsTypeAssignable(assignModel.EvaluatedTypeSymbol, fieldTypeModel.EvaluatedTypeSymbol) == false)
                     {
-                        report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, assignModel.Span, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
+                        report.Report(Code.InvalidConversion, DiagnosticSeverity.Error, assignModel.Span, fieldTypeModel.EvaluatedTypeSymbol, assignModel.EvaluatedTypeSymbol);
                     }
                 }
             }

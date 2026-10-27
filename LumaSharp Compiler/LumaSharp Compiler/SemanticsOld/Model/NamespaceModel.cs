@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class NamespaceModel : SymbolModel, INamespaceReferenceSymbol
+    internal sealed class NamespaceModel : SymbolModel, INamespaceReferenceSymbol
     {
         // Private
         private readonly StringModel namespaceName;
@@ -83,7 +83,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             namespaceMembers.Add(namespaceModel);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve name
             namespaceName.ResolveSymbols(provider, report);

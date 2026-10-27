@@ -12,20 +12,20 @@ namespace LumaSharp.Compiler.Semantics.Model
         private readonly Lazy<IParameterSymbol[]> parameterSymbols;
 
         // Properties
-        public bool IsInitializer => methodOrInitializer is ConstructorSyntax;
+        public bool IsConstructor => methodOrInitializer is ConstructorSyntax;
         public bool IsAsync => false;
-        public bool IsVirtual => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.VirtualKeyword);
-        public bool IsOverride => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.OverrideKeyword);
+        public bool IsVirtual => methodOrInitializer.HasModifier(SyntaxTokenKind.VirtualKeyword);
+        public bool IsOverride => methodOrInitializer.HasModifier(SyntaxTokenKind.OverrideKeyword);
         public bool IsImplemented => throw new NotImplementedException();
         public bool IsGeneric => false;
         public bool IsGenericInstantiated => false;
         public bool HasReturnValue => methodOrInitializer is MethodSyntax method && method.HasReturnType;
         public int ParameterCount => methodOrInitializer is MethodSyntax method ? method.Parameters.Count : 0;
-        public bool IsPublic => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.PublicKeyword);
-        public bool IsProtected => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.ProtectedKeyword);
-        public bool IsPrivate => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.PrivateKeyword);
-        public bool IsInternal => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.InternalKeyword);
-        public bool IsStatic => methodOrInitializer.Modifiers.Any(m => m.Kind == SyntaxTokenKind.StaticKeyword);
+        public bool IsPublic => methodOrInitializer.HasModifier(SyntaxTokenKind.PublicKeyword);
+        public bool IsProtected => methodOrInitializer.HasModifier(SyntaxTokenKind.ProtectedKeyword);
+        public bool IsPrivate => methodOrInitializer.HasModifier(SyntaxTokenKind.PrivateKeyword);
+        public bool IsInternal => methodOrInitializer.HasModifier(SyntaxTokenKind.InternalKeyword);
+        public bool IsStatic => methodOrInitializer.HasModifier(SyntaxTokenKind.StaticKeyword);
         public string Name => methodOrInitializer.Identifier.Text;
         public SyntaxSpan? Source => methodOrInitializer.GetSpan();
 

@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class ConditionModel : StatementModel
+    internal sealed class ConditionModel : StatementModel
     {
         // Private
         private readonly ExpressionModel conditionModel;
@@ -104,7 +104,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitCondition(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve condition symbols
             if(conditionModel != null)

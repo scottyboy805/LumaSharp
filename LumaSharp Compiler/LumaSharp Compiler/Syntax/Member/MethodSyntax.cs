@@ -137,12 +137,12 @@ namespace LumaSharp.Compiler.AST
             this.lambda = lambda;
 
             // Set parent
-            attributes?.parent = this;
-            returnType.parent = this;
-            genericParameters?.parent = this;
-            parameters?.parent = this;
-            body?.parent = this;
-            lambda?.parent = this;
+            this.attributes?.parent = this;
+            this.returnType.parent = this;
+            this.genericParameters?.parent = this;
+            this.parameters?.parent = this;
+            this.body?.parent = this;
+            this.lambda?.parent = this;
         }
 
         // Methods

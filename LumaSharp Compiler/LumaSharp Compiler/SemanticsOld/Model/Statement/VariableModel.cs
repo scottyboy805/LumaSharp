@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class VariableModel : StatementModel
+    internal sealed class VariableModel : StatementModel
     {
         // Private
         private readonly TypeReferenceModel variableTypeModel;
@@ -54,7 +54,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitVariable(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve type
             variableTypeModel.ResolveSymbols(provider, report);

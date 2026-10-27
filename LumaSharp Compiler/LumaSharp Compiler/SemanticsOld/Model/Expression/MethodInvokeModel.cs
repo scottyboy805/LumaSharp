@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class MethodInvokeModel : ExpressionModel
+    internal sealed class MethodInvokeModel : ExpressionModel
     {
         // Private
         private readonly ExpressionModel accessModel = null;
@@ -105,7 +105,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitMethodInvoke(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve accessor
             if(accessModel != null)

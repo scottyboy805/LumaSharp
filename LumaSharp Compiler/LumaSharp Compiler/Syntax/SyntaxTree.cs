@@ -9,20 +9,20 @@ namespace LumaSharp.Compiler.AST
         private readonly InputSource source;
         private readonly List<string> defineSymbols = new List<string>();
         private readonly SyntaxNode root = null;
-        private readonly CompileReport report = null;
+        private readonly CompilerDiagnosticCollection diagnostics = null;
 
         // Properties
         public InputSource Source => source;
         public IReadOnlyList<string> DefineSymbols => defineSymbols;
         public SyntaxNode Root => root;
-        public ICompileReport Report => report;
+        public IReadOnlyList<CompilerDiagnostic> Diagnostics => diagnostics.AllDiagnostics;
 
         // Constructor
-        private SyntaxTree(InputSource source, SyntaxNode root, CompileReport report, IEnumerable<string> defines = null)
+        private SyntaxTree(InputSource source, SyntaxNode root, CompilerDiagnosticCollection diagnostics, IEnumerable<string> defines = null)
         {
             this.source = source;
             this.root = root;
-            this.report = report;
+            this.diagnostics = diagnostics;
 
             if(defines != null)
                 this.defineSymbols.AddRange(defines);
@@ -50,7 +50,7 @@ namespace LumaSharp.Compiler.AST
             if(root is not CompilationUnitSyntax)
                 root = new CompilationUnitSyntax(null, new[] { root });
 
-            return new SyntaxTree(null, root, new CompileReport());
+            return new SyntaxTree(null, root, CompilerDiagnosticCollection.Empty);
         }
 
         public static SyntaxTree Create(params SyntaxNode[] rootNodes)
@@ -59,6 +59,12 @@ namespace LumaSharp.Compiler.AST
 
             // Create from unit
             return Create(unit);
+        }
+
+        public static SyntaxTree Parse(string source)
+        {
+            using (InputSource inputSource = InputSource.FromSourceText(source))
+                return Parse(inputSource);
         }
 
         public static SyntaxTree Parse(InputSource source)
@@ -73,18 +79,24 @@ namespace LumaSharp.Compiler.AST
                 // Create token parser
                 TokenParser tokenParser = new TokenParser(textView, source.Document);
 
-                // Create the report
-                CompileReport report = new CompileReport();
+                // Create the diagnostics
+                CompilerDiagnosticCollection diagnostics = new ();
 
                 // Create the syntax parser
-                ASTParser syntaxParser = new ASTParser(tokenParser.GetEnumerator(), report);
+                ASTParser syntaxParser = new ASTParser(tokenParser.GetEnumerator(), diagnostics);
 
                 // Parse the compilation unit
                 CompilationUnitSyntax unit = syntaxParser.ParseCompilationUnit();
 
                 // Create the tree
-                return new SyntaxTree(source, unit, report);
+                return new SyntaxTree(source, unit, diagnostics);
             }
+        }
+
+        public static SyntaxTree ParseStatement(string source)
+        {
+            using (InputSource inputSource = InputSource.FromSourceText(source))
+                return ParseStatement(inputSource);
         }
 
         public static SyntaxTree ParseStatement(InputSource source)
@@ -99,18 +111,24 @@ namespace LumaSharp.Compiler.AST
                 // Create token parser
                 TokenParser tokenParser = new TokenParser(textView, source.Document);
 
-                // Create the report
-                CompileReport report = new CompileReport();
+                // Create the diagnostics
+                CompilerDiagnosticCollection diagnostics = new();
 
                 // Create the syntax parser
-                ASTParser syntaxParser = new ASTParser(tokenParser.GetEnumerator(), report);
+                ASTParser syntaxParser = new ASTParser(tokenParser.GetEnumerator(), diagnostics);
 
                 // Parse the compilation unit
                 StatementSyntax statement = syntaxParser.ParseStatement();
 
                 // Create the tree
-                return new SyntaxTree(source, statement, report);
+                return new SyntaxTree(source, statement, diagnostics);
             }
+        }
+
+        public static SyntaxTree ParseExpression(string source)
+        {
+            using (InputSource inputSource = InputSource.FromSourceText(source))
+                return ParseExpression(inputSource);
         }
 
         public static SyntaxTree ParseExpression(InputSource source)
@@ -125,17 +143,17 @@ namespace LumaSharp.Compiler.AST
                 // Create token parser
                 TokenParser tokenParser = new TokenParser(textView, source.Document);
 
-                // Create the report
-                CompileReport report = new CompileReport();
+                // Create the diagnostics
+                CompilerDiagnosticCollection diagnostics = new();
 
                 // Create the syntax parser
-                ASTParser syntaxParser = new ASTParser(tokenParser.GetEnumerator(), report);
+                ASTParser syntaxParser = new ASTParser(tokenParser.GetEnumerator(), diagnostics);
 
                 // Parse the compilation unit
                 ExpressionSyntax expression = syntaxParser.ParseExpression();
 
                 // Create the tree
-                return new SyntaxTree(source, expression, report);
+                return new SyntaxTree(source, expression, diagnostics);
             }
 
             //return new ASTParser(new TokenParser(new TextView(source.Reader), source.Document).GetEnumerator(), new CompileReport())

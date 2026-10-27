@@ -12,7 +12,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         Enum,
     }
 
-    public sealed class TypeModel : MemberModel, ITypeReferenceSymbol
+    internal sealed class TypeModel : MemberModel, ITypeReferenceSymbol
     {
         // Private
         private readonly TypeModel declaringType;
@@ -254,7 +254,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitType(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve base
             base.ResolveSymbols(provider, report);
@@ -352,7 +352,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                 .Select(m => new MethodModel(m as MethodSyntax, this)).ToArray();
         }
 
-        private void ImplementDefaultBaseTypes(ISymbolProvider provider, ICompileReportProvider report)
+        private void ImplementDefaultBaseTypes(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Check for all resolved
             bool allResolved = baseTypesModels == null || baseTypesModels.Any(t => t.EvaluatedTypeSymbol == null) == false;
@@ -388,7 +388,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
         }
 
-        private void CheckBaseTypes(TypeReferenceModel[] baseModels, ICompileReportProvider report)
+        private void CheckBaseTypes(TypeReferenceModel[] baseModels, IDiagnosticReporter report)
         {
             List<TypeReferenceModel> typeSymbols = new List<TypeReferenceModel>();
 
@@ -410,7 +410,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             {
                 for(int i = 0; i < typeSymbols.Count - 1; i++)
                 {
-                    report.ReportDiagnostic(Code.MultipleBaseTypes, MessageSeverity.Error, typeSymbols[i].Span, typeSymbols[0].EvaluatedTypeSymbol, typeSymbols[i + 1].EvaluatedTypeSymbol);
+                    report.Report(Code.MultipleBaseTypes, DiagnosticSeverity.Error, typeSymbols[i].Span, typeSymbols[0].EvaluatedTypeSymbol, typeSymbols[i + 1].EvaluatedTypeSymbol);
                 }
             }
 
@@ -419,7 +419,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             {
                 for (int i = 0; i < typeSymbols.Count; i++)
                 {
-                    report.ReportDiagnostic(Code.InvalidTypeBaseContract, MessageSeverity.Error, typeSymbols[i].Span, typeSymbols[i].EvaluatedTypeSymbol);
+                    report.Report(Code.InvalidStructBaseInterface, DiagnosticSeverity.Error, typeSymbols[i].Span, typeSymbols[i].EvaluatedTypeSymbol);
                 }
             }
 
@@ -428,27 +428,27 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             {
                 for(int i = 0; i < typeSymbols.Count; i++)
                 {
-                    report.ReportDiagnostic(Code.FirstBaseType, MessageSeverity.Error, typeSymbols[i].Span, typeSymbols[i].EvaluatedTypeSymbol);
+                    report.Report(Code.FirstBaseType, DiagnosticSeverity.Error, typeSymbols[i].Span, typeSymbols[i].EvaluatedTypeSymbol);
                 }
             }
         }
 
-        private void CheckBaseType(TypeReferenceModel baseModel, ICompileReportProvider report)
+        private void CheckBaseType(TypeReferenceModel baseModel, IDiagnosticReporter report)
         {
             ITypeReferenceSymbol baseType = baseModel.EvaluatedTypeSymbol;
 
             // Check for inheritance cycle
             if(baseType == this)
             {
-                Code reportCode = (IsClass == true) ? Code.InvalidSelfBaseType : Code.InvalidSelfBaseContract;
-                report.ReportDiagnostic(reportCode, MessageSeverity.Error, baseModel.Span, baseType);
+                Code reportCode = (IsClass == true) ? Code.InvalidSelfBaseType : Code.InvalidSelfBaseInterface;
+                report.Report(reportCode, DiagnosticSeverity.Error, baseModel.Span, baseType);
             }
 
             // Check for enum
             if(baseType.IsEnum == true)
             {
-                Code reportCode = (IsClass == true) ? Code.InvalidEnumBaseType : Code.InvalidEnumBaseContract;
-                report.ReportDiagnostic(reportCode, MessageSeverity.Error, baseModel.Span, baseType);
+                Code reportCode = (IsClass == true) ? Code.InvalidEnumBaseType : Code.InvalidEnumBaseInterface;
+                report.Report(reportCode, DiagnosticSeverity.Error, baseModel.Span, baseType);
             }
         }
     }

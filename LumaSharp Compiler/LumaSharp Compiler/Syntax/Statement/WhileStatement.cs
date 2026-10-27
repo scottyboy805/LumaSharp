@@ -59,12 +59,12 @@ namespace LumaSharp.Compiler.AST
         // Methods
         public override void Accept(SyntaxVisitor visitor)
         {
-            throw new NotImplementedException();
+            visitor.VisitWhileStatement(this);
         }
 
         public override T Accept<T>(SyntaxVisitor<T> visitor)
         {
-            throw new NotImplementedException();
+            return visitor.VisitWhileStatement(this);
         }
 
         public override void GetSourceText(TextWriter writer)

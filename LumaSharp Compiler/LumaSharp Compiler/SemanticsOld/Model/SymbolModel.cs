@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public abstract class SymbolModel
+    internal abstract class SymbolModel
     {
         // Internal
         internal SymbolModel parent;
@@ -38,7 +38,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         // Methods
         public abstract void Accept(ISemanticVisitor visitor);
 
-        public abstract void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report);
+        public abstract void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report);
 
         public IEnumerable<T> DescendantsOfType<T>(bool withChildren = false) where T : class
         {

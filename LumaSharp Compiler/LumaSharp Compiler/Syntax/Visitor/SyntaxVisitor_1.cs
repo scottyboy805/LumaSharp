@@ -57,6 +57,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public abstract T VisitEmptyStatement(EmptyStatementSyntax emptyStatement);
         public abstract T VisitForeachStatement(ForeachStatementSyntax foreachStatement);
         public abstract T VisitForStatement(ForStatementSyntax forStatement);
+        public abstract T VisitWhileStatement(WhileStatement whileStatement);
         public abstract T VisitMethodInvokeStatement(MethodInvokeStatementSyntax methodInvokeStatement);
         public abstract T VisitReturnStatement(ReturnStatementSyntax returnStatement);
         public abstract T VisitVariableDeclarationStatement(VariableDeclarationStatementSyntax variableDeclarationStatement);

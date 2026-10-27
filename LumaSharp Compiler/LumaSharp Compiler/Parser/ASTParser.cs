@@ -7,10 +7,10 @@ namespace LumaSharp.Compiler.Parser
     {
         // Private
         private readonly TokenView tokens;
-        private readonly ICompileReportProvider report;
+        private readonly IDiagnosticReporter report;
 
         // Constructor
-        public ASTParser(IEnumerator<SyntaxToken> tokenProvider, ICompileReportProvider report)
+        public ASTParser(IEnumerator<SyntaxToken> tokenProvider, IDiagnosticReporter report)
         {
             // Check for null
             if (tokenProvider == null)
@@ -106,7 +106,7 @@ namespace LumaSharp.Compiler.Parser
                     if(importType == null)
                     {
                         // Expected type
-                        report.ReportDiagnostic(Code.ExpectedType, MessageSeverity.Error, tokens.Peek().Span);
+                        report.Report(Code.ExpectedType, DiagnosticSeverity.Error, tokens.Peek().Span);
                         return RecoverFromUsingError();
                     }
 
@@ -114,7 +114,7 @@ namespace LumaSharp.Compiler.Parser
                     if (tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                     {
                         // Expected ';'
-                        report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                        report.Report(Code.ExpectedToken, DiagnosticSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                         return RecoverFromUsingError();
                     }
 
@@ -130,7 +130,7 @@ namespace LumaSharp.Compiler.Parser
                     if(tokens.ConsumeExpect(SyntaxTokenKind.SemicolonSymbol, out SyntaxToken semicolon) == false)
                     {
                         // Expected ';'
-                        report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
+                        report.Report(Code.ExpectedToken, DiagnosticSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.SemicolonSymbol));
                         return RecoverFromUsingError();
                     }
 
@@ -209,7 +209,7 @@ namespace LumaSharp.Compiler.Parser
                 if (tokens.ConsumeExpect(SyntaxTokenKind.RArraySymbol, out SyntaxToken rArray) == false)
                 {
                     // Expected ']'
-                    report.ReportDiagnostic(Code.ExpectedToken, MessageSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
+                    report.Report(Code.ExpectedToken, DiagnosticSeverity.Error, tokens.Peek().Span, SyntaxToken.GetText(SyntaxTokenKind.RArraySymbol));
                     return RecoverFromArrayParameterError();
                 }
 

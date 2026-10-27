@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class PropertyModel : MemberModel, IPropertyReferenceSymbol
+    internal sealed class PropertyModel : MemberModel, IPropertyReferenceSymbol
     {
         // Private
         //private AccessorSyntax syntax = null;
@@ -62,7 +62,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitAccessor(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve base
             base.ResolveSymbols(provider, report);

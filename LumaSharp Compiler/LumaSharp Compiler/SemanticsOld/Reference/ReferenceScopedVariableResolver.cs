@@ -6,10 +6,10 @@ namespace LumaSharp.Compiler.SemanticsOld.Reference
     internal sealed class ReferenceScopedVariableResolver
     {
         // Private
-        private ICompileReportProvider report = null;
+        private IDiagnosticReporter report = null;
 
         // Constructor
-        public ReferenceScopedVariableResolver(ICompileReportProvider report)
+        public ReferenceScopedVariableResolver(IDiagnosticReporter report)
         {
             this.report = report;
         }

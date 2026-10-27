@@ -25,34 +25,44 @@ namespace LumaSharp.Compiler.Emit.LLVM
         }
 
         // Methods
-        public void TestEmit()
+        //public void TestEmit()
+        //{
+        //    //LLVMTypeRef returnType = LLVMTypeRef.Int32;
+
+        //    //LLVMFunctionBuilder mainFunc = new(module, builder, "main", returnType, []);
+
+        //    //LLVMTypeRef functionType = LLVMTypeRef.CreateFunction(returnType, [], false);
+
+        //    //LLVMValueRef function = module.AddFunction("main", functionType);
+        //    //var end = function.AppendBasicBlock(".body");
+
+        //    MethodSyntax method = Syntax.Method("main", Syntax.TypeReference(ReservedType.Int32))
+        //        .WithBody(
+        //            Syntax.Condition(Syntax.Literal(false)).WithInlineStatement(Syntax.Return(Syntax.Literal(20))),
+        //            Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar", Syntax.VariableAssignment(Syntax.Literal(69))),
+        //            Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableAssignment(Syntax.Literal(496))),
+        //            Syntax.Return(Syntax.VariableReference("myVar"))
+        //        );
+
+        //    // Emit the method
+        //    EmitMethod(method, null);
+
+        //    //builder.PositionAtEnd(end);
+        //    //EmitStatement(Syntax.While(Syntax.Literal(true), Syntax.Return(Syntax.Literal(123))), mainFunc);
+        //    //EmitStatement(Syntax.Condition(Syntax.Literal(false)).WithInlineStatement(Syntax.Return(Syntax.Literal(20))), mainFunc);
+        //    //EmitStatement(Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar", Syntax.VariableAssignment(Syntax.Literal(69))), mainFunc);
+        //    //EmitStatement(Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableAssignment(Syntax.Literal(496))), mainFunc);
+        //    //EmitStatement(Syntax.Return(Syntax.VariableReference("myVar")), mainFunc);
+        //}
+
+        public void EmitCompilationUnit(CompilationUnitSyntax unit)
         {
-            //LLVMTypeRef returnType = LLVMTypeRef.Int32;
-
-            //LLVMFunctionBuilder mainFunc = new(module, builder, "main", returnType, []);
-
-            //LLVMTypeRef functionType = LLVMTypeRef.CreateFunction(returnType, [], false);
-
-            //LLVMValueRef function = module.AddFunction("main", functionType);
-            //var end = function.AppendBasicBlock(".body");
-
-            MethodSyntax method = Syntax.Method("main", Syntax.TypeReference(ReservedType.Int32))
-                .WithBody(
-                    Syntax.Condition(Syntax.Literal(false)).WithInlineStatement(Syntax.Return(Syntax.Literal(20))),
-                    Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar", Syntax.VariableAssignment(Syntax.Literal(69))),
-                    Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableAssignment(Syntax.Literal(496))),
-                    Syntax.Return(Syntax.VariableReference("myVar"))
-                );
-
-            // Emit the method
-            EmitMethod(method, null);
-
-            //builder.PositionAtEnd(end);
-            //EmitStatement(Syntax.While(Syntax.Literal(true), Syntax.Return(Syntax.Literal(123))), mainFunc);
-            //EmitStatement(Syntax.Condition(Syntax.Literal(false)).WithInlineStatement(Syntax.Return(Syntax.Literal(20))), mainFunc);
-            //EmitStatement(Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar", Syntax.VariableAssignment(Syntax.Literal(69))), mainFunc);
-            //EmitStatement(Syntax.Assign(Syntax.VariableReference("myVar"), Syntax.VariableAssignment(Syntax.Literal(496))), mainFunc);
-            //EmitStatement(Syntax.Return(Syntax.VariableReference("myVar")), mainFunc);
+            foreach(SyntaxNode node in unit.NamespaceOrMembers)
+            {
+                // Check for member
+                if (node is MemberSyntax member)
+                    EmitMember(member, null);
+            }
         }
 
         private LLVMValueRef GetLLVMCoerceValue(LLVMTypeRef targetType, LLVMValueRef value, string name)
@@ -174,6 +184,20 @@ namespace LumaSharp.Compiler.Emit.LLVM
 
             // Create pointer type
             return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0);
+        }
+
+        internal static bool GetLLVMTypeIsSigned(ITypeSymbol type)
+        {
+            return type.ReservedType switch
+            {
+                ReservedType.Int8 => true,
+                ReservedType.Int16 => true,
+                ReservedType.Int32 => true,
+                ReservedType.Int64 => true,
+                ReservedType.Float => true,
+                ReservedType.Double => true,
+                _ => false,
+            };
         }
     }
 }

@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class ScopeModel : StatementModel, IScopedReferenceSymbol
+    internal sealed class ScopeModel : StatementModel, IScopedReferenceSymbol
     {
         // Private
         private readonly string scopeName;
@@ -70,7 +70,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitScope(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Visit all statements
             if(HasStatements == true)
@@ -104,7 +104,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     }
                     else
                     {
-                        report.ReportDiagnostic(Code.MultipleLocalIdentifiers, MessageSeverity.Error, ((LocalOrParameterModel)localsInScope[i]).Span, localsInScope[i].IdentifierName);
+                        report.Report(Code.MultipleLocalIdentifiers, DiagnosticSeverity.Error, ((LocalOrParameterModel)localsInScope[i]).Span, localsInScope[i].IdentifierName);
                     }
                 }
             }

@@ -3,13 +3,20 @@ using LumaSharp.Compiler.AST;
 
 namespace LumaSharp.Compiler.Reporting
 {
-    internal struct CompileDiagnostic : ICompileDiagnostic
+    public enum DiagnosticSeverity
+    {
+        Message,
+        Warning,
+        Error,
+    }
+
+    public readonly struct CompilerDiagnostic
     {
         // Private
-        private int code;
-        private MessageSeverity severity;
-        private SyntaxSpan source;
-        private string message;
+        private readonly int code;
+        private readonly DiagnosticSeverity severity;
+        private readonly SyntaxSpan source;
+        private readonly string message;
 
         // Properties
         public int Code
@@ -17,7 +24,7 @@ namespace LumaSharp.Compiler.Reporting
             get { return code; }
         }
 
-        public MessageSeverity Severity
+        public DiagnosticSeverity Severity
         {
             get { return severity; }
         }
@@ -33,7 +40,7 @@ namespace LumaSharp.Compiler.Reporting
         }
 
         // Constructor
-        internal CompileDiagnostic(int code, MessageSeverity severity, SyntaxSpan source, string message)
+        internal CompilerDiagnostic(int code, DiagnosticSeverity severity, SyntaxSpan source, string message)
         {
             this.code = code;
             this.severity = severity;

@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class ImportModel : SymbolModel, IAliasIdentifierReferenceSymbol, INamespaceReferenceSymbol
+    internal sealed class ImportModel : SymbolModel, IAliasIdentifierReferenceSymbol, INamespaceReferenceSymbol
     {
         // Private
         private UsingSyntax syntax = null;
@@ -111,7 +111,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         }
 
         // Methods
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve namespace names
             //namespaceSymbol = provider.ResolveNamespaceSymbol(syntax.Name, Span);

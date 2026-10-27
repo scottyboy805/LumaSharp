@@ -21,7 +21,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         Or
     }
 
-    public sealed class BinaryModel : ExpressionModel
+    internal sealed class BinaryModel : ExpressionModel
     {
         // Private
         private readonly ExpressionModel left;
@@ -122,7 +122,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitBinary(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve left
             left.ResolveSymbols(provider, report);
@@ -138,7 +138,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
             catch (NotSupportedException)
             {
-                report.ReportDiagnostic(Code.InvalidOperation, MessageSeverity.Error, operationToken.Span);
+                report.Report(Code.InvalidOperation, DiagnosticSeverity.Error, operationToken.Span);
                 return;
             }
 
@@ -175,7 +175,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     // Check for invalid
                     if(opReturnType == 0)
                     {
-                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, Span, operationToken.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
+                        report.Report(Code.NoBuiltInOperation, DiagnosticSeverity.Error, Span, operationToken.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
                     }
                     else
                     {
@@ -190,7 +190,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     if(leftTypeCode != ReservedType.Object)
                     {
                         // We know that built in primitive types cannot support operation on user types
-                        report.ReportDiagnostic(Code.NoBuiltInOperation, MessageSeverity.Error, Span, operationToken.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
+                        report.Report(Code.NoBuiltInOperation, DiagnosticSeverity.Error, Span, operationToken.Text, left.EvaluatedTypeSymbol, right.EvaluatedTypeSymbol);
                     }
                     else
                     {

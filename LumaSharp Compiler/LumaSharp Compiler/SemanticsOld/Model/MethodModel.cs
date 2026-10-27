@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class MethodModel : MemberModel, IMethodReferenceSymbol, IIdentifierReferenceSymbol
+    internal sealed class MethodModel : MemberModel, IMethodReferenceSymbol, IIdentifierReferenceSymbol
     {
         // Private
         private readonly TypeModel declaringType;
@@ -145,7 +145,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitMethod(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve return types
             if(returnTypeModels != null)
@@ -192,7 +192,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                     }
                     else
                     {
-                        report.ReportDiagnostic(Code.MultipleParameterIdentifiers, MessageSeverity.Error, parameterModels[i].Span, parameterModels[i].IdentifierName);
+                        report.Report(Code.MultipleParameterIdentifiers, DiagnosticSeverity.Error, parameterModels[i].Span, parameterModels[i].IdentifierName);
                     }
                 }
             }

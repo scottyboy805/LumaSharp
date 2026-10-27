@@ -11,6 +11,9 @@ namespace LumaSharp.Compiler.Semantics
         private SemanticModel model;
         private SymbolBinder binder;
 
+        // Properties
+        public SymbolBinder Binder => binder;
+
         // Constructor
         public SymbolBuilder(SemanticModel model)
         {
@@ -263,7 +266,18 @@ namespace LumaSharp.Compiler.Semantics
             return default;
         }
 
-        public override SymbolBinding VisitBinaryExpression(BinaryExpressionSyntax binaryExpression) => default;  // Should be IOperation instead
+        public override SymbolBinding VisitBinaryExpression(BinaryExpressionSyntax binaryExpression)
+        {
+            // Get the operation
+            OperationModel operation = new OperationModel(model, binaryExpression);
+
+            // Get the operation type
+            ITypeSymbol operationType = operation.GetOperationType();
+
+            // Create the binding
+            return new SymbolBinding(operation, operationType, operation, null);
+        }
+
         public override SymbolBinding VisitCollectionInitializerExpression(CollectionInitializerExpressionSyntax collectionInitializerExpression) => default;
 
         public override SymbolBinding VisitConstructorInvoke(ConstructorInvokeSyntax constructorInvoke) => default;
@@ -433,25 +447,17 @@ namespace LumaSharp.Compiler.Semantics
             };
 
             // Create constant
-            return new SymbolBinding(constant, inferredType, constant);
+            return new SymbolBinding(constant, inferredType, null, constant);
         }
 
         private ITypeSymbol GetInferredLiteralIntegerType(ulong value)
         {
-            // Check for int8
-            if (value <= byte.MaxValue)
-                return binder.GetReservedType(ReservedType.UInt8);
-
-            // Check for int16
-            if (value <= ushort.MaxValue)
-                return binder.GetReservedType(ReservedType.UInt16);
-
-            // Check for int32
+            // Check for int32 - small ints should be promoted to min 32bit
             if (value <= uint.MaxValue)
-                return binder.GetReservedType(ReservedType.UInt32);
+                return binder.GetReservedType(ReservedType.Int32);
 
             // Must be int64
-            return binder.GetReservedType(ReservedType.UInt64);
+            return binder.GetReservedType(ReservedType.Int64);
         }
 
         private ITypeSymbol GetInferredLiteralDecimalType(double value)

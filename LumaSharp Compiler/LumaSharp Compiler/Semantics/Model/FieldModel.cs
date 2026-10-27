@@ -9,14 +9,14 @@ namespace LumaSharp.Compiler.Semantics.Model
         private readonly FieldSyntax fieldSyntax;
 
         // Properties
-        public bool IsConst => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.ConstKeyword);
-        public bool IsReadOnly => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.ReadonlyKeyword);
+        public bool IsConst => fieldSyntax.HasModifier(SyntaxTokenKind.ConstKeyword);
+        public bool IsReadOnly => fieldSyntax.HasModifier(SyntaxTokenKind.ReadonlyKeyword);
         public bool IsAssigned => fieldSyntax.HasFieldAssignment;
-        public bool IsPublic => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.PublicKeyword);
-        public bool IsProtected => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.ProtectedKeyword);
-        public bool IsPrivate => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.PrivateKeyword);
-        public bool IsInternal => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.InternalKeyword);
-        public bool IsStatic => fieldSyntax.Modifiers.Any(m => m.Kind == SyntaxTokenKind.StaticKeyword);
+        public bool IsPublic => fieldSyntax.HasModifier(SyntaxTokenKind.PublicKeyword);
+        public bool IsProtected => fieldSyntax.HasModifier(SyntaxTokenKind.ProtectedKeyword);
+        public bool IsPrivate => fieldSyntax.HasModifier(SyntaxTokenKind.PrivateKeyword);
+        public bool IsInternal => fieldSyntax.HasModifier(SyntaxTokenKind.InternalKeyword);
+        public bool IsStatic => fieldSyntax.HasModifier(SyntaxTokenKind.StaticKeyword);
         public string Name => fieldSyntax.Identifier.Text;
         public SyntaxSpan? Source => fieldSyntax.GetSpan();
 

@@ -9,6 +9,10 @@ namespace LumaSharp.Compiler.Semantics
         private readonly List<SyntaxTree> syntaxTrees = new();        
         private readonly Dictionary<SyntaxNode, SymbolBinding> cachedSymbols = new();
 
+        // Properties
+        public IReadOnlyList<SyntaxTree> SyntaxTrees => syntaxTrees;
+        internal SymbolBinder Binder => builder.Binder;
+
         // Constructor
         internal SemanticModel(IEnumerable<SyntaxTree> syntaxTrees)
         {
@@ -32,6 +36,15 @@ namespace LumaSharp.Compiler.Semantics
 
             // Try to get symbol info
             return binding.GetSymbolInfo();
+        }
+
+        public IOperation GetOperation(SyntaxNode node)
+        {
+            // Get the bound symbol with caching
+            SymbolBinding binding = GetBoundSymbol(node);
+
+            // Try to get operation
+            return binding.Operation;
         }
 
         public IConstantSymbol GetConstantSymbol(SyntaxNode node)

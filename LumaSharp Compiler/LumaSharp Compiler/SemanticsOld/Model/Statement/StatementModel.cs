@@ -2,7 +2,7 @@
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public abstract class StatementModel : SymbolModel
+    internal abstract class StatementModel : SymbolModel
     {
         // Properties
         public IReferenceSymbol ParentSymbol

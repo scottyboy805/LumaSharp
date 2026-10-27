@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class MethodInlineInvokeModel : StatementModel
+    internal sealed class MethodInlineInvokeModel : StatementModel
     {
         // Private
         private readonly MethodInvokeModel invokeModel;
@@ -52,7 +52,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitMethodInvoke(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve symbols
             invokeModel.ResolveSymbols(provider, report);

@@ -7,6 +7,32 @@ namespace LumaSharp.Compiler.Emit.LLVM
     internal sealed partial class LLVMCodeGen
     {
         // Methods
+        private void EmitMember(MemberSyntax member, LLVMTypeBuilder typeBuilder)
+        {
+            // Check kind
+            switch(member)
+            {
+                case ClassSyntax _class: EmitClass(_class, typeBuilder); break;
+                case MethodSyntax _method: EmitMethod(_method, typeBuilder);break;
+            }
+        }
+
+        private void EmitClass(ClassSyntax _class, LLVMTypeBuilder typeBuilder)
+        {
+            // Emit type here
+            LLVMTypeBuilder classType = null;
+
+            // Emit all members
+            if (_class.HasMembers == true)
+            {
+                foreach (MemberSyntax member in _class.Members.Members)
+                {
+                    // Emit the member
+                    EmitMember(member, classType);
+                }
+            }
+        }
+
         private void EmitMethod(MethodSyntax method, LLVMTypeBuilder typeBuilder)
         {
             // Get the method symbol

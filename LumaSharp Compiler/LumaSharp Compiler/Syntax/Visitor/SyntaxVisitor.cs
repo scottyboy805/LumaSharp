@@ -57,6 +57,7 @@ namespace LumaSharp.Compiler.AST.Visitor
         public virtual void VisitEmptyStatement(EmptyStatementSyntax emptyStatement) { }
         public virtual void VisitForeachStatement(ForeachStatementSyntax foreachStatement) { }
         public virtual void VisitForStatement(ForStatementSyntax forStatement) { }
+        public virtual void VisitWhileStatement(WhileStatement whileStatement) { }
         public virtual void VisitMethodInvokeStatement(MethodInvokeStatementSyntax methodInvokeStatement) { }
         public virtual void VisitReturnStatement(ReturnStatementSyntax returnStatement) { }
         public virtual void VisitVariableDeclarationStatement(VariableDeclarationStatementSyntax variableDeclarationStatement) { }

@@ -3,7 +3,7 @@ using LumaSharp.Compiler.Reporting;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class GenericParameterModel : SymbolModel, IGenericParameterIdentifierReferenceSymbol
+    internal sealed class GenericParameterModel : SymbolModel, IGenericParameterIdentifierReferenceSymbol
     {
         // Private
         private readonly StringModel identifier;
@@ -193,7 +193,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitGenericParameter(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Resolve constraints
             if (genericConstraintModels != null)
@@ -225,7 +225,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
         }
 
-        private void CheckConstraintTypes(ITypeReferenceSymbol[] genericConstraints, ICompileReportProvider report)
+        private void CheckConstraintTypes(ITypeReferenceSymbol[] genericConstraints, IDiagnosticReporter report)
         {
             // Check all constraint types
             for(int i = 0; i < genericConstraints.Length; i++)
@@ -234,12 +234,12 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             }
         }
 
-        private void CheckConstraintType(ITypeReferenceSymbol genericConstraint, int index, ICompileReportProvider report)
+        private void CheckConstraintType(ITypeReferenceSymbol genericConstraint, int index, IDiagnosticReporter report)
         {
             // Check for primitive
             if(genericConstraint.IsPrimitive == true)
             {
-                report.ReportDiagnostic(Code.InvalidPrimitiveGenericConstraint, MessageSeverity.Error, Span, genericConstraint);
+                report.Report(Code.InvalidPrimitiveGenericConstraint, DiagnosticSeverity.Error, Span, genericConstraint);
             }
         }
     }

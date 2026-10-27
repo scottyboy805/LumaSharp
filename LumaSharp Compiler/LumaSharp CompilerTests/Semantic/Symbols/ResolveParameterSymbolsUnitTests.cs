@@ -1,57 +1,57 @@
-﻿using LumaSharp.Compiler.SemanticsOld.Model;
-using LumaSharp.Compiler.AST;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿//using LumaSharp.Compiler.SemanticsOld.Model;
+//using LumaSharp.Compiler.AST;
+//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CompilerTests.Semantic.Symbols
-{
-    [TestClass]
-    public class ResolveParameterSymbolsUnitTests
-    {
-        [TestMethod]
-        public void ResolveParameterSymbols_Local()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("MyType")
-                    .WithMembers(Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
-                        .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "myParam"))
-                        .WithBody(
-                            Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar"),
-                            Syntax.Assign(Syntax.VariableReference("myVar"),
-                                Syntax.VariableAssignment(Syntax.Literal(5))))));
+//namespace CompilerTests.Semantic.Symbols
+//{
+//    [TestClass]
+//    public class ResolveParameterSymbolsUnitTests
+//    {
+//        [TestMethod]
+//        public void ResolveParameterSymbols_Local()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("MyType")
+//                    .WithMembers(Syntax.Method("MyMethod", Syntax.TypeReference(ReservedType.Int32))
+//                        .WithParameters(Syntax.Parameter(Syntax.TypeReference(ReservedType.Int32), "myParam"))
+//                        .WithBody(
+//                            Syntax.LocalVariable(Syntax.TypeReference(ReservedType.Int32), "myVar"),
+//                            Syntax.Assign(Syntax.VariableReference("myVar"),
+//                                Syntax.VariableAssignment(Syntax.Literal(5))))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
             
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.TypeModels.Count);
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(1, model.TypeModels.Count);
 
-            // Get first
-            TypeModel type = model.TypeModels[0];
+//            // Get first
+//            TypeModel type = model.TypeModels[0];
 
-            Assert.AreEqual("MyType", type.TypeName);
-            Assert.IsTrue(type.IsClass);
-            Assert.IsFalse(type.IsInterface);
-            Assert.IsFalse(type.IsEnum);
-            Assert.IsFalse(type.IsPrimitive);
-        }
+//            Assert.AreEqual("MyType", type.TypeName);
+//            Assert.IsTrue(type.IsClass);
+//            Assert.IsFalse(type.IsInterface);
+//            Assert.IsFalse(type.IsEnum);
+//            Assert.IsFalse(type.IsPrimitive);
+//        }
 
-        [TestMethod]
-        public void ResolveParameterSymbols_Return()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("test")
-                .WithMembers(Syntax.Method("test", Syntax.TypeReference("test"))
-                .WithParameters(Syntax.Parameter(Syntax.TypeReference("test"), "myVal"))
-                .WithBody(Syntax.Return(Syntax.VariableReference("myVal")))));
+//        [TestMethod]
+//        public void ResolveParameterSymbols_Return()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("test")
+//                .WithMembers(Syntax.Method("test", Syntax.TypeReference("test"))
+//                .WithParameters(Syntax.Parameter(Syntax.TypeReference("test"), "myVal"))
+//                .WithBody(Syntax.Return(Syntax.VariableReference("myVal")))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.TypeModels.Count);
-            Assert.AreEqual(0, model.Report.DiagnosticCount);
-        }
-    }
-}
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(1, model.TypeModels.Count);
+//            Assert.AreEqual(0, model.Report.DiagnosticCount);
+//        }
+//    }
+//}

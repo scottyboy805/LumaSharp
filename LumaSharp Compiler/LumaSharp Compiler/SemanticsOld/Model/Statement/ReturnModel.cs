@@ -4,7 +4,7 @@ using LumaSharp.Compiler.SemanticsOld.Reference;
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public sealed class ReturnModel : StatementModel
+    internal sealed class ReturnModel : StatementModel
     {
         // Private
         private readonly ExpressionModel[] returnModels;
@@ -51,7 +51,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitReturn(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Check if method has return
             IMethodReferenceSymbol parentMethod = GetParentSymbol<IMethodReferenceSymbol>();
@@ -76,7 +76,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
                         // Check for return type conversion
                         if (TypeChecker.IsTypeAssignable(returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]) == false)
                         {
-                            report.ReportDiagnostic(Code.InvalidConversion, MessageSeverity.Error, returnModels[i].Span, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
+                            report.Report(Code.InvalidConversion, DiagnosticSeverity.Error, returnModels[i].Span, returnModels[i].EvaluatedTypeSymbol, parentMethod.ReturnTypeSymbols[i]);
                         }
                     }
                 }

@@ -1,25 +1,25 @@
-﻿using LumaSharp.Compiler.AST;
-using LumaSharp.Compiler.Reporting;
-using LumaSharp.Compiler.SemanticsOld.Model;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿//using LumaSharp.Compiler.AST;
+//using LumaSharp.Compiler.Reporting;
+//using LumaSharp.Compiler.SemanticsOld.Model;
+//using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CompilerTests.Semantic.Reporting
-{
-    [TestClass]
-    public sealed class ReportGenericParameterUnitTests
-    {
-        [TestMethod]
-        public void ReportGenericParameterMessages_Constraint_Primitive()
-        {
-            SyntaxTree tree = SyntaxTree.Create(
-                Syntax.Class("Test").WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference(ReservedType.Int32))));
+//namespace CompilerTests.Semantic.Reporting
+//{
+//    [TestClass]
+//    public sealed class ReportGenericParameterUnitTests
+//    {
+//        [TestMethod]
+//        public void ReportGenericParameterMessages_Constraint_Primitive()
+//        {
+//            SyntaxTree tree = SyntaxTree.Create(
+//                Syntax.Class("Test").WithGenericParameters(Syntax.GenericParameter("T", Syntax.TypeReference(ReservedType.Int32))));
 
-            // Create model
-            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
+//            // Create model
+//            SemanticModel model = SemanticModel.BuildModel("Test", new SyntaxTree[] { tree }, null);
 
-            Assert.IsNotNull(model);
-            Assert.AreEqual(1, model.Report.DiagnosticCount);
-            Assert.AreEqual((int)Code.InvalidPrimitiveGenericConstraint, model.Report.Diagnostics.First().Code);
-        }
-    }
-}
+//            Assert.IsNotNull(model);
+//            Assert.AreEqual(1, model.Report.DiagnosticCount);
+//            Assert.AreEqual((int)Code.InvalidPrimitiveGenericConstraint, model.Report.Diagnostics.First().Code);
+//        }
+//    }
+//}

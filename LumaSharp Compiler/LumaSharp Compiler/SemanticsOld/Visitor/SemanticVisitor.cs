@@ -2,7 +2,7 @@
 
 namespace LumaSharp.Compiler.SemanticsOld.Visitor
 {
-    public abstract class SemanticVisitor : ISemanticVisitor
+    internal abstract class SemanticVisitor : ISemanticVisitor
     {
         // Methods
         public virtual void VisitLocalOrParameter(LocalOrParameterModel localOrParameter)

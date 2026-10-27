@@ -93,5 +93,21 @@ namespace LumaSharp.Compiler.AST
                 }
             }
         }
+
+        public bool HasModifier(SyntaxTokenKind kind)
+        {
+            return HasModifiers == true && modifiers.Any(m => m.Kind == kind);
+        }
+
+        public bool GetModifier(SyntaxTokenKind kind, out SyntaxToken modifier)
+        {
+            modifier = default;
+            if(HasModifiers == true)
+            {
+                modifier = modifiers.FirstOrDefault(m => m.Kind == kind);
+                return modifier.Kind == kind;
+            }
+            return false;
+        }
     }
 }

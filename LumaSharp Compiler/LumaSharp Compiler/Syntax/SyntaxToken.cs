@@ -260,7 +260,7 @@ namespace LumaSharp.Compiler.AST
         public bool IsKeyword => IsKeywordKind(Kind);
         public bool IsSymbol => IsSymbolKind(Kind);
         public bool IsLiteral => IsLiteralKind(Kind);
-        public bool IsPrimitiveType => IsPrimitiveTypeKind(Kind);
+        public bool IsReservedType => IsReservedTypeKind(Kind);
         public bool IsModifier => IsModifierKind(Kind);
         public bool IsRange => IsRangeKind(Kind);
         public bool IsBinaryOperand => IsBinaryOperandKind(Kind);
@@ -438,7 +438,7 @@ namespace LumaSharp.Compiler.AST
             return false;
         }
 
-        public static bool IsPrimitiveTypeKind(SyntaxTokenKind kind)
+        public static bool IsReservedTypeKind(SyntaxTokenKind kind)
         {
             switch(kind)
             {

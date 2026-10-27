@@ -2,7 +2,7 @@
 
 namespace LumaSharp.Compiler.SemanticsOld.Model
 {
-    public abstract class ExpressionModel : SymbolModel
+    internal abstract class ExpressionModel : SymbolModel
     {
         // Properties
         /// <summary>

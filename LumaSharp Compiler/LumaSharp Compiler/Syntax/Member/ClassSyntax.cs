@@ -131,12 +131,12 @@ namespace LumaSharp.Compiler.AST
             // Set parent
             if (attributes != null)
             {
-                foreach (AttributeSyntax a in attributes)
+                foreach (AttributeSyntax a in this.attributes)
                     a.parent = this;
             }
-            if (genericParameters != null) genericParameters.parent = this;
-            if (baseTypes != null) baseTypes.parent = this;
-            members.parent = this;
+            if (genericParameters != null) this.genericParameters.parent = this;
+            if (baseTypes != null) this.baseTypes.parent = this;
+            this.members.parent = this;
         }
 
         // Methods

@@ -19,7 +19,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
         Null,
     }
 
-    public sealed class ConstantModel : ExpressionModel
+    internal sealed class ConstantModel : ExpressionModel
     {
         // Private
         private SyntaxToken literal;
@@ -116,7 +116,7 @@ namespace LumaSharp.Compiler.SemanticsOld.Model
             visitor.VisitConstant(this);
         }
 
-        public override void ResolveSymbols(ISymbolProvider provider, ICompileReportProvider report)
+        public override void ResolveSymbols(ISymbolProvider provider, IDiagnosticReporter report)
         {
             // Get the constant type
             ConstantType constantType = ResolveConstantType(literal, descriptor);

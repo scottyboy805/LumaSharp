@@ -7,10 +7,10 @@ namespace LumaSharp.Compiler.SemanticsOld.Reference
     {
         // Private
         private ISymbolProvider provider = null;
-        private ICompileReportProvider report = null;
+        private IDiagnosticReporter report = null;
 
         // Constructor
-        public ReferenceTypeResolver(ISymbolProvider provider, ICompileReportProvider report)
+        public ReferenceTypeResolver(ISymbolProvider provider, IDiagnosticReporter report)
         {
             this.provider = provider;
             this.report = report;
@@ -22,14 +22,14 @@ namespace LumaSharp.Compiler.SemanticsOld.Reference
             // Check for invalid use of generic
             if (voidType.IsGenericType == true)
             {
-                report.ReportDiagnostic(Code.TypeGenericPrimitive, MessageSeverity.Error, voidType.GenericArguments.StartToken.Span, voidType.Identifier.Text);
+                report.Report(Code.TypeGenericPrimitive, DiagnosticSeverity.Error, voidType.GenericArguments.StartToken.Span, voidType.Identifier.Text);
                 return false;
             }
 
             // Check for invalid use of  array indexing
             if(voidType.IsArrayType == true)
             {
-                report.ReportDiagnostic(Code.TypeArrayPrimitive, MessageSeverity.Error, voidType.ArrayParameters.StartToken.Span, voidType.Identifier.Text);
+                report.Report(Code.TypeArrayPrimitive, DiagnosticSeverity.Error, voidType.ArrayParameters.StartToken.Span, voidType.Identifier.Text);
                 return false;
             }
             return true;

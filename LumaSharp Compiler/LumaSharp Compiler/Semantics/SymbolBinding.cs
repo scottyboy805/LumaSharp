@@ -7,20 +7,23 @@ namespace LumaSharp.Compiler.Semantics
         private readonly ISymbol symbol;
         private readonly ISymbol[] candidateSymbols;
         private readonly ITypeSymbol inferredType;
+        private readonly IOperation operation;
         private readonly IConstantSymbol constant;
 
         // Properties
         public ISymbol Symbol => symbol;
         public IReadOnlyList<ISymbol> CandidateSymbols => candidateSymbols;
         public ITypeSymbol InferredType => inferredType;
+        public IOperation Operation => operation;
         public IConstantSymbol Constant => constant;
 
         // Constructor
-        public SymbolBinding(ISymbol symbol, ITypeSymbol inferredType = null, IConstantSymbol constant = null)
+        public SymbolBinding(ISymbol symbol, ITypeSymbol inferredType = null, IOperation operation = null, IConstantSymbol constant = null)
         {
             this.symbol = symbol;
             this.candidateSymbols = null;
             this.inferredType = inferredType;
+            this.operation = operation;
             this.constant = constant;
         }
 
