@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <BaseOutputPath>..\Build</BaseOutputPath>
+    <AssemblyTitle>Luma.Compiler</AssemblyTitle>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="LLVMSharp" Version="22.1.8" />
+    <PackageReference Include="libLLVM.runtime.win-x64" Version="22.1.8" Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(NETCoreSdkRuntimeIdentifier)' == 'win-x64'" />
+    <PackageReference Include="libLLVM.runtime.linux-x64" Version="22.1.8" Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(NETCoreSdkRuntimeIdentifier)' == 'linux-x64'" />
+    <PackageReference Include="libLLVM.runtime.linux-arm64" Version="22.1.8" Condition="'$(RuntimeIdentifier)' == 'linux-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'linux-arm64'" />
+    <PackageReference Include="libLLVM.runtime.osx-arm64" Version="22.1.8" Condition="'$(RuntimeIdentifier)' == 'osx-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'osx-arm64'" />
+    <PackageReference Include="libLLVM.runtime.win-arm64" Version="22.1.8" Condition="'$(RuntimeIdentifier)' == 'win-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'win-arm64'" />
+    <PackageReference Include="libLLVMSharp.runtime.win-x64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(NETCoreSdkRuntimeIdentifier)' == 'win-x64'" />
+    <PackageReference Include="libLLVMSharp.runtime.linux-x64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(NETCoreSdkRuntimeIdentifier)' == 'linux-x64'" />
+    <PackageReference Include="libLLVMSharp.runtime.linux-arm64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'linux-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'linux-arm64'" />
+    <PackageReference Include="libLLVMSharp.runtime.osx-arm64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'osx-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'osx-arm64'" />
+    <PackageReference Include="libLLVMSharp.runtime.win-arm64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'win-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'win-arm64'" />
+  </ItemGroup>
+
+</Project>

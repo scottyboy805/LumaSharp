@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "outputKind": "executable",
+  "outputName": "Minimal",
+  "outputDirectory": "bin",
+  "intermediateDirectory": "obj",
+  "targetTriple": "host",
+  "unsafe": false,
+  "optimize": false,
+  "logLevel": "normal",
+  "warningsAsErrors": false,
+  "disabledWarnings": [],
+  "excludeDirectories": []
+}

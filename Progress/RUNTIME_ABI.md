@@ -1,0 +1,15 @@
+# LumaSharp runtime ABI
+
+The compiler emits the runtime helpers and runtime-owned data needed by a compilation
+into its LLVM module. The current generated contract is identified as ABI version 1
+by the LLVM module flag `LumaSharpRuntimeABI`. LLVM's `Error` module-flag behavior
+causes bitcode/LTO linking to reject inputs that declare a different version.
+
+`LumaSharp.Compiler.RuntimeAbi.Version` is the authoritative version constant. It
+must be incremented whenever object layouts, helper signatures, ownership rules, or
+runtime state change incompatibly. Compatible generated modules use the same version.
+
+This marker is an initial compatibility boundary, not a standalone runtime package.
+The runtime implementation is still emitted into generated modules, and ordinary
+native archive linking may discard LLVM module flags. A distributable shared runtime
+and compatibility checks for separately linked static libraries remain open work.

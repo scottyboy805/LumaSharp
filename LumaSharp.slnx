@@ -1,0 +1,14 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Source/">
+    <Project Path="LumaSharp.Cli/LumaSharp.Cli.csproj" />
+    <Project Path="LumaSharp.Compiler/LumaSharp.Compiler.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/LumaSharp.Tests/LumaSharp.Tests.csproj" />
+  </Folder>
+</Solution>
