@@ -1,40 +1,88 @@
 # LumaSharp
-C# programming language reimagined - Intended as a fun side project/learning exercise, but hope to grow into something useable and feature complete.
 
-# Motivation
-C# is a powerful and mature language with frequent new features added all the time, and as a result has a certain amount of ambiguity as those features have been built upon over the years. Quite simply there are many ways to achieve the same thing in the language which can make it feel disjointed in some cases in my opinion. LumaSharp is my personal idea of what I think the perfect C# inspired language may look like if it was redesigned from stratch today, taking into consideration all the current features that a language like C# has to offer. The main goals are ease of use/simple or familiar syntax, and to eliminate as much ambiguity as possible without compromising on features.
+LumaSharp is a statically typed language with C#-style syntax, ahead-of-time native compilation through LLVM, built-in nullability, and deterministic reference-counted memory management. The compiler and language are under active development; the implementation supports a broad but incomplete slice of the specifications.
 
-# Progress
-WIP - Define language specification and usage (Common language features outlined below but subject to change).  
-- [x] [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/main/LumaSharp%20Specification/Language/Overview.md)
-- [X] [Runtime Specification](https://github.com/scottyboy805/LumaSharp/blob/main/LumaSharp%20Specification/Runtime/Instructions.md)
+## Repository layout
 
-WIP - Implement language parsing using Antlr4 (Partially implemented - work is on going to support all proposed features).  
-- [X] Implement Antlr grammar for language specification - subject to change and refinement as the language structure develops.
-- [X] Implement Antlr expressions, statements, members and units for language specification.
-- [X] Generate structured parse tree using Antlr runtime.
-- [X] Implement Syntax tree API for working with parsed language.
-- [X] Implement conversion from Antlr parse tree to syntax tree.
-- [ ] Fully test parsing source text to syntax tree for all cases.
+- `LumaSharp.Compiler/` — compiler library, parser, semantic analysis, LLVM backend, and build API.
+- `LumaSharp.Cli/` — `luma` command-line executable.
+- `LumaSharp.Library/` — compiler-known `System` library declarations and metadata.
+- `Tests/LumaSharp.Tests/` — compiler, runtime/JIT, build API, and CLI tests; `Tests/fixtures/` contains sample inputs.
+- `Documentation/` — practical language and project guides.
+- `Specification/` — normative language/runtime and compiler specifications.
+- `Progress/` — implementation roadmap and runtime ABI notes.
 
-WIP - Semantic analysis to ensure lanugage usage is valid (Link types, symbols, give errors/warnings, etc.).  
-- [X] Convert parsed syntax tree to equivilent semanitc model.
-- [ ] Implement loading external modules for referencing purposes.
-- [ ] Implement type checking, inference, accessibility rules etc.
-- [X] Implement resolving symbols and identifiers based on scope (Partially implemented).
-- [ ] Semantic model validation to ensure that an output can be generated.
+Start with [Documentation/Overview.md](Documentation/Overview.md) for a compact syntax reference. The [language specification](Specification/LumaSharp_LanguageSpecification.md) defines intended semantics; the [compiler specification](Specification/LumaSharp_CompilerSpecification.md) describes project files, outputs, and CLI behaviour. Some specified features are not implemented yet.
 
-TODO - Implement bytecode compiler to produce an executable format (Work required to transform the AST produced from parsing the source into semantic model for validation, and then into a stack based common bytecode instruction set).  
-- [X] Define bytecode model used for runtime and compiler purposes (instruction set, format, memory) (Partially implemented [Runtime Specification](https://github.com/scottyboy805/LumaSharp/blob/main/LumaSharp%20Specification/Runtime/Instructions.md).
-- [X] Generate bytecode instruction set from semantic model statements (Partially implemented).
-- [ ] Emit intermediate module that can be loaded and executed at runtime.
+## Requirements
 
-TODO - Implement bytecode runtime to execute code as an application or library (Create a bytecode runtime in software only (No JIT) just as a proof of concept to execute instructions).  
-- [ ] Long term - complete work on compiler first.
+- .NET 10 SDK.
+- A compatible system linker or archiver for native executable and static-library builds.
+- LLVM runtime packages are supplied through the compiler's LLVMSharp NuGet dependencies for supported host architectures.
 
-# Proposed syntax
-Here is the proposed syntax for the language which may be subject to change: [Language Specification](https://github.com/scottyboy805/LumaSharp/blob/main/LumaSharp%20Specification/Language/Overview.md)
+## Build and test
 
-# Sponsors
-You can sponsor this project to help it grow
-[:heart: Sponsor](https://github.com/sponsors/scottyboy805)
+From the repository root:
+
+```powershell
+dotnet build LumaSharp.slnx
+dotnet test Tests/LumaSharp.Tests/LumaSharp.Tests.csproj
+```
+
+Build one source file, or several files as a single program:
+
+```powershell
+dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build path/to/Program.ls
+dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build path/to/Program.ls path/to/Library.ls
+```
+
+`--no-llvm` runs parsing, semantic analysis, LLVM verification, and object emission, then writes verified LLVM IR without linking. A normal build links and publishes the native output only after success:
+
+```powershell
+dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build path/to/Program.ls --no-llvm
+dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build path/to/Program.ls --kind staticLibrary
+```
+
+Use `dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- --help` for options. Common options include `--name`, `--out-dir`, `--intermediate-dir`, `--target`, `--unsafe`, `--optimize`, `--warnings-as-errors`, and `--no-warn <code>`.
+
+### JSON project builds
+
+A `.json` project file sets build options; it does not list source files. The CLI recursively finds `.ls` files below the project directory and excludes version-control, `bin`, `obj`, and configured output directories.
+
+```json
+{
+  "schemaVersion": 1,
+  "outputKind": "executable",
+  "outputName": "Example",
+  "outputDirectory": "bin",
+  "intermediateDirectory": "obj",
+  "targetTriple": "host",
+  "unsafe": false,
+  "optimize": false
+}
+```
+
+Save as `Example.json`, then run `dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build Example.json`. Source discovery and relative paths are rooted at the project file's directory. See the compiler specification for every setting and default.
+
+## Compiler library
+
+The compiler can also be called without the CLI. `LumaCompiler.Compile` compiles in-memory text to diagnostics and LLVM IR; `LumaBuild.BuildAsync` builds ordered source paths and returns structured diagnostics and artifact paths.
+
+```csharp
+var request = new CompilerBuildRequest(
+    SourcePaths: ["Program.ls"],
+    Options: new CompilationOptions(EmitLlvmIrOnly: true),
+    OutputDirectory: "bin",
+    IntermediateDirectory: "obj",
+    OutputName: "Program");
+
+CompilerBuildResult result = await LumaBuild.BuildAsync(request, cancellationToken);
+```
+
+## Current implementation
+
+The compiler includes classes, structs, interfaces, enums, generics, delegates and closures, properties and indexers, nullable values/references, arrays, strings, pattern-capable `switch` and `is`, exceptions, unsafe pointers, native interop, static initialization, ownership/lifetime checks, and native code generation. Support varies by feature and edge case; recognized unsupported constructs produce diagnostics. The language and compiler specifications describe the wider design, while the tests document many implemented behaviours.
+
+## License
+
+See [LICENSE](LICENSE). Community expectations are in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
