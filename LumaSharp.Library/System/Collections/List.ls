@@ -35,7 +35,7 @@ public class List<T> : IEnumerable<T>
 		{
 			if (items.Length == 0)
 				return null;
-			return &items[0];
+			return (T*)&items[0];
 		}
 	}
 
