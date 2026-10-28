@@ -32,8 +32,6 @@ public unsafe struct ReadOnlySpan<T>
 	{
 		get
 		{
-			if (index < 0 || index >= length)
-				throw new System.ArgumentOutOfRangeException();
 			return pointer[index];
 		}
 	}
