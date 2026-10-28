@@ -7860,7 +7860,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                                     diagnostics.Add("LS1504", DiagnosticSeverity.Error, $"Array dimension {dimensionIndex} has length {constantLength}, but its initializer has length {shape[dimensionIndex]}.", managedInitializer.Location);
                         }
                     }
-                    else if (IsNonNullableManagedArrayElementReference(managedElementType))
+                    else if (IsNonNullableManagedArrayElementReference(managedElementType) &&
+                        !allocation.Dimensions.Any(dimension => dimension is LiteralExpression literal && ParseInteger(literal.Value).Value == 0))
                         diagnostics.Add("LS1501", DiagnosticSeverity.Error, "An array of non-nullable reference elements requires an initializer that supplies every element.", allocation.Location);
                     return allocationType;
                 }

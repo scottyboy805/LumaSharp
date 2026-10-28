@@ -1899,9 +1899,14 @@ public sealed class CompilerTests
         Assert.Contains(structField.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&
             diagnostic.Message.Contains("Generic struct field 'T' must have a 'struct' or 'enum' constraint", StringComparison.Ordinal));
 
-        var unconstrainedArray = Compile("class Slot<T> { public T[] Create(int32 length) { return new T[length]; } } class Program { public static int32 Main() { return 0; } }");
-        Assert.Contains(unconstrainedArray.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&
-            diagnostic.Message.Contains("An array of type parameter 'T' requires a 'struct' or 'enum' constraint", StringComparison.Ordinal));
+        var unconstrainedArray = Compile("class Item { } class Slot<T> { T[] arr; public this() { arr = new T[0]; } public T[] Get() { return arr; } } class Program { public static int32 Main() { Slot<Item> slot = new Slot<Item>(); Item[] values = slot.Get(); return values.Length; } }");
+        Assert.True(unconstrainedArray.Succeeded, string.Join(Environment.NewLine, unconstrainedArray.Diagnostics));
+        var unconstrainedArrayExecution = LlvmJit.RunMain(unconstrainedArray.LlvmIr!);
+        Assert.Equal(0, unconstrainedArrayExecution.ExitCode);
+        Assert.Equal(0, unconstrainedArrayExecution.OutstandingAllocations);
+
+        var uninitializedReferenceArray = Compile("class Item { } class Slot<T> { public T[] Create(int32 length) { return new T[length]; } } class Program { public static int32 Main() { Slot<Item> slot = new Slot<Item>(); Item[] values = slot.Create(1); return 0; } }");
+        Assert.Contains(uninitializedReferenceArray.Diagnostics, diagnostic => diagnostic.Code == "LS1501");
 
         var valid = Compile("class Slot<T> where T : struct { public T Get() { return default(T); } } class Program { public static int32 Main() { Slot<int32> slot = new Slot<int32>(); return slot.Get(); } }");
         Assert.True(valid.Succeeded, string.Join(Environment.NewLine, valid.Diagnostics));

@@ -2468,7 +2468,7 @@ Constraints are checked at every instantiation. Inside a generic body, only memb
 ## 12.4 Behaviour of `T` Inside Generic Code
 
 - `T` with a `struct` constraint is a value type; with `class` is a non-nullable reference type; **an unconstrained `T` may be either**, so inside the generic body it is treated as a possible non-nullable reference type.
-- Consequently, for an unconstrained or `class`-constrained `T`: `default(T)`, `T x;` (declaration without initializer), `new T[n]`, and storing `T` in a struct field are errors, exactly as for a class type (§3.5, §9.1.1). They are permitted when `T` is constrained to `struct`. Use `T?` (valid for any `T`) wherever "no value" is needed:
+- Consequently, for an unconstrained or `class`-constrained `T`: `default(T)`, `T x;` (declaration without initializer), and storing `T` in a struct field are errors, exactly as for a class type (§3.5, §9.1.1). `new T[n]` is permitted when `n` is provably zero, because it creates no elements; otherwise it follows the array element rules in §15.2. A `struct` or `enum` constraint permits default-initialized elements, while nullable `T?` elements may start as null. Use `T?` (valid for any `T`) wherever "no value" is needed:
 
 ```lumasharp
 class Slot<T>
@@ -2483,7 +2483,8 @@ class Slot<T>
 class Stack<T>
 {
     T?[] items = new T?[16];     // ok: elements are nullable
-    T[] bad = new T[16];         // error LS1501: T may be a non-nullable reference type
+    T[] empty = new T[0];         // ok: no elements need default values
+    T[] bad = new T[16];          // error: may leave non-nullable reference elements uninitialized
 }
 ```
 
@@ -2506,6 +2507,7 @@ Generic code behaves identically whether `T` is a struct, class, or primitive; v
 
 ```lumasharp
 Box<int32>[] boxes = new Box<int32>[3];      // error LS1501: Box<int32> is a non-nullable class type
+Box<int32>[] empty = new Box<int32>[0];      // ok: empty arrays have no elements to initialize
 Box<int32>?[] okay = new Box<int32>?[3];     // elements null initially
 Box<int32>[] filled = { new(1), new(2) };    // ok: every element provided
 List<Foo?> list = new List<Foo?>();          // type argument may itself be nullable
@@ -3133,10 +3135,11 @@ int32[,] m = new int32[2, 3];              // six zeros
 int32[,,] cube = new int32[2, 2, 2];       // eight zeros
 ```
 
-**Element initialisation.** The elements of a new array are initialised to their type's default value: zero for value types, `null` for nullable types, `""` for `string`. **A non-nullable reference type (other than `string`) has no default value, so an array of such elements can never be created with only a length:**
+**Element initialisation.** The elements of a new array are initialised to their type's default value: zero for value types, `null` for nullable types, `""` for `string`. **A non-nullable reference type (other than `string`) has no default value, so an array of such elements cannot be created with a positive length and no initializer:**
 
 ```lumasharp
 Foo[] h = new Foo[5];                      // error LS1501: Foo is not default-constructible
+Foo[] empty = new Foo[0];                  // ok: there are no elements to initialize
 Foo[] i = { new Foo(), new DerivedClass() }; // ok: every element is provided
 Foo?[] j = new Foo?[5];                    // ok: nullable elements
 int32[][] jag = new int32[3][];            // error LS1501: int32[] is a non-nullable reference

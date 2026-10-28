@@ -243,10 +243,6 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                     case DefaultValueExpression { TypeName: { } typeName } defaultValue when typeName == parameter && !valueParameters.Contains(parameter):
                         Report($"default({parameter}) requires a 'struct' constraint.", defaultValue.Location);
                         break;
-                    case AllocationExpression allocation when allocation.Dimensions.Count > 0 &&
-                        SemanticAnalyzer.TryParseManagedArrayType(allocation.TypeName ?? "", out var elementType, out _) && elementType == parameter && !valueParameters.Contains(parameter):
-                        Report($"An array of type parameter '{parameter}' requires a 'struct' or 'enum' constraint.", allocation.Location);
-                        break;
                     case AllocationExpression { TypeName: { } typeName, Dimensions.Count: 0 } allocation when typeName == parameter:
                         ValidateTypeParameterConstruction(parameter, allocation);
                         break;
