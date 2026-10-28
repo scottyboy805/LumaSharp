@@ -1,51 +1,61 @@
 namespace System.Collections;
 
-public class HashSet<T> : IEnumerable<T> where T : class, IEquality<T>, IHashable
+public class HashSet<T> : IEnumerable<T>
 {
-	private T?[] _items;
-	private int32[] _hashes;
-	private int32[] _states;
-	private int32 _count;
-	private int32 _used;
+	private T?[] items;
+	private int32[] hashes;
+	private int32[] states;
+	private int32 count;
+	private int32 used;
 
 	public this()
 	{
-		_items = new T?[8];
-		_hashes = new int32[8];
-		_states = new int32[8];
-		_count = 0;
-		_used = 0;
+		items = new T?[8];
+		hashes = new int32[8];
+		states = new int32[8];
+		count = 0;
+		used = 0;
 	}
 
 	public this(int32 capacity)
 	{
 		if (capacity < 0)
-			CollectionGuard.ThrowOutOfRange();
+			throw new System.ArgumentOutOfRangeException();
 		int32 actualCapacity = CapacityFor(capacity);
-		_items = new T?[actualCapacity];
-		_hashes = new int32[actualCapacity];
-		_states = new int32[actualCapacity];
-		_count = 0;
-		_used = 0;
+		items = new T?[actualCapacity];
+		hashes = new int32[actualCapacity];
+		states = new int32[actualCapacity];
+		count = 0;
+		used = 0;
 	}
 
 	public int32 Count
 	{
-		get => _count;
+		get => count;
 	}
 
 	public int32 Capacity
 	{
-		get => _states.Length;
+		get => states.Length;
+	}
+
+	public unsafe T* Ptr
+	{
+		get
+		{
+			if (items.Length == 0)
+				return null;
+			return &items[0];
+		}
 	}
 
 	public bool Add(T item) mut
 	{
 		ValidateItem(item);
-		int32 hash = item.GetHashCode();
+		int32 hash = GetHashCode(item);
 		if (Find(item, hash) >= 0)
 			return false;
-		EnsureCapacity(_count + 1);
+		EnsureCapacity(count + 1);
 		InsertNew(item, hash);
 		return true;
 	}
@@ -53,19 +63,19 @@ public class HashSet<T> : IEnumerable<T> where T : class, IEquality<T>, IHashabl
 	public bool Contains(T item)
 	{
 		ValidateItem(item);
-		return Find(item, item.GetHashCode()) >= 0;
+		return Find(item, GetHashCode(item)) >= 0;
 	}
 
 	public bool Remove(T item) mut
 	{
 		ValidateItem(item);
-		int32 index = Find(item, item.GetHashCode());
+		int32 index = Find(item, GetHashCode(item));
 		if (index < 0)
 			return false;
-		_items[index] = null;
-		_hashes[index] = 0;
-		_states[index] = 2;
-		_count--;
+		items[index] = null;
+		hashes[index] = 0;
+		states[index] = 2;
+		count--;
 		return true;
 	}
 
@@ -76,49 +86,57 @@ public class HashSet<T> : IEnumerable<T> where T : class, IEquality<T>, IHashabl
 
 	public bool IsOccupied(int32 index)
 	{
-		return _states[index] == 1;
+		return states[index] == 1;
 	}
 
 	public T GetAt(int32 index)
 	{
-		return _items[index]!;
+		return items[index]!;
 	}
 
 	public IIterator<T> Iterate()
 	{
-		return new HashSetIterator<T>(this);
+		return new Iterator<T>(this);
+	}
+
+	private int32 GetHashCode(T item)
+	{
+		if (item is System.IHashable hashable)
+			return hashable.Hash;
+		return 0;
+	}
+
+	private bool ItemsEqual(T left, T right)
+	{
+		if (left is System.IEquality<T> equality)
+			return equality.Equals(right);
+		return left == right;
 	}
 
 	private int32 Find(T item, int32 hash)
 	{
 		int32 slot = hash & 0x7FFFFFFF;
-		for (int32 probe = 0; probe < _states.Length; probe++)
+		for (int32 probe = 0; probe < states.Length; probe++)
 		{
-			int32 index = (slot + probe) % _states.Length;
-			if (_states[index] == 0)
+			int32 index = (slot + probe) % states.Length;
+			if (states[index] == 0)
 				return -1;
-			if (_states[index] == 1 && _hashes[index] == hash && _items[index]!.Equals(item))
+			if (states[index] == 1 && hashes[index] == hash && ItemsEqual(items[index]!, item))
 				return index;
 		}
 		return -1;
-	}
-
-	private void ValidateItem(T item)
-	{
-		if (item == null)
-			CollectionGuard.ThrowNullArgument();
 	}
 
 	private void InsertNew(T item, int32 hash) mut
 	{
 		int32 firstDeleted = -1;
 		int32 slot = hash & 0x7FFFFFFF;
-		for (int32 probe = 0; probe < _states.Length; probe++)
+		for (int32 probe = 0; probe < states.Length; probe++)
 		{
-			int32 index = (slot + probe) % _states.Length;
-			if (_states[index] == 2 && firstDeleted < 0)
+			int32 index = (slot + probe) % states.Length;
+			if (states[index] == 2 && firstDeleted < 0)
 				firstDeleted = index;
-			if (_states[index] == 0)
+			if (states[index] == 0)
 			{
 				Store(firstDeleted >= 0 ? firstDeleted : index, item, hash);
 				return;
@@ -129,22 +147,22 @@ public class HashSet<T> : IEnumerable<T> where T : class, IEquality<T>, IHashabl
 
 	private void Store(int32 index, T item, int32 hash) mut
 	{
-		if (_states[index] == 0)
-			_used++;
-		_items[index] = item;
-		_hashes[index] = hash;
-		_states[index] = 1;
-		_count++;
+		if (states[index] == 0)
+			used++;
+		items[index] = item;
+		hashes[index] = hash;
+		states[index] = 1;
+		count++;
 	}
 
 	private void EnsureCapacity(int32 minimum) mut
 	{
-		if (minimum * 4 < _states.Length * 3 && _used * 4 < _states.Length * 3)
+		if (minimum * 4 < states.Length * 3 && used * 4 < states.Length * 3)
 			return;
-		int32 newCapacity = _states.Length * 2;
-		T?[] oldItems = _items;
-		int32[] oldHashes = _hashes;
-		int32[] oldStates = _states;
+		int32 newCapacity = states.Length * 2;
+		T?[] oldItems = items;
+		int32[] oldHashes = hashes;
+		int32[] oldStates = states;
 		Initialize(newCapacity);
 		for (int32 index = 0; index < oldStates.Length; index++)
 			if (oldStates[index] == 1)
@@ -153,11 +171,11 @@ public class HashSet<T> : IEnumerable<T> where T : class, IEquality<T>, IHashabl
 
 	private void Initialize(int32 capacity) mut
 	{
-		_items = new T?[capacity];
-		_hashes = new int32[capacity];
-		_states = new int32[capacity];
-		_count = 0;
-		_used = 0;
+		items = new T?[capacity];
+		hashes = new int32[capacity];
+		states = new int32[capacity];
+		count = 0;
+		used = 0;
 	}
 
 	private static int32 CapacityFor(int32 requested)
@@ -167,29 +185,29 @@ public class HashSet<T> : IEnumerable<T> where T : class, IEquality<T>, IHashabl
 			capacity *= 2;
 		return capacity;
 	}
-}
 
-internal class HashSetIterator<T> : IIterator<T> where T : class, IEquality<T>, IHashable
-{
-	private HashSet<T> _set;
-	private int32 _index;
-
-	public this(HashSet<T> set)
+	private class Iterator<TItem> : IIterator<TItem>
 	{
-		_set = set;
-		_index = -1;
-	}
+		private HashSet<TItem> set;
+		private int32 index;
 
-	public bool Next() mut
-	{
-		_index++;
-		while (_index < _set.Capacity && !_set.IsOccupied(_index))
-			_index++;
-		return _index < _set.Capacity;
-	}
+		public this(HashSet<TItem> source)
+		{
+			set = source;
+			index = -1;
+		}
 
-	public T Current
-	{
-		get => _set.GetAt(_index);
+		public bool Next() mut
+		{
+			index++;
+			while (index < set.Capacity && !set.IsOccupied(index))
+				index++;
+			return index < set.Capacity;
+		}
+
+		public TItem Current
+		{
+			get => set.GetAt(index);
+		}
 	}
 }

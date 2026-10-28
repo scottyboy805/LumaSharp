@@ -1,4 +1,4 @@
-namespace System.Collections;
+namespace System;
 
 public interface IEquality<T>
 {

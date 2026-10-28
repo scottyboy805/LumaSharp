@@ -516,9 +516,9 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
 
         bool HasConstraintOperator(string parameter, string operatorName, IReadOnlyList<string> operandTypes, HashSet<string> visitedParameters)
         {
-            if (!visitedParameters.Add(parameter) || !constraints.TryGetValue(parameter, out var items)) return false;
-            if (items.Contains("class", StringComparer.Ordinal) && (operatorName is "==" or "!=") &&
+            if ((operatorName is "==" or "!=") &&
                 operandTypes.All(type => GetTypeParameterOperand(type) == parameter || type is "null" or "object" or "System.Object")) return true;
+            if (!visitedParameters.Add(parameter) || !constraints.TryGetValue(parameter, out var items)) return false;
             foreach (var item in items)
             {
                 if (item is "class" or "struct" or "enum" || item.StartsWith("new(", StringComparison.Ordinal)) continue;

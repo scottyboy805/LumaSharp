@@ -5,7 +5,7 @@
   "outputDirectory": "bin",
   "intermediateDirectory": "obj",
   "targetTriple": "host",
-  "unsafe": false,
+  "unsafe": true,
   "optimize": false,
   "logLevel": "normal",
   "warningsAsErrors": false,

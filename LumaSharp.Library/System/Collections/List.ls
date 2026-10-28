@@ -2,96 +2,106 @@ namespace System.Collections;
 
 public class List<T> : IEnumerable<T>
 {
-	private T?[] _items;
-	private int32 _count;
+	private T?[] items;
+	private int32 count;
 
 	public this()
 	{
-		_items = new T?[4];
-		_count = 0;
+		items = new T?[4];
+		count = 0;
 	}
 
 	public this(int32 capacity)
 	{
 		if (capacity < 0)
-			CollectionGuard.ThrowOutOfRange();
-		_items = new T?[capacity];
-		_count = 0;
+			throw new System.ArgumentOutOfRangeException();
+		items = new T?[capacity];
+		count = 0;
 	}
 
 	public int32 Count
 	{
-		get => _count;
+		get => count;
 	}
 
 	public int32 Capacity
 	{
-		get => _items.Length;
+		get => items.Length;
+	}
+
+	public unsafe T* Ptr
+	{
+		get
+		{
+			if (items.Length == 0)
+				return null;
+			return &items[0];
+		}
 	}
 
 	public T this[int32 index]
 	{
 		get
 		{
-			if (index < 0 || index >= _count)
-				CollectionGuard.ThrowOutOfRange();
-			return _items[index]!;
+			if (index < 0 || index >= count)
+				throw new System.ArgumentOutOfRangeException();
+			return items[index]!;
 		}
 		set
 		{
-			if (index < 0 || index >= _count)
-				CollectionGuard.ThrowOutOfRange();
-			_items[index] = value;
+			if (index < 0 || index >= count)
+				throw new System.ArgumentOutOfRangeException();
+			items[index] = value;
 		}
 	}
 
 	public void Add(T item) mut
 	{
-		EnsureCapacity(_count + 1);
-		_items[_count] = item;
-		_count++;
+		EnsureCapacity(count + 1);
+		items[count] = item;
+		count++;
 	}
 
 	public void Insert(int32 index, T item) mut
 	{
-		if (index < 0 || index > _count)
-			CollectionGuard.ThrowOutOfRange();
-		EnsureCapacity(_count + 1);
-		int32 current = _count;
+		if (index < 0 || index > count)
+			throw new System.ArgumentOutOfRangeException();
+		EnsureCapacity(count + 1);
+		int32 current = count;
 		while (current > index)
 		{
-			_items[current] = _items[current - 1];
+			items[current] = items[current - 1];
 			current--;
 		}
-		_items[index] = item;
-		_count++;
+		items[index] = item;
+		count++;
 	}
 
 	public void RemoveAt(int32 index) mut
 	{
-		if (index < 0 || index >= _count)
-			CollectionGuard.ThrowOutOfRange();
+		if (index < 0 || index >= count)
+			throw new System.ArgumentOutOfRangeException();
 		int32 current = index;
-		while (current + 1 < _count)
+		while (current + 1 < count)
 		{
-			_items[current] = _items[current + 1];
+			items[current] = items[current + 1];
 			current++;
 		}
-		_count--;
-		_items[_count] = null;
+		count--;
+		items[count] = null;
 	}
 
 	public void Clear() mut
 	{
-		for (int32 index = 0; index < _count; index++)
-			_items[index] = null;
-		_count = 0;
+		for (int32 index = 0; index < count; index++)
+			items[index] = null;
+		count = 0;
 	}
 
 	public int32 IndexOf(T item)
 	{
-		for (int32 index = 0; index < _count; index++)
-			if (_items[index] == item)
+		for (int32 index = 0; index < count; index++)
+			if (items[index] == item)
 				return index;
 		return -1;
 	}
@@ -112,50 +122,50 @@ public class List<T> : IEnumerable<T>
 
 	public T?[] ToArray()
 	{
-		T?[] result = new T?[_count];
-		for (int32 index = 0; index < _count; index++)
-			result[index] = _items[index];
+		T?[] result = new T?[count];
+		for (int32 index = 0; index < count; index++)
+			result[index] = items[index];
 		return result;
 	}
 
 	public IIterator<T> Iterate()
 	{
-		return new ListIterator<T>(this);
+		return new Iterator<T>(this);
 	}
 
 	private void EnsureCapacity(int32 minimum) mut
 	{
-		if (minimum <= _items.Length)
+		if (minimum <= items.Length)
 			return;
-		int32 capacity = _items.Length == 0 ? 4 : _items.Length * 2;
+		int32 capacity = items.Length == 0 ? 4 : items.Length * 2;
 		if (capacity < minimum)
 			capacity = minimum;
 		T?[] replacement = new T?[capacity];
-		for (int32 index = 0; index < _count; index++)
-			replacement[index] = _items[index];
-		_items = replacement;
-	}
-}
-
-internal class ListIterator<T> : IIterator<T>
-{
-	private List<T> _list;
-	private int32 _index;
-
-	public this(List<T> list)
-	{
-		_list = list;
-		_index = -1;
+		for (int32 index = 0; index < count; index++)
+			replacement[index] = items[index];
+		items = replacement;
 	}
 
-	public bool Next() mut
+	private class Iterator<TItem> : IIterator<TItem>
 	{
-		_index++;
-		return _index < _list.Count;
-	}
+		private List<TItem> list;
+		private int32 index;
 
-	public T Current
-	{
-		get => _list[_index];
+		public this(List<TItem> source)
+		{
+			list = source;
+			index = -1;
+		}
+
+		public bool Next() mut
+		{
+			index++;
+			return index < list.Count;
+		}
+
+		public TItem Current
+		{
+			get => list[index];
+		}
 	}
 }

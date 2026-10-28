@@ -96,23 +96,23 @@ public sealed class CompilerTests
         var result = LumaCompiler.Compile(runtimeSources.Append(("collections-runtime-test.ls", """
             using System.Collections;
 
-            public class TestKey : IEquality<TestKey>, IHashable
+            public class TestKey : System.IEquality<TestKey>, System.IHashable
             {
-                public int32 Value;
+                public int32 value;
 
                 public this(int32 value)
                 {
-                    Value = value;
+                    this.value = value;
                 }
 
                 public bool Equals(TestKey other)
                 {
-                    return Value == other.Value;
+                    return value == other.value;
                 }
 
-                public int32 GetHashCode()
+                public int32 Hash
                 {
-                    return Value;
+	                get => value;
                 }
             }
 
@@ -2579,7 +2579,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void GenericConstraintOperatorsRequireADeclaredOperatorOrClassEquality()
+    public void GenericConstraintOperatorsAllowDefaultEqualityButRequireOtherOperators()
     {
         const string classEqualitySource = "class Equality<T> where T : class { public bool Same(T left, T right) { return left == right; } public bool SameObject(T left, object right) { return left == right; } } class Program { public static int32 Main() { return 0; } }";
         var classEquality = Compile(classEqualitySource);
@@ -2587,7 +2587,7 @@ public sealed class CompilerTests
 
         const string missingOperatorSource = "class Equality<T> { public bool Same(T left, T right) { return left == right; } public void Add(T left, T right) { left += right; } } class Program { public static int32 Main() { return 0; } }";
         var missingOperator = Compile(missingOperatorSource);
-        Assert.Contains(missingOperator.Diagnostics, diagnostic => diagnostic.Code == "LS0751" && diagnostic.Message.Contains("Operator '==' is not available"));
+        Assert.Contains(missingOperator.Diagnostics, diagnostic => diagnostic.Code == "LS0751" && diagnostic.Message.Contains("Operator '+=' is not available"));
 
         const string declaredOperatorSource = "virtual class Base { public static Base operator +(Base left, Base right) { return left; } } class Sum<T> where T : Base { public Base Add(T left, T right) { return left + right; } } class Program { public static int32 Main() { return 0; } }";
         var declaredOperator = Compile(declaredOperatorSource);
