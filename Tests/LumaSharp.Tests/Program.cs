@@ -88,6 +88,130 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void CollectionsNamespaceTypesBuildAndRunWithMovedIterationContracts()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("collections-runtime-test.ls", """
+            using System.Collections;
+
+            public class TestKey : IEquality<TestKey>, IHashable
+            {
+                public int32 Value;
+
+                public this(int32 value)
+                {
+                    Value = value;
+                }
+
+                public bool Equals(TestKey other)
+                {
+                    return Value == other.Value;
+                }
+
+                public int32 GetHashCode()
+                {
+                    return Value;
+                }
+            }
+
+            public class TestIterator : IIterator<int32>
+            {
+                private int32 _index;
+
+                public this()
+                {
+                    _index = -1;
+                }
+
+                public bool Next() mut
+                {
+                    _index++;
+                    return _index < 2;
+                }
+
+                public int32 Current
+                {
+                    get => _index + 1;
+                }
+            }
+
+            public class TestValues : IEnumerable<int32>
+            {
+                public IIterator<int32> Iterate()
+                {
+                    return new TestIterator();
+                }
+            }
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    List<int32> list = new List<int32>();
+                    list.Add(10);
+                    list.Add(20);
+                    list.Insert(1, 15);
+                    bool contains = list.Contains(15);
+                    int32 foundIndex = list.IndexOf(20);
+                    int32 listTotal = 0;
+                    for (let item in list)
+                        listTotal += item;
+                    int32?[] copiedValues = list.ToArray();
+                    int32 total = 0;
+                    for (let item in new TestValues())
+                        total += item;
+
+                    Stack<int32> stack = new Stack<int32>();
+                    stack.Push(1);
+                    stack.Push(2);
+                    int32 stackTotal = 0;
+                    for (let item in stack)
+                        stackTotal += item;
+                    Queue<int32> queue = new Queue<int32>();
+                    queue.Enqueue(3);
+                    queue.Enqueue(4);
+                    int32 queueTotal = 0;
+                    for (let item in queue)
+                        queueTotal += item;
+
+                    Dictionary<TestKey, string> map = new Dictionary<TestKey, string>(1);
+                    map.Add(new TestKey(7), "seven");
+                    bool inserted = map.TryAdd(new TestKey(20), "twenty");
+                    int32 keyIndex = 0;
+                    while (keyIndex < 12)
+                    {
+                        if (keyIndex != 7)
+                            map[new TestKey(keyIndex)] = "item";
+                        keyIndex++;
+                    }
+                    bool found = map.TryGetValue(new TestKey(7), out string value);
+                    HashSet<TestKey> set = new HashSet<TestKey>(1);
+                    bool added = set.Add(new TestKey(9));
+                    bool duplicate = set.Add(new TestKey(9));
+                    int32 setCount = 0;
+                    for (let item in set)
+                        setCount++;
+
+                    return list.Count == 3 && list[1] == 15 && contains && foundIndex == 2 &&
+                        copiedValues.Length == 3 && copiedValues[1] == 15 && inserted &&
+                        stack.Pop() == 2 && stack.Pop() == 1 &&
+                        queue.Dequeue() == 3 && queue.Dequeue() == 4 &&
+                        total == 3 && listTotal == 45 && stackTotal == 3 && queueTotal == 7 &&
+                        found && value == "seven" && map.ContainsKey(new TestKey(11)) &&
+                        map.Remove(new TestKey(11)) && added && !duplicate &&
+                        setCount == 1 && set.Contains(new TestKey(9)) ? 0 : 1;
+                }
+            }
+            """)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+    }
+
+    [Fact]
     public void RuntimeStringSupportsLiteralAndOwnedStrings()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

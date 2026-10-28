@@ -5523,12 +5523,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             availableInterfaces.Contains(GetQualifiedTypeName(instance.Specialized)) &&
             instance.Arguments.Count == 1 && IsEnumerableDefinition(instance.Definition) &&
             NormalizeEnumType(instance.Arguments[0], context.Method.Owner) == elementType);
-        if (enumerableInstance is null || !_interfaceTypes.TryGetValue(GetQualifiedTypeName(enumerableInstance.Specialized), out var enumerableInterface))
+        if (enumerableInstance is null)
         {
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
                 "The IEnumerable<T> iteration protocol is recognized, but its closed interface contract could not be resolved.", loop.Collection.Location);
             return;
         }
+        var enumerableInterface = enumerableInstance.Specialized;
         var iterate = enumerableInterface.Members.OfType<MethodDeclaration>().FirstOrDefault(method =>
             method.Name == "Iterate" && !method.IsStatic && method.Parameters.Count == 0);
         var iteratorTypeName = iterate is null ? null : NormalizeEnumType(iterate.ReturnType, enumerableInterface);
@@ -5583,10 +5584,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     }
 
     private static bool IsEnumerableDefinition(TypeDeclaration definition) => definition.Name == "IEnumerable" &&
-        definition.Kind == "interface" && definition.Namespace is "" or "System.Collections.Generic";
+        definition.Kind == "interface" && definition.Namespace is "" or "System.Collections" or "System.Collections.Generic";
 
     private static bool IsIteratorDefinition(TypeDeclaration definition) => definition.Name == "IIterator" &&
-        definition.Kind == "interface" && definition.Namespace is "" or "System.Collections.Generic";
+        definition.Kind == "interface" && definition.Namespace is "" or "System.Collections" or "System.Collections.Generic";
 
     private bool TryGetEnumerableElementTypes(string sourceType, TypeDeclaration context, out string[] elementTypes)
     {
@@ -5596,7 +5597,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         void AddEnumerableElementType(string declaredType)
         {
             var baseName = StripGenericArguments(declaredType);
-            if (!(baseName is "IEnumerable" or "System.Collections.Generic.IEnumerable") || !declaredType.Contains('<', StringComparison.Ordinal)) return;
+            if (!(baseName is "IEnumerable" or "System.Collections.IEnumerable" or "System.Collections.Generic.IEnumerable") || !declaredType.Contains('<', StringComparison.Ordinal)) return;
             var open = declaredType.IndexOf('<');
             var close = declaredType.LastIndexOf('>');
             if (open >= 0 && close > open)
