@@ -7735,7 +7735,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (defaultValue.TypeName is not null && ValidateTypeAccessibility(defaultType, context.Method.Owner, defaultValue.Location)) return "?";
                 if (!IsSupportedType(defaultType)) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Default values for '{defaultType}' are not yet supported.", defaultValue.Location); return "?"; }
                 if (TryParseManagedArrayType(defaultType, out _, out _)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Managed array '{defaultType}' has no default value; initialize it explicitly.", defaultValue.Location);
-                if (IsClassType(defaultType)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable class type '{defaultType}' has no default value.", defaultValue.Location);
+                if (!defaultValue.IsTypeParameterDefault && IsClassType(defaultType)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable class type '{defaultType}' has no default value.", defaultValue.Location);
                 _defaultTypes[defaultValue] = defaultType;
                 return defaultType;
             case SizeOfExpression sizeOf:

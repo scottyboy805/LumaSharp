@@ -30,13 +30,13 @@ public class List<T>
 		get => items.Length;
 	}
 
-	public unsafe T* Ptr
+	public unsafe T?* Ptr
 	{
 		get
 		{
-			if (items.Length == 0)
+			if (count == 0)
 				return null;
-			return (T*)&items[0];
+			return &items[0];
 		}
 	}
 
@@ -46,7 +46,7 @@ public class List<T>
 		{
 			if (index < 0 || index >= count)
 				throw new System.ArgumentOutOfRangeException();
-			return items[index]!;
+			return items[index];
 		}
 		set
 		{

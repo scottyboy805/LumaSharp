@@ -80,7 +80,7 @@ public sealed record LambdaParameter(string? TypeName, string Name, SourceLocati
 public sealed record LambdaExpression(IReadOnlyList<LambdaParameter> Parameters, Expression? ExpressionBody, BlockStatement? BlockBody, SourceLocation At) : Expression(At);
 public sealed record InlineOutVariableExpression(string? TypeName, string Name, SourceLocation At) : Expression(At);
 public sealed record OverflowContextExpression(bool Checked, Expression Value, SourceLocation At) : Expression(At);
-public sealed record DefaultValueExpression(string? TypeName, SourceLocation At) : Expression(At);
+public sealed record DefaultValueExpression(string? TypeName, SourceLocation At, bool IsTypeParameterDefault = false) : Expression(At);
 public sealed record SizeOfExpression(string TypeName, SourceLocation At) : Expression(At);
 public sealed record UnsupportedExpression(string Description, SourceLocation At) : Expression(At);
 public sealed record NullAssertionExpression(Expression Operand, SourceLocation At) : Expression(At);

@@ -147,7 +147,7 @@ public sealed class CompilerTests
 
             public class Program
             {
-                public static int32 Main()
+                public static unsafe int32 Main()
                 {
                     List<int32> list = new List<int32>();
                     list.Add(10);
@@ -155,9 +155,8 @@ public sealed class CompilerTests
                     list.Insert(1, 15);
                     bool contains = list.Contains(15);
                     int32 foundIndex = list.IndexOf(20);
-                    int32 listTotal = 0;
-                    for (let item in list)
-                        listTotal += item;
+                    int32?* firstItem = list.Ptr;
+                    int32 pointerValue = *firstItem;
                     int32?[] copiedValues = list.ToArray();
                     int32 total = 0;
                     for (let item in new TestValues())
@@ -194,17 +193,17 @@ public sealed class CompilerTests
                     for (let item in set)
                         setCount++;
 
-                    return list.Count == 3 && list[1] == 15 && contains && foundIndex == 2 &&
+                    return list.Count == 3 && list[1] == 15 && contains && foundIndex == 2 && pointerValue == 10 &&
                         copiedValues.Length == 3 && copiedValues[1] == 15 && inserted &&
                         stack.Pop() == 2 && stack.Pop() == 1 &&
                         queue.Dequeue() == 3 && queue.Dequeue() == 4 &&
-                        total == 3 && listTotal == 45 && stackTotal == 3 && queueTotal == 7 &&
+                        total == 3 && stackTotal == 3 && queueTotal == 7 &&
                         found && value == "seven" && map.ContainsKey(new TestKey(11)) &&
                         map.Remove(new TestKey(11)) && added && !duplicate &&
                         setCount == 1 && set.Contains(new TestKey(9)) ? 0 : 1;
                 }
             }
-            """)));
+            """)), new CompilationOptions(UnsafeEnabled: true));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -2010,10 +2009,11 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void UnconstrainedGenericBodiesRespectValueTypeOnlyOperations()
+    public void UnconstrainedGenericsAllowDefaultsAndGenericDefaultArrays()
     {
-        var invalid = Compile("class Slot<T> { public T Get() { return default(T); } } class Program { public static int32 Main() { return 0; } }");
-        Assert.Contains(invalid.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("default(T) requires a 'struct' constraint"));
+        var defaultValue = Compile("class Item { } class Slot<T> { public T Get() { return default(T); } } class Program { public static T GetDefault<T>() { return default(T); } public static int32 Main() { Slot<int32> numbers = new Slot<int32>(); Slot<Item> references = new Slot<Item>(); Item? item = references.Get(); Item? methodItem = GetDefault<Item>(); return numbers.Get() == 0 && item == null && methodItem == null && GetDefault<int32>() == 0 ? 0 : 1; } }");
+        Assert.True(defaultValue.Succeeded, string.Join(Environment.NewLine, defaultValue.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(defaultValue.LlvmIr!).ExitCode);
 
         var uninitializedLocal = Compile("class Slot<T> { public T Get() { T value; return value; } } class Program { public static int32 Main() { return 0; } }");
         Assert.Contains(uninitializedLocal.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&

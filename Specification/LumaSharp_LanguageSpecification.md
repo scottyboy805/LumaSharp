@@ -402,7 +402,7 @@ Every other **non-nullable reference type has no default value**, because it can
 | inline arrays of default-constructible element type | yes |
 | every other non-nullable reference type (`object`, classes, interfaces, delegates, arrays) | **no** |
 
-The expression `default` (target-typed) and `default(T)` produce the default value, and are compile-time errors for types that are not default-constructible.
+The expression `default` (target-typed) produces the default value and is a compile-time error for a type that is not default-constructible. `default(T)` follows the same rule when `T` names a concrete type. Inside generic code, `default(T)` is also permitted for an unconstrained type parameter; when that parameter is instantiated with a non-nullable reference type the result is null (§12.4).
 
 ```lumasharp
 int32 a = default;        // 0
@@ -2468,7 +2468,7 @@ Constraints are checked at every instantiation. Inside a generic body, only memb
 ## 12.4 Behaviour of `T` Inside Generic Code
 
 - `T` with a `struct` constraint is a value type; with `class` is a non-nullable reference type; **an unconstrained `T` may be either**, so inside the generic body it is treated as a possible non-nullable reference type.
-- Consequently, for an unconstrained or `class`-constrained `T`: `default(T)`, `T x;` (declaration without initializer), and storing `T` in a struct field are errors, exactly as for a class type (§3.5, §9.1.1). `new T[n]` is permitted when `n` is provably zero, because it creates no elements; otherwise it follows the array element rules in §15.2. A `struct` or `enum` constraint permits default-initialized elements, while nullable `T?` elements may start as null. Use `T?` (valid for any `T`) wherever "no value" is needed:
+- `default(T)` is permitted for any `T`, including an unconstrained type parameter, and produces the argument type's default representation. If `T` is instantiated with a non-nullable reference type, that representation is null; generic code using this value must account for that possibility. `T x;` (a local declaration without an initializer) and storing `T` in a struct field still require a `struct` or `enum` constraint. For an unconstrained or `class`-constrained `T`, `new T[n]` is permitted only when `n` is provably zero; otherwise it requires a `struct` or `enum` constraint, because every element of a non-nullable reference array must be initialized. Use `T?[]` (valid for any `T`) when empty slots are part of the API:
 
 ```lumasharp
 class Slot<T>

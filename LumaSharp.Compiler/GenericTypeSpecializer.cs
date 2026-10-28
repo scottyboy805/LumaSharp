@@ -240,9 +240,6 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                     case VariableStatement { TypeName: { } typeName, Initializer: null } variable when typeName == parameter && !valueParameters.Contains(parameter):
                         Report($"Uninitialized local of type parameter '{parameter}' requires a 'struct' constraint.", variable.Location);
                         break;
-                    case DefaultValueExpression { TypeName: { } typeName } defaultValue when typeName == parameter && !valueParameters.Contains(parameter):
-                        Report($"default({parameter}) requires a 'struct' constraint.", defaultValue.Location);
-                        break;
                     case AllocationExpression { TypeName: { } typeName, Dimensions.Count: 0 } allocation when typeName == parameter:
                         ValidateTypeParameterConstruction(parameter, allocation);
                         break;
@@ -1628,7 +1625,8 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             Dimensions = allocation.Dimensions.Select(dimension => RewriteExpression(dimension, substitutions)).ToArray(),
             Initializer = RewriteOptional(allocation.Initializer, substitutions),
             ConstructorArguments = allocation.ConstructorArguments?.Select(argument => RewriteExpression(argument, substitutions)).ToArray(),
-            IsTypeParameterConstruction = allocation.IsTypeParameterConstruction || allocation.TypeName is not null && substitutions.ContainsKey(allocation.TypeName)
+            IsTypeParameterConstruction = allocation.IsTypeParameterConstruction || allocation.TypeName is not null &&
+                substitutions.ContainsKey(allocation.TypeName)
         },
         UnaryExpression unary => unary with { Operand = RewriteExpression(unary.Operand, substitutions) },
         CastExpression cast => cast with { TypeName = RewriteTypeName(cast.TypeName, substitutions), Operand = RewriteExpression(cast.Operand, substitutions) },
@@ -1650,7 +1648,12 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         },
         InlineOutVariableExpression inline => inline with { TypeName = RewriteOptionalType(inline.TypeName, substitutions) },
         OverflowContextExpression overflow => overflow with { Value = RewriteExpression(overflow.Value, substitutions) },
-        DefaultValueExpression defaultValue => defaultValue with { TypeName = RewriteOptionalType(defaultValue.TypeName, substitutions) },
+        DefaultValueExpression defaultValue => defaultValue with
+        {
+            TypeName = RewriteOptionalType(defaultValue.TypeName, substitutions),
+            IsTypeParameterDefault = defaultValue.IsTypeParameterDefault || defaultValue.TypeName is not null &&
+                substitutions.ContainsKey(defaultValue.TypeName)
+        },
         SizeOfExpression sizeOf => sizeOf with { TypeName = RewriteTypeName(sizeOf.TypeName, substitutions) },
         NullAssertionExpression assertion => assertion with { Operand = RewriteExpression(assertion.Operand, substitutions) },
         _ => expression
