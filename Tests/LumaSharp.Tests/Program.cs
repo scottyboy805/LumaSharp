@@ -67,6 +67,18 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void RuntimeLibraryMaySupplyCompilerKnownObjectAndArrayDeclarations()
+    {
+        var result = LumaCompiler.Compile([
+            (Path.GetFullPath("LumaSharp.Library/System/Object.ls"), "namespace System; public virtual class Object { }"),
+            (Path.GetFullPath("LumaSharp.Library/System/Array.ls"), "namespace System; public virtual class Array : Object { }"),
+            ("program.ls", "class Program { public static int32 Main() { int32[] values = new int32[1]; System.Array array = values; object root = array; return 0; } }")
+        ]);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+    }
+
+    [Fact]
     public async Task DirectCompilerApiStopsDuringLongLexicalInputWhenCancelled()
     {
         var source = "/*" + new string('x', 8_000_000) + "*/";

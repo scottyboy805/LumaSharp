@@ -49,6 +49,11 @@ internal static class Cli
                 LoadProject(projectPath, settings);
                 ApplyOverrides(settings, overrides, projectRoot);
                 sourcePaths = DiscoverSources(projectRoot, settings.Output, settings.Intermediate, settings.ExcludedDirectories);
+                // Bind the repository runtime automatically for project builds. A
+                // project may also host its own library directory at this location.
+                var runtimeDirectory = Path.Combine(projectRoot, "LumaSharp.Library");
+                if (Directory.Exists(runtimeDirectory))
+                    sourcePaths.AddRange(DiscoverSources(runtimeDirectory, settings.Output, settings.Intermediate, []));
             }
             else
             {

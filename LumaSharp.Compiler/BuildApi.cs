@@ -47,7 +47,15 @@ public static class LumaBuild
 
             var sources = new List<(string Path, string Text)>();
             var seen = new HashSet<string>(PathComparer);
-            foreach (var inputPath in request.SourcePaths)
+            var inputPaths = request.SourcePaths.ToList();
+            if (inputPaths.Count > 0)
+            {
+                var firstDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPaths[0]))!;
+                var runtimeDirectory = Path.Combine(firstDirectory, "LumaSharp.Library");
+                if (Directory.Exists(runtimeDirectory))
+                    inputPaths.AddRange(Directory.EnumerateFiles(runtimeDirectory, "*.ls", SearchOption.AllDirectories));
+            }
+            foreach (var inputPath in inputPaths)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrWhiteSpace(inputPath) || !Path.GetExtension(inputPath).Equals(".ls", StringComparison.OrdinalIgnoreCase))

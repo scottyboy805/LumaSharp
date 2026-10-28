@@ -511,21 +511,28 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         _genericDefinitions = genericExpansion.GenericDefinitions;
         _genericTypeInstantiations.AddRange(genericExpansion.Instantiations);
         var sourceTypes = genericExpansion.ConcreteTypes.ToArray();
-        var sourceObject = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Object");
-        if (sourceObject is not null)
-            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Object' is a predefined root type and cannot be declared in source.", sourceObject.Location);
+        var sourceObject = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Object" && IsRuntimeLibraryDeclaration(type));
+        foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Object" && !IsRuntimeLibraryDeclaration(type)))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Object' is a predefined root type and cannot be declared in source.", declaration.Location);
         var sourceDelegate = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Delegate");
         if (sourceDelegate is not null)
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Delegate' is a predefined type and cannot be declared in source.", sourceDelegate.Location);
-        var sourceArray = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Array");
-        if (sourceArray is not null)
-            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Array' is a predefined type and cannot be declared in source.", sourceArray.Location);
+        var sourceArray = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Array" && IsRuntimeLibraryDeclaration(type));
+        foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Array" && !IsRuntimeLibraryDeclaration(type)))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Array' is a predefined type and cannot be declared in source.", declaration.Location);
         // Delegate wrappers and closure environments allocate managed objects even though
         // those allocations are implicit in source syntax; preserve the specified catchable
         // out-of-memory path whenever a source delegate type can be used.
         _usesExceptionHandling = CompilationMayRaise(sourceTypes) || sourceTypes.Any(type => type.Kind == "delegate" ||
             type.Members.OfType<ConstructorDeclaration>().Any(constructor => constructor.IsStatic));
-        _types = sourceTypes.Append(VirtualDispatchLayout.ObjectType).Append(VirtualDispatchLayout.DelegateType).Append(VirtualDispatchLayout.ArrayType)
+        // Runtime source may provide the canonical declarations for compiler-known
+        // types. Keep the synthetic declarations as fallbacks for standalone source
+        // compilation, while letting runtime members participate in normal binding.
+        _types = sourceTypes
+            .Append(sourceObject is null ? VirtualDispatchLayout.ObjectType : null)
+            .Append(sourceDelegate is null ? VirtualDispatchLayout.DelegateType : null)
+            .Append(sourceArray is null ? VirtualDispatchLayout.ArrayType : null)
+            .Where(type => type is not null).Cast<TypeDeclaration>()
             .Concat(_usesExceptionHandling ? CreateBuiltinExceptionTypes(sourceTypes) : [])
             .ToArray();
         foreach (var unit in units)
@@ -900,6 +907,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             multiAssignmentAccessorAssignments.Add(statement, assignments);
         return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
+
+    private static bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
+        type.Location.File.Replace('\\', '/').Contains("LumaSharp.Library/", StringComparison.OrdinalIgnoreCase);
 
     private void DiscoverPotentialScopeBoundClassFieldStores(IReadOnlyList<MethodSymbol> methods)
     {
