@@ -5385,8 +5385,10 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                     return ("@" + enumName.Symbol, "string");
                 case CallExpression call when classToStringCalls.TryGetValue(call, out var classToStringBinding) && call.Target is MemberAccessExpression target:
                     return EmitClassToString(target.Receiver, target.IsNullConditional, classToStringBinding.CallsBaseImplementation);
-                case CallExpression call when structToStringCalls.TryGetValue(call, out var structTypeName) && StringLiteralCodec.TryCreate(structTypeName, out var structName, out _):
-                    return ("@" + structName.Symbol, "string");
+                case CallExpression call when structToStringCalls.TryGetValue(call, out var structTypeName) && call.Target is MemberAccessExpression primitiveToStringTarget:
+                    return StringLiteralCodec.TryCreate(structTypeName, out var structName, out _)
+                        ? ("@" + structName.Symbol, "string")
+                        : EmitStringConversion(EmitExpression(primitiveToStringTarget.Receiver));
                 case CallExpression call when managedArrayGetLengthCalls.ContainsKey(call):
                     return EmitManagedArrayGetLength(call);
                 case AllocationExpression allocation when genericConstructions.TryGetValue(allocation, out var genericConstruction):

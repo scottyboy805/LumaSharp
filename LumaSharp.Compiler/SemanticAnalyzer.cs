@@ -198,7 +198,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private sealed record SwitchNumericInterval(ConstantValue? Lower, bool IncludeLower, ConstantValue? Upper, bool IncludeUpper);
     private static readonly string[] BuiltinExceptionNames = [
         "Exception", "InvalidOperationException", "IOException", "NullReferenceException",
-        "InvalidCastException", "IndexOutOfRangeException", "OverflowException",
+        "InvalidCastException", "IndexOutOfRangeException", "OverflowException", "FormatException",
         "DivideByZeroException", "OutOfMemoryException", "TypeInitializationException"];
     private enum NullState { Null, NonNull, MaybeNull }
     private static readonly HashSet<string> IntegerTypes = ["int", "uint", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"];
@@ -1767,7 +1767,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         }
         if (IsTypeReference(expression.Receiver, context) && TryFlattenName(expression.Receiver, out var requestedType))
         {
-            var matchingTypes = FindTypes(NormalizeEnumType(requestedType, context.Method.Owner), context.Method.Owner);
+            var matchingTypes = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
             if (matchingTypes.Length == 1)
                 return TryBindStaticMethodGroup(expression, expression.Member, expectedType, context, matchingTypes[0]);
             return false;
@@ -7344,6 +7344,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     var instanceReceiverType = AnalyzeExpression(instanceCall.Receiver, context);
                     if (IsPointerType(instanceReceiverType))
                         instanceReceiverType = NormalizePointerMemberReceiverType(instanceReceiverType, call.IsUnsafeContext, instanceCall.Location);
+                    if (instanceCall.Member == "ToString" && call.Arguments.Count == 0 &&
+                        (IsStringType(instanceReceiverType) || instanceReceiverType is "bool" or "char" || IntegerTypes.Contains(instanceReceiverType) || FloatingTypes.Contains(instanceReceiverType)))
+                    {
+                        _structToStringCalls[call] = instanceReceiverType;
+                        RecordStringification(instanceReceiverType);
+                        return "string";
+                    }
                     if (IsEnumType(instanceReceiverType))
                     {
                         if (instanceCall.Member == "ToString" && call.Arguments.Count == 0)
@@ -8569,13 +8576,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         binding = null!;
         if (!TryFlattenName(access.Receiver, out var requestedType)) return false;
-        var matches = FindTypes(NormalizeEnumType(requestedType, context.Method.Owner), context.Method.Owner);
+        var matches = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
         if (matches.Length != 1) return false;
         var owner = matches[0]; var key = GetQualifiedTypeName(owner) + "." + access.Member;
         if (!_constantFields.TryGetValue(key, out var symbol)) return false;
         if (!IsAccessibilityAvailable(symbol.Accessibility, symbol.Owner, context.Method.Owner))
             diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Constant field '{key}' is not accessible from this type.", access.Location);
-        binding = symbol.Binding; _fieldAccesses[access] = binding; return true;
+        binding = GetPrimitiveConstantBinding(key, symbol.Binding); _fieldAccesses[access] = binding; return true;
     }
 
     private bool TryBindUnqualifiedConstantField(NameExpression name, MethodContext context, out ConstantFieldBinding binding)
@@ -8588,18 +8595,28 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (!_constantFields.TryGetValue(constantOwner + "." + name.Name, out var field)) continue;
             if (!IsAccessibilityAvailable(field.Accessibility, field.Owner, context.Method.Owner))
                 diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Constant field '{constantOwner}.{name.Name}' is not accessible from this type.", name.Location);
-            binding = field.Binding;
+            binding = GetPrimitiveConstantBinding(constantOwner + "." + name.Name, field.Binding);
             _boundUnqualifiedConstantFields[name] = binding;
             return true;
         }
         return false;
     }
 
+    private ConstantFieldBinding GetPrimitiveConstantBinding(string key, ConstantFieldBinding fallback)
+    {
+        var bits = _nativePointerSize * 8;
+        if (key == "System.Int.MinValue") return new("int", (-(BigInteger.One << (bits - 1))).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (key == "System.Int.MaxValue") return new("int", ((BigInteger.One << (bits - 1)) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (key == "System.UInt.MinValue") return new("uint", "0");
+        if (key == "System.UInt.MaxValue") return new("uint", ((BigInteger.One << bits) - 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return fallback;
+    }
+
     private bool TryBindStaticField(MemberAccessExpression access, MethodContext context, out StaticFieldBinding binding)
     {
         binding = null!;
         if (!TryFlattenName(access.Receiver, out var requestedType)) return false;
-        var matches = FindTypes(NormalizeEnumType(requestedType, context.Method.Owner), context.Method.Owner);
+        var matches = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
         if (matches.Length != 1) return false;
         var owner = matches[0]; var key = GetQualifiedTypeName(owner) + "." + access.Member;
         if (!_staticFields.TryGetValue(key, out var symbol)) return false;
@@ -8849,7 +8866,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private bool IsTypeReference(Expression expression, MethodContext context)
     {
         if (HasLocalRoot(expression, context)) return false;
-        return TryFlattenName(expression, out var name) && FindTypes(NormalizeEnumType(name, context.Method.Owner), context.Method.Owner).Length > 0;
+        return TryFlattenName(expression, out var name) && FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(name, context.Method.Owner)), context.Method.Owner).Length > 0;
     }
 
     private bool IsInaccessibleTypeReference(string requestedType, TypeDeclaration accessingType)
@@ -8984,6 +9001,19 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         };
         return _types.Where(type => type.Name == builtinName && type.Namespace == BuiltinExceptionNamespace(builtinName)).ToArray();
     }
+
+    private static string NormalizeBuiltinTypeQualifier(string typeName) => typeName switch
+    {
+        "bool" => "System.Bool", "char" => "System.Char",
+        "int8" => "System.Int8", "uint8" => "System.UInt8",
+        "int16" => "System.Int16", "uint16" => "System.UInt16",
+        "int32" => "System.Int32", "uint32" => "System.UInt32",
+        "int64" => "System.Int64", "uint64" => "System.UInt64",
+        "int" => "System.Int", "uint" => "System.UInt",
+        "float" => "System.Float", "double" => "System.Double",
+        "string" => "System.String",
+        _ => typeName
+    };
 
     private IEnumerable<string> EnumerateTypeConstituents(string typeName)
     {
@@ -10004,7 +10034,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (expression is not MemberAccessExpression access) return [];
         if (IsTypeReference(access.Receiver, context) && TryFlattenName(access.Receiver, out var requestedType))
         {
-            var matchingTypes = FindTypes(NormalizeEnumType(requestedType, context.Method.Owner), context.Method.Owner);
+            var matchingTypes = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
             return matchingTypes.Length == 1
                 ? _methods.Concat(_genericMethodDefinitions).Where(method => method.Owner == matchingTypes[0] &&
                     method.Declaration.IsStatic && method.Declaration.Name == access.Member && IsMethodAccessible(method, context.Method.Owner)).ToArray()
@@ -10157,7 +10187,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         if (IsTypeReference(expression.Receiver, context) && TryFlattenName(expression.Receiver, out var requestedType))
         {
-            var matchingTypes = FindTypes(NormalizeEnumType(requestedType, context.Method.Owner), context.Method.Owner);
+            var matchingTypes = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
             return matchingTypes.Length == 1 && _methods.Concat(_genericMethodDefinitions).Any(method =>
                 method.Owner == matchingTypes[0] && method.Declaration.Name == expression.Member && method.Declaration.IsStatic);
         }
@@ -10780,7 +10810,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             return null;
         }
 
-        var matchingTypes = FindTypes(NormalizeEnumType(requestedType, context.Method.Owner), context.Method.Owner);
+        var matchingTypes = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
         if (matchingTypes.Length == 0)
         {
             diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"The type '{requestedType}' does not exist in the current compilation.", access.Receiver.Location);

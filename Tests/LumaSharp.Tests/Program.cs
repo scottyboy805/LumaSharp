@@ -88,6 +88,45 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void PrimitiveAliasesExposeBoundsParsingAndStringHelpers()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var source = """
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    int32 top = int32.MaxValue;
+                    int32 parsed = int32.Parse("-2147483648");
+                    bool parsedBool = bool.Parse("tRuE");
+                    bool valid = int32.TryParse("2147483647", out int32 maximum);
+                    bool invalid = int32.TryParse("2147483648", out int32 ignored);
+                    int nativeMin = int.MinValue;
+                    uint nativeMax = uint.MaxValue;
+                    int8 smallMin = int8.MinValue;
+                    char letter = char.Parse("A");
+                    string empty = string.Empty;
+                    double precise = double.Parse("1.25e2");
+                    float single = float.Parse("1.5");
+                    string formatted = (42).ToString();
+                    return top == 2147483647 && parsed == int32.MinValue && parsedBool && valid && maximum == top &&
+                        !invalid && nativeMin < 0 && nativeMax > 0 && smallMin == -128 && letter == 'A' &&
+                        empty.Length == 0 && precise == 125.0 && single == 1.5f && formatted == "42" &&
+                        string.IsNullOrWhiteSpace(" \t") ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("primitive-runtime-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+    }
+
+    [Fact]
     public async Task DirectCompilerApiStopsDuringLongLexicalInputWhenCancelled()
     {
         var source = "/*" + new string('x', 8_000_000) + "*/";

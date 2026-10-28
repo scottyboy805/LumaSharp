@@ -1731,6 +1731,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         if (token.Text is "new" or "scope") return ParseAllocationExpression(token);
         if (token.Text == "this") return new ThisExpression(token.Location);
         if (token.Text == "base") return new BaseExpression(token.Location);
+        if (TypeKeywords.Contains(token.Text) && Current.Text == ".") return new NameExpression(token.Text, token.Location);
         if (IsIdentifier(token) && LooksLikeGenericTypeQualifier(tokenIndex))
         {
             _position = tokenIndex;
