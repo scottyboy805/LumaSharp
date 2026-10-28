@@ -6767,7 +6767,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "'this' is supported only inside instance constructors and methods.", thisExpression.Location);
                     return "?";
                 }
-                return GetQualifiedTypeName(context.Method.Owner);
+                return GetQualifiedTypeName(context.Method.Owner) == "System.String"
+                    ? "string"
+                    : GetQualifiedTypeName(context.Method.Owner);
             case BaseExpression baseExpression:
                 var baseContextOwner = context.Method.Owner;
                 var enclosingOwners = new HashSet<string>(StringComparer.Ordinal);
@@ -7351,7 +7353,21 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         RecordStringification(instanceReceiverType);
                         return "string";
                     }
-                    if (IsEnumType(instanceReceiverType))
+                    if (IsStringType(instanceReceiverType))
+                    {
+                        instanceReceiver = instanceCall.Receiver;
+                        candidates = _methods.Concat(_genericMethodDefinitions)
+                            .Where(candidate => candidate.IsClassInstanceMethod &&
+                                GetQualifiedTypeName(candidate.Owner) == "System.String" &&
+                                candidate.Declaration.Name == instanceCall.Member)
+                            .ToArray();
+                        if (candidates.Length == 0)
+                        {
+                            diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"String has no instance method named '{instanceCall.Member}'.", instanceCall.Location);
+                            return "?";
+                        }
+                    }
+                    else if (IsEnumType(instanceReceiverType))
                     {
                         if (instanceCall.Member == "ToString" && call.Arguments.Count == 0)
                         {
@@ -7795,6 +7811,26 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     foreach (var argument in allocation.ConstructorArguments ?? []) _ = AnalyzeExpression(argument, context);
                     foreach (var dimension in allocation.Dimensions) _ = AnalyzeExpression(dimension, context);
                     return "?";
+                }
+                if (allocationType is "string" or "System.String")
+                {
+                    var constructorArguments = allocation.ConstructorArguments ?? [];
+                    var factoryName = constructorArguments.Count == 2 &&
+                        constructorArguments[0] is not InlineOutVariableExpression &&
+                        AnalyzeExpression(constructorArguments[0], context) == "char"
+                            ? "Repeat"
+                            : "FromChars";
+                    var factoryCall = new CallExpression(
+                        new MemberAccessExpression(new NameExpression("System.String", allocation.Location), factoryName, allocation.Location),
+                        constructorArguments,
+                        allocation.Location,
+                        allocation.ConstructorArgumentNames,
+                        allocation.ConstructorArgumentModes);
+                    var constructedStringType = AnalyzeExpression(factoryCall, context);
+                    if (constructedStringType != "string")
+                        return "?";
+                    _classAllocations[allocation] = new("System.String", factoryCall);
+                    return "string";
                 }
                 if (allocationType is not null && TryParseManagedArrayType(allocationType, out var managedElementType, out var managedRank))
                 {

@@ -2216,7 +2216,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var nameData = string.Join(", ", nameBytes.Select(value => $"i8 {value}"));
             _output.AppendLine($"@luma_classname_{safe} = private constant [{nameBytes.Length} x i8] [{nameData}]");
             var virtualMethods = VirtualDispatchLayout.GetMethods(name, compilation.ClassTypes, compilation.Methods);
-            if (virtualMethods.Count > 0)
+            if (virtualMethods.Count > 0 && name != "System.String")
             {
                 var entries = string.Join(", ", virtualMethods.Select(method => method.IsBuiltinObjectToString
                     ? "ptr @luma_object_tostring"
@@ -4256,7 +4256,11 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
 
         private (string Value, string Type) EmitClassAllocation(AllocationExpression allocation)
         {
-            if (!classAllocations.TryGetValue(allocation, out var binding) || !classTypes.TryGetValue(binding.TypeName, out var classType))
+            if (!classAllocations.TryGetValue(allocation, out var binding))
+                throw new InvalidOperationException("A class allocation reached emission without a bound class and constructor.");
+            if (binding.TypeName == "System.String")
+                return EmitCall(binding.ConstructorCall);
+            if (!classTypes.TryGetValue(binding.TypeName, out var classType))
                 throw new InvalidOperationException("A class allocation reached emission without a bound class and constructor.");
             EnsureTypeInitialized(binding.TypeName, force: true);
             var safeType = string.Concat(binding.TypeName.Select(c => char.IsLetterOrDigit(c) || c == '_' ? c : '_'));

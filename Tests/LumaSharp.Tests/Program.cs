@@ -88,6 +88,39 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void RuntimeStringSupportsLiteralAndOwnedStrings()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("string-runtime-test.ls", """
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    string literal = "A🙂Z";
+                    string middle = literal.Substring(1, 2);
+                    char[] characters = new char[3];
+                    characters[0] = 'c';
+                    characters[1] = 'a';
+                    characters[2] = 't';
+                    string owned = new string(characters);
+                    string repeated = new string('x', 3);
+                    string replaced = owned.Replace('a', 'A');
+                    string trimmed = "  cat\t".Trim();
+                    return literal.Length == 4 && middle == "🙂" && owned == "cat" &&
+                        replaced == "cAt" && repeated == "xxx" && trimmed == "cat" &&
+                        owned.IndexOf("at") == 1 && owned.StartsWith("c") && owned.EndsWith("t") ? 0 : 1;
+                }
+            }
+            """)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+    }
+
+    [Fact]
     public void PrimitiveAliasesExposeBoundsParsingAndStringHelpers()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
