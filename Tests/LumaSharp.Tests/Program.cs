@@ -7,6 +7,15 @@ namespace LumaSharp.Tests;
 public sealed class CompilerTests
 {
     private static CompilationResult Compile(string source, CompilationOptions? options = null) => LumaCompiler.Compile([("test.ls", source)], options);
+    private static string RuntimeSourcePath(string relativePath)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+            if (File.Exists(candidate)) return candidate;
+        }
+        throw new FileNotFoundException($"Could not locate runtime source '{relativePath}'.");
+    }
 
     [Theory]
     [InlineData("private class Program { public static int32 Main() { return 0; } }")]
@@ -67,13 +76,13 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void RuntimeLibraryMaySupplyCompilerKnownObjectAndArrayDeclarations()
+    public void RuntimeLibrarySuppliesCompilerKnownTypesAndTheirMembers()
     {
-        var result = LumaCompiler.Compile([
-            (Path.GetFullPath("LumaSharp.Library/System/Object.ls"), "namespace System; public virtual class Object { }"),
-            (Path.GetFullPath("LumaSharp.Library/System/Array.ls"), "namespace System; public virtual class Array : Object { }"),
-            ("program.ls", "class Program { public static int32 Main() { int32[] values = new int32[1]; System.Array array = values; object root = array; return 0; } }")
-        ]);
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("program.ls",
+            "class Program { public static int32 Main() { int32[] values = new int32[1]; System.Array array = values; object root = array; try { throw new System.Exception(\"runtime\"); } catch (System.Exception error) { return array.Length == 1 && error.Message == \"runtime\" ? 0 : 1; } } }")));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
     }

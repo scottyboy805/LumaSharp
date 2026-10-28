@@ -514,9 +514,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var sourceObject = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Object" && IsRuntimeLibraryDeclaration(type));
         foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Object" && !IsRuntimeLibraryDeclaration(type)))
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Object' is a predefined root type and cannot be declared in source.", declaration.Location);
-        var sourceDelegate = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Delegate");
-        if (sourceDelegate is not null)
-            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Delegate' is a predefined type and cannot be declared in source.", sourceDelegate.Location);
+        var sourceDelegate = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Delegate" && IsRuntimeLibraryDeclaration(type));
+        foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Delegate" && !IsRuntimeLibraryDeclaration(type)))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Delegate' is a predefined type and cannot be declared in source.", declaration.Location);
         var sourceArray = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Array" && IsRuntimeLibraryDeclaration(type));
         foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Array" && !IsRuntimeLibraryDeclaration(type)))
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Array' is a predefined type and cannot be declared in source.", declaration.Location);
