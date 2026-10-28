@@ -45,7 +45,10 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		{
 			if (items.Length == 0)
 				return null;
-			return &items[0];
+			unsafe unchecked
+			{
+				return &items[0];
+			}
 		}
 	}
 
@@ -69,9 +72,12 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		int32 index = Find(item, GetHashCode(item));
 		if (index < 0)
 			return false;
-		items[index] = default(T);
-		hashes[index] = 0;
-		states[index] = 2;
+		unsafe unchecked
+		{
+			items[index] = default(T);
+			hashes[index] = 0;
+			states[index] = 2;
+		}
 		count--;
 		return true;
 	}
@@ -83,12 +89,26 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 	public bool IsOccupied(int32 index)
 	{
-		return states[index] == 1;
+		if (index < 0 || index >= states.Length)
+			throw new System.ArgumentOutOfRangeException();
+		int32 state;
+		unsafe unchecked
+		{
+			state = states[index];
+		}
+		return state == 1;
 	}
 
 	public T GetAt(int32 index)
 	{
-		return items[index];
+		if (index < 0 || index >= states.Length)
+			throw new System.ArgumentOutOfRangeException();
+		T item;
+		unsafe unchecked
+		{
+			item = items[index];
+		}
+		return item;
 	}
 
 	public IIterator<T> Iterate()
@@ -116,9 +136,18 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
 			int32 index = (slot + probe) % states.Length;
-			if (states[index] == 0)
+			int32 state;
+			T current;
+			int32 currentHash;
+			unsafe unchecked
+			{
+				state = states[index];
+				currentHash = hashes[index];
+				current = items[index];
+			}
+			if (state == 0)
 				return -1;
-			if (states[index] == 1 && hashes[index] == hash && ItemsEqual(items[index], item))
+			if (state == 1 && currentHash == hash && ItemsEqual(current, item))
 				return index;
 		}
 		return -1;
@@ -131,9 +160,14 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
 			int32 index = (slot + probe) % states.Length;
-			if (states[index] == 2 && firstDeleted < 0)
+			int32 state;
+			unsafe unchecked
+			{
+				state = states[index];
+			}
+			if (state == 2 && firstDeleted < 0)
 				firstDeleted = index;
-			if (states[index] == 0)
+			if (state == 0)
 			{
 				Store(firstDeleted >= 0 ? firstDeleted : index, item, hash);
 				return;
@@ -144,11 +178,14 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 	private void Store(int32 index, T item, int32 hash) mut
 	{
-		if (states[index] == 0)
-			used++;
-		items[index] = item;
-		hashes[index] = hash;
-		states[index] = 1;
+		unsafe unchecked
+		{
+			if (states[index] == 0)
+				used++;
+			items[index] = item;
+			hashes[index] = hash;
+			states[index] = 1;
+		}
 		count++;
 	}
 
@@ -162,8 +199,19 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		int32[] oldStates = states;
 		Initialize(newCapacity);
 		for (int32 index = 0; index < oldStates.Length; index++)
-			if (oldStates[index] == 1)
-				InsertNew(oldItems[index], oldHashes[index]);
+		{
+			int32 state;
+			T oldItem;
+			int32 oldHash;
+			unsafe unchecked
+			{
+				state = oldStates[index];
+				oldItem = oldItems[index];
+				oldHash = oldHashes[index];
+			}
+			if (state == 1)
+				InsertNew(oldItem, oldHash);
+		}
 	}
 
 	private void Initialize(int32 capacity) mut

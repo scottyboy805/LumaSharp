@@ -36,7 +36,10 @@ public class List<T> where T : default
 		{
 			if (count == 0)
 				return null;
-			return &items[0];
+			unsafe unchecked
+			{
+				return &items[0];
+			}
 		}
 	}
 
@@ -46,20 +49,31 @@ public class List<T> where T : default
 		{
 			if (index < 0 || index >= count)
 				throw new System.ArgumentOutOfRangeException();
-			return items[index];
+			T item;
+			unsafe unchecked
+			{
+				item = items[index];
+			}
+			return item;
 		}
 		set
 		{
 			if (index < 0 || index >= count)
 				throw new System.ArgumentOutOfRangeException();
-			items[index] = value;
+			unsafe unchecked
+			{
+				items[index] = value;
+			}
 		}
 	}
 
 	public void Add(T item) mut
 	{
 		EnsureCapacity(count + 1);
-		items[count] = item;
+		unsafe unchecked
+		{
+			items[count] = item;
+		}
 		count++;
 	}
 
@@ -71,10 +85,16 @@ public class List<T> where T : default
 		int32 current = count;
 		while (current > index)
 		{
-			items[current] = items[current - 1];
+			unsafe unchecked
+			{
+				items[current] = items[current - 1];
+			}
 			current--;
 		}
-		items[index] = item;
+		unsafe unchecked
+		{
+			items[index] = item;
+		}
 		count++;
 	}
 
@@ -85,25 +105,43 @@ public class List<T> where T : default
 		int32 current = index;
 		while (current + 1 < count)
 		{
-			items[current] = items[current + 1];
+			unsafe unchecked
+			{
+				items[current] = items[current + 1];
+			}
 			current++;
 		}
 		count--;
-		items[count] = default(T);
+		unsafe unchecked
+		{
+			items[count] = default(T);
+		}
 	}
 
 	public void Clear() mut
 	{
 		for (int32 index = 0; index < count; index++)
-			items[index] = default(T);
+		{
+			unsafe unchecked
+			{
+				items[index] = default(T);
+			}
+		}
 		count = 0;
 	}
 
 	public int32 IndexOf(T item)
 	{
 		for (int32 index = 0; index < count; index++)
-			if (items[index] == item)
+		{
+			T current;
+			unsafe unchecked
+			{
+				current = items[index];
+			}
+			if (current == item)
 				return index;
+		}
 		return -1;
 	}
 
@@ -125,7 +163,12 @@ public class List<T> where T : default
 	{
 		T[] result = new T[count];
 		for (int32 index = 0; index < count; index++)
-			result[index] = items[index];
+		{
+			unsafe unchecked
+			{
+				result[index] = items[index];
+			}
+		}
 		return result;
 	}
 
@@ -138,7 +181,12 @@ public class List<T> where T : default
 			capacity = minimum;
 		T[] replacement = new T[capacity];
 		for (int32 index = 0; index < count; index++)
-			replacement[index] = items[index];
+		{
+			unsafe unchecked
+			{
+				replacement[index] = items[index];
+			}
+		}
 		items = replacement;
 	}
 

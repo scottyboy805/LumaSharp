@@ -30,14 +30,20 @@ public class Stack<T> : IEnumerable<T> where T : default
 		{
 			if (items.Length == 0)
 				return null;
-			return &items[0];
+			unsafe unchecked
+			{
+				return &items[0];
+			}
 		}
 	}
 
 	public void Push(T item) mut
 	{
 		EnsureCapacity(count + 1);
-		items[count] = item;
+		unsafe unchecked
+		{
+			items[count] = item;
+		}
 		count++;
 	}
 
@@ -46,8 +52,12 @@ public class Stack<T> : IEnumerable<T> where T : default
 		if (count == 0)
 			throw new System.InvalidOperationException("The stack is empty.");
 		count--;
-		T item = items[count];
-		items[count] = default(T);
+		T item;
+		unsafe unchecked
+		{
+			item = items[count];
+			items[count] = default(T);
+		}
 		return item;
 	}
 
@@ -55,19 +65,34 @@ public class Stack<T> : IEnumerable<T> where T : default
 	{
 		if (count == 0)
 			throw new System.InvalidOperationException("The stack is empty.");
-		return items[count - 1];
+		T item;
+		unsafe unchecked
+		{
+			item = items[count - 1];
+		}
+		return item;
 	}
 
 	public void Clear() mut
 	{
 		for (int32 index = 0; index < count; index++)
-			items[index] = default(T);
+			unsafe unchecked
+			{
+				items[index] = default(T);
+			}
 		count = 0;
 	}
 
 	public T GetAt(int32 index)
 	{
-		return items[index];
+		if (index < 0 || index >= count)
+			throw new System.ArgumentOutOfRangeException();
+		T item;
+		unsafe unchecked
+		{
+			item = items[index];
+		}
+		return item;
 	}
 
 	public IIterator<T> Iterate()
@@ -84,7 +109,10 @@ public class Stack<T> : IEnumerable<T> where T : default
 			capacity = minimum;
 		T[] replacement = new T[capacity];
 		for (int32 index = 0; index < count; index++)
-			replacement[index] = items[index];
+			unsafe unchecked
+			{
+				replacement[index] = items[index];
+			}
 		items = replacement;
 	}
 

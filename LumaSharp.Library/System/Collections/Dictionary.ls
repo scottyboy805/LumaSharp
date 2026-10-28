@@ -48,7 +48,10 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		{
 			if (keys.Length == 0)
 				return null;
-			return &keys[0];
+			unsafe unchecked
+			{
+				return &keys[0];
+			}
 		}
 	}
 
@@ -59,7 +62,12 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 			int32 index = Find(key, GetHashCode(key));
 			if (index < 0)
 				throw new KeyNotFoundException();
-			return values[index];
+			TValue value;
+			unsafe unchecked
+			{
+				value = values[index];
+			}
+			return value;
 		}
 		set
 		{
@@ -67,7 +75,10 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 			int32 index = Find(key, hash);
 			if (index >= 0)
 			{
-				values[index] = value;
+				unsafe unchecked
+				{
+					values[index] = value;
+				}
 				return;
 			}
 			EnsureCapacity(count + 1);
@@ -104,15 +115,25 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		int32 index = Find(key, GetHashCode(key));
 		if (index >= 0)
 		{
-			value = values[index];
+			unsafe unchecked
+			{
+				value = values[index];
+			}
 			return true;
 		}
 		for (int32 empty = 0; empty < states.Length; empty++)
-			if (states[empty] == 0)
+		{
+			int32 state;
+			unsafe unchecked
+			{
+				state = states[empty];
+			}
+			if (state == 0)
 			{
 				value = default(TValue);
 				return false;
 			}
+		}
 		value = default(TValue);
 		return false;
 	}
@@ -122,10 +143,13 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		int32 index = Find(key, GetHashCode(key));
 		if (index < 0)
 			return false;
-		keys[index] = default(TKey);
-		values[index] = default(TValue);
-		hashes[index] = 0;
-		states[index] = 2;
+		unsafe unchecked
+		{
+			keys[index] = default(TKey);
+			values[index] = default(TValue);
+			hashes[index] = 0;
+			states[index] = 2;
+		}
 		count--;
 		return true;
 	}
@@ -173,9 +197,18 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
 			int32 index = (slot + probe) % states.Length;
-			if (states[index] == 0)
+			int32 state;
+			int32 existingHash;
+			TKey existingKey;
+			unsafe unchecked
+			{
+				state = states[index];
+				existingHash = hashes[index];
+				existingKey = keys[index];
+			}
+			if (state == 0)
 				return -1;
-			if (states[index] == 1 && hashes[index] == hash && KeysEqual(keys[index], key))
+			if (state == 1 && existingHash == hash && KeysEqual(existingKey, key))
 				return index;
 		}
 		return -1;
@@ -188,9 +221,14 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
 			int32 index = (slot + probe) % states.Length;
-			if (states[index] == 2 && firstDeleted < 0)
+			int32 state;
+			unsafe unchecked
+			{
+				state = states[index];
+			}
+			if (state == 2 && firstDeleted < 0)
 				firstDeleted = index;
-			if (states[index] == 0)
+			if (state == 0)
 			{
 				Store(firstDeleted >= 0 ? firstDeleted : index, key, value, hash);
 				return;
@@ -201,12 +239,15 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 
 	private void Store(int32 index, TKey key, TValue value, int32 hash) mut
 	{
-		if (states[index] == 0)
-			used++;
-		keys[index] = key;
-		values[index] = value;
-		hashes[index] = hash;
-		states[index] = 1;
+		unsafe unchecked
+		{
+			if (states[index] == 0)
+				used++;
+			keys[index] = key;
+			values[index] = value;
+			hashes[index] = hash;
+			states[index] = 1;
+		}
 		count++;
 	}
 
@@ -221,8 +262,21 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		int32[] oldStates = states;
 		Initialize(newCapacity);
 		for (int32 index = 0; index < oldStates.Length; index++)
-			if (oldStates[index] == 1)
-				InsertNew(oldKeys[index], oldValues[index], oldHashes[index]);
+		{
+			int32 state;
+			TKey oldKey;
+			TValue oldValue;
+			int32 oldHash;
+			unsafe unchecked
+			{
+				state = oldStates[index];
+				oldKey = oldKeys[index];
+				oldValue = oldValues[index];
+				oldHash = oldHashes[index];
+			}
+			if (state == 1)
+				InsertNew(oldKey, oldValue, oldHash);
+		}
 	}
 }
 

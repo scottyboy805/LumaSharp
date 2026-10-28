@@ -33,7 +33,10 @@ public class Queue<T> : IEnumerable<T> where T : default
 		{
 			if (items.Length == 0)
 				return null;
-			return &items[0];
+			unsafe unchecked
+			{
+				return &items[0];
+			}
 		}
 	}
 
@@ -41,7 +44,10 @@ public class Queue<T> : IEnumerable<T> where T : default
 	{
 		EnsureCapacity(count + 1);
 		int32 tail = (head + count) % items.Length;
-		items[tail] = item;
+		unsafe unchecked
+		{
+			items[tail] = item;
+		}
 		count++;
 	}
 
@@ -49,8 +55,12 @@ public class Queue<T> : IEnumerable<T> where T : default
 	{
 		if (count == 0)
 			throw new System.InvalidOperationException("The queue is empty.");
-		T item = items[head];
-		items[head] = default(T);
+		T item;
+		unsafe unchecked
+		{
+			item = items[head];
+			items[head] = default(T);
+		}
 		head = (head + 1) % items.Length;
 		count--;
 		return item;
@@ -60,7 +70,12 @@ public class Queue<T> : IEnumerable<T> where T : default
 	{
 		if (count == 0)
 			throw new System.InvalidOperationException("The queue is empty.");
-		return items[head];
+		T item;
+		unsafe unchecked
+		{
+			item = items[head];
+		}
+		return item;
 	}
 
 	public void Clear() mut
@@ -71,7 +86,14 @@ public class Queue<T> : IEnumerable<T> where T : default
 
 	public T GetAt(int32 index)
 	{
-		return items[(head + index) % items.Length];
+		if (index < 0 || index >= count)
+			throw new System.ArgumentOutOfRangeException();
+		T item;
+		unsafe unchecked
+		{
+			item = items[(head + index) % items.Length];
+		}
+		return item;
 	}
 
 	public IIterator<T> Iterate()
@@ -88,7 +110,10 @@ public class Queue<T> : IEnumerable<T> where T : default
 			capacity = minimum;
 		T[] replacement = new T[capacity];
 		for (int32 index = 0; index < count; index++)
-			replacement[index] = items[(head + index) % items.Length];
+			unsafe unchecked
+			{
+				replacement[index] = items[(head + index) % items.Length];
+			}
 		items = replacement;
 		head = 0;
 	}
