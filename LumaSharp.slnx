@@ -10,5 +10,6 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/LumaSharp.Tests/LumaSharp.Tests.csproj" />
+    <Project Path="Tests/LumaSharp.Benchmarks/LumaSharp.Benchmarks.csproj" />
   </Folder>
 </Solution>
