@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Int16
+public struct Int16 : ValueType
 {
 	public const int16 MinValue = -32768; public const int16 MaxValue = 32767;
 	public static int16 Parse(string? text) { if (TryParse(text, out int16 result)) return result; throw new FormatException("Invalid 16-bit integer."); }

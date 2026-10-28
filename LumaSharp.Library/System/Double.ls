@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Double
+public struct Double : ValueType
 {
 	public const double MinValue = -1.7976931348623157e308; public const double MaxValue = 1.7976931348623157e308;
 	public const double Epsilon = 4.9406564584124654e-324;

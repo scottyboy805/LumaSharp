@@ -88,6 +88,40 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void PrimitiveRuntimeTypesAreValueTypeStructsAndBoxToValueType()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("primitive-value-type-test.ls", """
+            using System;
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    ValueType boxed = 42;
+                    object root = boxed;
+                    return Int32.Parse("42") == 42 && Char.Parse("A") == 'A' &&
+                        boxed is ValueType && root is int32 ? 0 : 1;
+                }
+            }
+            """)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("ptr @luma_classdesc_System_ValueType", result.LlvmIr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StructsMayUseOnlyValueTypeAsTheirSpecialClassBase()
+    {
+        var result = Compile("virtual class Base {} struct Invalid : Base {} class Program { public static int32 Main() { return 0; } }");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS0001" && diagnostic.Message.Contains("System.ValueType", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void CollectionsNamespaceTypesBuildAndRunWithMovedIterationContracts()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Char
+public struct Char : ValueType
 {
 	public const char MinValue = '\0'; public const char MaxValue = '\uFFFF';
 	public static char Parse(string? text) { if (TryParse(text, out char result)) return result; throw new FormatException("Input string must contain exactly one character."); }

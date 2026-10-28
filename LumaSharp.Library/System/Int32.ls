@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Int32
+public struct Int32 : ValueType
 {
 	public const int32 MinValue = -2147483647 - 1;
 	public const int32 MaxValue = 2147483647;

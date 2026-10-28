@@ -1,6 +1,6 @@
 namespace System;
 
-public static class UInt16
+public struct UInt16 : ValueType
 {
 	public const uint16 MinValue = 0; public const uint16 MaxValue = 65535;
 	public static uint16 Parse(string? text) { if (TryParse(text, out uint16 result)) return result; throw new FormatException("Invalid unsigned 16-bit integer."); }

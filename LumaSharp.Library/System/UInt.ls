@@ -1,6 +1,6 @@
 namespace System;
 
-public static class UInt
+public struct UInt : ValueType
 {
 	public const uint MinValue = 0;
 	public const uint MaxValue = 0;

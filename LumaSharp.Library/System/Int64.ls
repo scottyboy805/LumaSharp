@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Int64
+public struct Int64 : ValueType
 {
 	public const int64 MinValue = -9223372036854775807L - 1; public const int64 MaxValue = 9223372036854775807L;
 	public static int64 Parse(string? text) { if (TryParse(text, out int64 result)) return result; throw new FormatException("Invalid 64-bit integer."); }

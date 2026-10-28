@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Int8
+public struct Int8 : ValueType
 {
 	public const int8 MinValue = -128; public const int8 MaxValue = 127;
 	public static int8 Parse(string? text) { if (TryParse(text, out int8 result)) return result; throw new FormatException("Invalid 8-bit integer."); }

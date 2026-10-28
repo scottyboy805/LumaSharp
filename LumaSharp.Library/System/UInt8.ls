@@ -1,6 +1,6 @@
 namespace System;
 
-public static class UInt8
+public struct UInt8 : ValueType
 {
 	public const uint8 MinValue = 0; public const uint8 MaxValue = 255;
 	public static uint8 Parse(string? text) { if (TryParse(text, out uint8 result)) return result; throw new FormatException("Invalid unsigned 8-bit integer."); }

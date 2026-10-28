@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Bool
+public struct Bool : ValueType
 {
 	public const string TrueString = "True";
 	public const string FalseString = "False";

@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Int
+public struct Int : ValueType
 {
 	public const int MinValue = 0;
 	public const int MaxValue = 0;

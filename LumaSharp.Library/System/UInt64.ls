@@ -1,6 +1,6 @@
 namespace System;
 
-public static class UInt64
+public struct UInt64 : ValueType
 {
 	public const uint64 MinValue = 0; public const uint64 MaxValue = 18446744073709551615ul;
 	public static uint64 Parse(string? text) { if (TryParse(text, out uint64 result)) return result; throw new FormatException("Invalid unsigned 64-bit integer."); }

@@ -1,6 +1,6 @@
 namespace System;
 
-public static class Float
+public struct Float : ValueType
 {
 	public const float MinValue = -3.40282347e38f; public const float MaxValue = 3.40282347e38f;
 	public const float Epsilon = 1.40129846e-45f;

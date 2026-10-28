@@ -1,6 +1,6 @@
 namespace System;
 
-public static class UInt32
+public struct UInt32 : ValueType
 {
 	public const uint32 MinValue = 0;
 	public const uint32 MaxValue = 4294967295u;
