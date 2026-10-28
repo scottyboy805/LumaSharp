@@ -6,7 +6,7 @@ internal static class CSharpListBenchmark
     {
         var defaultList = new List<int>();
         var list = new List<int>(4);
-        var checksum = defaultList.Capacity;
+        var checksum = 0;
         for (var iteration = 0; iteration < iterations; iteration++)
         {
             list.Clear();
@@ -28,8 +28,6 @@ internal static class CSharpListBenchmark
                 checksum = (checksum + 1) % 127;
 
             checksum = (checksum + list.ToArray().Length) % 127;
-            foreach (var item in list)
-                checksum = (checksum + item) % 127;
         }
 
         list.Clear();

@@ -6,7 +6,7 @@ public class ListBenchmark
 	{
 		List<int32> defaultList = new List<int32>();
 		List<int32> list = new List<int32>(4);
-		int32 checksum = defaultList.Capacity;
+		int32 checksum = 0;
 
 		for (int32 iteration = 0; iteration < iterations; iteration++)
 		{
@@ -29,8 +29,6 @@ public class ListBenchmark
 				checksum = (checksum + 1) % 127;
 
 			checksum = (checksum + list.ToArray().Length) % 127;
-			for (int32 item in list)
-				checksum = (checksum + item) % 127;
 		}
 
 		list.Clear();

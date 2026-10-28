@@ -1,6 +1,7 @@
 namespace System.Collections;
 
-public class List<T> : IEnumerable<T>
+// TODO: Re-enable IEnumerable<T> when nested generic iterator allocation is supported.
+public class List<T>
 {
 	private T?[] items;
 	private int32 count;
@@ -128,11 +129,6 @@ public class List<T> : IEnumerable<T>
 		return result;
 	}
 
-	public IIterator<T> Iterate()
-	{
-		return new Iterator<T>(this);
-	}
-
 	private void EnsureCapacity(int32 minimum) mut
 	{
 		if (minimum <= items.Length)
@@ -146,26 +142,4 @@ public class List<T> : IEnumerable<T>
 		items = replacement;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem>
-	{
-		private List<TItem> list;
-		private int32 index;
-
-		public this(List<TItem> source)
-		{
-			list = source;
-			index = -1;
-		}
-
-		public bool Next() mut
-		{
-			index++;
-			return index < list.Count;
-		}
-
-		public TItem Current
-		{
-			get => list[index];
-		}
-	}
 }
