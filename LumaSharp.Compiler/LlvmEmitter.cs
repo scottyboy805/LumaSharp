@@ -2068,8 +2068,6 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
     {
         var used = new HashSet<string>(StringComparer.Ordinal);
         var visitedStructs = new HashSet<string>(StringComparer.Ordinal);
-        // Every boxed primitive/enum/struct uses ValueType as its descriptor base.
-        used.Add("System.ValueType");
         void AddType(string type)
         {
             var valueType = type.EndsWith("?", StringComparison.Ordinal) ? type[..^1] : type;
@@ -2672,7 +2670,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 releaseFunction = StructBoxReleaseFunctionName(type);
                 EmitStructBoxReleaseFunction(type);
             }
-            _output.AppendLine($"@luma_boxdesc_{safe} = private constant %luma.typedesc {{ {namePointer}, ptr @luma_classdesc_System_ValueType, {boxVtablePointer}, i32 {virtualMethods.Count}, ptr @{releaseFunction}, ptr @luma_box_retain, {interfaceTablePointer}, {interfaceIdPointer}, i32 {implementedInterfaces.Length}, {typeNameStringPointer} }}");
+            _output.AppendLine($"@luma_boxdesc_{safe} = private constant %luma.typedesc {{ {namePointer}, ptr @luma_classdesc_System_Object, {boxVtablePointer}, i32 {virtualMethods.Count}, ptr @{releaseFunction}, ptr @luma_box_retain, {interfaceTablePointer}, {interfaceIdPointer}, i32 {implementedInterfaces.Length}, {typeNameStringPointer} }}");
         }
     }
 
@@ -7824,7 +7822,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             if (fromType == "null" && IsNullableStringType(toType)) return "null";
             if (fromType == "null" && IsNullableArrayType(toType)) return "null";
             if (fromType == "null" && GetClassReferenceType(toType) is not null) return "null";
-            if ((IsObjectType(toType) || GetClassReferenceType(toType) is "System.Object" or "System.ValueType") &&
+            if ((IsObjectType(toType) || GetClassReferenceType(toType) == "System.Object") &&
                 (IsBoxableValueType(fromType) || IsNullableValueType(fromType) && IsBoxableValueType(NullableUnderlyingType(fromType))))
                 return EmitBoxValue(value, fromType);
             var interfaceTargetType = GetClassReferenceType(toType);

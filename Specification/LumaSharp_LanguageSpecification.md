@@ -159,7 +159,7 @@ The language itself needs a small, fixed set of types to exist in the standard l
 | Type | Purpose and required members |
 |---|---|
 | `object` (`System.Object`) | Root of the class hierarchy. Only member: `virtual string ToString()` |
-| `System.ValueType` | Base descriptor type for boxed primitive, enum, and struct values; structs may name it as their special base (§9.1) |
+| `System.ValueType` | Special struct base marker for primitive, enum, and struct values; boxing produces an object reference implicitly (§3.7, §9.1) |
 | `string` (`System.String`) | Immutable string: `int32 Length`, `char this[int32]`, `==`, `+` (§16) |
 | `Exception` | Base class of everything thrown: `string Message { get; }`, `Exception? InnerException { get; }`, constructors `this()`, `this(string message)`, `this(string message, Exception? inner)` |
 | `NullReferenceException`, `InvalidCastException`, `IndexOutOfRangeException`, `OverflowException`, `DivideByZeroException`, `OutOfMemoryException`, `TypeInitializationException` | Thrown by language operations (§18.5); each derives from `Exception` and has the `Exception` constructors |
@@ -2153,7 +2153,7 @@ struct Vector
 }
 ```
 
-- A struct MAY implement interfaces and MAY declare the special base type `System.ValueType`. This base identifies the common boxed representation of value types; it does not add fields or class inheritance to the unboxed struct. A struct MAY NOT derive from any other class, be `virtual`, or have finalizers.
+- A struct MAY implement interfaces and MAY declare the special struct base type `System.ValueType`. This marker does not add fields or inheritance to the unboxed struct. When a value is boxed, the compiler makes its box an `object` implicitly (§3.7). A struct MAY NOT derive from a class, be `virtual`, or have finalizers.
 - A struct MAY declare constructors, methods, properties, indexers, operators, static members, `const` and `readonly` fields, and nested types.
 - A struct MUST NOT contain itself, directly or through other structs (error LS0900); indirection through a nullable reference field is allowed.
 - A struct MUST NOT declare a parameterless instance constructor `[P-6]`: `S()` always yields the default value (§9.2).

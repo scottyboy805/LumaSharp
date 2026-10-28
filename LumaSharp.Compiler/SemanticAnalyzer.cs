@@ -120,8 +120,8 @@ internal static class VirtualDispatchLayout
         HasBaseList: true, BaseTypes: ["System.Object"], Accessibility: "public");
     private static readonly TypeDeclaration BuiltinArrayType = new("System", "class", "Array", [], BuiltinLocation,
         HasBaseList: true, BaseTypes: ["System.Object"], Accessibility: "public");
-    private static readonly TypeDeclaration BuiltinValueType = new("System", "class", "ValueType", [], BuiltinLocation,
-        HasBaseList: true, BaseTypes: ["System.Object"], IsVirtual: true, Accessibility: "public");
+    private static readonly TypeDeclaration BuiltinValueType = new("System", "struct", "ValueType", [], BuiltinLocation,
+        Accessibility: "public");
     public static TypeDeclaration ObjectType => BuiltinObjectType;
     public static TypeDeclaration DelegateType => BuiltinDelegateType;
     public static TypeDeclaration ArrayType => BuiltinArrayType;
@@ -2240,7 +2240,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 ValidateTypeAccessibility(baseType, type, type.Location);
                 if (type.Kind != "struct") continue;
                 var candidates = FindTypes(NormalizeEnumType(baseType, type), type);
-                var isValueTypeBase = candidates.Any(candidate => GetQualifiedTypeName(candidate) == "System.ValueType");
+                var isValueTypeBase = candidates.Any(candidate => candidate.Kind == "struct" && GetQualifiedTypeName(candidate) == "System.ValueType");
                 var isInterfaceBase = candidates.Any(candidate => candidate.Kind == "interface");
                 if (isValueTypeBase)
                 {
@@ -12059,7 +12059,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (IsNullableValueType(from) && IsNullableClassType(to) && IsInterfaceType(NullableUnderlyingType(to)) &&
             IsStructType(NullableUnderlyingType(from)) &&
             _interfaceConversions.Contains((NullableUnderlyingType(from), NullableUnderlyingType(to)))) return true;
-        if ((to is "System.Object" or "object" or "System.ValueType") || IsNullableClassType(to) && NullableUnderlyingType(to) is "System.Object" or "System.ValueType")
+        if ((to is "System.Object" or "object") || IsNullableClassType(to) && NullableUnderlyingType(to) == "System.Object")
         {
             var boxedType = IsNullableValueType(from) ? NullableUnderlyingType(from) : from;
             if (IsBoxableValueType(boxedType)) return true;
@@ -12120,7 +12120,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             return;
         }
         var boxedType = IsNullableValueType(from) ? NullableUnderlyingType(from) : from;
-        if ((to is "System.Object" or "object" or "System.ValueType") && RequiresBoxingForObject(from) && !IsBoxableValueType(boxedType))
+        if ((to is "System.Object" or "object") && RequiresBoxingForObject(from) && !IsBoxableValueType(boxedType))
         {
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Converting value type '{from}' to 'System.Object' requires boxing, which is not yet supported by the current backend.", location);
             return;

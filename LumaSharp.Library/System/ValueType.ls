@@ -1,5 +1,5 @@
 namespace System;
 
-public virtual class ValueType : Object
+public struct ValueType
 {
 }

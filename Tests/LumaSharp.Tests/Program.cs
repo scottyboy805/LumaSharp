@@ -88,7 +88,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void PrimitiveRuntimeTypesAreValueTypeStructsAndBoxToValueType()
+    public void PrimitiveRuntimeTypesAreValueTypeStructsAndBoxImplicitlyToObject()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
@@ -100,16 +100,18 @@ public sealed class CompilerTests
             {
                 public static int32 Main()
                 {
-                    ValueType boxed = 42;
-                    object root = boxed;
+                    ValueType marker = default;
+                    object boxed = 42;
                     return Int32.Parse("42") == 42 && Char.Parse("A") == 'A' &&
-                        boxed is ValueType && root is int32 ? 0 : 1;
+                        boxed is int32 ? 0 : 1;
                 }
             }
             """)));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("ptr @luma_classdesc_System_ValueType", result.LlvmIr, StringComparison.Ordinal);
+        Assert.Contains("%struct.System_ValueType = type", result.LlvmIr!, StringComparison.Ordinal);
+        var integerBoxDescriptor = Assert.Single(result.LlvmIr!.Split('\n').Where(line => line.StartsWith("@luma_boxdesc_int32 =", StringComparison.Ordinal)));
+        Assert.Contains("ptr @luma_classdesc_System_Object", integerBoxDescriptor, StringComparison.Ordinal);
     }
 
     [Fact]
