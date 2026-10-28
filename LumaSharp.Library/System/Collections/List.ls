@@ -1,14 +1,14 @@
 namespace System.Collections;
 
 // TODO: Re-enable IEnumerable<T> when nested generic iterator allocation is supported.
-public class List<T>
+public class List<T> where T : default
 {
-	private T?[] items;
+	private T[] items;
 	private int32 count;
 
 	public this()
 	{
-		items = new T?[4];
+		items = new T[4];
 		count = 0;
 	}
 
@@ -16,7 +16,7 @@ public class List<T>
 	{
 		if (capacity < 0)
 			throw new System.ArgumentOutOfRangeException();
-		items = new T?[capacity];
+		items = new T[capacity];
 		count = 0;
 	}
 
@@ -30,7 +30,7 @@ public class List<T>
 		get => items.Length;
 	}
 
-	public unsafe T?* Ptr
+	public unsafe T* Ptr
 	{
 		get
 		{
@@ -89,13 +89,13 @@ public class List<T>
 			current++;
 		}
 		count--;
-		items[count] = null;
+		items[count] = default(T);
 	}
 
 	public void Clear() mut
 	{
 		for (int32 index = 0; index < count; index++)
-			items[index] = null;
+			items[index] = default(T);
 		count = 0;
 	}
 
@@ -121,9 +121,9 @@ public class List<T>
 		return true;
 	}
 
-	public T?[] ToArray()
+	public T[] ToArray()
 	{
-		T?[] result = new T?[count];
+		T[] result = new T[count];
 		for (int32 index = 0; index < count; index++)
 			result[index] = items[index];
 		return result;
@@ -136,7 +136,7 @@ public class List<T>
 		int32 capacity = items.Length == 0 ? 4 : items.Length * 2;
 		if (capacity < minimum)
 			capacity = minimum;
-		T?[] replacement = new T?[capacity];
+		T[] replacement = new T[capacity];
 		for (int32 index = 0; index < count; index++)
 			replacement[index] = items[index];
 		items = replacement;

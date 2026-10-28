@@ -1,9 +1,9 @@
 namespace System.Collections;
 
-public class Dictionary<TKey, TValue>
+public class Dictionary<TKey, TValue> where TKey : default where TValue : default
 {
-	private TKey?[] keys;
-	private TValue?[] values;
+	private TKey[] keys;
+	private TValue[] values;
 	private int32[] hashes;
 	private int32[] states;
 	private int32 count;
@@ -11,8 +11,8 @@ public class Dictionary<TKey, TValue>
 
 	public this()
 	{
-		keys = new TKey?[8];
-		values = new TValue?[8];
+		keys = new TKey[8];
+		values = new TValue[8];
 		hashes = new int32[8];
 		states = new int32[8];
 		count = 0;
@@ -24,8 +24,8 @@ public class Dictionary<TKey, TValue>
 		if (capacity < 0)
 			throw new System.ArgumentOutOfRangeException();
 		int32 actualCapacity = CapacityFor(capacity);
-		keys = new TKey?[actualCapacity];
-		values = new TValue?[actualCapacity];
+		keys = new TKey[actualCapacity];
+		values = new TValue[actualCapacity];
 		hashes = new int32[actualCapacity];
 		states = new int32[actualCapacity];
 		count = 0;
@@ -59,7 +59,7 @@ public class Dictionary<TKey, TValue>
 			int32 index = Find(key, GetHashCode(key));
 			if (index < 0)
 				throw new KeyNotFoundException();
-			return values[index]!;
+			return values[index];
 		}
 		set
 		{
@@ -104,16 +104,16 @@ public class Dictionary<TKey, TValue>
 		int32 index = Find(key, GetHashCode(key));
 		if (index >= 0)
 		{
-			value = values[index]!;
+			value = values[index];
 			return true;
 		}
 		for (int32 empty = 0; empty < states.Length; empty++)
 			if (states[empty] == 0)
 			{
-				value = values[empty]!;
+				value = default(TValue);
 				return false;
 			}
-		value = values[0]!;
+		value = default(TValue);
 		return false;
 	}
 
@@ -122,8 +122,8 @@ public class Dictionary<TKey, TValue>
 		int32 index = Find(key, GetHashCode(key));
 		if (index < 0)
 			return false;
-		keys[index] = null;
-		values[index] = null;
+		keys[index] = default(TKey);
+		values[index] = default(TValue);
 		hashes[index] = 0;
 		states[index] = 2;
 		count--;
@@ -137,8 +137,8 @@ public class Dictionary<TKey, TValue>
 
 	private void Initialize(int32 capacity) mut
 	{
-		keys = new TKey?[capacity];
-		values = new TValue?[capacity];
+		keys = new TKey[capacity];
+		values = new TValue[capacity];
 		hashes = new int32[capacity];
 		states = new int32[capacity];
 		count = 0;
@@ -175,7 +175,7 @@ public class Dictionary<TKey, TValue>
 			int32 index = (slot + probe) % states.Length;
 			if (states[index] == 0)
 				return -1;
-			if (states[index] == 1 && hashes[index] == hash && KeysEqual(keys[index]!, key))
+			if (states[index] == 1 && hashes[index] == hash && KeysEqual(keys[index], key))
 				return index;
 		}
 		return -1;
@@ -215,14 +215,14 @@ public class Dictionary<TKey, TValue>
 		if (minimum * 4 < states.Length * 3 && used * 4 < states.Length * 3)
 			return;
 		int32 newCapacity = states.Length * 2;
-		TKey?[] oldKeys = keys;
-		TValue?[] oldValues = values;
+		TKey[] oldKeys = keys;
+		TValue[] oldValues = values;
 		int32[] oldHashes = hashes;
 		int32[] oldStates = states;
 		Initialize(newCapacity);
 		for (int32 index = 0; index < oldStates.Length; index++)
 			if (oldStates[index] == 1)
-				InsertNew(oldKeys[index]!, oldValues[index]!, oldHashes[index]);
+				InsertNew(oldKeys[index], oldValues[index], oldHashes[index]);
 	}
 }
 

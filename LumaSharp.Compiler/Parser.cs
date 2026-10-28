@@ -940,7 +940,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             var items = new List<string>();
             do
             {
-                if (Current.Text is "class" or "struct" or "enum")
+                if (Current.Text is "class" or "struct" or "enum" or "default")
                 {
                     items.Add(Take().Text);
                     continue;
@@ -975,7 +975,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (items.Count == 0)
                 Error(Current, "A constraint clause must contain at least one constraint.");
             var primaryConstraints = items.Select((item, index) => (item, index))
-                .Where(entry => entry.item is "class" or "struct" or "enum").ToArray();
+                .Where(entry => entry.item is "class" or "struct" or "enum" or "default").ToArray();
             if (primaryConstraints.Length > 1)
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, $"Type parameter '{parameterName}' may have only one primary constraint.", at);
             if (primaryConstraints.FirstOrDefault() is var primary && primary.index > 0)

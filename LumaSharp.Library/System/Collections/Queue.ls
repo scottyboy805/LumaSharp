@@ -1,14 +1,14 @@
 namespace System.Collections;
 
-public class Queue<T> : IEnumerable<T>
+public class Queue<T> : IEnumerable<T> where T : default
 {
-	private T?[] items;
+	private T[] items;
 	private int32 head;
 	private int32 count;
 
 	public this()
 	{
-		items = new T?[4];
+		items = new T[4];
 		head = 0;
 		count = 0;
 	}
@@ -17,7 +17,7 @@ public class Queue<T> : IEnumerable<T>
 	{
 		if (capacity < 0)
 			throw new System.ArgumentOutOfRangeException();
-		items = new T?[capacity];
+		items = new T[capacity];
 		head = 0;
 		count = 0;
 	}
@@ -49,8 +49,8 @@ public class Queue<T> : IEnumerable<T>
 	{
 		if (count == 0)
 			throw new System.InvalidOperationException("The queue is empty.");
-		T item = items[head]!;
-		items[head] = null;
+		T item = items[head];
+		items[head] = default(T);
 		head = (head + 1) % items.Length;
 		count--;
 		return item;
@@ -60,7 +60,7 @@ public class Queue<T> : IEnumerable<T>
 	{
 		if (count == 0)
 			throw new System.InvalidOperationException("The queue is empty.");
-		return items[head]!;
+		return items[head];
 	}
 
 	public void Clear() mut
@@ -71,7 +71,7 @@ public class Queue<T> : IEnumerable<T>
 
 	public T GetAt(int32 index)
 	{
-		return items[(head + index) % items.Length]!;
+		return items[(head + index) % items.Length];
 	}
 
 	public IIterator<T> Iterate()
@@ -86,14 +86,14 @@ public class Queue<T> : IEnumerable<T>
 		int32 capacity = items.Length == 0 ? 4 : items.Length * 2;
 		if (capacity < minimum)
 			capacity = minimum;
-		T?[] replacement = new T?[capacity];
+		T[] replacement = new T[capacity];
 		for (int32 index = 0; index < count; index++)
 			replacement[index] = items[(head + index) % items.Length];
 		items = replacement;
 		head = 0;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem>
+	private class Iterator<TItem> : IIterator<TItem> where TItem : default
 	{
 		private Queue<TItem> queue;
 		private int32 index;

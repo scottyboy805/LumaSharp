@@ -1,8 +1,8 @@
 namespace System.Collections;
 
-public class HashSet<T> : IEnumerable<T>
+public class HashSet<T> : IEnumerable<T> where T : default
 {
-	private T?[] items;
+	private T[] items;
 	private int32[] hashes;
 	private int32[] states;
 	private int32 count;
@@ -10,7 +10,7 @@ public class HashSet<T> : IEnumerable<T>
 
 	public this()
 	{
-		items = new T?[8];
+		items = new T[8];
 		hashes = new int32[8];
 		states = new int32[8];
 		count = 0;
@@ -22,7 +22,7 @@ public class HashSet<T> : IEnumerable<T>
 		if (capacity < 0)
 			throw new System.ArgumentOutOfRangeException();
 		int32 actualCapacity = CapacityFor(capacity);
-		items = new T?[actualCapacity];
+		items = new T[actualCapacity];
 		hashes = new int32[actualCapacity];
 		states = new int32[actualCapacity];
 		count = 0;
@@ -51,7 +51,6 @@ public class HashSet<T> : IEnumerable<T>
 
 	public bool Add(T item) mut
 	{
-		ValidateItem(item);
 		int32 hash = GetHashCode(item);
 		if (Find(item, hash) >= 0)
 			return false;
@@ -62,17 +61,15 @@ public class HashSet<T> : IEnumerable<T>
 
 	public bool Contains(T item)
 	{
-		ValidateItem(item);
 		return Find(item, GetHashCode(item)) >= 0;
 	}
 
 	public bool Remove(T item) mut
 	{
-		ValidateItem(item);
 		int32 index = Find(item, GetHashCode(item));
 		if (index < 0)
 			return false;
-		items[index] = null;
+		items[index] = default(T);
 		hashes[index] = 0;
 		states[index] = 2;
 		count--;
@@ -91,7 +88,7 @@ public class HashSet<T> : IEnumerable<T>
 
 	public T GetAt(int32 index)
 	{
-		return items[index]!;
+		return items[index];
 	}
 
 	public IIterator<T> Iterate()
@@ -121,7 +118,7 @@ public class HashSet<T> : IEnumerable<T>
 			int32 index = (slot + probe) % states.Length;
 			if (states[index] == 0)
 				return -1;
-			if (states[index] == 1 && hashes[index] == hash && ItemsEqual(items[index]!, item))
+			if (states[index] == 1 && hashes[index] == hash && ItemsEqual(items[index], item))
 				return index;
 		}
 		return -1;
@@ -160,18 +157,18 @@ public class HashSet<T> : IEnumerable<T>
 		if (minimum * 4 < states.Length * 3 && used * 4 < states.Length * 3)
 			return;
 		int32 newCapacity = states.Length * 2;
-		T?[] oldItems = items;
+		T[] oldItems = items;
 		int32[] oldHashes = hashes;
 		int32[] oldStates = states;
 		Initialize(newCapacity);
 		for (int32 index = 0; index < oldStates.Length; index++)
 			if (oldStates[index] == 1)
-				InsertNew(oldItems[index]!, oldHashes[index]);
+				InsertNew(oldItems[index], oldHashes[index]);
 	}
 
 	private void Initialize(int32 capacity) mut
 	{
-		items = new T?[capacity];
+		items = new T[capacity];
 		hashes = new int32[capacity];
 		states = new int32[capacity];
 		count = 0;
@@ -186,7 +183,7 @@ public class HashSet<T> : IEnumerable<T>
 		return capacity;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem>
+	private class Iterator<TItem> : IIterator<TItem> where TItem : default
 	{
 		private HashSet<TItem> set;
 		private int32 index;

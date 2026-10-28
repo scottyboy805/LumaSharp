@@ -199,6 +199,8 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         if (parameters.Count == 0) return;
         var valueParameters = constraints.Where(clause => clause.Constraints.Any(item => item is "struct" or "enum"))
             .Select(clause => clause.TypeParameter).ToHashSet(StringComparer.Ordinal);
+        var defaultParameters = constraints.Where(clause => clause.Constraints.Any(item => item is "default" or "struct" or "enum"))
+            .Select(clause => clause.TypeParameter).ToHashSet(StringComparer.Ordinal);
         var constraintParameters = constraints.GroupBy(clause => clause.TypeParameter, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.SelectMany(clause => clause.Constraints).ToArray(), StringComparer.Ordinal);
         var knownVariableTypes = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -229,22 +231,40 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         foreach (var parameter in parameters)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (containingKind == "struct" && members.OfType<FieldDeclaration>().Any(field => field.TypeName == parameter) && !valueParameters.Contains(parameter))
-                Report($"Generic struct field '{parameter}' must have a 'struct' or 'enum' constraint.", location);
+            if (containingKind == "struct" && members.OfType<FieldDeclaration>().Any(field => field.TypeName == parameter) && !defaultParameters.Contains(parameter))
+                Report($"Generic struct field '{parameter}' requires a 'default', 'struct', or 'enum' constraint.", location);
 
             foreach (var node in EnumerateNodes(members))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 switch (node)
                 {
-                    case VariableStatement { TypeName: { } typeName, Initializer: null } variable when typeName == parameter && !valueParameters.Contains(parameter):
-                        Report($"Uninitialized local of type parameter '{parameter}' requires a 'struct' constraint.", variable.Location);
+                    case VariableStatement { TypeName: { } typeName, Initializer: null } variable when typeName == parameter && !defaultParameters.Contains(parameter):
+                        Report($"Uninitialized local of type parameter '{parameter}' requires a 'default', 'struct', or 'enum' constraint.", variable.Location);
                         break;
                     case AllocationExpression { TypeName: { } typeName, Dimensions.Count: 0 } allocation when typeName == parameter:
                         ValidateTypeParameterConstruction(parameter, allocation);
                         break;
+                    case AllocationExpression { TypeName: { } arrayType, Dimensions.Count: > 0 } allocation
+                        when SemanticAnalyzer.TryParseManagedArrayType(arrayType, out var elementType, out _) &&
+                             elementType == parameter && !defaultParameters.Contains(parameter) &&
+                             !allocation.Dimensions.Any(dimension => dimension is LiteralExpression { Value: "0" }):
+                        Report($"Allocating an array of type parameter '{parameter}' requires a 'default', 'struct', or 'enum' constraint; use '{parameter}?[]' for nullable elements.", allocation.Location);
+                        break;
+                    case DefaultValueExpression { TypeName: { } typeName } defaultValue when typeName == parameter && !defaultParameters.Contains(parameter):
+                        Report($"default({parameter}) requires a 'default', 'struct', or 'enum' constraint.", defaultValue.Location);
+                        break;
+                    case VariableStatement { TypeName: { } typeName, Initializer: DefaultValueExpression { TypeName: null } } variable
+                        when typeName == parameter && !defaultParameters.Contains(parameter):
+                        Report($"A target-typed default for '{parameter}' requires a 'default', 'struct', or 'enum' constraint.", variable.Location);
+                        break;
                 }
             }
+            if (!defaultParameters.Contains(parameter))
+                foreach (var method in members.OfType<MethodDeclaration>().Where(method => method.ReturnType == parameter && method.Body is not null))
+                    foreach (var returnedDefault in EnumerateNodes(method.Body!).OfType<ReturnStatement>()
+                                 .Where(statement => statement.Value is DefaultValueExpression { TypeName: null }))
+                        Report($"A target-typed default for '{parameter}' requires a 'default', 'struct', or 'enum' constraint.", returnedDefault.Location);
         }
 
         void Report(string message, SourceLocation at) => AddOnce("generic-body:" + message + ":" + at.File + ":" + at.Line + ":" + at.Column,
@@ -1497,7 +1517,7 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             ContainingType = ownerName,
             ReturnType = RewriteTypeName(method.ReturnType, substitutions),
             Parameters = method.Parameters.Select(parameter => RewriteParameter(parameter, substitutions)).ToArray(),
-            Body = RewriteOptional(method.Body, substitutions),
+            Body = method.Body is null ? null : (BlockStatement)RewriteStatement(method.Body, substitutions, method.ReturnType),
             ExplicitInterfaceName = RewriteOptionalType(method.ExplicitInterfaceName, substitutions),
             GenericConstraints = RewriteConstraints(method.GenericConstraints, substitutions)
         },
@@ -1560,18 +1580,26 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         _ => node
     };
 
-    private static Statement RewriteStatement(Statement statement, IReadOnlyDictionary<string, string> substitutions) => statement switch
+    private static Statement RewriteStatement(Statement statement, IReadOnlyDictionary<string, string> substitutions, string? returnType = null) => statement switch
     {
-        BlockStatement block => block with { Statements = block.Statements.Select(child => RewriteStatement(child, substitutions)).ToArray() },
-        ReturnStatement ret => ret with { Value = RewriteOptional(ret.Value, substitutions) },
-        VariableStatement variable => variable with { TypeName = RewriteOptionalType(variable.TypeName, substitutions), Initializer = RewriteOptional(variable.Initializer, substitutions) },
-        VariableDeclarationStatement declaration => declaration with { Variables = declaration.Variables.Select(variable => (VariableStatement)RewriteStatement(variable, substitutions)).ToArray() },
+        BlockStatement block => block with { Statements = block.Statements.Select(child => RewriteStatement(child, substitutions, returnType)).ToArray() },
+        ReturnStatement ret => ret with { Value = ret.Value is DefaultValueExpression { TypeName: null } defaultValue && returnType is not null && substitutions.ContainsKey(returnType)
+            ? defaultValue with { IsTypeParameterDefault = true }
+            : RewriteOptional(ret.Value, substitutions) },
+        VariableStatement variable => variable with
+        {
+            TypeName = RewriteOptionalType(variable.TypeName, substitutions),
+            Initializer = variable.Initializer is DefaultValueExpression { TypeName: null } defaultValue && variable.TypeName is not null && substitutions.ContainsKey(variable.TypeName)
+                ? defaultValue with { IsTypeParameterDefault = true }
+                : RewriteOptional(variable.Initializer, substitutions)
+        },
+        VariableDeclarationStatement declaration => declaration with { Variables = declaration.Variables.Select(variable => (VariableStatement)RewriteStatement(variable, substitutions, returnType)).ToArray() },
         MultiAssignmentStatement assignment => assignment with { Targets = assignment.Targets.Select(expression => RewriteExpression(expression, substitutions)).ToArray(), Values = assignment.Values.Select(expression => RewriteExpression(expression, substitutions)).ToArray() },
         ExpressionStatement expression => expression with { Value = RewriteExpression(expression.Value, substitutions) },
-        IfStatement conditional => conditional with { Condition = RewriteExpression(conditional.Condition, substitutions), Then = RewriteStatement(conditional.Then, substitutions), Else = RewriteOptional(conditional.Else, substitutions) },
-        WhileStatement loop => loop with { Condition = RewriteExpression(loop.Condition, substitutions), Body = RewriteStatement(loop.Body, substitutions) },
-        DoWhileStatement loop => loop with { Body = RewriteStatement(loop.Body, substitutions), Condition = RewriteExpression(loop.Condition, substitutions) },
-        ForStatement loop => loop with { Initializer = RewriteOptional(loop.Initializer, substitutions), Condition = RewriteOptional(loop.Condition, substitutions), Iterators = loop.Iterators.Select(expression => RewriteExpression(expression, substitutions)).ToArray(), Body = RewriteStatement(loop.Body, substitutions) },
+        IfStatement conditional => conditional with { Condition = RewriteExpression(conditional.Condition, substitutions), Then = RewriteStatement(conditional.Then, substitutions, returnType), Else = RewriteOptional(conditional.Else, substitutions) },
+        WhileStatement loop => loop with { Condition = RewriteExpression(loop.Condition, substitutions), Body = RewriteStatement(loop.Body, substitutions, returnType) },
+        DoWhileStatement loop => loop with { Body = RewriteStatement(loop.Body, substitutions, returnType), Condition = RewriteExpression(loop.Condition, substitutions) },
+        ForStatement loop => loop with { Initializer = RewriteOptional(loop.Initializer, substitutions), Condition = RewriteOptional(loop.Condition, substitutions), Iterators = loop.Iterators.Select(expression => RewriteExpression(expression, substitutions)).ToArray(), Body = RewriteStatement(loop.Body, substitutions, returnType) },
         ForInStatement loop => loop with { TypeName = RewriteOptionalType(loop.TypeName, substitutions), Collection = RewriteExpression(loop.Collection, substitutions), Body = RewriteStatement(loop.Body, substitutions) },
         SwitchStatement selection => selection with
         {

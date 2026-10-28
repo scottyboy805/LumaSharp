@@ -1,13 +1,13 @@
 namespace System.Collections;
 
-public class Stack<T> : IEnumerable<T>
+public class Stack<T> : IEnumerable<T> where T : default
 {
-	private T?[] items;
+	private T[] items;
 	private int32 count;
 
 	public this()
 	{
-		items = new T?[4];
+		items = new T[4];
 		count = 0;
 	}
 
@@ -15,7 +15,7 @@ public class Stack<T> : IEnumerable<T>
 	{
 		if (capacity < 0)
 			throw new System.ArgumentOutOfRangeException();
-		items = new T?[capacity];
+		items = new T[capacity];
 		count = 0;
 	}
 
@@ -46,8 +46,8 @@ public class Stack<T> : IEnumerable<T>
 		if (count == 0)
 			throw new System.InvalidOperationException("The stack is empty.");
 		count--;
-		T item = items[count]!;
-		items[count] = null;
+		T item = items[count];
+		items[count] = default(T);
 		return item;
 	}
 
@@ -55,19 +55,19 @@ public class Stack<T> : IEnumerable<T>
 	{
 		if (count == 0)
 			throw new System.InvalidOperationException("The stack is empty.");
-		return items[count - 1]!;
+		return items[count - 1];
 	}
 
 	public void Clear() mut
 	{
 		for (int32 index = 0; index < count; index++)
-			items[index] = null;
+			items[index] = default(T);
 		count = 0;
 	}
 
 	public T GetAt(int32 index)
 	{
-		return items[index]!;
+		return items[index];
 	}
 
 	public IIterator<T> Iterate()
@@ -82,13 +82,13 @@ public class Stack<T> : IEnumerable<T>
 		int32 capacity = items.Length == 0 ? 4 : items.Length * 2;
 		if (capacity < minimum)
 			capacity = minimum;
-		T?[] replacement = new T?[capacity];
+		T[] replacement = new T[capacity];
 		for (int32 index = 0; index < count; index++)
 			replacement[index] = items[index];
 		items = replacement;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem>
+	private class Iterator<TItem> : IIterator<TItem> where TItem : default
 	{
 		private Stack<TItem> stack;
 		private int32 index;

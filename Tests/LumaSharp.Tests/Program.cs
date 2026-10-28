@@ -155,9 +155,9 @@ public sealed class CompilerTests
                     list.Insert(1, 15);
                     bool contains = list.Contains(15);
                     int32 foundIndex = list.IndexOf(20);
-                    int32?* firstItem = list.Ptr;
+                    int32* firstItem = list.Ptr;
                     int32 pointerValue = *firstItem;
-                    int32?[] copiedValues = list.ToArray();
+                    int32[] copiedValues = list.ToArray();
                     int32 total = 0;
                     for (let item in new TestValues())
                         total += item;
@@ -175,7 +175,7 @@ public sealed class CompilerTests
                     for (let item in queue)
                         queueTotal += item;
 
-                    Dictionary<TestKey, string> map = new Dictionary<TestKey, string>(1);
+                    Dictionary<TestKey?, string?> map = new Dictionary<TestKey?, string?>(1);
                     map.Add(new TestKey(7), "seven");
                     bool inserted = map.TryAdd(new TestKey(20), "twenty");
                     int32 keyIndex = 0;
@@ -185,8 +185,8 @@ public sealed class CompilerTests
                             map[new TestKey(keyIndex)] = "item";
                         keyIndex++;
                     }
-                    bool found = map.TryGetValue(new TestKey(7), out string value);
-                    HashSet<TestKey> set = new HashSet<TestKey>(1);
+                    bool found = map.TryGetValue(new TestKey(7), out string? value);
+                    HashSet<TestKey?> set = new HashSet<TestKey?>(1);
                     bool added = set.Add(new TestKey(9));
                     bool duplicate = set.Add(new TestKey(9));
                     int32 setCount = 0;
@@ -457,7 +457,7 @@ public sealed class CompilerTests
     [Fact]
     public void ComputedClassPropertiesAndIndexersSupportSingleEvaluationCompoundAssignment()
     {
-        const string source = "class Box { int32 stored = 10; string text; public int32 Value { get { Program.GetterCalls++; return stored; } set { stored = value; } } public string Text { get => text; set { text = value; } } public int32 this[int32 index] { get { Program.IndexGetterCalls++; return stored + index; } set { stored = value - index; } } } class Program { public static int32 GetterCalls; public static int32 IndexGetterCalls; public static int32 ReceiverCalls; public static int32 IndexArgumentCalls; public static Box GetBox() { Program.ReceiverCalls++; return new Box(); } public static int32 NextIndex() { Program.IndexArgumentCalls++; return 0; } public static int32 Main() { Box box = new Box(); box.Value += 2; if (Program.GetterCalls != 1 || box.Value != 12) return 1; Program.GetterCalls = 0; GetBox().Value += 3; if (Program.ReceiverCalls != 1 || Program.GetterCalls != 1) return 2; Program.IndexGetterCalls = 0; Program.IndexArgumentCalls = 0; box[NextIndex()] += 2; if (Program.IndexGetterCalls != 1 || Program.IndexArgumentCalls != 1) return 3; box.Text += \"ok\"; if (box.Text != \"ok\") return 4; return box[0] == 14 ? 0 : 5; } }";
+        const string source = "class Box { int32 stored = 10; string text = \"\"; public int32 Value { get { Program.GetterCalls++; return stored; } set { stored = value; } } public string Text { get => text; set { text = value; } } public int32 this[int32 index] { get { Program.IndexGetterCalls++; return stored + index; } set { stored = value - index; } } } class Program { public static int32 GetterCalls; public static int32 IndexGetterCalls; public static int32 ReceiverCalls; public static int32 IndexArgumentCalls; public static Box GetBox() { Program.ReceiverCalls++; return new Box(); } public static int32 NextIndex() { Program.IndexArgumentCalls++; return 0; } public static int32 Main() { Box box = new Box(); box.Value += 2; if (Program.GetterCalls != 1 || box.Value != 12) return 1; Program.GetterCalls = 0; GetBox().Value += 3; if (Program.ReceiverCalls != 1 || Program.GetterCalls != 1) return 2; Program.IndexGetterCalls = 0; Program.IndexArgumentCalls = 0; box[NextIndex()] += 2; if (Program.IndexGetterCalls != 1 || Program.IndexArgumentCalls != 1) return 3; box.Text += \"ok\"; if (box.Text != \"ok\") return 4; return box[0] == 14 ? 0 : 5; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -752,9 +752,9 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void StringArraysDefaultToEmptyAndReleaseOwnedElements()
+    public void StringArraysRequireInitialValuesAndReleaseOwnedElements()
     {
-        const string source = "class Program { public static int32 Main() { string[] values = new string[2]; if (values[0] != \"\") return 1; string text = \"value\" + \"!\"; values[0] = text; string[] alias = values; alias[1] = text; string[] initialized = { text, \"fixed\" }; if (values[0] != \"value!\") return 2; if (values[1] != \"value!\") return 3; if (initialized[0] != \"value!\") return 4; if (initialized[1] != \"fixed\") return 5; string[] letters = { \"a\", \"b\" }; string joined = \"\"; for (let letter in letters) joined += letter; if (joined != \"ab\") return 6; return 0; } }";
+        const string source = "class Program { public static int32 Main() { string[] values = { \"\", \"\" }; if (values[0] != \"\") return 1; string text = \"value\" + \"!\"; values[0] = text; string[] alias = values; alias[1] = text; string[] initialized = { text, \"fixed\" }; if (values[0] != \"value!\") return 2; if (values[1] != \"value!\") return 3; if (initialized[0] != \"value!\") return 4; if (initialized[1] != \"fixed\") return 5; string[] letters = { \"a\", \"b\" }; string joined = \"\"; for (let letter in letters) joined += letter; if (joined != \"ab\") return 6; return 0; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -776,9 +776,29 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void NonNullableStringsHaveNoDefaultValue()
+    {
+        var defaultString = Compile("class Program { public static int32 Main() { string value = default; return 0; } }");
+        Assert.Contains(defaultString.Diagnostics, diagnostic => diagnostic.Code == "LS0810");
+
+        var uninitializedString = Compile("class Program { public static int32 Main() { string value; return 0; } }");
+        Assert.Contains(uninitializedString.Diagnostics, diagnostic => diagnostic.Code == "LS0810");
+
+        var stringArray = Compile("class Program { public static int32 Main() { string[] values = new string[2]; return 0; } }");
+        Assert.Contains(stringArray.Diagnostics, diagnostic => diagnostic.Code == "LS1501");
+
+        var nullableString = Compile("class Slot<T> where T : default { public T Get() { return default(T); } } class Program { public static int32 Main() { Slot<string?> slot = new Slot<string?>(); string? value = slot.Get(); return value == null ? 0 : 1; } }");
+        Assert.True(nullableString.Succeeded, string.Join(Environment.NewLine, nullableString.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(nullableString.LlvmIr!).ExitCode);
+
+        var nonNullableStringArgument = Compile("class Slot<T> where T : default { } class Program { public static int32 Main() { Slot<string> slot = new Slot<string>(); return 0; } }");
+        Assert.Contains(nonNullableStringArgument.Diagnostics, diagnostic => diagnostic.Code == "LS1102");
+    }
+
+    [Fact]
     public void RectangularStringArraysRetainAndReleaseElements()
     {
-        const string source = "class Program { public static int32 Main() { string[,] values = new string[1, 2]; if (values[0, 0] != \"\") return 1; string text = \"matrix\" + \"!\"; values[0, 1] = text; return values.GetLength(1) == 2 && values[0, 1] == \"matrix!\" ? 0 : 2; } }";
+        const string source = "class Program { public static int32 Main() { string[,] values = new string[,] { { \"\", \"\" } }; if (values[0, 0] != \"\") return 1; string text = \"matrix\" + \"!\"; values[0, 1] = text; return values.GetLength(1) == 2 && values[0, 1] == \"matrix!\" ? 0 : 2; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -884,7 +904,7 @@ public sealed class CompilerTests
     [Fact]
     public void PassesManagedArrayElementsByRefAndOut()
     {
-        const string source = "class Program { public static void Increment(ref int32 value) { value += 1; } public static void Initialize(out int32 value) { value = 7; } public static void Replace(ref string value) { value = value + \"!\"; } public static void Set(out string value) { value = \"out\"; } public static int32 Main() { int32[,] values = new int32[2, 2]; Increment(ref values[1, 0]); Initialize(out values[0, 1]); string[] texts = new string[2]; Replace(ref texts[0]); Set(out texts[1]); return values[1, 0] == 1 && values[0, 1] == 7 && texts[0] == \"!\" && texts[1] == \"out\" ? 0 : 1; } }";
+        const string source = "class Program { public static void Increment(ref int32 value) { value += 1; } public static void Initialize(out int32 value) { value = 7; } public static void Replace(ref string value) { value = value + \"!\"; } public static void Set(out string value) { value = \"out\"; } public static int32 Main() { int32[,] values = new int32[2, 2]; Increment(ref values[1, 0]); Initialize(out values[0, 1]); string[] texts = { \"\", \"\" }; Replace(ref texts[0]); Set(out texts[1]); return values[1, 0] == 1 && values[0, 1] == 7 && texts[0] == \"!\" && texts[1] == \"out\" ? 0 : 1; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -2009,19 +2029,64 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void UnconstrainedGenericsAllowDefaultsAndGenericDefaultArrays()
+    public void DefaultConstraintAllowsDefaultValuesAndInitializedGenericArrays()
     {
-        var defaultValue = Compile("class Item { } class Slot<T> { public T Get() { return default(T); } } class Program { public static T GetDefault<T>() { return default(T); } public static int32 Main() { Slot<int32> numbers = new Slot<int32>(); Slot<Item> references = new Slot<Item>(); Item? item = references.Get(); Item? methodItem = GetDefault<Item>(); return numbers.Get() == 0 && item == null && methodItem == null && GetDefault<int32>() == 0 ? 0 : 1; } }");
+        var defaultValue = Compile("""
+            class Item { }
+            class Slot<T> where T : default
+            {
+                public T Get() { return default(T); }
+                public T GetInferred() { T value = default; return value; }
+                public T[] Create(int32 length) { return new T[length]; }
+            }
+            struct Holder<T> where T : default
+            {
+                public T value;
+                public T GetUninitializedLocal() { T item; return item; }
+            }
+            class Program
+            {
+                public static T GetDefault<T>() where T : default { return default(T); }
+                public static int32 Main()
+                {
+                    Slot<int32> numbers = new Slot<int32>();
+                    Slot<Item?> references = new Slot<Item?>();
+                    int32 number = numbers.Get();
+                    int32 inferredNumber = numbers.GetInferred();
+                    int32[] numberArray = numbers.Create(2);
+                    Item? item = references.Get();
+                    Item? inferred = references.GetInferred();
+                    Item?[] values = references.Create(2);
+                    int32 methodDefault = GetDefault<int32>();
+                    Item? methodNullable = GetDefault<Item?>();
+                    Holder<int32> numberHolder = default(Holder<int32>);
+                    int32 heldNumber = numberHolder.GetUninitializedLocal();
+                    int32 concreteDefault = default(int32);
+                    Item? concreteNullable = default(Item?);
+                    if (number != 0 || inferredNumber != 0 || numberArray[0] != 0) return 1;
+                    if (item != null || inferred != null || values[0] != null) return 2;
+                    if (heldNumber != 0) return 3;
+                    if (methodDefault != 0 || methodNullable != null || concreteDefault != 0 || concreteNullable != null) return 4;
+                    return 0;
+                }
+            }
+            """);
         Assert.True(defaultValue.Succeeded, string.Join(Environment.NewLine, defaultValue.Diagnostics));
         Assert.Equal(0, LlvmJit.RunMain(defaultValue.LlvmIr!).ExitCode);
 
+        var invalidInstantiation = Compile("class Item { } class Slot<T> where T : default { public T[] Create(int32 length) { return new T[length]; } } class Program { public static int32 Main() { Slot<Item> slot = new Slot<Item>(); return 0; } }");
+        Assert.Contains(invalidInstantiation.Diagnostics, diagnostic => diagnostic.Code == "LS1102" && diagnostic.Message.Contains("does not satisfy constraint 'default'", StringComparison.Ordinal));
+
+        var unconstrainedDefault = Compile("class Slot<T> { public T Get() { return default(T); } } class Program { public static int32 Main() { return 0; } }");
+        Assert.Contains(unconstrainedDefault.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("requires a 'default'", StringComparison.Ordinal));
+
         var uninitializedLocal = Compile("class Slot<T> { public T Get() { T value; return value; } } class Program { public static int32 Main() { return 0; } }");
         Assert.Contains(uninitializedLocal.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&
-            diagnostic.Message.Contains("Uninitialized local of type parameter 'T' requires a 'struct' constraint", StringComparison.Ordinal));
+            diagnostic.Message.Contains("Uninitialized local of type parameter 'T' requires a 'default'", StringComparison.Ordinal));
 
         var structField = Compile("struct Slot<T> { public T value; } class Program { public static int32 Main() { return 0; } }");
         Assert.Contains(structField.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&
-            diagnostic.Message.Contains("Generic struct field 'T' must have a 'struct' or 'enum' constraint", StringComparison.Ordinal));
+            diagnostic.Message.Contains("Generic struct field 'T' requires a 'default'", StringComparison.Ordinal));
 
         var unconstrainedArray = Compile("class Item { } class Slot<T> { T[] arr; public this() { arr = new T[0]; } public T[] Get() { return arr; } } class Program { public static int32 Main() { Slot<Item> slot = new Slot<Item>(); Item[] values = slot.Get(); return values.Length; } }");
         Assert.True(unconstrainedArray.Succeeded, string.Join(Environment.NewLine, unconstrainedArray.Diagnostics));
@@ -2030,7 +2095,11 @@ public sealed class CompilerTests
         Assert.Equal(0, unconstrainedArrayExecution.OutstandingAllocations);
 
         var uninitializedReferenceArray = Compile("class Item { } class Slot<T> { public T[] Create(int32 length) { return new T[length]; } } class Program { public static int32 Main() { Slot<Item> slot = new Slot<Item>(); Item[] values = slot.Create(1); return 0; } }");
-        Assert.Contains(uninitializedReferenceArray.Diagnostics, diagnostic => diagnostic.Code == "LS1501");
+        Assert.Contains(uninitializedReferenceArray.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("requires a 'default'", StringComparison.Ordinal));
+
+        var nullableArray = Compile("class Item { } class Slot<T> { public T?[] Create(int32 length) { return new T?[length]; } } class Program { public static int32 Main() { Slot<Item> slot = new Slot<Item>(); Item?[] values = slot.Create(2); return values.Length == 2 && values[0] == null ? 0 : 1; } }");
+        Assert.True(nullableArray.Succeeded, string.Join(Environment.NewLine, nullableArray.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(nullableArray.LlvmIr!).ExitCode);
 
         var valid = Compile("class Slot<T> where T : struct { public T Get() { return default(T); } } class Program { public static int32 Main() { Slot<int32> slot = new Slot<int32>(); return slot.Get(); } }");
         Assert.True(valid.Succeeded, string.Join(Environment.NewLine, valid.Diagnostics));
@@ -6029,15 +6098,15 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void SupportsUtf8StringLiteralsDefaultsLengthIndexingEqualityAndAbiValues()
+    public void SupportsUtf8StringLiteralsLengthIndexingEqualityAndAbiValues()
     {
         const string source = """
             class Program {
-                public static string Empty = default;
+                public static string Empty = "";
                 public static string Name = "h\u00E9\U0001F642";
                 public static int32 Main() {
-                    string absent;
-                    string empty = default;
+                    string absent = "";
+                    string empty = "";
                     string text = "h\u00E9\U0001F642";
                     string copy = Echo(text);
                     Program.Name = text;

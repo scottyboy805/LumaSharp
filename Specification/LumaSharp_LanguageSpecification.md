@@ -143,7 +143,7 @@ Features inherited from C# without change include operator precedence and associ
 | `!=` | Overloadable | Always derived from `==` |
 | `object` | `Equals`, `GetHashCode`, `GetType`, `ToString` | Only `ToString` |
 | Pointers | `->` and `.` | `.` only (automatic dereference) |
-| `string` default | `null` | `""` |
+| Non-nullable `string` default | No default value | Non-nullable reference |
 | Events, records, partial, params, goto, … | Present | Absent (§24) |
 
 ## 1.6 Language Version 1 Scope
@@ -337,7 +337,7 @@ The complete list of primitive types is:
 | `uint` | native pointer size | platform-native unsigned integer; pointer-width | `0` |
 | `float` | 4 bytes | IEEE 754 binary32 | `0.0` |
 | `double` | 8 bytes | IEEE 754 binary64 | `0.0` |
-| `string` | reference | Immutable text (a reference type, §16) | `""` |
+| `string` | reference | Immutable text (a reference type, §16) | none; explicit initialization required |
 
 `int` and `uint` are platform-native signed and unsigned integer types whose size matches the native pointer size (normally 32 or 64 bits). They are intended for native-width values and can hold address-sized integer values in safe code; converting between an actual pointer and an integer remains subject to the unsafe rules in §3.6.2 and §19.3. For numeric conversions, promotions, and overflow, `int`/`uint` follow the corresponding `int32`/`uint32` rules on 32-bit targets and `int64`/`uint64` rules on 64-bit targets; each native type is implicitly convertible to its same-width fixed-width counterpart and vice versa. There are no `nint`/`nuint` spellings. Sizes, indices, array lengths, and `sizeof` results remain `int32`; pointer differences yield `int64`, and pointer ↔ integer casts accept any integer type (§19.3).
 
@@ -355,7 +355,7 @@ uint8 low = uint8.MinValue;   // 0
 ## 3.3 `object` and `string`
 
 - `object` is the implicit root of every class and the target of boxing (§3.7).
-- `string` is an immutable reference type that is the **only reference type with a default value** (the empty string `""`, §3.5, §16).
+- `string` is an immutable non-nullable reference type. It has no default value; use `string?` when a null default is required.
 - Both keywords are aliases for `System.Object` and `System.String`.
 
 ## 3.4 Type Syntax
@@ -389,25 +389,22 @@ int32[16]               // inline array (unsafe only, in declarations: §15.9)
 
 ## 3.5 Default Values and Default-Constructibility
 
-Every **value type** has a *default value*: the all-zero bit pattern. A **nullable** type's default is `null`. The **default value of `string` is the empty string `""`**.
-
-Every other **non-nullable reference type has no default value**, because it can never be null. A type is **default-constructible** if it has a default value:
+Every **value type** has a *default value*: the all-zero bit pattern. A **nullable** type's default is `null`. Every **non-nullable reference type**, including `string`, has no default value because it cannot be null and can only be assigned an allocation or another valid non-null value. A type is **default-constructible** if it has a default value:
 
 | Type | Default-constructible? |
 |---|---|
 | primitives, enums, pointers | yes (zero) |
 | structs (all of them, see §9.1) | yes |
 | `T?` for any `T` | yes (`null`) |
-| `string` | yes (`""`) |
 | inline arrays of default-constructible element type | yes |
-| every other non-nullable reference type (`object`, classes, interfaces, delegates, arrays) | **no** |
+| every non-nullable reference type (`string`, `object`, classes, interfaces, delegates, arrays) | **no** |
 
-The expression `default` (target-typed) produces the default value and is a compile-time error for a type that is not default-constructible. `default(T)` follows the same rule when `T` names a concrete type. Inside generic code, `default(T)` is also permitted for an unconstrained type parameter; when that parameter is instantiated with a non-nullable reference type the result is null (§12.4).
+The expression `default` (target-typed) produces the default value and is a compile-time error for a type that is not default-constructible. `default(T)` follows the same rule when `T` names a concrete type. Inside generic code, `default(T)` and target-typed `default` for `T` require `T` to have a `default`, `struct`, or `enum` constraint (§12.3). A concrete nullable reference such as `default(MyClass?)` is valid and produces `null`.
 
 ```lumasharp
 int32 a = default;        // 0
 Foo?  b = default;        // null
-string s = default;       // ""
+string? s = default;      // null
 Foo   c = default;        // error: Foo is not default-constructible
 Vector v = default;       // zeroed Vector
 ```
@@ -593,7 +590,7 @@ int32 a, b, c, d = 1, 2;       // a == 1, b == 2, c == 0, d == 0
 Rules:
 
 1. The number of initializers MUST be **less than or equal to** the number of identifiers (error LS0212).
-2. Initializers are matched to identifiers in order. Each remaining identifier receives its type's **default** (§4.3): zero for value types, `null` for nullable types, `""` for `string`. A remaining identifier of a non-default-constructible type (e.g. `Foo`) is an error (LS0810).
+2. Initializers are matched to identifiers in order. Each remaining identifier receives its type's **default** (§4.3): zero for value types and `null` for nullable types. A remaining identifier of a non-default-constructible type (including non-nullable references such as `string`) is an error (LS0810).
 3. Initializers are evaluated **left to right**. An initializer MUST NOT refer to any variable declared by the same statement (error LS0201).
 4. Initializer expressions in a multiple declaration cannot be assignment expressions at top level. The C# form `int32 a = 1, b = 2;` is therefore an error (LS0214: "use `int32 a, b = 1, 2;`").
 5. With `var` or `let` and **no explicit type**, every identifier MUST have an initializer (equal counts) and all initializers MUST have the **same single type** (including nullability); otherwise error LS0213. To mix types, or when no single type exists, give the type explicitly with `let`.
@@ -609,7 +606,8 @@ let int32 u, v = 4;              // error: let requires every identifier initial
 const int32 K1, K2 = 1, 2;       // const: every identifier needs an initializer
 Foo? f, g = null;                // both null
 Foo h, i = new Foo();            // error LS0810: 'i' has no initializer (and Foo has no default)
-string s1, s2 = "a";             // s1 == "a", s2 == ""
+string s1 = "";
+string s2 = "a";
 ```
 
 The same declarator-list form is used for fields (§8.3.1) and for the initializer part of a `for` statement (§6.5).
@@ -622,15 +620,14 @@ A variable declared **without** an initializer is initialised from the *default 
 |---|---|
 | Value type, struct, enum, pointer | zero (default value); usable immediately |
 | Nullable (`Foo?`, `T?`) | `null` |
-| `string` | `""` (the shared empty string, §16.2) |
-| Any other non-nullable reference type (class, interface, delegate, array, `object`) | **Compile-time error** (LS0810). It MUST be assigned in the declaration, or, for fields, in the field initializer or in every constructor |
+| Any non-nullable reference type (`string`, class, interface, delegate, array, `object`) | **Compile-time error** (LS0810). It MUST be assigned in the declaration, or, for fields, in the field initializer or in every constructor |
 
 Because there is no way to give a non-nullable reference a "no value" state, a declaration of a non-nullable reference **never** exists without a value:
 
 ```lumasharp
 int32 n;                  // 0
 Foo? maybe;               // null
-string s;                 // ""
+string s;                 // error LS0810: string must be assigned
 Vector v;                 // zeroed Vector
 
 Foo foo;                  // error LS0810: Foo must be assigned in its declaration
@@ -641,7 +638,7 @@ baz = new Foo();
 
 Variables of non-nullable reference type that are *initialised by the construct itself* are not declared without a value: pattern variables (`x is Foo f`), `catch` variables, `for`-in loop variables, lambda parameters, and `out` declaration expressions (`out Foo f`, `out var f`; the callee assigns it, §7.2.4).
 
-**Fields and array elements** of non-nullable reference types other than `string` must be initialised as described in §8.3 (constructors) and §15.2 (array creation); **struct fields** of any non-nullable reference type, including `string`, are not allowed (§9.1).
+**Fields and array elements** of non-nullable reference types, including `string`, must be initialised as described in §8.3 (constructors) and §15.2 (array creation); **struct fields** of any non-nullable reference type are not allowed (§9.1).
 
 ## 4.4 Scope and Name Hiding
 
@@ -1634,7 +1631,7 @@ class Person
     public string Name = "unnamed";    // field with initializer
     int32 age;                          // private, zero-initialised
     Person? friend;                     // nullable: null initially
-    string nickname;                    // string: "" initially
+    string nickname = "";
     static int32 instances;             // static field
     public readonly int32 Id;           // assigned in a constructor (§4.5.2)
     public const int32 MaxAge = 150;    // compile-time constant (§4.5.1)
@@ -1642,8 +1639,8 @@ class Person
 }
 ```
 
-- Fields without an initializer receive their type's default: zero for value types, `null` for nullable types, `""` for `string`.
-- **A field of non-nullable reference type (other than `string`) MUST be initialised inline, or assigned in every constructor** (including through constructor chaining, §8.3.2); otherwise error LS0810. This is the same rule as for locals (§4.3) and applies equally to `readonly` fields and get-only auto-properties.
+- Fields without an initializer receive their type's default: zero for value types and `null` for nullable types. A non-nullable reference field must be assigned in its declaration or by every constructor.
+- **A field of non-nullable reference type, including `string`, MUST be initialised inline, or assigned in every constructor** (including through constructor chaining, §8.3.2); otherwise error LS0810. This is the same rule as for locals (§4.3) and applies equally to `readonly` fields and get-only auto-properties.
 
 ```lumasharp
 class MyClass
@@ -2196,7 +2193,7 @@ Vector d;                         // implicitly zeroed
 Vector e = new Vector();          // error LS0801: 'new' is for heap allocation
 ```
 
-`S()` with no arguments always yields the default value (all fields zero/null/`""`). A declared struct constructor starts from the default value and then runs its body, so fields it does not assign keep their defaults:
+`S()` with no arguments always yields the default value (all fields zero/null). A declared struct constructor starts from the default value and then runs its body, so fields it does not assign keep their defaults:
 
 ```lumasharp
 struct Person
@@ -2434,7 +2431,7 @@ int32 n = Max(3, 7);                       // inferred: T = int32
 
 ```
 constraints = { "where" type_param ":" constraint { "," constraint } } ;
-constraint  = "class" | "struct" | "enum" | type | "new" "(" [ type { "," type } ] ")" ;
+constraint  = "class" | "struct" | "enum" | "default" | type | "new" "(" [ type { "," type } ] ")" ;
 ```
 
 | Constraint | Requires type argument to be |
@@ -2442,13 +2439,14 @@ constraint  = "class" | "struct" | "enum" | type | "new" "(" [ type { "," type }
 | `class` | a non-nullable reference type |
 | `struct` | a non-nullable value type (`T?` is not permitted) |
 | `enum` | an enum type |
+| `default` | a type with a default value under §3.5: value types and nullable types, including nullable reference types; non-nullable reference types are rejected |
 | a base class `B` | `B` or derived from `B` (`B` must be a `virtual` class) |
 | an interface `I` | a type implementing `I` |
 | another type parameter `U` | a type that is or derives from `U` |
 | `new()` | a class with an accessible parameterless constructor, or any struct |
 | `new(int32, string)` | a type with an accessible constructor taking exactly these parameter types (LumaSharp extension) |
 
-Ordering within one `where` clause: the primary constraint (`class`/`struct`/`enum`/base class) first, then interfaces, then `new(...)` last. There is no `unmanaged` constraint (struct semantics already provide it).
+Ordering within one `where` clause: a primary constraint (`class`/`struct`/`enum`/`default`/base class) first, then interfaces, then `new(...)` last. `default` is mutually exclusive with `class`, `struct`, `enum`, and a base-class primary constraint. There is no `unmanaged` constraint (struct semantics already provide it).
 
 ```lumasharp
 class Cache<T> where T : class, IEquatable<T>, new() { }
@@ -2461,6 +2459,15 @@ class Factory<T> where T : new(int32)
 class Numeric<T> where T : struct { }
 Numeric<int32> ok;
 Numeric<string> bad;                         // error LS1102: 'string' does not satisfy 'struct'
+
+class InitializedBuffer<T> where T : default
+{
+    T[] items = new T[16];                    // every element receives a valid default(T)
+    public T Empty() => default(T);
+}
+InitializedBuffer<int32> numbers;             // ok
+InitializedBuffer<MyClass?> references;       // ok: each element starts as null
+InitializedBuffer<MyClass> invalid;            // error LS1102: MyClass has no default value
 ```
 
 Constraints are checked at every instantiation. Inside a generic body, only members promised by the constraints (and `object`'s) may be used on a value of type `T`.
@@ -2468,7 +2475,7 @@ Constraints are checked at every instantiation. Inside a generic body, only memb
 ## 12.4 Behaviour of `T` Inside Generic Code
 
 - `T` with a `struct` constraint is a value type; with `class` is a non-nullable reference type; **an unconstrained `T` may be either**, so inside the generic body it is treated as a possible non-nullable reference type.
-- `default(T)` is permitted for any `T`, including an unconstrained type parameter, and produces the argument type's default representation. If `T` is instantiated with a non-nullable reference type, that representation is null; generic code using this value must account for that possibility. `T x;` (a local declaration without an initializer) and storing `T` in a struct field still require a `struct` or `enum` constraint. For an unconstrained or `class`-constrained `T`, `new T[n]` is permitted only when `n` is provably zero; otherwise it requires a `struct` or `enum` constraint, because every element of a non-nullable reference array must be initialized. Use `T?[]` (valid for any `T`) when empty slots are part of the API:
+- `default(T)` and target-typed `default` in a `T` context require `T : default`, `T : struct`, or `T : enum`. The `default` constraint accepts nullable reference types, so `default(T)` may be null only when the argument type itself is nullable. `T x;` (a local declaration without an initializer) and storing `T` in a struct field also permit the `default` constraint, because it guarantees a valid zero-initialized value. `new T[n]` requires `default`, `struct`, or `enum`; its initialized elements therefore satisfy the element type's nullability. Without one of these constraints, only a provably zero-length `new T[0]` is allowed. Use `T?[]` when empty slots are part of the API and no default constraint is available:
 
 ```lumasharp
 class Slot<T>
@@ -2482,9 +2489,9 @@ class Slot<T>
 
 class Stack<T>
 {
-    T?[] items = new T?[16];     // ok: elements are nullable
-    T[] empty = new T[0];         // ok: no elements need default values
-    T[] bad = new T[16];          // error: may leave non-nullable reference elements uninitialized
+    T?[] items = new T?[16];      // ok: nullable elements can start as null
+    T[] empty = new T[0];         // ok: no elements need initialization
+    T[] bad = new T[16];          // error without default/struct/enum constraint
 }
 ```
 
@@ -2540,7 +2547,7 @@ Code outside `unsafe` contexts can never observe a null value through a non-null
 | Declarations of non-nullable references must be assigned (locals, fields, constructors) | §4.3, §8.3 |
 | Struct fields may not be non-nullable references, including `string` | §9.1.1 |
 | Array elements must be provided or the element type nullable | §15.2 |
-| `T` may be a non-nullable reference, so `default(T)`/`new T[n]` are rejected | §12.4 |
+| `T` may lack a default value, so `default(T)`/nonempty `new T[n]` require a `default`, `struct`, or `enum` constraint | §12.3–§12.4 |
 | `this` may not be observed before fields are assigned; dynamic type during construction | §8.3.2 |
 | Static initialization cannot be observed half-done | §22.2 |
 | Nullable → non-nullable only via proof, `!`, `??` or a throwing cast | §13.3–13.5 |
@@ -3128,14 +3135,14 @@ int32[] a = new int32[10];                 // ten zeros
 int32[] b = new int32[] { 1, 2, 3 };       // {1,2,3}
 int32[] c = new int32[3] { 1, 2, 3 };      // length stated and checked
 int32[] d = scope int32[64];               // scoped, zero-initialised
-string[] e = new string[3];                // three "" (string has a default)
+string[] e = new string[3];                // error LS1501: string is a non-nullable reference
 Foo?[] f = new Foo?[5];                    // five nulls
 Foo?[] g = new [5];                        // same, target typed
 int32[,] m = new int32[2, 3];              // six zeros
 int32[,,] cube = new int32[2, 2, 2];       // eight zeros
 ```
 
-**Element initialisation.** The elements of a new array are initialised to their type's default value: zero for value types, `null` for nullable types, `""` for `string`. **A non-nullable reference type (other than `string`) has no default value, so an array of such elements cannot be created with a positive length and no initializer:**
+**Element initialisation.** The elements of a new array are initialised to their type's default value: zero for value types and `null` for nullable types. **Non-nullable reference types, including `string`, have no default value, so an array of such elements cannot be created with a positive length and no initializer:**
 
 ```lumasharp
 Foo[] h = new Foo[5];                      // error LS1501: Foo is not default-constructible
@@ -3293,22 +3300,15 @@ A string consists logically of a **pointer** to character storage, a **character
 - **UTF-8 strings always have a terminating `'\0'` stored after the last character.** The terminator is **not** counted in `Length`. This lets the buffer be shared with C-style APIs without copying.
 - The exact object layout is defined in §28.10; the language guarantees only what is listed in this chapter.
 
-### 16.2.1 Default value: the empty string
+### 16.2.1 Default value
 
-**A `string` with no assignment, or assigned `default`, is the empty string `""`**, for locals, class fields, array elements, and any other valid string storage location. Structs cannot declare non-nullable string fields (§9.1.1). To keep this consistent and allocation-free:
-
-- There is exactly one **shared empty string** object, created before any user code runs and **alive for the whole lifetime of the program**. Every default-initialised string, and the literal `""`, refer to that same reference. No allocation happens per variable.
-- Strings are immutable, so sharing the empty string can never be observed through mutation.
-- How this is achieved (filling storage with the shared reference, or reading a zero reference as the empty string) is up to the compiler; the required observable behaviour is stated in §28.10.2.
+`string` is a non-nullable reference type and has no default value. A local, field, parameter, or array element of type `string` must be explicitly assigned a non-null string before it can be read. `default(string)` is an error; `default(string?)` is `null`. The empty string literal `""` is an ordinary valid string value and may be shared as immutable literal data.
 
 ```lumasharp
-string a;                              // ""
-string b = default;                    // ""
-string[] arr = new string[3];          // { "", "", "" }
-class Person { public string Nick; }   // new Person().Nick == ""
-object x = a;
-object y = b;
-bool same = x == y;                    // true: both are the one shared empty string
+string a = "";
+string? b = default;                   // null
+string[] arr = { "", "", "" };
+class Person { public string Nick = ""; }
 ```
 
 ## 16.3 Length and Indexing
@@ -3346,7 +3346,7 @@ string c = "v:" + s;          // "v:"
 
 ## 16.6 Strings and Nullability
 
-`string` is non-nullable and **always usable**: it is the only reference type with a default value. `string?` may be null and follows §13.
+`string` is non-nullable and must be explicitly initialized before it can be read. `string?` may be null and follows §13.
 
 ## 16.7 Other Members
 
@@ -4155,7 +4155,7 @@ Every managed object starts with an **object header** holding at least:
 
 ## 27.3 Allocation
 
-- Every allocation is **zero-filled** before use. (All-zero is the default value of every value type, every nullable and an acceptable representation of `string`, §28.10.2.)
+- Every allocation is **zero-filled** before use. All-zero is the default value of every value type and nullable type. Safe code cannot read an uninitialized non-nullable reference slot; such storage must be assigned before use.
 - Payload alignment is at least the alignment of the object's most strictly aligned field and at least 8 bytes (*Recommended*: 16 on 64-bit targets).
 - If the system cannot satisfy an allocation, the runtime throws `OutOfMemoryException` (§31.6); it does **not** terminate the process. The same applies when a requested size overflows the address space or the implementation's maximum object size.
 - A newly allocated heap object has strong count **1**, owned by the allocating expression. The expression's result is an *owned* reference: the compiler either moves it into its destination (variable, field, argument slot) or releases it at the end of the full statement (§14.2.1).
@@ -4342,15 +4342,9 @@ There are two kinds:
 
 Strings are immutable: neither the text nor `length`/`charset` ever changes after creation. Strings never share a mutable buffer.
 
-### 28.10.2 The shared empty string
+### 28.10.2 Empty string literals
 
-Exactly one **empty string** object exists for the whole run. It is immortal, created before user code runs, and all of the following refer to it: the literal `""`; the default value of every `string` storage location; every `string` element of a fresh array; every `string` field of a fresh class instance; the result of any library/runtime operation that produces a zero-length string (*library SHOULD*; the runtime's own operations MUST).
-
-**Normative requirement.** The all-zero representation (a null reference slot) of a `string` storage location MUST behave as the empty string: in safe code, **every read of a `string` from any storage location observes the shared empty string rather than null**. A compiler MAY satisfy this either by *filling* storage with the empty-string reference when it default-initialises it, or by *normalising on read* (substituting the shared empty string when it loads a zero reference). The two are indistinguishable in safe code; in unsafe code reading raw memory, the null representation may be visible. Retain/release of a null string slot or of the empty string do nothing.
-
-```lumasharp
-string[] names = new string[1000];   // no 1000 allocations; every element is the one empty string
-```
+The empty string literal `""` is an ordinary immutable string value and may be stored as a literal without a per-use allocation. It is not the default value of a `string` storage location. Non-nullable string locals, fields, array elements, and generic arguments must receive an explicit non-null value before they can be read. Nullable `string?` storage defaults to null. Literal pooling MAY share identical string literals.
 
 ### 28.10.3 Character sets
 
@@ -4390,7 +4384,7 @@ Normative:
 - The elements of a **one-dimensional array are always contiguous** in index order, with no per-element headers; arrays of structs hold the structs inline.
 - **Multi-dimensional arrays** (`T[,]`, `T[,,]`): the implementation chooses the layout, but MUST support `Length`, `Rank`, `GetLength`, **per-dimension bounds checking**, and logical row-major iteration. *Recommended*: a single contiguous block in row-major order (last index fastest), so `&m[0,0] + k` addresses the k-th element in row-major order in unsafe code; programs relying on this are non-portable.
 - **Jagged arrays** are arrays of references to independent arrays.
-- A new array's elements are zero-filled, which represents `0`/`null`/`default` for value types and nullable elements; `string` elements follow §28.10.2. Arrays of non-nullable reference elements are only created from a complete initializer (§15.2), so no element is ever observed as null.
+- A new array's elements are zero-filled, which represents `0`/`null`/`default` for value types and nullable elements. Arrays of non-nullable reference elements are only created from a complete initializer (§15.2), so no element is ever observed as null.
 - The maximum element count is at least 2^31 − 1 per the `int32` length; creating an array whose total byte size overflows or exceeds available memory throws `OutOfMemoryException`; a negative dimension throws `OverflowException`.
 - Element destruction order: §27.5.
 - A **scoped array** has the scoped flag and the same layout.
@@ -4979,7 +4973,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | Reference arrays | Collection initializer or nullable element type; scoped elements only in a scope-allocated array (§15.2, §14.4.1) |
 | Collection initializers | `{ … }`, `new { … }`, `scope { … }`; `let`/`var` need the expanded form; inline arrays take only `{ … }` (§15.3, §15.9) |
 | Inline arrays | Struct elements allowed, classes not; pointer elements in unsafe; unsafe required (§15.9) |
-| Empty string | Default `string` is `""`, one shared immortal reference (§16.2.1, §28.10.2) |
+| Empty string | Literal `""` is immutable literal data; it is not the default of `string` (§16.2.1, §28.10.2) |
 | `NativeMemory` | Omitted (§19.7) |
 | Entry point | Executables only; static libraries have none (§22.1) |
 | Static initialization | Lazy on first access; per generic instantiation; entry-type failure crashes before `Main` (§22.2) |

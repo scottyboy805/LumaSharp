@@ -1391,7 +1391,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         IsStructType(type) ||
         IsClassReferenceType(type) || IsDelegateType(type) || IsNullableDelegateType(type) || IsNullableArrayType(type) || IsNullableValueType(type) ||
         TryParseManagedArrayType(type, out var nestedElementType, out var nestedRank) && nestedRank <= 3 && IsManagedArrayElementType(nestedElementType);
-    private bool IsNonNullableManagedArrayElementReference(string type) => IsClassType(type) || IsDelegateType(type) ||
+    private bool IsNonNullableManagedArrayElementReference(string type) => type == "string" || IsClassType(type) || IsDelegateType(type) ||
         !IsNullableArrayType(type) && TryParseManagedArrayType(type, out _, out _);
     private static bool IsPointerType(string type) =>
         (TypeNameSyntax.TryParse(type, out var parsed) && parsed.Suffixes.LastOrDefault() is PointerTypeNameSuffix) || type.EndsWith('*');
@@ -1566,7 +1566,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var pointee = type[..^1];
         if (pointee == "void" || IsPointerType(pointee)) return pointee == "void" || IsAllowedPointerType(pointee);
         return SupportedTypes.Contains(pointee) && pointee is not ("void" or "string") ||
-            _enumUnderlyingTypes.ContainsKey(pointee) || IsStructType(pointee) || IsClassType(pointee);
+            _enumUnderlyingTypes.ContainsKey(pointee) || IsStructType(pointee) || IsClassType(pointee) || IsNullableType(pointee);
     }
     private void ValidateDeclaredType(string type, string role, SourceLocation location, TypeDeclaration? contextType = null)
     {
@@ -2461,7 +2461,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var clause in constraints ?? [])
         foreach (var constraint in clause.Constraints)
         {
-            if (constraint is "class" or "struct" or "enum") continue;
+            if (constraint is "class" or "struct" or "enum" or "default") continue;
             if (constraint.StartsWith("new(", StringComparison.Ordinal) && constraint.EndsWith(')'))
             {
                 foreach (var parameterType in ParseConstraintParameterTypes(constraint[4..^1]))
@@ -2501,6 +2501,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
     private bool SatisfiesGenericConstraint(string argumentType, string constraint, TypeDeclaration accessingType)
     {
+        if (constraint == "default")
+            return NumericTypes.Contains(argumentType) || argumentType == "bool" || _enumUnderlyingTypes.ContainsKey(argumentType) ||
+                _structTypes.ContainsKey(argumentType) || TryParseInlineArrayType(argumentType, out _, out _) || IsNullableType(argumentType);
         if (argumentType.EndsWith("?", StringComparison.Ordinal)) return false;
         var isValueType = NumericTypes.Contains(argumentType) || argumentType == "bool" || _enumUnderlyingTypes.ContainsKey(argumentType) ||
             _structTypes.ContainsKey(argumentType) || TryParseInlineArrayType(argumentType, out _, out _);
@@ -2935,7 +2938,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (IsClosureEnvironmentType(className)) continue;
             var constructors = _methods.Where(method => method.IsClassConstructor && GetQualifiedTypeName(method.Owner) == className).ToArray();
             foreach (var field in classType.Fields.Where(field => GetQualifiedTypeName(field.Owner) == className && field.Declaration.Initializer is null &&
-                         (IsClassReferenceType(field.TypeName) && !IsNullableClassType(field.TypeName) || IsDelegateType(field.TypeName) ||
+                         (field.TypeName == "string" || IsClassReferenceType(field.TypeName) && !IsNullableClassType(field.TypeName) || IsDelegateType(field.TypeName) ||
                           TryParseManagedArrayType(field.TypeName, out _, out _) && !IsNullableArrayType(field.TypeName))))
             {
                 var required = constructors.Length == 0 || constructors.Any(constructor =>
@@ -7735,7 +7738,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (defaultValue.TypeName is not null && ValidateTypeAccessibility(defaultType, context.Method.Owner, defaultValue.Location)) return "?";
                 if (!IsSupportedType(defaultType)) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Default values for '{defaultType}' are not yet supported.", defaultValue.Location); return "?"; }
                 if (TryParseManagedArrayType(defaultType, out _, out _)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Managed array '{defaultType}' has no default value; initialize it explicitly.", defaultValue.Location);
-                if (!defaultValue.IsTypeParameterDefault && IsClassType(defaultType)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable class type '{defaultType}' has no default value.", defaultValue.Location);
+                if (!defaultValue.IsTypeParameterDefault && (IsClassType(defaultType) || defaultType == "string")) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable reference type '{defaultType}' has no default value.", defaultValue.Location);
                 _defaultTypes[defaultValue] = defaultType;
                 return defaultType;
             case SizeOfExpression sizeOf:
@@ -8455,7 +8458,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 AddReferenceConversionDiagnostic(initializerType, type, variable.Initializer, context, variable.Location);
             if (type == "void") diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "A local cannot have type void.", variable.Location);
             if (initializerType is null && TryParseManagedArrayType(type, out _, out _)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Managed array '{type}' must be initialized before it is read.", variable.Location);
-            if (initializerType is null && (IsClassReferenceType(type) && !IsNullableClassType(type) || IsDelegateType(type))) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable reference local '{type}' must be initialized.", variable.Location);
+            if (initializerType is null && (type == "string" || IsClassReferenceType(type) && !IsNullableClassType(type) || IsDelegateType(type))) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable reference local '{type}' must be initialized.", variable.Location);
             _variableTypes[variable] = type;
             var scopeBoundDepth = variable.Initializer is null ? null : GetScopeBoundDepth(variable.Initializer, context);
             var scopeBoundOrder = variable.Initializer is null ? null : GetScopeBoundOrder(variable.Initializer, context);
