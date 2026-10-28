@@ -32,11 +32,18 @@ public unsafe struct Span<T>
 	{
 		get
 		{
-			return pointer[index];
+			if (index < 0 || index >= length)
+				throw new System.ArgumentOutOfRangeException();
+			return unchecked(pointer[index]);
 		}
 		set
 		{
-			pointer[index] = value;
+			if (index < 0 || index >= length)
+				throw new System.ArgumentOutOfRangeException();
+			unchecked
+			{
+				pointer[index] = value;
+			}
 		}
 	}
 
