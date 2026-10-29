@@ -304,13 +304,18 @@ public sealed class CompilerTests
                     ReadOnlySpan<int32> readonlyDirectly = values;
                     int32[] array = new int32[1];
                     array[0] = 51;
+                    int32* firstArrayElement = array.Ptr;
                     Span<int32> writableArraySpan = array;
                     ReadOnlySpan<int32> readonlyArraySpan = array;
                     writableArraySpan[0] = 52;
                     Span<int32> emptyArraySpan = new int32[0];
                     ReadOnlySpan<int32> emptyReadonlyArraySpan = new int32[0];
+                    Span<int32> emptySpan = Span<int32>.Empty;
+                    ReadOnlySpan<int32> emptyReadonlySpan = ReadOnlySpan<int32>.Empty;
                     return writable[0] == 42 && readonlyFromSpan[0] == 42 && readonlyDirectly[0] == 42 &&
-                        readonlyArraySpan[0] == 52 && array[0] == 52 && emptyArraySpan.IsEmpty && emptyReadonlyArraySpan.IsEmpty ? 0 : 1;
+                        readonlyArraySpan[0] == 52 && array[0] == 52 && *firstArrayElement == 52 &&
+                        emptyArraySpan.IsEmpty && emptyReadonlyArraySpan.IsEmpty && emptySpan.IsEmpty && emptyReadonlySpan.IsEmpty &&
+                        emptyArraySpan.Ptr == null && emptyReadonlyArraySpan.Ptr == null ? 0 : 1;
                 }
             }
             """)), new CompilationOptions(UnsafeEnabled: true));

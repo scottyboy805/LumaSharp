@@ -164,7 +164,7 @@ The language itself needs a small, fixed set of types to exist in the standard l
 | `Exception` | Base class of everything thrown: `string Message { get; }`, `Exception? InnerException { get; }`, constructors `this()`, `this(string message)`, `this(string message, Exception? inner)` |
 | `NullReferenceException`, `InvalidCastException`, `IndexOutOfRangeException`, `OverflowException`, `DivideByZeroException`, `OutOfMemoryException`, `TypeInitializationException` | Thrown by language operations (§18.5); each derives from `Exception` and has the `Exception` constructors |
 | `IEnumerable<T>`, `IIterator<T>` | Protocol behind `for (let x in c)` (§6.6) |
-| `Array` (implicit base of all arrays) | `int32 Length` (total element count), `int32 Rank`, `int32 GetLength(int32 dimension)` (§15) |
+| `Array` (implicit base of all arrays) | `int32 Length` (total element count), `int32 Rank`, `int32 GetLength(int32 dimension)`, unsafe `T* Ptr` on typed arrays (§15) |
 | `Delegate` (implicit base of all delegates) | Base of all delegate types |
 
 Other library interfaces mentioned in this document, such as `IHashable`, `IEquality<T>` and `IComparable<T>`, are **ordinary library types**, not compiler-known. The compiler never refers to them by name.
@@ -3113,7 +3113,7 @@ Rectangular arrays support **up to three dimensions** (`T[,,,]` is error LS1503)
 - Arrays implicitly derive from `object` (and the compiler-known `Array`) and implement `IEnumerable<T>`.
 - `==` on arrays is reference identity.
 - Element types: any type; but see §15.2 for non-nullable reference element types.
-- `[P-20]` Members: `Length` (`int32`, the **total** number of elements across all dimensions), `Rank` (`int32`, number of dimensions), and `GetLength(int32 dimension)` (`int32`, the length of the zero-based dimension; `IndexOutOfRangeException` if out of range).
+- `[P-20]` Members: `Length` (`int32`, the **total** number of elements across all dimensions), `Rank` (`int32`, number of dimensions), and `GetLength(int32 dimension)` (`int32`, the length of the zero-based dimension; `IndexOutOfRangeException` if out of range). In an unsafe context, a typed array `T[]` exposes `T* Ptr`, the address of its first contiguous element; for a zero-length array `Ptr` is null. Access requires unsafe compilation and an unsafe lexical context.
 
 ```lumasharp
 int32[,] grid = new int32[3, 4];

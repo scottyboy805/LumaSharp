@@ -5,6 +5,11 @@ public unsafe struct Span<T>
 	private T* pointer;
 	private int32 length;
 
+	public static Span<T> Empty
+	{
+		get => default;
+	}
+
 	public this(T* pointer, int32 length)
 	{
 		if (length < 0)

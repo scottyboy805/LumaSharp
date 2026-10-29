@@ -1175,7 +1175,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
     }
     private bool HasManagedArraySupport() => compilation.StaticFields.Any(field => SemanticAnalyzer.TryParseManagedArrayType(field.Declaration.TypeName, out _, out _)) ||
         compilation.ManagedArrayAllocations.Count > 0 || compilation.ManagedArrayIndexAccesses.Count > 0 ||
-        compilation.ManagedArrayLengthAccesses.Count > 0 || compilation.VariableTypes.Values.Any(type => SemanticAnalyzer.TryParseManagedArrayType(type, out _, out _)) ||
+        compilation.ManagedArrayLengthAccesses.Count > 0 || compilation.ManagedArrayPointerAccesses.Count > 0 || compilation.VariableTypes.Values.Any(type => SemanticAnalyzer.TryParseManagedArrayType(type, out _, out _)) ||
         compilation.ManagedArrayRankAccesses.Count > 0 || compilation.ManagedArrayGetLengthCalls.Count > 0 || compilation.ManagedArrayForInElementTypes.Count > 0 ||
         compilation.ClassTypes.Values.Any(classType => classType.Fields.Any(field => SemanticAnalyzer.TryParseManagedArrayType(field.TypeName, out _, out _))) ||
         compilation.StructTypes.Values.Any(structure => structure.Fields.Any(field => SemanticAnalyzer.TryParseManagedArrayType(field.TypeName, out _, out _))) ||
@@ -1184,7 +1184,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
     private void EmitMethod(MethodSymbol method)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.StringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
+        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.StringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
         var parameters = d.Parameters.Select((p, i) => $"{LlvmParameterType(p)} %arg{i}");
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
@@ -2935,6 +2935,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         IReadOnlyDictionary<IndexExpression, ManagedArrayIndexBinding> managedArrayIndexAccesses,
         IReadOnlyDictionary<MemberAccessExpression, bool> managedArrayLengthAccesses,
         IReadOnlyDictionary<MemberAccessExpression, int> managedArrayRankAccesses,
+        IReadOnlyDictionary<MemberAccessExpression, string> managedArrayPointerAccesses,
         IReadOnlyDictionary<CallExpression, int> managedArrayGetLengthCalls,
         IReadOnlyDictionary<ForInStatement, string> managedArrayForInElementTypes,
         IReadOnlyDictionary<CatchClause, string> exceptionCatchTypes,
@@ -4427,6 +4428,18 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var length = NewTemp(); Emit($"{length} = load i32, ptr {address}");
             return (length, "int32");
         }
+        private (string Value, string Type) EmitManagedArrayPointer(MemberAccessExpression access, string elementType)
+        {
+            var receiver = EmitExpression(access.Receiver);
+            var length = EmitManagedArrayLength(receiver.Value).Value;
+            var data = NewTemp();
+            Emit($"{data} = getelementptr %luma.array, ptr {receiver.Value}, i32 0, i32 6");
+            var isEmpty = NewTemp();
+            Emit($"{isEmpty} = icmp eq i32 {length}, 0");
+            var pointer = NewTemp();
+            Emit($"{pointer} = select i1 {isEmpty}, ptr null, ptr {data}");
+            return (pointer, elementType + "*");
+        }
         private (string Value, string Type) EmitManagedArrayRank(string array)
         {
             var address = NewTemp(); Emit($"{address} = getelementptr %luma.array, ptr {array}, i32 0, i32 4");
@@ -5353,6 +5366,8 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                     return (staticLength.ToString(System.Globalization.CultureInfo.InvariantCulture), "int32");
                 case MemberAccessExpression access when managedArrayLengthAccesses.ContainsKey(access):
                     return EmitManagedArrayLength(access);
+                case MemberAccessExpression access when managedArrayPointerAccesses.TryGetValue(access, out var pointerElementType):
+                    return EmitManagedArrayPointer(access, pointerElementType);
                 case MemberAccessExpression access when managedArrayRankAccesses.ContainsKey(access):
                     if (access.IsNullConditional) return EmitNullConditionalArrayRank(access, managedArrayRankAccesses[access]);
                     return managedArrayRankAccesses[access] < 0

@@ -6,19 +6,20 @@ public virtual class Array : Object
 	public int32 Length { get => 0; }
 	public int32 Rank { get => 0; }
 	public int32 GetLength(int32 dimension) { return 0; }
+	public unsafe void* Ptr { get => null; }
 
 	// The compiler binds these helpers for implicit one-dimensional array conversions.
 	internal static unsafe Span<T> ToSpan<T>(T[] source)
 	{
 		if (source.Length == 0)
-			return Span<T>(null, 0);
-		return Span<T>(&source[0], source.Length);
+			return default(Span<T>);
+		return Span<T>(source.Ptr, source.Length);
 	}
 
 	internal static unsafe ReadOnlySpan<T> ToReadOnlySpan<T>(T[] source)
 	{
 		if (source.Length == 0)
-			return ReadOnlySpan<T>(null, 0);
-		return ReadOnlySpan<T>(&source[0], source.Length);
+			return default(ReadOnlySpan<T>);
+		return ReadOnlySpan<T>(source.Ptr, source.Length);
 	}
 }

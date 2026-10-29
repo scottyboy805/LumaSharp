@@ -101,6 +101,7 @@ internal sealed record CompilationAnalysis(
     IReadOnlyDictionary<IndexExpression, ManagedArrayIndexBinding> ManagedArrayIndexAccesses,
     IReadOnlyDictionary<MemberAccessExpression, bool> ManagedArrayLengthAccesses,
     IReadOnlyDictionary<MemberAccessExpression, int> ManagedArrayRankAccesses,
+    IReadOnlyDictionary<MemberAccessExpression, string> ManagedArrayPointerAccesses,
     IReadOnlyDictionary<CallExpression, int> ManagedArrayGetLengthCalls,
     IReadOnlyDictionary<ForInStatement, string> ManagedArrayForInElementTypes,
     IReadOnlyDictionary<CatchClause, string> ExceptionCatchTypes,
@@ -259,6 +260,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<IndexExpression, ManagedArrayIndexBinding> _managedArrayIndexAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<MemberAccessExpression, bool> _managedArrayLengthAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<MemberAccessExpression, int> _managedArrayRankAccesses = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<MemberAccessExpression, string> _managedArrayPointerAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CallExpression, int> _managedArrayGetLengthCalls = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<ForInStatement, string> _managedArrayForInElementTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CatchClause, string> _exceptionCatchTypes = new(ReferenceEqualityComparer.Instance);
@@ -937,7 +939,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var multiAssignmentAccessorAssignments = new Dictionary<MultiAssignmentStatement, IReadOnlyDictionary<int, BinaryExpression>>(ReferenceEqualityComparer.Instance);
         foreach (var (statement, assignments) in _multiAssignmentAccessorAssignments)
             multiAssignmentAccessorAssignments.Add(statement, assignments);
-        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
+        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
 
     private static bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
@@ -8357,8 +8359,26 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     return NormalizeEnumType(expectedType, context.Method.Owner);
                 if (TryBindConstantField(access, context, out var field)) return field.TypeName;
                 if (TryBindStaticField(access, context, out var staticField)) return staticField.TypeName;
-                var lengthReceiverType = access.Member is "Length" or "Rank" ? AnalyzeExpression(access.Receiver, context) : null;
-                if (lengthReceiverType is not null && TryParseInlineArrayType(lengthReceiverType, out _, out _)) return "int32";
+                var lengthReceiverType = access.Member is "Length" or "Rank" or "Ptr" ? AnalyzeExpression(access.Receiver, context) : null;
+                if (access.Member == "Ptr" && lengthReceiverType is not null && TryParseManagedArrayType(lengthReceiverType, out var pointerElementType, out var pointerArrayRank) && pointerArrayRank <= 3)
+                {
+                    var nullablePointerArray = IsNullableArrayType(lengthReceiverType);
+                    if (nullablePointerArray && !access.IsNullConditional && !IsDefinitelyNotNull(access.Receiver, lengthReceiverType, context))
+                    {
+                        diagnostics.Add("LS1303", DiagnosticSeverity.Error, "The nullable array instance may be null; use a null check or null assertion before member access.", access.Location);
+                        return "?";
+                    }
+                    if (nullablePointerArray && access.IsNullConditional)
+                    {
+                        diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "The Ptr property cannot be used with conditional access because it returns a pointer.", access.Location);
+                        return "?";
+                    }
+                    if (!options.UnsafeEnabled) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Managed array Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
+                    else if (!access.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Managed array Ptr access may only be used in an unsafe context.", access.Location);
+                    _managedArrayPointerAccesses[access] = pointerElementType;
+                    return pointerElementType + "*";
+                }
+                if (lengthReceiverType is not null && TryParseInlineArrayType(lengthReceiverType, out _, out _) && access.Member is "Length" or "Rank") return "int32";
                 var nullableLengthArray = lengthReceiverType is not null && IsNullableArrayType(lengthReceiverType);
                 var nullableArrayBase = lengthReceiverType is not null && IsNullableClassType(lengthReceiverType) && NullableUnderlyingType(lengthReceiverType) == "System.Array";
                 if ((nullableLengthArray || nullableArrayBase) && !access.IsNullConditional && !IsDefinitelyNotNull(access.Receiver, lengthReceiverType!, context))

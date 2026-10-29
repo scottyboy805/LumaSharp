@@ -5,6 +5,11 @@ public unsafe struct ReadOnlySpan<T>
 	private T* pointer;
 	private int32 length;
 
+	public static ReadOnlySpan<T> Empty
+	{
+		get => default;
+	}
+
 	public this(T* pointer, int32 length)
 	{
 		if (length < 0)
