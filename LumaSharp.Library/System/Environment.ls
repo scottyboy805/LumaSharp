@@ -67,3 +67,20 @@ public static unsafe class Environment
 	private static extern int32 luma_env_platform();
 	private static extern int32 luma_env_architecture();
 }
+
+public enum Platform : int32
+{
+	Unknown = 0,
+	Windows = 1,
+	Linux = 2,
+	MacOS = 3
+}
+
+public enum Architecture : int32
+{
+	Unknown = 0,
+	X86 = 1,
+	X64 = 2,
+	Arm = 3,
+	Arm64 = 4
+}
