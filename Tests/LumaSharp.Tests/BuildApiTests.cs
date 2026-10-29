@@ -136,6 +136,57 @@ public sealed class BuildApiTests
         Assert.Empty(await stderr);
     }
 
+    [Fact]
+    public async Task RuntimeEnvironmentReportsTheRunningExecutableAndHost()
+    {
+        using var workspace = new TemporaryWorkspace(AppContext.BaseDirectory);
+        var program = workspace.Write("Program.ls", "using System; public class Program { public static int32 Main() { Console.WriteLine(Environment.ExecutablePath); Console.WriteLine(Environment.ExecutableDirectory); Console.WriteLine(Environment.ExecutableName); Console.WriteLine(Environment.ProcessorCount.ToString()); Console.WriteLine(Environment.IsLittleEndian.ToString()); Console.WriteLine(((int32)Environment.Platform).ToString()); Console.WriteLine(((int32)Environment.Architecture).ToString()); return 0; } }");
+        var output = Path.Combine(workspace.Root, "bin");
+        var intermediate = Path.Combine(workspace.Root, "obj");
+
+        var result = await LumaBuild.BuildAsync(new CompilerBuildRequest(
+            [program],
+            new CompilationOptions(),
+            output,
+            intermediate,
+            "EnvironmentSmoke"));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo(result.OutputPaths.Single())
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            }
+        };
+        process.Start();
+        var stderr = process.StandardError.ReadToEndAsync();
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        Assert.Equal(0, process.ExitCode);
+        Assert.Empty(await stderr);
+        var values = (await stdout).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(7, values.Length);
+        Assert.Equal(Path.GetFullPath(result.OutputPaths.Single()), values[0], OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        Assert.Equal(Path.GetDirectoryName(Path.GetFullPath(result.OutputPaths.Single())), values[1], OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        Assert.Equal(Path.GetFileName(result.OutputPaths.Single()), values[2]);
+        Assert.True(int.TryParse(values[3], out var processorCount) && processorCount > 0);
+        Assert.Equal(BitConverter.IsLittleEndian ? "True" : "False", values[4]);
+        Assert.Equal(OperatingSystem.IsWindows() ? "1" : OperatingSystem.IsLinux() ? "2" : OperatingSystem.IsMacOS() ? "3" : "0", values[5]);
+        Assert.Equal(System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X86 => "1",
+            System.Runtime.InteropServices.Architecture.X64 => "2",
+            System.Runtime.InteropServices.Architecture.Arm => "3",
+            System.Runtime.InteropServices.Architecture.Arm64 => "4",
+            _ => "0"
+        }, values[6]);
+    }
+
     private static string FindRuntimeRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

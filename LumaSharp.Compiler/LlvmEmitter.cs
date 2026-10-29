@@ -177,10 +177,12 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         if (EntryPointHasStringArguments() || HasStringSupport()) EmitUtf8ArgumentRuntime();
         var nativeFileSystemMethods = compilation.Methods.Where(IsNativeFileSystemShim).ToArray();
         if (nativeFileSystemMethods.Length > 0) EmitNativeFileSystemRuntime();
+        var nativeEnvironmentMethods = compilation.Methods.Where(IsNativeEnvironmentShim).ToArray();
+        if (nativeEnvironmentMethods.Length > 0) EmitNativeEnvironmentRuntime();
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsNativeFileSystemShim(method)) EmitExternDeclaration(method);
+            if (!IsNativeFileSystemShim(method) && !IsNativeEnvironmentShim(method)) EmitExternDeclaration(method);
         }
         foreach (var method in compilation.Methods)
         {

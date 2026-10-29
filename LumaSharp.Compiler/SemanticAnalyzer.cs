@@ -907,7 +907,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (declaration.HasTypeParameters) diagnostics.Add("LS2101", DiagnosticSeverity.Error, "Extern methods cannot be generic.", declaration.Location);
                 var isFileSystemStringResult = method.Owner.Namespace == "System.IO" && method.Owner.Name == "NativeFileSystem" &&
                     declaration.Name is "luma_fs_current_directory" or "luma_fs_temporary_directory" && declaration.ReturnType == "string";
-                if (!isFileSystemStringResult)
+                var isEnvironmentStringResult = method.Owner.Namespace == "System" && method.Owner.Name == "Environment" &&
+                    declaration.Name is "luma_env_executable_path" or "luma_env_executable_directory" or "luma_env_executable_name" && declaration.ReturnType == "string";
+                if (!isFileSystemStringResult && !isEnvironmentStringResult)
                     ValidateExternType(declaration.ReturnType, allowVoid: true, declaration.Location);
                 foreach (var parameter in declaration.Parameters)
                 {

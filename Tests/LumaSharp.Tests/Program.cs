@@ -142,6 +142,38 @@ public sealed class CompilerTests
         }
     }
 
+    [Theory]
+    [InlineData("x86_64-pc-windows-msvc")]
+    [InlineData("i686-pc-windows-msvc")]
+    [InlineData("x86_64-pc-linux-gnu")]
+    [InlineData("aarch64-apple-darwin")]
+    public void EnvironmentRuntimeIntrinsicsAreEmittedAndVerifiedForEachTarget(string targetTriple)
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = "using System; class Program { public static int32 Main() { return Environment.ProcessorCount; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("environment-test.ls", source)), new CompilationOptions(UnsafeEnabled: true, TargetTriple: targetTriple));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("define internal ptr @luma_env_executable_path", result.LlvmIr);
+        Assert.Contains("define internal ptr @luma_env_executable_directory", result.LlvmIr);
+        Assert.Contains("define internal ptr @luma_env_executable_name", result.LlvmIr);
+        Assert.Contains("define internal i32 @luma_env_processor_count", result.LlvmIr);
+        Assert.Contains("define internal i1 @luma_env_is_little_endian", result.LlvmIr);
+
+        var objectPath = Path.Combine(Path.GetTempPath(), "lumasharp-environment-" + Guid.NewGuid().ToString("N") + ".obj");
+        try
+        {
+            var emitted = LlvmToolchain.VerifyAndEmitObject(result.LlvmIr!, objectPath, targetTriple, optimize: true);
+            Assert.True(emitted.Succeeded, emitted.Error);
+        }
+        finally
+        {
+            if (File.Exists(objectPath)) File.Delete(objectPath);
+        }
+    }
+
     [Fact]
     public void WeakReferencesPromoteLiveTargetsAndObserveDestruction()
     {
