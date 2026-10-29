@@ -1,7 +1,7 @@
 # LumaSharp runtime ABI
 
 The compiler emits the runtime helpers and runtime-owned data needed by a compilation
-into its LLVM module. The current generated contract is identified as ABI version 1
+into its LLVM module. The current generated contract is identified as ABI version 2
 by the LLVM module flag `LumaSharpRuntimeABI`. LLVM's `Error` module-flag behavior
 causes bitcode/LTO linking to reject inputs that declare a different version.
 
@@ -13,3 +13,8 @@ This marker is an initial compatibility boundary, not a standalone runtime packa
 The runtime implementation is still emitted into generated modules, and ordinary
 native archive linking may discard LLVM module flags. A distributable shared runtime
 and compatibility checks for separately linked static libraries remain open work.
+
+ABI version 2 adds a nullable weak-control pointer to class, string, and array headers.
+The compiler emits synchronized control blocks on first use, target promotion and
+invalidation helpers, and weak-handle accounting. Immortal strings and static objects
+use detached control blocks so read-only literal storage is never modified.

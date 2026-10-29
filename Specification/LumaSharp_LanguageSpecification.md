@@ -3022,7 +3022,7 @@ Non-`readonly` ordinary heap references can be passed freely; only scope-bound r
 
 ## 14.8 Reference Cycles `[P-21]`
 
-LumaSharp uses reference counting. **A group of objects that strongly reference each other is not reclaimed automatically**, even if nothing else refers to the group. There is no cycle collector and, in this version, no `weak`/`unowned` reference. Programs that build cyclic structures MUST break the cycle themselves, typically by assigning `null` to a nullable reference field.
+LumaSharp uses reference counting. **A group of objects that strongly reference each other is not reclaimed automatically**, even if nothing else refers to the group. There is no cycle collector. `System.Weak<T>` provides a non-owning observation of a class instance and can be used to break ownership cycles; it does not collect cycles by itself. Programs that build cyclic structures MUST still break the strong cycle, typically by assigning `null` to a nullable reference field.
 
 ```lumasharp
 class Parent { public Child child; }
@@ -3990,7 +3990,7 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Feature | Notes |
 |---|---|
 | Events (`event`) | Libraries may provide event systems; delegates remain |
-| Weak / unowned references | Strong reference counting only |
+| Weak references | `System.Weak<T>` for class targets; no unowned-reference syntax |
 | Garbage collection | Never |
 | `partial` types | |
 | `record` types | Only `class`, `struct`, `enum`, `interface` and `delegate` exist |
@@ -4115,7 +4115,7 @@ This is the only situation in which a program can crash without user code having
 After `Main` returns, the runtime terminates the process by calling the platform's normal process-exit routine (C `exit`) with the exit code, so that standard platform exit handlers run.
 
 - Objects still referenced from **static fields** are *not* released and their **finalizers do not run**. Statics live for the program's lifetime.
-- Objects in unreclaimed reference cycles are not finalized (§27.9).
+- Objects in unreclaimed reference cycles are not finalized (§27.10).
 - Anything reachable only from `Main`'s locals *was* released when `Main` returned (so those finalizers ran, in the deterministic order of §14.6).
 - Flushing of library-level buffered output is the responsibility of the standard library (for example through the platform exit handlers); the runtime itself holds no user-visible buffers.
 
@@ -4164,8 +4164,9 @@ Every managed object starts with an **object header** holding at least:
 | Type | Identifies the object's type descriptor (§28.6). |
 | Strong count | An unsigned integer of at least 32 bits, modified atomically (§27.8). Initial value 1 for a heap object (the reference held by the creating expression). |
 | State flags | At least: **immortal**, **scoped**, **destroying**. |
+| Weak control | A nullable pointer to an implementation-owned weak control block. It is null until a weak reference is created. |
 
-*Reference layout:* `{ TypeDescriptor* type; uint32 strong; uint32 flags; }` (16 bytes on 64-bit targets, 12 on 32-bit), with the payload following at the next offset aligned to the payload's alignment (minimum 8).
+*Reference layout:* `{ TypeDescriptor* type; uint32 strong; uint32 flags; WeakControl* weak; }` (24 bytes on 64-bit targets, 16 on 32-bit), with the payload following at the next offset aligned to the payload's alignment (minimum 8). Strings use the same common header before their payload.
 
 **Immortal objects** are objects that are never destroyed: the shared empty string, string literals, the pre-allocated `OutOfMemoryException`, and static type data. Retain and release on an immortal object do nothing. They carry the *immortal* flag and are typically placed in read-only or static memory.
 
@@ -4233,11 +4234,21 @@ Reference-count updates MUST be **correct under concurrent access**: if several 
 
 This does **not** make user data race-free: concurrent unsynchronised access to the *same* reference-typed variable or field is a data race (UB in unsafe code, unspecified in safe code) until synchronisation primitives are specified.
 
-## 27.9 Cycles and Leaks
+## 27.9 Weak References
+
+`System.Weak<T>` is a managed reference type with the constraint `where T : class`. Its constructor accepts a non-null `T`; `IsAlive` reports whether the target is still allocated, and `Target` returns an owned `T?` reference. Reading `Target` atomically promotes the weak target to a strong reference when it is still alive; otherwise it returns null. A caller that needs to use the target should read `Target` once and keep that returned strong reference for the duration of the use.
+
+A weak reference does not increment the target's strong count. The runtime lazily creates one control block per target and shares it among weak handles. Final strong release and weak promotion synchronize through that block: either promotion increments the strong count before destruction, or destruction clears the control block's target before storage is freed. `IsAlive` is an observation only; the target may be destroyed immediately afterward, so it does not itself make a later access safe.
+
+When a weak handle is destroyed, it unregisters from the control block. The block is freed after the target is dead and the last weak handle is gone. Immortal targets use detached controls, because their storage may be read-only and is never destroyed. Scoped objects cannot escape through a weak handle; the normal scope-escape rules apply to the constructor argument. Structs, enums, nullable references, and pointer values do not satisfy the class constraint.
+
+`Weak<T>` can observe an object but does not break a strong cycle unless a cycle participant stores a `Weak<T>` instead of a strong reference. The target returned by `Target` participates in ordinary ownership and must be released normally.
+
+## 27.10 Cycles and Leaks
 
 The runtime performs **no cycle detection**. A cycle of strong references that is no longer reachable from any variable keeps all its members alive until process exit, and their finalizers never run (§26.4). The compiler's cycle warning (§14.8) is an aid only.
 
-## 27.10 Interaction with Unsafe Code
+## 27.11 Interaction with Unsafe Code
 
 Pointers do not participate in counting (§19.2). Unsafe code that stores a reference-typed value through a raw pointer without the compiler's involvement, or keeps a pointer to a destroyed object, can corrupt the heap; such behaviour is undefined, and the runtime need not detect it.
 
@@ -5016,7 +5027,8 @@ typedef struct ObjectHeader {
     TypeDescriptor*  type;      // dynamic type (changes during construction, §28.7.3)
     _Atomic uint32_t strong;    // strong count; 1 at creation
     uint32_t         flags;     // bit0 IMMORTAL, bit1 SCOPED, bit2 DESTROYING
-} ObjectHeader;                 // 16 bytes on 64-bit targets; payload follows
+    struct WeakControl* weak;   // null until first weak handle
+} ObjectHeader;                 // 24 bytes on 64-bit targets; payload follows
 
 typedef struct RefMapEntry {    // one reference slot, listed in RELEASE order (reverse declaration)
     uint32_t offset;            // byte offset from the payload start

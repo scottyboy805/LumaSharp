@@ -116,18 +116,20 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             _output.AppendLine($"%struct.{Safe(name)} = type {{ {fields} }}");
         }
         if (HasManagedClassSupport())
-            _output.AppendLine("%luma.box = type { ptr, i32, i32, i64 }");
+            _output.AppendLine("%luma.weak.control = type { ptr, i32, i32, i32 }");
+        if (HasManagedClassSupport())
+            _output.AppendLine("%luma.box = type { ptr, i32, i32, ptr, i64 }");
         foreach (var type in BoxableStructTypeNames())
-            _output.AppendLine($"%luma.structbox.{Safe(type)} = type {{ ptr, i32, i32, %struct.{Safe(type)} }}");
+            _output.AppendLine($"%luma.structbox.{Safe(type)} = type {{ ptr, i32, i32, ptr, %struct.{Safe(type)} }}");
         foreach (var (name, classType) in compilation.ClassTypes)
         {
             var fields = classType.Fields.Count == 0 ? "" : ", " + string.Join(", ", classType.Fields.Select(field => LlvmType(field.TypeName)));
-            _output.AppendLine($"%class.{Safe(name)} = type {{ ptr, i32, i32{fields} }}");
+            _output.AppendLine($"%class.{Safe(name)} = type {{ ptr, i32, i32, ptr{fields} }}");
         }
         if (HasManagedClassSupport() || HasStringSupport())
             _output.AppendLine("%luma.typedesc = type { ptr, ptr, ptr, i32, ptr, ptr, ptr, ptr, i32, ptr }");
         foreach (var name in compilation.DelegateTypes.Keys.Order(StringComparer.Ordinal))
-            _output.AppendLine($"%delegate.{Safe(name)} = type {{ ptr, i32, i32, ptr, ptr }}");
+            _output.AppendLine($"%delegate.{Safe(name)} = type {{ ptr, i32, i32, ptr, ptr, ptr }}");
         if (HasStringSupport())
         {
             EmitStringLiterals();
@@ -135,7 +137,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         }
         if (HasManagedArraySupport())
         {
-            _output.AppendLine("%luma.array = type { ptr, i32, i32, i32, i32, [3 x i32], [0 x i64] }");
+            _output.AppendLine("%luma.array = type { ptr, i32, i32, ptr, i32, i32, [3 x i32], [0 x i64] }");
             if (!HasStringSupport()) EmitArrayMemoryDeclarations();
             EmitManagedArrayRuntime();
         }
@@ -788,7 +790,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("entry.arguments.initialize:");
         _output.AppendLine($"  %luma.arguments.descriptor.address = getelementptr %luma.array, ptr %luma.arguments, i32 0, i32 0");
         _output.AppendLine($"  store ptr {ArrayDescriptorPointer("string[]")}, ptr %luma.arguments.descriptor.address");
-        _output.AppendLine("  %luma.arguments.data = getelementptr %luma.array, ptr %luma.arguments, i32 0, i32 6");
+        _output.AppendLine("  %luma.arguments.data = getelementptr %luma.array, ptr %luma.arguments, i32 0, i32 7");
         _output.AppendLine("  br label %entry.arguments.loop");
         _output.AppendLine("entry.arguments.loop:");
         _output.AppendLine("  %luma.arguments.index = phi i32 [ 0, %entry.arguments.initialize ], [ %luma.arguments.next, %entry.arguments.store ]");
@@ -855,9 +857,11 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine($"  store i32 1, ptr %{prefix}.count");
         _output.AppendLine($"  %{prefix}.flags = getelementptr %class.{safeType}, ptr {wrapperInstance}, i32 0, i32 2");
         _output.AppendLine($"  store i32 0, ptr %{prefix}.flags");
+        _output.AppendLine($"  %{prefix}.weak = getelementptr %class.{safeType}, ptr {wrapperInstance}, i32 0, i32 3");
+        _output.AppendLine($"  store ptr null, ptr %{prefix}.weak");
         foreach (var field in exceptionType.Fields)
         {
-            _output.AppendLine($"  %{prefix}.field.{field.Index} = getelementptr %class.{safeType}, ptr {wrapperInstance}, i32 0, i32 {field.Index + 3}");
+            _output.AppendLine($"  %{prefix}.field.{field.Index} = getelementptr %class.{safeType}, ptr {wrapperInstance}, i32 0, i32 {field.Index + 4}");
             _output.AppendLine($"  store {LlvmType(field.TypeName)} {DefaultStaticStorageValue(field.TypeName)}, ptr %{prefix}.field.{field.Index}");
         }
         _output.AppendLine($"  call void @{FunctionName(constructor, compilation.Methods)}(ptr {wrapperInstance}, ptr @{messageSymbol}, ptr {innerException}, i1 true)");
@@ -1100,9 +1104,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %message.is.null = icmp eq ptr %message, null");
         _output.AppendLine("  br i1 %message.is.null, label %newline, label %write.message");
         _output.AppendLine("write.message:");
-        _output.AppendLine("  %message.bytes.address = getelementptr %luma.string, ptr %message, i32 0, i32 3");
+        _output.AppendLine("  %message.bytes.address = getelementptr %luma.string, ptr %message, i32 0, i32 4");
         _output.AppendLine("  %message.bytes = load ptr, ptr %message.bytes.address");
-        _output.AppendLine("  %message.length.address = getelementptr %luma.string, ptr %message, i32 0, i32 5");
+        _output.AppendLine("  %message.length.address = getelementptr %luma.string, ptr %message, i32 0, i32 6");
         _output.AppendLine("  %message.length = load i32, ptr %message.length.address");
         _output.AppendLine("  call void @luma_write_stderr(ptr %message.bytes, i32 %message.length)");
         _output.AppendLine("  br label %newline");
@@ -1272,7 +1276,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
     private void EmitManagedArrayRuntime()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
-        var objectSize = compilation.NativePointerSize == 8 ? 40 : 32;
+        var objectSize = compilation.NativePointerSize == 8 ? 48 : 36;
         var hasStringSupport = HasStringSupport();
         var hasArrayReferences = HasManagedArrayReferenceElements();
         var hasClassReferences = HasManagedClassReferenceElements();
@@ -1294,9 +1298,33 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  br i1 %is.null, label %done, label %decrement");
         _output.AppendLine("decrement:");
         _output.AppendLine("  %count.address = getelementptr %luma.array, ptr %input, i32 0, i32 1");
+        _output.AppendLine("  %weak.address = getelementptr %luma.array, ptr %input, i32 0, i32 3");
+        _output.AppendLine("  %weak.control = load atomic ptr, ptr %weak.address acquire, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %has.weak.control = icmp ne ptr %weak.control, null");
+        _output.AppendLine("  br i1 %has.weak.control, label %weak.decrement, label %normal.decrement");
+        _output.AppendLine("normal.decrement:");
         _output.AppendLine("  %old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
         _output.AppendLine("  %last.reference = icmp eq i32 %old.count, 1");
         _output.AppendLine("  br i1 %last.reference, label %destroy, label %done");
+        _output.AppendLine("weak.decrement:");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %weak.control)");
+        _output.AppendLine("  %weak.old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
+        _output.AppendLine("  %weak.last.reference = icmp eq i32 %weak.old.count, 1");
+        _output.AppendLine("  br i1 %weak.last.reference, label %weak.destroy, label %weak.not.last");
+        _output.AppendLine("weak.not.last:");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("weak.destroy:");
+        _output.AppendLine("  %weak.target.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 0");
+        _output.AppendLine("  store atomic ptr null, ptr %weak.target.address release, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %weak.count.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 2");
+        _output.AppendLine("  %weak.handle.count = load atomic i32, ptr %weak.count.address acquire, align 4");
+        _output.AppendLine("  %weak.has.handles = icmp ne i32 %weak.handle.count, 0");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br i1 %weak.has.handles, label %destroy, label %weak.free");
+        _output.AppendLine("weak.free:");
+        _output.AppendLine("  call void @free(ptr %weak.control)");
+        _output.AppendLine("  br label %destroy");
         _output.AppendLine("destroy:");
         if (hasStringSupport || hasArrayReferences || hasClassReferences)
         {
@@ -1305,10 +1333,10 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             _output.AppendLine("  %has.reference.elements = icmp ne i32 %flags, 0");
             _output.AppendLine("  br i1 %has.reference.elements, label %release.elements.start, label %free.object");
             _output.AppendLine("release.elements.start:");
-            _output.AppendLine("  %length.address = getelementptr %luma.array, ptr %input, i32 0, i32 3");
+            _output.AppendLine("  %length.address = getelementptr %luma.array, ptr %input, i32 0, i32 4");
             _output.AppendLine("  %length = load i32, ptr %length.address");
             _output.AppendLine("  %first.index = sub i32 %length, 1");
-            _output.AppendLine("  %data = getelementptr %luma.array, ptr %input, i32 0, i32 6");
+            _output.AppendLine("  %data = getelementptr %luma.array, ptr %input, i32 0, i32 7");
             _output.AppendLine("  br label %release.elements.loop");
             _output.AppendLine("release.elements.loop:");
             _output.AppendLine("  %index = phi i32 [ %first.index, %release.elements.start ], [ %previous.index, %release.elements.next ]");
@@ -1410,6 +1438,8 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %count.address = getelementptr %luma.array, ptr %object, i32 0, i32 1");
         _output.AppendLine("  store i32 1, ptr %count.address");
         _output.AppendLine("  %flags.address = getelementptr %luma.array, ptr %object, i32 0, i32 2");
+        _output.AppendLine("  %weak.address = getelementptr %luma.array, ptr %object, i32 0, i32 3");
+        _output.AppendLine("  store ptr null, ptr %weak.address");
         _output.AppendLine("  %string.flag = zext i1 %string.elements to i32");
         _output.AppendLine("  %array.flag = zext i1 %array.elements to i32");
         _output.AppendLine("  %array.kind = shl i32 %array.flag, 1");
@@ -1421,18 +1451,18 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %flags = or i32 %reference.flags, %class.kind");
         _output.AppendLine("  %all.flags = or i32 %flags, %aggregate.kind");
         _output.AppendLine("  store i32 %all.flags, ptr %flags.address");
-        _output.AppendLine("  %length.address = getelementptr %luma.array, ptr %object, i32 0, i32 3");
+        _output.AppendLine("  %length.address = getelementptr %luma.array, ptr %object, i32 0, i32 4");
         _output.AppendLine("  store i32 %length, ptr %length.address");
-        _output.AppendLine("  %rank.address = getelementptr %luma.array, ptr %object, i32 0, i32 4");
+        _output.AppendLine("  %rank.address = getelementptr %luma.array, ptr %object, i32 0, i32 5");
         _output.AppendLine("  store i32 %rank, ptr %rank.address");
-        _output.AppendLine("  %dims = getelementptr %luma.array, ptr %object, i32 0, i32 5, i32 0");
+        _output.AppendLine("  %dims = getelementptr %luma.array, ptr %object, i32 0, i32 6, i32 0");
         _output.AppendLine("  %dim0.address = getelementptr i32, ptr %dims, i32 0");
         _output.AppendLine("  store i32 %dim0, ptr %dim0.address");
         _output.AppendLine("  %dim1.address = getelementptr i32, ptr %dims, i32 1");
         _output.AppendLine("  store i32 %dim1, ptr %dim1.address");
         _output.AppendLine("  %dim2.address = getelementptr i32, ptr %dims, i32 2");
         _output.AppendLine("  store i32 %dim2, ptr %dim2.address");
-        _output.AppendLine("  %data = getelementptr %luma.array, ptr %object, i32 0, i32 6");
+        _output.AppendLine("  %data = getelementptr %luma.array, ptr %object, i32 0, i32 7");
         _output.AppendLine("  br label %zero.loop");
         _output.AppendLine($"zero.loop:");
         _output.AppendLine($"  %offset = phi {sizeType} [ 0, %initialize ], [ %next.offset, %zero.body ]");
@@ -1474,16 +1504,16 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
     }
     private void EmitStringLiterals()
     {
-        _output.AppendLine("%luma.string = type { ptr, i32, i32, ptr, i32, i32, i8, i8, ptr }");
+        _output.AppendLine("%luma.string = type { ptr, i32, i32, ptr, ptr, i32, i32, i8, i8, ptr }");
         _output.AppendLine("@luma_string_type_name = private unnamed_addr constant [7 x i8] c\"\\73\\74\\72\\69\\6E\\67\\00\"");
         _output.AppendLine("@luma_string_empty_utf8 = private unnamed_addr constant [1 x i8] c\"\\00\"");
-        _output.AppendLine("@luma_string_empty = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr getelementptr inbounds ([1 x i8], ptr @luma_string_empty_utf8, i64 0, i64 0), i32 0, i32 0, i8 0, i8 2, ptr null }");
+        _output.AppendLine("@luma_string_empty = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([1 x i8], ptr @luma_string_empty_utf8, i64 0, i64 0), i32 0, i32 0, i8 0, i8 2, ptr null }");
         _output.AppendLine("@luma_string_true_utf8 = private unnamed_addr constant [5 x i8] c\"true\\00\"");
         _output.AppendLine("@luma_string_true_utf16 = private unnamed_addr constant [4 x i16] [i16 116, i16 114, i16 117, i16 101]");
-        _output.AppendLine("@luma_string_true = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr getelementptr inbounds ([5 x i8], ptr @luma_string_true_utf8, i64 0, i64 0), i32 4, i32 4, i8 0, i8 2, ptr getelementptr inbounds ([4 x i16], ptr @luma_string_true_utf16, i64 0, i64 0) }");
+        _output.AppendLine("@luma_string_true = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([5 x i8], ptr @luma_string_true_utf8, i64 0, i64 0), i32 4, i32 4, i8 0, i8 2, ptr getelementptr inbounds ([4 x i16], ptr @luma_string_true_utf16, i64 0, i64 0) }");
         _output.AppendLine("@luma_string_false_utf8 = private unnamed_addr constant [6 x i8] c\"false\\00\"");
         _output.AppendLine("@luma_string_false_utf16 = private unnamed_addr constant [5 x i16] [i16 102, i16 97, i16 108, i16 115, i16 101]");
-        _output.AppendLine("@luma_string_false = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr getelementptr inbounds ([6 x i8], ptr @luma_string_false_utf8, i64 0, i64 0), i32 5, i32 5, i8 0, i8 2, ptr getelementptr inbounds ([5 x i16], ptr @luma_string_false_utf16, i64 0, i64 0) }");
+        _output.AppendLine("@luma_string_false = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([6 x i8], ptr @luma_string_false_utf8, i64 0, i64 0), i32 5, i32 5, i8 0, i8 2, ptr getelementptr inbounds ([5 x i16], ptr @luma_string_false_utf16, i64 0, i64 0) }");
         if (UsesFloatStringConversion())
         {
             _output.AppendLine("@luma_format_float = private unnamed_addr constant [5 x i8] c\"%.9g\\00\"");
@@ -1515,13 +1545,13 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             _output.AppendLine($"{utf8Name} = private unnamed_addr constant [{utf8Length} x i8] c\"{utf8Contents}\"");
             var utf16Values = string.Join(", ", literal.Utf16CodeUnits.Select(value => "i16 " + value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
             _output.AppendLine($"{utf16Name} = private unnamed_addr constant [{literal.Length} x i16] [{utf16Values}]");
-            _output.AppendLine($"{objectName} = private unnamed_addr constant %luma.string {{ ptr @luma_string_type, i32 1, i32 1, ptr getelementptr inbounds ([{utf8Length} x i8], ptr {utf8Name}, i64 0, i64 0), i32 {literal.Length}, i32 {literal.Utf8Bytes.Length}, i8 0, i8 {literalFlags}, ptr getelementptr inbounds ([{literal.Length} x i16], ptr {utf16Name}, i64 0, i64 0) }}");
+            _output.AppendLine($"{objectName} = private unnamed_addr constant %luma.string {{ ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([{utf8Length} x i8], ptr {utf8Name}, i64 0, i64 0), i32 {literal.Length}, i32 {literal.Utf8Bytes.Length}, i8 0, i8 {literalFlags}, ptr getelementptr inbounds ([{literal.Length} x i16], ptr {utf16Name}, i64 0, i64 0) }}");
         }
     }
     private void EmitStringRuntime()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
-        var stringSize = compilation.NativePointerSize == 8 ? 48 : 32;
+        var stringSize = compilation.NativePointerSize == 8 ? 56 : 36;
         var needsPrimitiveStringification = compilation.StringifiedPrimitiveTypes.Count > 0 || EntryPointHasStringArguments();
         var needsFloatingStringification = UsesFloatStringConversion();
         string SizeCast(string result, string operand) => sizeType == "i64" ? $"  %{result} = zext i32 %{operand} to i64" : $"  %{result} = add i32 %{operand}, 0";
@@ -1557,16 +1587,38 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  br i1 %immortal, label %done, label %read.count");
         _output.AppendLine("read.count:");
         _output.AppendLine("  %count.address = getelementptr %luma.string, ptr %input, i32 0, i32 1");
-        _output.AppendLine("  br label %decrement");
+        _output.AppendLine("  %weak.address = getelementptr %luma.string, ptr %input, i32 0, i32 3");
+        _output.AppendLine("  %weak.control = load atomic ptr, ptr %weak.address acquire, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %has.weak.control = icmp ne ptr %weak.control, null");
+        _output.AppendLine("  br i1 %has.weak.control, label %weak.decrement, label %decrement");
         _output.AppendLine("decrement:");
         _output.AppendLine("  %old.count = atomicrmw sub ptr %count.address, i32 1 release");
         _output.AppendLine("  %last.reference = icmp eq i32 %old.count, 1");
         _output.AppendLine("  br i1 %last.reference, label %destroy, label %done");
+        _output.AppendLine("weak.decrement:");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %weak.control)");
+        _output.AppendLine("  %weak.old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
+        _output.AppendLine("  %weak.last.reference = icmp eq i32 %weak.old.count, 1");
+        _output.AppendLine("  br i1 %weak.last.reference, label %weak.destroy, label %weak.not.last");
+        _output.AppendLine("weak.not.last:");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("weak.destroy:");
+        _output.AppendLine("  %weak.target.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 0");
+        _output.AppendLine("  store atomic ptr null, ptr %weak.target.address release, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %weak.count.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 2");
+        _output.AppendLine("  %weak.handle.count = load atomic i32, ptr %weak.count.address acquire, align 4");
+        _output.AppendLine("  %weak.has.handles = icmp ne i32 %weak.handle.count, 0");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br i1 %weak.has.handles, label %destroy, label %weak.free");
+        _output.AppendLine("weak.free:");
+        _output.AppendLine("  call void @free(ptr %weak.control)");
+        _output.AppendLine("  br label %destroy");
         _output.AppendLine("destroy:");
         _output.AppendLine("  fence acquire");
-        _output.AppendLine("  %data.address = getelementptr %luma.string, ptr %input, i32 0, i32 3");
+        _output.AppendLine("  %data.address = getelementptr %luma.string, ptr %input, i32 0, i32 4");
         _output.AppendLine("  %data = load ptr, ptr %data.address");
-        _output.AppendLine("  %units.address = getelementptr %luma.string, ptr %input, i32 0, i32 8");
+        _output.AppendLine("  %units.address = getelementptr %luma.string, ptr %input, i32 0, i32 9");
         _output.AppendLine("  %units = load ptr, ptr %units.address");
         _output.AppendLine("  call void @free(ptr %data)");
         _output.AppendLine("  call void @free(ptr %units)");
@@ -1582,9 +1634,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %left = select i1 %left.null, ptr @luma_string_empty, ptr %left.input");
         _output.AppendLine("  %right.null = icmp eq ptr %right.input, null");
         _output.AppendLine("  %right = select i1 %right.null, ptr @luma_string_empty, ptr %right.input");
-        _output.AppendLine("  %left.length.address = getelementptr %luma.string, ptr %left, i32 0, i32 4");
+        _output.AppendLine("  %left.length.address = getelementptr %luma.string, ptr %left, i32 0, i32 5");
         _output.AppendLine("  %left.length = load i32, ptr %left.length.address");
-        _output.AppendLine("  %right.length.address = getelementptr %luma.string, ptr %right, i32 0, i32 4");
+        _output.AppendLine("  %right.length.address = getelementptr %luma.string, ptr %right, i32 0, i32 5");
         _output.AppendLine("  %right.length = load i32, ptr %right.length.address");
         _output.AppendLine("  %length.pair = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %left.length, i32 %right.length)");
         _output.AppendLine("  %length = extractvalue { i32, i1 } %length.pair, 0");
@@ -1602,9 +1654,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %object.failed = icmp eq ptr %object, null");
         _output.AppendLine("  br i1 %object.failed, label %out.of.memory, label %read.byte.lengths");
         _output.AppendLine("read.byte.lengths:");
-        _output.AppendLine("  %left.bytes.address = getelementptr %luma.string, ptr %left, i32 0, i32 5");
+        _output.AppendLine("  %left.bytes.address = getelementptr %luma.string, ptr %left, i32 0, i32 6");
         _output.AppendLine("  %left.bytes = load i32, ptr %left.bytes.address");
-        _output.AppendLine("  %right.bytes.address = getelementptr %luma.string, ptr %right, i32 0, i32 5");
+        _output.AppendLine("  %right.bytes.address = getelementptr %luma.string, ptr %right, i32 0, i32 6");
         _output.AppendLine("  %right.bytes = load i32, ptr %right.bytes.address");
         _output.AppendLine("  %bytes.pair = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %left.bytes, i32 %right.bytes)");
         _output.AppendLine("  %bytes = extractvalue { i32, i1 } %bytes.pair, 0");
@@ -1633,9 +1685,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  call void @free(ptr %object)");
         EmitStringRuntimeOutOfMemory();
         _output.AppendLine("copy.bytes:");
-        _output.AppendLine("  %left.data.address = getelementptr %luma.string, ptr %left, i32 0, i32 3");
+        _output.AppendLine("  %left.data.address = getelementptr %luma.string, ptr %left, i32 0, i32 4");
         _output.AppendLine("  %left.data = load ptr, ptr %left.data.address");
-        _output.AppendLine("  %right.data.address = getelementptr %luma.string, ptr %right, i32 0, i32 3");
+        _output.AppendLine("  %right.data.address = getelementptr %luma.string, ptr %right, i32 0, i32 4");
         _output.AppendLine("  %right.data = load ptr, ptr %right.data.address");
         _output.AppendLine("  %left.bytes.nonzero = icmp ne i32 %left.bytes, 0");
         _output.AppendLine("  br i1 %left.bytes.nonzero, label %copy.left.bytes, label %copy.right.bytes.check");
@@ -1653,9 +1705,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine($"  %right.bytes.copy = call ptr @memcpy(ptr %right.byte.destination, ptr %right.data, {sizeType} %right.byte.count)");
         _output.AppendLine("  br label %copy.units");
         _output.AppendLine("copy.units:");
-        _output.AppendLine("  %left.units.address = getelementptr %luma.string, ptr %left, i32 0, i32 8");
+        _output.AppendLine("  %left.units.address = getelementptr %luma.string, ptr %left, i32 0, i32 9");
         _output.AppendLine("  %left.units = load ptr, ptr %left.units.address");
-        _output.AppendLine("  %right.units.address = getelementptr %luma.string, ptr %right, i32 0, i32 8");
+        _output.AppendLine("  %right.units.address = getelementptr %luma.string, ptr %right, i32 0, i32 9");
         _output.AppendLine("  %right.units = load ptr, ptr %right.units.address");
         _output.AppendLine("  %left.units.nonzero = icmp ne i32 %left.length, 0");
         _output.AppendLine("  br i1 %left.units.nonzero, label %copy.left.units, label %copy.right.units.check");
@@ -1683,17 +1735,19 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  store i32 1, ptr %object.count.address");
         _output.AppendLine("  %object.header.flags.address = getelementptr %luma.string, ptr %object, i32 0, i32 2");
         _output.AppendLine("  store i32 0, ptr %object.header.flags.address");
-        _output.AppendLine("  %object.data.address = getelementptr %luma.string, ptr %object, i32 0, i32 3");
+        _output.AppendLine("  %object.weak.address = getelementptr %luma.string, ptr %object, i32 0, i32 3");
+        _output.AppendLine("  store ptr null, ptr %object.weak.address");
+        _output.AppendLine("  %object.data.address = getelementptr %luma.string, ptr %object, i32 0, i32 4");
         _output.AppendLine("  store ptr %data, ptr %object.data.address");
-        _output.AppendLine("  %object.length.address = getelementptr %luma.string, ptr %object, i32 0, i32 4");
+        _output.AppendLine("  %object.length.address = getelementptr %luma.string, ptr %object, i32 0, i32 5");
         _output.AppendLine("  store i32 %length, ptr %object.length.address");
-        _output.AppendLine("  %object.bytes.address = getelementptr %luma.string, ptr %object, i32 0, i32 5");
+        _output.AppendLine("  %object.bytes.address = getelementptr %luma.string, ptr %object, i32 0, i32 6");
         _output.AppendLine("  store i32 %bytes, ptr %object.bytes.address");
-        _output.AppendLine("  %object.charset.address = getelementptr %luma.string, ptr %object, i32 0, i32 6");
+        _output.AppendLine("  %object.charset.address = getelementptr %luma.string, ptr %object, i32 0, i32 7");
         _output.AppendLine("  store i8 0, ptr %object.charset.address");
-        _output.AppendLine("  %left.string.flags.address = getelementptr %luma.string, ptr %left, i32 0, i32 7");
+        _output.AppendLine("  %left.string.flags.address = getelementptr %luma.string, ptr %left, i32 0, i32 8");
         _output.AppendLine("  %left.string.flags = load i8, ptr %left.string.flags.address");
-        _output.AppendLine("  %right.string.flags.address = getelementptr %luma.string, ptr %right, i32 0, i32 7");
+        _output.AppendLine("  %right.string.flags.address = getelementptr %luma.string, ptr %right, i32 0, i32 8");
         _output.AppendLine("  %right.string.flags = load i8, ptr %right.string.flags.address");
         _output.AppendLine("  %left.ascii.bit = and i8 %left.string.flags, 2");
         _output.AppendLine("  %right.ascii.bit = and i8 %right.string.flags, 2");
@@ -1701,9 +1755,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %right.ascii = icmp eq i8 %right.ascii.bit, 2");
         _output.AppendLine("  %all.ascii = and i1 %left.ascii, %right.ascii");
         _output.AppendLine("  %result.string.flags = select i1 %all.ascii, i8 3, i8 1");
-        _output.AppendLine("  %object.string.flags.address = getelementptr %luma.string, ptr %object, i32 0, i32 7");
+        _output.AppendLine("  %object.string.flags.address = getelementptr %luma.string, ptr %object, i32 0, i32 8");
         _output.AppendLine("  store i8 %result.string.flags, ptr %object.string.flags.address");
-        _output.AppendLine("  %object.units.address = getelementptr %luma.string, ptr %object, i32 0, i32 8");
+        _output.AppendLine("  %object.units.address = getelementptr %luma.string, ptr %object, i32 0, i32 9");
         _output.AppendLine("  store ptr %units, ptr %object.units.address");
         _output.AppendLine("  ret ptr %object");
         _output.AppendLine("out.of.memory:");
@@ -1716,18 +1770,18 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  %left = select i1 %left.null, ptr @luma_string_empty, ptr %left.input");
         _output.AppendLine("  %right.null = icmp eq ptr %right.input, null");
         _output.AppendLine("  %right = select i1 %right.null, ptr @luma_string_empty, ptr %right.input");
-        _output.AppendLine("  %left.length.address = getelementptr %luma.string, ptr %left, i32 0, i32 4");
+        _output.AppendLine("  %left.length.address = getelementptr %luma.string, ptr %left, i32 0, i32 5");
         _output.AppendLine("  %left.length = load i32, ptr %left.length.address");
-        _output.AppendLine("  %right.length.address = getelementptr %luma.string, ptr %right, i32 0, i32 4");
+        _output.AppendLine("  %right.length.address = getelementptr %luma.string, ptr %right, i32 0, i32 5");
         _output.AppendLine("  %right.length = load i32, ptr %right.length.address");
         _output.AppendLine("  %lengths.equal = icmp eq i32 %left.length, %right.length");
         _output.AppendLine("  br i1 %lengths.equal, label %compare.start, label %not.equal");
         _output.AppendLine("not.equal:");
         _output.AppendLine("  ret i1 false");
         _output.AppendLine("compare.start:");
-        _output.AppendLine("  %left.units.address = getelementptr %luma.string, ptr %left, i32 0, i32 8");
+        _output.AppendLine("  %left.units.address = getelementptr %luma.string, ptr %left, i32 0, i32 9");
         _output.AppendLine("  %left.units = load ptr, ptr %left.units.address");
-        _output.AppendLine("  %right.units.address = getelementptr %luma.string, ptr %right, i32 0, i32 8");
+        _output.AppendLine("  %right.units.address = getelementptr %luma.string, ptr %right, i32 0, i32 9");
         _output.AppendLine("  %right.units = load ptr, ptr %right.units.address");
         _output.AppendLine("  br label %compare.loop");
         _output.AppendLine("compare.loop:");
@@ -1752,7 +1806,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("entry:");
         _output.AppendLine("  %is.null = icmp eq ptr %input, null");
         _output.AppendLine("  %string = select i1 %is.null, ptr @luma_string_empty, ptr %input");
-        _output.AppendLine("  %length.address = getelementptr %luma.string, ptr %string, i32 0, i32 4");
+        _output.AppendLine("  %length.address = getelementptr %luma.string, ptr %string, i32 0, i32 5");
         _output.AppendLine("  %length = load i32, ptr %length.address");
         _output.AppendLine("  ret i32 %length");
         _output.AppendLine("}");
@@ -1761,7 +1815,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("entry:");
         _output.AppendLine("  %is.null = icmp eq ptr %input, null");
         _output.AppendLine("  %string = select i1 %is.null, ptr @luma_string_empty, ptr %input");
-        _output.AppendLine("  %units.address = getelementptr %luma.string, ptr %string, i32 0, i32 8");
+        _output.AppendLine("  %units.address = getelementptr %luma.string, ptr %string, i32 0, i32 9");
         _output.AppendLine("  %units = load ptr, ptr %units.address");
         _output.AppendLine("  %unit.address = getelementptr i16, ptr %units, i32 %index");
         _output.AppendLine("  %unit = load i16, ptr %unit.address");
@@ -1811,18 +1865,20 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
               store i32 1, ptr %count.address
               %header.flags.address = getelementptr %luma.string, ptr %object, i32 0, i32 2
               store i32 0, ptr %header.flags.address
-              %data.address = getelementptr %luma.string, ptr %object, i32 0, i32 3
+              %weak.address = getelementptr %luma.string, ptr %object, i32 0, i32 3
+              store ptr null, ptr %weak.address
+              %data.address = getelementptr %luma.string, ptr %object, i32 0, i32 4
               store ptr %data, ptr %data.address
-              %length.address = getelementptr %luma.string, ptr %object, i32 0, i32 4
+              %length.address = getelementptr %luma.string, ptr %object, i32 0, i32 5
               store i32 %length, ptr %length.address
-              %byte.length.address = getelementptr %luma.string, ptr %object, i32 0, i32 5
+              %byte.length.address = getelementptr %luma.string, ptr %object, i32 0, i32 6
               store i32 %byte.length, ptr %byte.length.address
-              %charset.address = getelementptr %luma.string, ptr %object, i32 0, i32 6
+              %charset.address = getelementptr %luma.string, ptr %object, i32 0, i32 7
               store i8 0, ptr %charset.address
               %ascii.flags = select i1 %ascii, i8 3, i8 1
-              %string.flags.address = getelementptr %luma.string, ptr %object, i32 0, i32 7
+              %string.flags.address = getelementptr %luma.string, ptr %object, i32 0, i32 8
               store i8 %ascii.flags, ptr %string.flags.address
-              %units.address = getelementptr %luma.string, ptr %object, i32 0, i32 8
+              %units.address = getelementptr %luma.string, ptr %object, i32 0, i32 9
               store ptr %units, ptr %units.address
               ret ptr %object
             out.of.memory:
@@ -2145,9 +2201,214 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         throw new InvalidOperationException($"Reference-bearing array element '{type}' has no supported aggregate layout.");
     }
 
+    private void EmitWeakReferenceRuntime(string sizeType)
+    {
+        var pointerBytes = compilation.NativePointerSize;
+        var weakOffset = pointerBytes + 8;
+        _output.AppendLine("define internal void @luma_weak_lock(ptr %control)");
+        _output.AppendLine("{");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %lock.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 1");
+        _output.AppendLine("  br label %retry");
+        _output.AppendLine("retry:");
+        _output.AppendLine("  %attempt = cmpxchg ptr %lock.address, i32 0, i32 1 acquire monotonic");
+        _output.AppendLine("  %acquired = extractvalue { i32, i1 } %attempt, 1");
+        _output.AppendLine("  br i1 %acquired, label %done, label %retry");
+        _output.AppendLine("done:");
+        _output.AppendLine("  ret void");
+        _output.AppendLine("}");
+        _output.AppendLine("define internal void @luma_weak_unlock(ptr %control)");
+        _output.AppendLine("{");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %lock.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 1");
+        _output.AppendLine("  store atomic i32 0, ptr %lock.address release, align 4");
+        _output.AppendLine("  ret void");
+        _output.AppendLine("}");
+        _output.AppendLine($"define internal {sizeType} @luma_weak_create(ptr %target)");
+        _output.AppendLine("{");
+        _output.AppendLine("entry:");
+        _output.AppendLine($"  %slot = getelementptr i8, ptr %target, {sizeType} {weakOffset}");
+        if (HasStringSupport() || HasManagedArraySupport())
+        {
+            _output.AppendLine("  %descriptor = load ptr, ptr %target");
+            _output.AppendLine("  %release.address = getelementptr %luma.typedesc, ptr %descriptor, i32 0, i32 4");
+            _output.AppendLine("  %release.function = load ptr, ptr %release.address");
+            var specialComparisons = new List<string>();
+            if (HasStringSupport())
+            {
+                _output.AppendLine("  %is.string = icmp eq ptr %release.function, @luma_string_release");
+                specialComparisons.Add("%is.string");
+            }
+            if (HasManagedArraySupport())
+            {
+                _output.AppendLine("  %is.array = icmp eq ptr %release.function, @luma_array_release");
+                specialComparisons.Add("%is.array");
+            }
+            var special = specialComparisons.Count == 1 ? specialComparisons[0] : "%is.special";
+            if (specialComparisons.Count > 1)
+                _output.AppendLine($"  {special} = or i1 {specialComparisons[0]}, {specialComparisons[1]}");
+            _output.AppendLine($"  br i1 {special}, label %check.string.immortal, label %check.class.immortal");
+            _output.AppendLine("check.string.immortal:");
+            if (HasStringSupport())
+            {
+                _output.AppendLine("  %is.string.target = icmp eq ptr %release.function, @luma_string_release");
+                _output.AppendLine("  br i1 %is.string.target, label %check.immortal.flags, label %lookup");
+            }
+            else _output.AppendLine("  br label %lookup");
+            _output.AppendLine("check.class.immortal:");
+            _output.AppendLine("  br label %check.immortal.flags");
+            _output.AppendLine("check.immortal.flags:");
+            _output.AppendLine($"  %flags.address = getelementptr i8, ptr %target, {sizeType} {pointerBytes + 4}");
+            _output.AppendLine("  %flags = load i32, ptr %flags.address");
+            _output.AppendLine("  %immortal.bits = and i32 %flags, 1");
+            _output.AppendLine("  %immortal = icmp ne i32 %immortal.bits, 0");
+            _output.AppendLine("  %destroying.bits = and i32 %flags, 4");
+            _output.AppendLine("  %destroying = icmp ne i32 %destroying.bits, 0");
+            _output.AppendLine("  %needs.detached = or i1 %immortal, %destroying");
+            _output.AppendLine("  %detached.target = select i1 %destroying, ptr null, ptr %target");
+            _output.AppendLine("  %existing.control = load atomic ptr, ptr %slot acquire, align " + pointerBytes);
+            _output.AppendLine("  %has.existing.control = icmp ne ptr %existing.control, null");
+            _output.AppendLine("  %reuse.destroying.control = and i1 %destroying, %has.existing.control");
+            _output.AppendLine("  %allocate.detached = xor i1 %reuse.destroying.control, %needs.detached");
+            _output.AppendLine("  br i1 %allocate.detached, label %detached.allocate, label %lookup");
+        }
+        else
+        {
+            _output.AppendLine($"  %flags.address = getelementptr i8, ptr %target, {sizeType} {pointerBytes + 4}");
+            _output.AppendLine("  %flags = load i32, ptr %flags.address");
+            _output.AppendLine("  %immortal.bits = and i32 %flags, 1");
+            _output.AppendLine("  %immortal = icmp ne i32 %immortal.bits, 0");
+            _output.AppendLine("  %destroying.bits = and i32 %flags, 4");
+            _output.AppendLine("  %destroying = icmp ne i32 %destroying.bits, 0");
+            _output.AppendLine("  %needs.detached = or i1 %immortal, %destroying");
+            _output.AppendLine("  %detached.target = select i1 %destroying, ptr null, ptr %target");
+            _output.AppendLine("  %existing.control = load atomic ptr, ptr %slot acquire, align " + pointerBytes);
+            _output.AppendLine("  %has.existing.control = icmp ne ptr %existing.control, null");
+            _output.AppendLine("  %reuse.destroying.control = and i1 %destroying, %has.existing.control");
+            _output.AppendLine("  %allocate.detached = xor i1 %reuse.destroying.control, %needs.detached");
+            _output.AppendLine("  br i1 %allocate.detached, label %detached.allocate, label %lookup");
+        }
+        _output.AppendLine("detached.allocate:");
+        _output.AppendLine("  %detached.size.address = getelementptr %luma.weak.control, ptr null, i32 1");
+        _output.AppendLine($"  %detached.size = ptrtoint ptr %detached.size.address to {sizeType}");
+        _output.AppendLine($"  %detached.candidate = call ptr @malloc({sizeType} %detached.size)");
+        _output.AppendLine("  %detached.failed = icmp eq ptr %detached.candidate, null");
+        _output.AppendLine("  br i1 %detached.failed, label %oom, label %detached.initialize");
+        _output.AppendLine("detached.initialize:");
+        _output.AppendLine("  %detached.target.address = getelementptr %luma.weak.control, ptr %detached.candidate, i32 0, i32 0");
+        _output.AppendLine("  store ptr %detached.target, ptr %detached.target.address");
+        _output.AppendLine("  %detached.lock.address = getelementptr %luma.weak.control, ptr %detached.candidate, i32 0, i32 1");
+        _output.AppendLine("  store i32 0, ptr %detached.lock.address");
+        _output.AppendLine("  %detached.count.address = getelementptr %luma.weak.control, ptr %detached.candidate, i32 0, i32 2");
+        _output.AppendLine("  store i32 1, ptr %detached.count.address");
+        _output.AppendLine("  %detached.flag.address = getelementptr %luma.weak.control, ptr %detached.candidate, i32 0, i32 3");
+        _output.AppendLine("  store i32 1, ptr %detached.flag.address");
+        _output.AppendLine($"  %detached.handle = ptrtoint ptr %detached.candidate to {sizeType}");
+        _output.AppendLine($"  ret {sizeType} %detached.handle");
+        _output.AppendLine("lookup:");
+        _output.AppendLine("  %current = load atomic ptr, ptr %slot acquire, align " + pointerBytes);
+        _output.AppendLine("  %missing = icmp eq ptr %current, null");
+        _output.AppendLine("  br i1 %missing, label %allocate, label %activate");
+        _output.AppendLine("allocate:");
+        _output.AppendLine("  %size.address = getelementptr %luma.weak.control, ptr null, i32 1");
+        _output.AppendLine($"  %size = ptrtoint ptr %size.address to {sizeType}");
+        _output.AppendLine($"  %candidate = call ptr @malloc({sizeType} %size)");
+        _output.AppendLine("  %failed = icmp eq ptr %candidate, null");
+        _output.AppendLine("  br i1 %failed, label %oom, label %initialize");
+        _output.AppendLine("initialize:");
+        _output.AppendLine("  %target.address = getelementptr %luma.weak.control, ptr %candidate, i32 0, i32 0");
+        _output.AppendLine("  store ptr %target, ptr %target.address");
+        _output.AppendLine("  %lock.address = getelementptr %luma.weak.control, ptr %candidate, i32 0, i32 1");
+        _output.AppendLine("  store i32 0, ptr %lock.address");
+        _output.AppendLine("  %active.address = getelementptr %luma.weak.control, ptr %candidate, i32 0, i32 2");
+        _output.AppendLine("  store i32 0, ptr %active.address");
+        _output.AppendLine("  %detached.address = getelementptr %luma.weak.control, ptr %candidate, i32 0, i32 3");
+        _output.AppendLine("  store i32 0, ptr %detached.address");
+        _output.AppendLine("  %attempt = cmpxchg ptr %slot, ptr null, ptr %candidate acq_rel acquire");
+        _output.AppendLine("  %prior = extractvalue { ptr, i1 } %attempt, 0");
+        _output.AppendLine("  %won = extractvalue { ptr, i1 } %attempt, 1");
+        _output.AppendLine("  br i1 %won, label %candidate.won, label %candidate.lost");
+        _output.AppendLine("candidate.won:");
+        _output.AppendLine("  br label %activate");
+        _output.AppendLine("candidate.lost:");
+        _output.AppendLine("  call void @free(ptr %candidate)");
+        _output.AppendLine("  br label %lookup");
+        _output.AppendLine("activate:");
+        _output.AppendLine("  %control = phi ptr [ %current, %lookup ], [ %candidate, %candidate.won ]");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %control)");
+        _output.AppendLine("  %active.ptr = getelementptr %luma.weak.control, ptr %control, i32 0, i32 2");
+        _output.AppendLine("  %active.old = atomicrmw add ptr %active.ptr, i32 1 acq_rel");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %control)");
+        _output.AppendLine($"  %handle = ptrtoint ptr %control to {sizeType}");
+        _output.AppendLine($"  ret {sizeType} %handle");
+        _output.AppendLine("oom:");
+        _output.AppendLine("  call void @luma_throw_out_of_memory()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("}");
+        _output.AppendLine($"define internal i1 @luma_weak_is_alive({sizeType} %handle)");
+        _output.AppendLine("{");
+        _output.AppendLine("entry:");
+        _output.AppendLine($"  %control = inttoptr {sizeType} %handle to ptr");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %control)");
+        _output.AppendLine("  %target.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 0");
+        _output.AppendLine("  %target = load atomic ptr, ptr %target.address acquire, align " + pointerBytes);
+        _output.AppendLine("  %alive = icmp ne ptr %target, null");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %control)");
+        _output.AppendLine("  ret i1 %alive");
+        _output.AppendLine("}");
+        _output.AppendLine($"define internal ptr @luma_weak_get_target({sizeType} %handle)");
+        _output.AppendLine("{");
+        _output.AppendLine("entry:");
+        _output.AppendLine($"  %control = inttoptr {sizeType} %handle to ptr");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %control)");
+        _output.AppendLine("  %target.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 0");
+        _output.AppendLine("  %target = load atomic ptr, ptr %target.address acquire, align " + pointerBytes);
+        _output.AppendLine("  %is.alive = icmp ne ptr %target, null");
+        _output.AppendLine("  %detached.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 3");
+        _output.AppendLine("  %detached = load i32, ptr %detached.address");
+        _output.AppendLine("  %is.detached = icmp ne i32 %detached, 0");
+        _output.AppendLine("  %not.detached = xor i1 %is.detached, true");
+        _output.AppendLine("  %should.retain = and i1 %is.alive, %not.detached");
+        _output.AppendLine("  br i1 %should.retain, label %retain, label %done");
+        _output.AppendLine("retain:");
+        _output.AppendLine($"  %count.address = getelementptr i8, ptr %target, {sizeType} {pointerBytes}");
+        _output.AppendLine("  %old.count = atomicrmw add ptr %count.address, i32 1 acq_rel");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("done:");
+        _output.AppendLine("  %result = select i1 %is.alive, ptr %target, ptr null");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %control)");
+        _output.AppendLine("  ret ptr %result");
+        _output.AppendLine("}");
+        _output.AppendLine($"define internal void @luma_weak_release({sizeType} %handle)");
+        _output.AppendLine("{");
+        _output.AppendLine("entry:");
+        _output.AppendLine($"  %control = inttoptr {sizeType} %handle to ptr");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %control)");
+        _output.AppendLine("  %active.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 2");
+        _output.AppendLine("  %active.old = atomicrmw sub ptr %active.address, i32 1 acq_rel");
+        _output.AppendLine("  %target.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 0");
+        _output.AppendLine("  %target = load atomic ptr, ptr %target.address acquire, align " + pointerBytes);
+        _output.AppendLine("  %is.dead = icmp eq ptr %target, null");
+        _output.AppendLine("  %no.handles = icmp eq i32 %active.old, 1");
+        _output.AppendLine("  %detached.address = getelementptr %luma.weak.control, ptr %control, i32 0, i32 3");
+        _output.AppendLine("  %detached = load i32, ptr %detached.address");
+        _output.AppendLine("  %is.detached = icmp ne i32 %detached, 0");
+        _output.AppendLine("  %can.free = or i1 %is.dead, %is.detached");
+        _output.AppendLine("  %should.free = and i1 %can.free, %no.handles");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %control)");
+        _output.AppendLine("  br i1 %should.free, label %free, label %done");
+        _output.AppendLine("free:");
+        _output.AppendLine("  call void @free(ptr %control)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("done:");
+        _output.AppendLine("  ret void");
+        _output.AppendLine("}");
+    }
+
     private void EmitManagedClassRuntime()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
+        EmitWeakReferenceRuntime(sizeType);
         var borrowedClosureFields = compilation.ClosureEnvironments.Values
             .Concat(compilation.ForHeaderClosureEnvironments.Values)
             .Concat(compilation.ForInClosureEnvironments.Values)
@@ -2282,10 +2543,36 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             _output.AppendLine("  %is.uncounted = icmp ne i32 %uncounted.bits, 0");
             _output.AppendLine("  br i1 %is.uncounted, label %done, label %decrement");
             _output.AppendLine("decrement:");
+            _output.AppendLine($"  %weak.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 3");
+            _output.AppendLine("  %weak.control = load atomic ptr, ptr %weak.address acquire, align " + compilation.NativePointerSize);
+            _output.AppendLine("  %has.weak.control = icmp ne ptr %weak.control, null");
+            _output.AppendLine("  br i1 %has.weak.control, label %weak.decrement, label %normal.decrement");
+            _output.AppendLine("normal.decrement:");
             _output.AppendLine($"  %count.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 1");
             _output.AppendLine("  %old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
             _output.AppendLine("  %last.reference = icmp eq i32 %old.count, 1");
             _output.AppendLine("  br i1 %last.reference, label %check.destroying, label %done");
+            _output.AppendLine("weak.decrement:");
+            _output.AppendLine("  call void @luma_weak_lock(ptr %weak.control)");
+            _output.AppendLine($"  %weak.count.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 1");
+            _output.AppendLine("  %weak.old.count = atomicrmw sub ptr %weak.count.address, i32 1 acq_rel");
+            _output.AppendLine("  %weak.last.reference = icmp eq i32 %weak.old.count, 1");
+            _output.AppendLine("  br i1 %weak.last.reference, label %weak.last.release, label %weak.not.last");
+            _output.AppendLine("weak.not.last:");
+            _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+            _output.AppendLine("  br label %done");
+            _output.AppendLine("weak.last.release:");
+            _output.AppendLine("  %weak.target.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 0");
+            _output.AppendLine("  store atomic ptr null, ptr %weak.target.address release, align " + compilation.NativePointerSize);
+            _output.AppendLine("  %weak.active.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 2");
+            _output.AppendLine("  %weak.handle.count = load atomic i32, ptr %weak.active.address acquire, align 4");
+            _output.AppendLine("  %weak.active = icmp ne i32 %weak.handle.count, 0");
+            _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+            _output.AppendLine("  br i1 %weak.active, label %check.destroying, label %weak.free");
+            _output.AppendLine("weak.free:");
+            _output.AppendLine("  store atomic ptr null, ptr %weak.address release, align " + compilation.NativePointerSize);
+            _output.AppendLine("  call void @free(ptr %weak.control)");
+            _output.AppendLine("  br label %check.destroying");
             _output.AppendLine("check.destroying:");
             _output.AppendLine($"  %flags.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 2");
             _output.AppendLine("  %flags = load atomic i32, ptr %flags.address acquire, align 4");
@@ -2323,13 +2610,13 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                     if (borrowedClosureFields.Contains((name, field.Index))) continue;
                     if (AggregateTypeContainsManagedReferences(field.TypeName))
                     {
-                        _output.AppendLine($"  %field.{field.Index}.aggregate.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 {field.Index + 3}");
+                        _output.AppendLine($"  %field.{field.Index}.aggregate.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 {field.Index + 4}");
                         _output.AppendLine($"  call void @{AggregateOwnershipFunctionName(field.TypeName, retain: false)}(ptr %field.{field.Index}.aggregate.address)");
                         continue;
                     }
                     var fieldBaseType = field.TypeName.EndsWith("?", StringComparison.Ordinal) ? field.TypeName[..^1] : field.TypeName;
                     if (fieldBaseType != "string" && !compilation.ClassTypes.ContainsKey(fieldBaseType) && !compilation.InterfaceTypes.ContainsKey(fieldBaseType) && !compilation.DelegateTypes.ContainsKey(fieldBaseType) && !SemanticAnalyzer.TryParseManagedArrayType(fieldBaseType, out _, out _)) continue;
-                    _output.AppendLine($"  %field.{field.Index}.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 {field.Index + 3}");
+                    _output.AppendLine($"  %field.{field.Index}.address = getelementptr %class.{safe}, ptr %input, i32 0, i32 {field.Index + 4}");
                     _output.AppendLine($"  %field.{field.Index}.value = load ptr, ptr %field.{field.Index}.address");
                     var releaseFunction = fieldBaseType == "string" ? "luma_string_release" : compilation.ClassTypes.ContainsKey(fieldBaseType) || compilation.InterfaceTypes.ContainsKey(fieldBaseType) || compilation.DelegateTypes.ContainsKey(fieldBaseType) ? "luma_class_release_dynamic" : "luma_array_release";
                     _output.AppendLine($"  call void @{releaseFunction}(ptr %field.{field.Index}.value)");
@@ -2610,9 +2897,33 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  br i1 %uncounted, label %done, label %decrement");
         _output.AppendLine("decrement:");
         _output.AppendLine("  %count.address = getelementptr %luma.box, ptr %input, i32 0, i32 1");
+        _output.AppendLine("  %weak.address = getelementptr %luma.box, ptr %input, i32 0, i32 3");
+        _output.AppendLine("  %weak.control = load atomic ptr, ptr %weak.address acquire, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %has.weak.control = icmp ne ptr %weak.control, null");
+        _output.AppendLine("  br i1 %has.weak.control, label %weak.decrement, label %normal.decrement");
+        _output.AppendLine("normal.decrement:");
         _output.AppendLine("  %old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
         _output.AppendLine("  %last.reference = icmp eq i32 %old.count, 1");
         _output.AppendLine("  br i1 %last.reference, label %destroy, label %done");
+        _output.AppendLine("weak.decrement:");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %weak.control)");
+        _output.AppendLine("  %weak.old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
+        _output.AppendLine("  %weak.last.reference = icmp eq i32 %weak.old.count, 1");
+        _output.AppendLine("  br i1 %weak.last.reference, label %weak.destroy, label %weak.not.last");
+        _output.AppendLine("weak.not.last:");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("weak.destroy:");
+        _output.AppendLine("  %weak.target.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 0");
+        _output.AppendLine("  store atomic ptr null, ptr %weak.target.address release, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %weak.count.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 2");
+        _output.AppendLine("  %weak.handle.count = load atomic i32, ptr %weak.count.address acquire, align 4");
+        _output.AppendLine("  %weak.has.handles = icmp ne i32 %weak.handle.count, 0");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br i1 %weak.has.handles, label %destroy, label %weak.free");
+        _output.AppendLine("weak.free:");
+        _output.AppendLine("  call void @free(ptr %weak.control)");
+        _output.AppendLine("  br label %destroy");
         _output.AppendLine("destroy:");
         _output.AppendLine("  call void @free(ptr %input)");
         _output.AppendLine("  br label %done");
@@ -2691,11 +3002,35 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  br i1 %uncounted, label %done, label %decrement");
         _output.AppendLine("decrement:");
         _output.AppendLine($"  %count.address = getelementptr {boxType}, ptr %input, i32 0, i32 1");
+        _output.AppendLine($"  %weak.address = getelementptr {boxType}, ptr %input, i32 0, i32 3");
+        _output.AppendLine("  %weak.control = load atomic ptr, ptr %weak.address acquire, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %has.weak.control = icmp ne ptr %weak.control, null");
+        _output.AppendLine("  br i1 %has.weak.control, label %weak.decrement, label %normal.decrement");
+        _output.AppendLine("normal.decrement:");
         _output.AppendLine("  %old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
         _output.AppendLine("  %last.reference = icmp eq i32 %old.count, 1");
         _output.AppendLine("  br i1 %last.reference, label %destroy, label %done");
+        _output.AppendLine("weak.decrement:");
+        _output.AppendLine("  call void @luma_weak_lock(ptr %weak.control)");
+        _output.AppendLine("  %weak.old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
+        _output.AppendLine("  %weak.last.reference = icmp eq i32 %weak.old.count, 1");
+        _output.AppendLine("  br i1 %weak.last.reference, label %weak.destroy, label %weak.not.last");
+        _output.AppendLine("weak.not.last:");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("weak.destroy:");
+        _output.AppendLine("  %weak.target.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 0");
+        _output.AppendLine("  store atomic ptr null, ptr %weak.target.address release, align " + compilation.NativePointerSize);
+        _output.AppendLine("  %weak.count.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 2");
+        _output.AppendLine("  %weak.handle.count = load atomic i32, ptr %weak.count.address acquire, align 4");
+        _output.AppendLine("  %weak.has.handles = icmp ne i32 %weak.handle.count, 0");
+        _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+        _output.AppendLine("  br i1 %weak.has.handles, label %destroy, label %weak.free");
+        _output.AppendLine("weak.free:");
+        _output.AppendLine("  call void @free(ptr %weak.control)");
+        _output.AppendLine("  br label %destroy");
         _output.AppendLine("destroy:");
-        _output.AppendLine($"  %payload.address = getelementptr {boxType}, ptr %input, i32 0, i32 3");
+        _output.AppendLine($"  %payload.address = getelementptr {boxType}, ptr %input, i32 0, i32 4");
         _output.AppendLine($"  call void @{AggregateOwnershipFunctionName(type, retain: false)}(ptr %payload.address)");
         _output.AppendLine("  call void @free(ptr %input)");
         _output.AppendLine("  br label %done");
@@ -2703,7 +3038,6 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  ret void");
         _output.AppendLine("}");
     }
-
     private static string StructToStringThunkName(string type) => $"luma_struct_tostring_{Safe(type)}";
 
     private static string StructInterfaceThunkName(string type, int slot) => $"luma_struct_iface_{Safe(type)}_{slot}";
@@ -2724,7 +3058,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 var resultType = LlvmType(implementation.Declaration.ReturnType);
                 _output.AppendLine($"define internal {resultType} @{StructInterfaceThunkName(type, slot.Index)}({signatureArguments}) {{");
                 _output.AppendLine("entry:");
-                _output.AppendLine($"  %payload = getelementptr %luma.structbox.{Safe(type)}, ptr %box, i32 0, i32 3");
+                _output.AppendLine($"  %payload = getelementptr %luma.structbox.{Safe(type)}, ptr %box, i32 0, i32 4");
                 var allArguments = callArguments.Length == 0 ? "ptr %payload" : $"ptr %payload, {callArguments}";
                 var call = $"call {resultType} @{FunctionName(implementation, compilation.Methods)}({allArguments})";
                 if (implementation.Declaration.ReturnType == "void")
@@ -2749,7 +3083,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             if (implementation is null) continue;
             _output.AppendLine($"define internal ptr @{StructToStringThunkName(type)}(ptr %box) {{");
             _output.AppendLine("entry:");
-            _output.AppendLine($"  %payload = getelementptr %luma.structbox.{Safe(type)}, ptr %box, i32 0, i32 3");
+            _output.AppendLine($"  %payload = getelementptr %luma.structbox.{Safe(type)}, ptr %box, i32 0, i32 4");
             _output.AppendLine($"  %result = call ptr @{FunctionName(implementation, compilation.Methods)}(ptr %payload)");
             _output.AppendLine("  ret ptr %result");
             _output.AppendLine("}");
@@ -2805,11 +3139,35 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             _output.AppendLine("  br i1 %uncounted, label %done, label %decrement");
             _output.AppendLine("decrement:");
             _output.AppendLine($"  %count.address = getelementptr %delegate.{safe}, ptr %input, i32 0, i32 1");
+            _output.AppendLine($"  %weak.address = getelementptr %delegate.{safe}, ptr %input, i32 0, i32 3");
+            _output.AppendLine("  %weak.control = load atomic ptr, ptr %weak.address acquire, align " + compilation.NativePointerSize);
+            _output.AppendLine("  %has.weak.control = icmp ne ptr %weak.control, null");
+            _output.AppendLine("  br i1 %has.weak.control, label %weak.decrement, label %normal.decrement");
+            _output.AppendLine("normal.decrement:");
             _output.AppendLine("  %old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
             _output.AppendLine("  %last.reference = icmp eq i32 %old.count, 1");
             _output.AppendLine("  br i1 %last.reference, label %destroy, label %done");
+            _output.AppendLine("weak.decrement:");
+            _output.AppendLine("  call void @luma_weak_lock(ptr %weak.control)");
+            _output.AppendLine("  %weak.old.count = atomicrmw sub ptr %count.address, i32 1 acq_rel");
+            _output.AppendLine("  %weak.last.reference = icmp eq i32 %weak.old.count, 1");
+            _output.AppendLine("  br i1 %weak.last.reference, label %weak.destroy, label %weak.not.last");
+            _output.AppendLine("weak.not.last:");
+            _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+            _output.AppendLine("  br label %done");
+            _output.AppendLine("weak.destroy:");
+            _output.AppendLine("  %weak.target.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 0");
+            _output.AppendLine("  store atomic ptr null, ptr %weak.target.address release, align " + compilation.NativePointerSize);
+            _output.AppendLine("  %weak.count.address = getelementptr %luma.weak.control, ptr %weak.control, i32 0, i32 2");
+            _output.AppendLine("  %weak.handle.count = load atomic i32, ptr %weak.count.address acquire, align 4");
+            _output.AppendLine("  %weak.has.handles = icmp ne i32 %weak.handle.count, 0");
+            _output.AppendLine("  call void @luma_weak_unlock(ptr %weak.control)");
+            _output.AppendLine("  br i1 %weak.has.handles, label %destroy, label %weak.free");
+            _output.AppendLine("weak.free:");
+            _output.AppendLine("  call void @free(ptr %weak.control)");
+            _output.AppendLine("  br label %destroy");
             _output.AppendLine("destroy:");
-            _output.AppendLine($"  %target.address = getelementptr %delegate.{safe}, ptr %input, i32 0, i32 4");
+            _output.AppendLine($"  %target.address = getelementptr %delegate.{safe}, ptr %input, i32 0, i32 5");
             _output.AppendLine("  %target = load ptr, ptr %target.address");
             _output.AppendLine("  call void @luma_class_release_dynamic(ptr %target)");
             _output.AppendLine("  call void @free(ptr %input)");
@@ -2838,7 +3196,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             return $"{LlvmType(field.TypeName)} {value}";
         });
         var suffix = type.Fields.Count == 0 ? "" : ", " + string.Join(", ", fields);
-        _output.AppendLine($"@{instanceName} = internal global %class.{Safe(typeName)} {{ ptr @luma_classdesc_{Safe(typeName)}, i32 -1, i32 1{suffix} }}");
+        _output.AppendLine($"@{instanceName} = internal global %class.{Safe(typeName)} {{ ptr @luma_classdesc_{Safe(typeName)}, i32 -1, i32 1, ptr null{suffix} }}");
     }
 
     private bool HasManagedClassSupportFor(string typeName) => GetManagedClassTypes().Contains(typeName);
@@ -3343,7 +3701,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"store i32 0, ptr {flags}");
             foreach (var field in exceptionClass.Fields)
             {
-                var address = NewTemp(); Emit($"{address} = getelementptr {llvmClassType}, ptr {instance}, i32 0, i32 {field.Index + 3}");
+                var address = NewTemp(); Emit($"{address} = getelementptr {llvmClassType}, ptr {instance}, i32 0, i32 {field.Index + 4}");
                 Emit($"store {LlvmType(field.TypeName)} {DefaultStorageValue(field.TypeName)}, ptr {address}");
             }
             EmitRaisePreparedException(instance);
@@ -3863,7 +4221,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"store i32 1, ptr {countAddress}");
             var flagsAddress = NewTemp(); Emit($"{flagsAddress} = getelementptr %delegate.{safeType}, ptr {instance}, i32 0, i32 2");
             Emit($"store i32 0, ptr {flagsAddress}");
-            var functionAddress = NewTemp(); Emit($"{functionAddress} = getelementptr %delegate.{safeType}, ptr {instance}, i32 0, i32 3");
+            var weakAddress = NewTemp(); Emit($"{weakAddress} = getelementptr %delegate.{safeType}, ptr {instance}, i32 0, i32 3");
+            Emit($"store ptr null, ptr {weakAddress}");
+            var functionAddress = NewTemp(); Emit($"{functionAddress} = getelementptr %delegate.{safeType}, ptr {instance}, i32 0, i32 4");
             var function = binding.Method.IsStructInstanceMethod
                 ? $"@{LlvmEmitter.StructDelegateThunkName(binding, methods)}"
                 : $"@{FunctionName(binding.Method, methods)}";
@@ -3877,7 +4237,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 function = virtualFunction;
             }
             Emit($"store ptr {function}, ptr {functionAddress}");
-            var targetAddress = NewTemp(); Emit($"{targetAddress} = getelementptr %delegate.{safeType}, ptr {instance}, i32 0, i32 4");
+            var targetAddress = NewTemp(); Emit($"{targetAddress} = getelementptr %delegate.{safeType}, ptr {instance}, i32 0, i32 5");
             Emit($"store ptr {target}, ptr {targetAddress}");
             _ownedClassValues.Add((instance, delegateName));
             return (instance, delegateName);
@@ -3918,9 +4278,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var returnType = delegateType.DelegateReturnType ?? "void";
             var result = returnType == "void" ? null : NewTemp();
             var safeType = Safe(QualifiedTypeName(delegateType));
-            var functionAddress = NewTemp(); Emit($"{functionAddress} = getelementptr %delegate.{safeType}, ptr {delegateValue.Value}, i32 0, i32 3");
+            var functionAddress = NewTemp(); Emit($"{functionAddress} = getelementptr %delegate.{safeType}, ptr {delegateValue.Value}, i32 0, i32 4");
             var function = NewTemp(); Emit($"{function} = load ptr, ptr {functionAddress}");
-            var targetAddress = NewTemp(); Emit($"{targetAddress} = getelementptr %delegate.{safeType}, ptr {delegateValue.Value}, i32 0, i32 4");
+            var targetAddress = NewTemp(); Emit($"{targetAddress} = getelementptr %delegate.{safeType}, ptr {delegateValue.Value}, i32 0, i32 5");
             var target = NewTemp(); Emit($"{target} = load ptr, ptr {targetAddress}");
             var isStatic = NewTemp(); Emit($"{isStatic} = icmp eq ptr {target}, null");
             var staticLabel = NewLabel("delegate.static"); var instanceLabel = NewLabel("delegate.instance"); var endLabel = NewLabel("delegate.end");
@@ -4190,7 +4550,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             EmitArrayAllocation(array, length, rank, dimensions, elementType);
             _ownedArrayValues.Add(array);
             var data = NewTemp();
-            Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 6");
+            Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 7");
             EmitManagedArrayElements(data, initializer, elementType);
             return (array, arrayType);
         }
@@ -4251,7 +4611,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             else _ownedArrayValues.Add(array);
             if (allocation.Initializer is { } initializer)
             {
-                var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 6");
+                var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 7");
                 EmitManagedArrayElements(data, initializer, elementType);
             }
             return (array, arrayType);
@@ -4278,9 +4638,11 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"store i32 1, ptr {countAddress}");
             var flagsAddress = NewTemp(); Emit($"{flagsAddress} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 2");
             Emit($"store i32 0, ptr {flagsAddress}");
+            var weakAddress = NewTemp(); Emit($"{weakAddress} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 3");
+            Emit($"store ptr null, ptr {weakAddress}");
             foreach (var field in classType.Fields)
             {
-                var address = NewTemp(); Emit($"{address} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 {field.Index + 3}");
+                var address = NewTemp(); Emit($"{address} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 {field.Index + 4}");
                 Emit($"store {LlvmType(field.TypeName)} {DefaultStorageValue(field.TypeName)}, ptr {address}");
             }
             if (allocation.IsScope)
@@ -4425,7 +4787,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         }
         private (string Value, string Type) EmitManagedArrayLength(string array)
         {
-            var address = NewTemp(); Emit($"{address} = getelementptr %luma.array, ptr {array}, i32 0, i32 3");
+            var address = NewTemp(); Emit($"{address} = getelementptr %luma.array, ptr {array}, i32 0, i32 4");
             var length = NewTemp(); Emit($"{length} = load i32, ptr {address}");
             return (length, "int32");
         }
@@ -4434,7 +4796,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var receiver = EmitExpression(access.Receiver);
             var length = EmitManagedArrayLength(receiver.Value).Value;
             var data = NewTemp();
-            Emit($"{data} = getelementptr %luma.array, ptr {receiver.Value}, i32 0, i32 6");
+            Emit($"{data} = getelementptr %luma.array, ptr {receiver.Value}, i32 0, i32 7");
             var isEmpty = NewTemp();
             Emit($"{isEmpty} = icmp eq i32 {length}, 0");
             var pointer = NewTemp();
@@ -4443,7 +4805,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         }
         private (string Value, string Type) EmitManagedArrayRank(string array)
         {
-            var address = NewTemp(); Emit($"{address} = getelementptr %luma.array, ptr {array}, i32 0, i32 4");
+            var address = NewTemp(); Emit($"{address} = getelementptr %luma.array, ptr {array}, i32 0, i32 5");
             var rank = NewTemp(); Emit($"{rank} = load i32, ptr {address}");
             return (rank, "int32");
         }
@@ -4492,14 +4854,14 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         }
         private string EmitManagedArrayGetLength(string array, string index)
         {
-            var rankAddress = NewTemp(); Emit($"{rankAddress} = getelementptr %luma.array, ptr {array}, i32 0, i32 4");
+            var rankAddress = NewTemp(); Emit($"{rankAddress} = getelementptr %luma.array, ptr {array}, i32 0, i32 5");
             var rank = NewTemp(); Emit($"{rank} = load i32, ptr {rankAddress}");
             var nonnegative = NewTemp(); Emit($"{nonnegative} = icmp sge i32 {index}, 0");
             var inRange = NewTemp(); Emit($"{inRange} = icmp slt i32 {index}, {rank}");
             var valid = NewTemp(); Emit($"{valid} = and i1 {nonnegative}, {inRange}");
             var invalid = NewTemp(); Emit($"{invalid} = xor i1 {valid}, true");
             TrapIf(invalid, "luma_throw_bounds");
-            var dimensionAddress = NewTemp(); Emit($"{dimensionAddress} = getelementptr %luma.array, ptr {array}, i32 0, i32 5, i32 {index}");
+            var dimensionAddress = NewTemp(); Emit($"{dimensionAddress} = getelementptr %luma.array, ptr {array}, i32 0, i32 6, i32 {index}");
             var dimensionLength = NewTemp(); Emit($"{dimensionLength} = load i32, ptr {dimensionAddress}");
             return dimensionLength;
         }
@@ -4797,7 +5159,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             if (IsRuntimeObjectReference(governingValue.Type) && IsBoxableValueType(patternType))
             {
                 if (IsBoxableStructType(patternType)) return LoadBoxedStructValue(governingValue.Value, patternType);
-                var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {governingValue.Value}, i32 0, i32 3");
+                var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {governingValue.Value}, i32 0, i32 4");
                 var payload = NewTemp(); Emit($"{payload} = load i64, ptr {payloadAddress}");
                 return DecodeBoxPayload(payload, patternType);
             }
@@ -5209,7 +5571,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 _ownedArrayValues.Remove(array.Value);
                 if (!_scopeBoundArrayValues.Contains(array.Value)) _scopeArrayPointers[^1].Add(heldArray);
                 length = EmitManagedArrayLength(array.Value).Value;
-                arrayAddress = NewTemp(); Emit($"{arrayAddress} = getelementptr %luma.array, ptr {array.Value}, i32 0, i32 6");
+                arrayAddress = NewTemp(); Emit($"{arrayAddress} = getelementptr %luma.array, ptr {array.Value}, i32 0, i32 7");
             }
             else if (!TryGetInlineArrayAddress(statement.Collection, out arrayType, out elementType, out var inlineLength, out arrayAddress))
                 throw new InvalidOperationException("A for-in loop reached emission without a bound array.");
@@ -6169,7 +6531,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var successLabel = NewLabel("as.box.success"); var failedLabel = NewLabel("as.box.failed");
             Emit($"br i1 {matches}, label %{successLabel}, label %{failedLabel}"); _terminated = true;
             Label(successLabel);
-            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {operand.Value}, i32 0, i32 3");
+            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {operand.Value}, i32 0, i32 4");
             var payload = NewTemp(); Emit($"{payload} = load i64, ptr {payloadAddress}");
             var unboxed = DecodeBoxPayload(payload, targetType);
             var wrapped = WrapNullableValue(unboxed, targetType, resultType);
@@ -6366,13 +6728,13 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"br i1 {eitherNull}, label %{nullLabel}, label %{compareLabel}"); _terminated = true;
             Label(nullLabel); var nullBlock = _block; Branch(endLabel);
             Label(compareLabel);
-            var leftFunctionAddress = NewTemp(); Emit($"{leftFunctionAddress} = getelementptr %delegate.{safeType}, ptr {left.Value}, i32 0, i32 3");
-            var rightFunctionAddress = NewTemp(); Emit($"{rightFunctionAddress} = getelementptr %delegate.{safeType}, ptr {right.Value}, i32 0, i32 3");
+            var leftFunctionAddress = NewTemp(); Emit($"{leftFunctionAddress} = getelementptr %delegate.{safeType}, ptr {left.Value}, i32 0, i32 4");
+            var rightFunctionAddress = NewTemp(); Emit($"{rightFunctionAddress} = getelementptr %delegate.{safeType}, ptr {right.Value}, i32 0, i32 4");
             var leftFunction = NewTemp(); Emit($"{leftFunction} = load ptr, ptr {leftFunctionAddress}");
             var rightFunction = NewTemp(); Emit($"{rightFunction} = load ptr, ptr {rightFunctionAddress}");
             var functionsEqual = NewTemp(); Emit($"{functionsEqual} = icmp eq ptr {leftFunction}, {rightFunction}");
-            var leftTargetAddress = NewTemp(); Emit($"{leftTargetAddress} = getelementptr %delegate.{safeType}, ptr {left.Value}, i32 0, i32 4");
-            var rightTargetAddress = NewTemp(); Emit($"{rightTargetAddress} = getelementptr %delegate.{safeType}, ptr {right.Value}, i32 0, i32 4");
+            var leftTargetAddress = NewTemp(); Emit($"{leftTargetAddress} = getelementptr %delegate.{safeType}, ptr {left.Value}, i32 0, i32 5");
+            var rightTargetAddress = NewTemp(); Emit($"{rightTargetAddress} = getelementptr %delegate.{safeType}, ptr {right.Value}, i32 0, i32 5");
             var leftTarget = NewTemp(); Emit($"{leftTarget} = load ptr, ptr {leftTargetAddress}");
             var rightTarget = NewTemp(); Emit($"{rightTarget} = load ptr, ptr {rightTargetAddress}");
             var targetsEqual = NewTemp(); Emit($"{targetsEqual} = icmp eq ptr {leftTarget}, {rightTarget}");
@@ -7021,7 +7383,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
 
             Label(valueLabel);
             var safeType = string.Concat(field.OwnerType.Select(c => char.IsLetterOrDigit(c) || c == '_' ? c : '_'));
-            var address = NewTemp(); Emit($"{address} = getelementptr %class.{safeType}, ptr {receiver.Value}, i32 0, i32 {field.Index + 3}");
+            var address = NewTemp(); Emit($"{address} = getelementptr %class.{safeType}, ptr {receiver.Value}, i32 0, i32 {field.Index + 4}");
             var loaded = NewTemp(); Emit($"{loaded} = load {LlvmType(field.TypeName)}, ptr {address}");
             var scopeBoundFieldRead = field.IsScopeBound && IsScopeBoundClassExpression(access.Receiver);
             if (resultClass is not null && scopeBoundFieldRead) _scopeBoundClassValues.Add(loaded);
@@ -7237,7 +7599,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                     var length = elements.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     var array = NewTemp();
                     EmitArrayAllocation(array, length, 1, [length], elementType);
-                    var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 6");
+                    var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 7");
                     for (var elementIndex = 0; elementIndex < elements.Count; elementIndex++)
                     {
                         var element = elements[elementIndex];
@@ -7312,6 +7674,18 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 var function = NewTemp(); Emit($"{function} = load ptr, ptr {entryAddress}");
                 call = $"call {returnAttribute}{LlvmType(resultType)} {function}({string.Join(", ", allArguments)})";
             }
+            else if (IsWeakRuntimeHelper(target))
+            {
+                var intrinsic = target.Declaration.Name switch
+                {
+                    "CreateControlRuntime" => "luma_weak_create",
+                    "IsAliveRuntime" => "luma_weak_is_alive",
+                    "GetTargetRuntime" => "luma_weak_get_target",
+                    "ReleaseControlRuntime" => "luma_weak_release",
+                    _ => throw new NotSupportedException($"Unknown weak-reference runtime helper '{target.Declaration.Name}'.")
+                };
+                call = $"call {LlvmType(resultType)} @{intrinsic}({string.Join(", ", allArguments)})";
+            }
             else call = $"call {returnAttribute}{LlvmType(resultType)} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
             Emit(result is null ? call : $"{result} = {call}");
             if (!target.Declaration.IsExtern && checkPendingException) EmitCheckPendingException();
@@ -7340,7 +7714,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 {
                     var sourceIndex = EmitExpression(expression.Indices[dimensionIndex]);
                     var index = CastValue(sourceIndex.Value, sourceIndex.Type, "int32");
-                    var lengthAddress = NewTemp(); Emit($"{lengthAddress} = getelementptr %luma.array, ptr {array.Value}, i32 0, i32 5, i32 {dimensionIndex}");
+                    var lengthAddress = NewTemp(); Emit($"{lengthAddress} = getelementptr %luma.array, ptr {array.Value}, i32 0, i32 6, i32 {dimensionIndex}");
                     var length = NewTemp(); Emit($"{length} = load i32, ptr {lengthAddress}");
                     var nonnegative = NewTemp(); Emit($"{nonnegative} = icmp sge i32 {index}, 0");
                     var inRange = NewTemp(); Emit($"{inRange} = icmp slt i32 {index}, {length}");
@@ -7355,7 +7729,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                         flattenedIndex = nextOffset;
                     }
                 }
-                var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array.Value}, i32 0, i32 6");
+                var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array.Value}, i32 0, i32 7");
                 var address = NewTemp(); Emit($"{address} = getelementptr {LlvmType(managedIndex.ElementType)}, ptr {data}, i32 {flattenedIndex}");
                 return (address, managedIndex.ElementType);
             }
@@ -7500,14 +7874,14 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var objectValue = receiver.Value;
             var safeType = string.Concat(field.OwnerType.Select(c => char.IsLetterOrDigit(c) || c == '_' ? c : '_'));
             var address = NewTemp();
-            Emit($"{address} = getelementptr %class.{safeType}, ptr {objectValue}, i32 0, i32 {field.Index + 3}");
+            Emit($"{address} = getelementptr %class.{safeType}, ptr {objectValue}, i32 0, i32 {field.Index + 4}");
             return address;
         }
         private string EmitCurrentClassFieldAddress(StructFieldBinding field)
         {
             var safeType = string.Concat(field.OwnerType.Select(c => char.IsLetterOrDigit(c) || c == '_' ? c : '_'));
             var address = NewTemp();
-            Emit($"{address} = getelementptr %class.{safeType}, ptr %this, i32 0, i32 {field.Index + 3}");
+            Emit($"{address} = getelementptr %class.{safeType}, ptr %this, i32 0, i32 {field.Index + 4}");
             return address;
         }
         private string AllocateClosureEnvironment(ClosureEnvironmentBinding environment)
@@ -7525,9 +7899,11 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"store i32 1, ptr {countAddress}");
             var flagsAddress = NewTemp(); Emit($"{flagsAddress} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 2");
             Emit($"store i32 0, ptr {flagsAddress}");
+            var weakAddress = NewTemp(); Emit($"{weakAddress} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 3");
+            Emit($"store ptr null, ptr {weakAddress}");
             foreach (var field in classTypes[environment.TypeName].Fields)
             {
-                var address = NewTemp(); Emit($"{address} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 {field.Index + 3}");
+                var address = NewTemp(); Emit($"{address} = getelementptr %class.{safeType}, ptr {instance}, i32 0, i32 {field.Index + 4}");
                 Emit($"store {LlvmType(field.TypeName)} {DefaultStorageValue(field.TypeName)}, ptr {address}");
             }
             Emit($"store ptr {instance}, ptr {_closureEnvironmentSlots[environment.TypeName]}");
@@ -7538,7 +7914,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var instance = NewTemp();
             Emit($"{instance} = load ptr, ptr {_closureEnvironmentSlots[environment.TypeName]}");
             var address = NewTemp();
-            Emit($"{address} = getelementptr %class.{Safe(environment.TypeName)}, ptr {instance}, i32 0, i32 {fieldIndex + 3}");
+            Emit($"{address} = getelementptr %class.{Safe(environment.TypeName)}, ptr {instance}, i32 0, i32 {fieldIndex + 4}");
             return address;
         }
         private (string Value, string Type) EmitBaseExpression()
@@ -7560,7 +7936,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             foreach (var field in path)
             {
                 var address = NewTemp();
-                Emit($"{address} = getelementptr %class.{Safe(currentType)}, ptr {instance}, i32 0, i32 {field.Index + 3}");
+                Emit($"{address} = getelementptr %class.{Safe(currentType)}, ptr {instance}, i32 0, i32 {field.Index + 4}");
                 var nextInstance = NewTemp();
                 Emit($"{nextInstance} = load ptr, ptr {address}");
                 instance = nextInstance;
@@ -7684,7 +8060,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"store i32 1, ptr {countAddress}");
             var flagsAddress = NewTemp(); Emit($"{flagsAddress} = getelementptr {boxType}, ptr {box}, i32 0, i32 2");
             Emit($"store i32 0, ptr {flagsAddress}");
-            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr {boxType}, ptr {box}, i32 0, i32 3");
+            var weakAddress = NewTemp(); Emit($"{weakAddress} = getelementptr {boxType}, ptr {box}, i32 0, i32 3");
+            Emit($"store ptr null, ptr {weakAddress}");
+            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr {boxType}, ptr {box}, i32 0, i32 4");
             if (IsManagedAggregateType(sourceType))
             {
                 var ownedValue = (value, sourceType);
@@ -7725,7 +8103,9 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             Emit($"store i32 1, ptr {countAddress}");
             var flagsAddress = NewTemp(); Emit($"{flagsAddress} = getelementptr %luma.box, ptr {box}, i32 0, i32 2");
             Emit($"store i32 0, ptr {flagsAddress}");
-            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {box}, i32 0, i32 3");
+            var weakAddress = NewTemp(); Emit($"{weakAddress} = getelementptr %luma.box, ptr {box}, i32 0, i32 3");
+            Emit($"store ptr null, ptr {weakAddress}");
+            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {box}, i32 0, i32 4");
             Emit($"store i64 {encoded}, ptr {payloadAddress}");
             _ownedClassValues.Add((box, "System.Object"));
             return box;
@@ -7754,7 +8134,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             if (!IsBoxableStructType(structType))
                 throw new NotSupportedException($"Unboxing struct '{structType}' with managed references is unsupported.");
             var boxType = $"%luma.structbox.{Safe(structType)}";
-            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr {boxType}, ptr {objectValue}, i32 0, i32 3");
+            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr {boxType}, ptr {objectValue}, i32 0, i32 4");
             var payload = NewTemp(); Emit($"{payload} = load {LlvmType(structType)}, ptr {payloadAddress}");
             return payload;
         }
@@ -7777,7 +8157,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
             var exact = NewTemp(); Emit($"{exact} = icmp eq ptr {descriptor}, {BoxDescriptorPointer(underlyingType)}");
             var mismatch = NewTemp(); Emit($"{mismatch} = xor i1 {exact}, true");
             TrapIf(mismatch, "luma_throw_invalid_cast");
-            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {value}, i32 0, i32 3");
+            var payloadAddress = NewTemp(); Emit($"{payloadAddress} = getelementptr %luma.box, ptr {value}, i32 0, i32 4");
             var payload = NewTemp(); Emit($"{payload} = load i64, ptr {payloadAddress}");
             var unboxed = DecodeBoxPayload(payload, underlyingType);
             string result;
@@ -8094,6 +8474,10 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         }
         private string ClassDescriptorPointer(string type) => delegateTypes.ContainsKey(type)
             ? $"@luma_classdesc_delegate_{Safe(type)}" : $"@luma_classdesc_{Safe(type)}";
+        private static bool IsWeakRuntimeHelper(MethodSymbol method) => method.Owner.Namespace == "System" &&
+            method.Owner.Name.StartsWith("Weak", StringComparison.Ordinal) &&
+            method.Declaration.Name is "CreateControlRuntime" or "IsAliveRuntime" or "GetTargetRuntime" or "ReleaseControlRuntime";
+
         private static bool IsStringType(string type) => type is "string" or "string?";
         private static bool IsNullableStringType(string type) => type == "string?";
         private bool IsDelegateType(string type) => delegateTypes.ContainsKey(type.EndsWith("?", StringComparison.Ordinal) ? type[..^1] : type);

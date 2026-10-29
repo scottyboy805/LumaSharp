@@ -88,6 +88,84 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void WeakReferencesPromoteLiveTargetsAndObserveDestruction()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("weak-reference-test.ls", """
+            using System;
+
+            public class Item
+            {
+                public int32 Value;
+                public this(int32 value) { Value = value; }
+            }
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Weak<Item>? weak = null;
+                    Weak<Item>? second = null;
+                    {
+                        Item target = new Item(42);
+                        weak = new Weak<Item>(target);
+                        second = new Weak<Item>(target);
+                        if (!weak!.IsAlive) return 1;
+                        Item? promoted = weak.Target;
+                        if (promoted == null || promoted.Value != 42) return 2;
+                    }
+                    Item? finalTarget = weak.Target;
+                    Item? secondTarget = second.Target;
+                    if (weak!.IsAlive || second!.IsAlive || finalTarget != null || secondTarget != null) return 3;
+                    Weak<string> literal = new Weak<string>("literal");
+                    if (!literal.IsAlive || literal.Target != "literal") return 4;
+                    Weak<string>? dynamicWeak = null;
+                    {
+                        string dynamic = new string('x', 3);
+                        dynamicWeak = new Weak<string>(dynamic);
+                    }
+                    string? dynamicTarget = dynamicWeak!.Target;
+                    if (dynamicWeak.IsAlive || dynamicTarget != null) return 5;
+                    Weak<int32[]>? weakArray = null;
+                    {
+                        int32[] array = new int32[2];
+                        weakArray = new Weak<int32[]>(array);
+                    }
+                    int32[]? arrayTarget = weakArray!.Target;
+                    if (weakArray.IsAlive || arrayTarget != null) return 6;
+                    Weak<Item> temporary = new Weak<Item>(new Item(7));
+                    if (temporary.IsAlive) return 7;
+                    Weak<object>? weakObject = null;
+                    {
+                        object boxed = 42;
+                        weakObject = new Weak<object>(boxed);
+                    }
+                    object? boxedTarget = weakObject!.Target;
+                    return !weakObject.IsAlive && boxedTarget == null ? 0 : 8;
+                }
+            }
+            """)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("@luma_weak_create", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("@luma_weak_get_target", result.LlvmIr, StringComparison.Ordinal);
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void WeakReferenceRequiresAClassTypeArgument()
+    {
+        var result = Compile("class Weak<T> where T : class {} class Program { public static int32 Main() { Weak<int32> weak = new Weak<int32>(); return 0; } }");
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void PrimitiveRuntimeTypesAreValueTypeStructsAndBoxImplicitlyToObject()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
@@ -1483,7 +1561,7 @@ public sealed class CompilerTests
         const string source = "unsafe class Buffer { public const int32 Capacity = 3; public int32[Capacity] values = { 4, 5 }; public int32[1] cleared; public int32 Sum() { int32 total = 0; for (let item in values) total += item; return total + values.Length; } } unsafe class Program { public static int32 Bounds() { Buffer buffer = new Buffer(); try { return buffer.values[3]; } catch (IndexOutOfRangeException error) { return 0; } } public static int32 Main() { Buffer buffer = new Buffer(); if (Bounds() != 0 || buffer.Sum() != 12 || buffer.cleared[0] != 0 || buffer.cleared.Length != 1) return 1; buffer.values[2] = 6; return buffer.Sum() == 18 ? 0 : 1; } }";
         var result = Compile(source, new CompilationOptions(UnsafeEnabled: true));
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("%class.Buffer = type { ptr, i32, i32, [3 x i32], [1 x i32] }", result.LlvmIr!);
+        Assert.Contains("%class.Buffer = type { ptr, i32, i32, ptr, [3 x i32], [1 x i32] }", result.LlvmIr!);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
@@ -2905,7 +2983,7 @@ public sealed class CompilerTests
         const string source = "virtual class Base { public int32 value = 4; public this() {} public int32 Read() { return value; } public virtual int32 Dispatch() { return 10; } } class Derived : Base { public int32 extra = 3; public override int32 Dispatch() { return 22; } } class Program { public static int32 Main() { Derived derived = new Derived(); Base baseValue = derived; if (baseValue.Read() != 4 || derived.extra != 3 || derived.Dispatch() != 22 || baseValue.Dispatch() != 22) return 1; return 0; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("%class.Derived = type { ptr, i32, i32, i32, i32 }", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("%class.Derived = type { ptr, i32, i32, ptr, i32, i32 }", result.LlvmIr!, StringComparison.Ordinal);
         Assert.Contains("@luma_vtable_Derived = private constant [2 x ptr] [ptr @luma_object_tostring, ptr @luma_Derived_inst_Dispatch_0]", result.LlvmIr, StringComparison.Ordinal);
         Assert.Contains("getelementptr %luma.typedesc", result.LlvmIr, StringComparison.Ordinal);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -5327,7 +5405,7 @@ public sealed class CompilerTests
 
         var instanceField = Compile("class State { public int32 Value; } class Program { public static int32 Main() { let state = new State(); return state.Value; } }");
         Assert.True(instanceField.Succeeded, string.Join(Environment.NewLine, instanceField.Diagnostics));
-        Assert.Contains("%class.State = type { ptr, i32, i32, i32 }", instanceField.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("%class.State = type { ptr, i32, i32, ptr, i32 }", instanceField.LlvmIr!, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -6269,7 +6347,7 @@ public sealed class CompilerTests
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var ir = result.LlvmIr!;
-        Assert.Contains("%luma.string = type { ptr, i32, i32, ptr, i32, i32, i8, i8, ptr }", ir);
+        Assert.Contains("%luma.string = type { ptr, i32, i32, ptr, ptr, i32, i32, i8, i8, ptr }", ir);
         Assert.Contains("@luma_string_empty = private unnamed_addr constant %luma.string", ir);
         Assert.Contains("i32 4, i32 7", ir); // UTF-16 code units and UTF-8 bytes for h + é + 🙂.
         Assert.Contains("i16 55357, i16 56898", ir); // The supplementary scalar is cached as its UTF-16 surrogate pair.
@@ -6916,7 +6994,7 @@ public sealed class CompilerTests
         const string source = "class Counter { int32 value = 40; public this(int32 start) { value = start; } public int32 Read() { return value; } public void Add(int32 amount) mut { value += amount; } } class Program { public static int32 Main() { let first = new Counter(41); let alias = first; alias.Add(1); if (first.Read() != 42) return 1; if (first != alias) return 2; let other = new Counter(42); if (first == other) return 3; return 0; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("%class.Counter = type { ptr, i32, i32, i32 }", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("%class.Counter = type { ptr, i32, i32, ptr, i32 }", result.LlvmIr!, StringComparison.Ordinal);
         Assert.Contains("@luma_class_Counter_retain", result.LlvmIr, StringComparison.Ordinal);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);

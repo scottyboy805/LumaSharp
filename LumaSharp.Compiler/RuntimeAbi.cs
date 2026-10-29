@@ -7,8 +7,8 @@ namespace LumaSharp.Compiler;
 /// </summary>
 public static class RuntimeAbi
 {
-    /// <summary>The first coordinated LumaSharp compiler/runtime ABI.</summary>
-    public const int Version = 1;
+    /// <summary>The runtime ABI with weak-control pointers in managed-object headers.</summary>
+    public const int Version = 2;
 
     /// <summary>The LLVM module-flag key used to reject incompatible LTO inputs.</summary>
     public const string ModuleFlag = "LumaSharpRuntimeABI";
