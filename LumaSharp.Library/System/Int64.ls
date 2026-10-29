@@ -40,9 +40,9 @@ public struct Int64 : ValueType
 		for (int32 index = 0; index < 8; index++)
 			bits |= (uint64)bytes[index] << (index * 8);
 
-		if (bits <= 9223372036854775807ul)
+		if (bits <= (uint64)MaxValue)
 			return (int64)bits;
 
-		return -1 - (int64)(18446744073709551615ul - bits);
+		return -1 - (int64)(UInt64.MaxValue - bits);
 	}
 }

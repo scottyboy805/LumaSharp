@@ -59,9 +59,9 @@ public struct Int32 : ValueType
 		for (int32 index = 0; index < 4; index++)
 			bits |= (uint32)bytes[index] << (index * 8);
 
-		if (bits <= 2147483647u)
+		if (bits <= (uint32)MaxValue)
 			return (int32)bits;
 
-		return -1 - (int32)(4294967295u - bits);
+		return -1 - (int32)(UInt32.MaxValue - bits);
 	}
 }

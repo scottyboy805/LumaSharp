@@ -31,9 +31,9 @@ public struct Int16 : ValueType
 		for (int32 index = 0; index < 2; index++)
 			bits |= (uint16)bytes[index] << (index * 8);
 
-		if (bits <= 32767)
+		if (bits <= (uint16)MaxValue)
 			return (int16)bits;
 
-		return (int16)(-1 - (int16)(65535 - bits));
+		return (int16)(-1 - (int16)(UInt16.MaxValue - bits));
 	}
 }

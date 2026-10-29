@@ -26,9 +26,9 @@ public struct Int8 : ValueType
 		if (bytes.Length < 1)
 			throw new ArgumentException("The source array is too short.");
 
-		if (bytes[0] <= 127)
+		if (bytes[0] <= MaxValue)
 			return (int8)bytes[0];
 
-		return (int8)(-1 - (int8)(255 - bytes[0]));
+		return (int8)(-1 - (int8)(UInt8.MaxValue - bytes[0]));
 	}
 }
