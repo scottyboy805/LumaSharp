@@ -113,7 +113,9 @@ public sealed class CompilerTests
 
     [Theory]
     [InlineData("x86_64-pc-windows-msvc")]
+    [InlineData("i686-pc-windows-msvc")]
     [InlineData("x86_64-pc-linux-gnu")]
+    [InlineData("i386-pc-linux-gnu")]
     public void FilesystemRuntimeIntrinsicsAreEmittedAndVerifiedForEachTarget(string targetTriple)
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

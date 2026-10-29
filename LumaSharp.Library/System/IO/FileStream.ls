@@ -2,7 +2,7 @@ namespace System.IO;
 
 public unsafe class FileStream : Stream
 {
-	private uint64 handle;
+	private int handle;
 	private bool isOpen;
 	private bool canRead;
 	private bool canWrite;
@@ -30,7 +30,7 @@ public unsafe class FileStream : Stream
 		void* openedHandle = null;
 		if (NativeFileSystem.luma_fs_open(path.Utf8Ptr, nativeMode, &openedHandle) != 0)
 			throw new IOException("Unable to open the file.");
-		handle = (uint64)openedHandle;
+		handle = (int)openedHandle;
 
 		isOpen = true;
 		canRead = mode != FileMode.Append;

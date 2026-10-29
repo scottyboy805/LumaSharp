@@ -90,7 +90,9 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("entry:");
         _output.AppendLine($"  %count.native = {(sizeType == "i64" ? "zext i32 %count to i64" : "add i32 %count, 0")}");
         _output.AppendLine($"  %read.native = call {sizeType} @fread(ptr %buffer, {sizeType} 1, {sizeType} %count.native, ptr %handle)");
-        _output.AppendLine("  %read = trunc " + sizeType + " %read.native to i32");
+        _output.AppendLine(sizeType == "i64"
+            ? "  %read = trunc i64 %read.native to i32"
+            : "  %read = add i32 %read.native, 0");
         _output.AppendLine("  store i32 %read, ptr %bytesRead");
         _output.AppendLine($"  %error = call i32 @ferror(ptr %handle)");
         _output.AppendLine("  %failed = icmp ne i32 %error, 0");
@@ -101,7 +103,9 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("entry:");
         _output.AppendLine($"  %count.native = {(sizeType == "i64" ? "zext i32 %count to i64" : "add i32 %count, 0")}");
         _output.AppendLine($"  %written.native = call {sizeType} @fwrite(ptr %buffer, {sizeType} 1, {sizeType} %count.native, ptr %handle)");
-        _output.AppendLine("  %written = trunc " + sizeType + " %written.native to i32");
+        _output.AppendLine(sizeType == "i64"
+            ? "  %written = trunc i64 %written.native to i32"
+            : "  %written = add i32 %written.native, 0");
         _output.AppendLine("  store i32 %written, ptr %bytesWritten");
         _output.AppendLine("  %complete = icmp eq i32 %written, %count");
         _output.AppendLine("  %status = select i1 %complete, i32 0, i32 -1");
