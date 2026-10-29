@@ -1,5 +1,12 @@
 namespace System.IO;
 
+public enum SeekOrigin : int32
+{
+	Begin = 0,
+	Current = 1,
+	End = 2
+}
+
 public virtual class Stream : System.Object
 {
 	public virtual bool CanRead
@@ -21,7 +28,7 @@ public virtual class Stream : System.Object
 	{
 		get
 		{
-			return ThrowUnsupportedLength();
+			throw new System.NotSupportedException("This stream does not support length.");
 		}
 	}
 
@@ -29,38 +36,38 @@ public virtual class Stream : System.Object
 	{
 		get
 		{
-			return ThrowUnsupportedPosition();
+			throw new System.NotSupportedException("This stream does not support seeking.");
 		}
 		set
 		{
-			ThrowUnsupportedOperation();
+			throw new System.NotSupportedException("This stream does not support seeking.");
 		}
 	}
 
-	public virtual int32 Read(uint8[] buffer, int32 offset, int32 count) mut;
+	public virtual int32 Read(uint8[] buffer, int32 offset, int32 count);
 
 	public int32 Read(uint8[] buffer) mut
 	{
 		return Read(buffer, 0, buffer.Length);
 	}
 
-	public int32 ReadByte() mut
+	public uint8 ReadUInt8() mut
 	{
 		uint8[] buffer = new uint8[1];
 		int32 read = Read(buffer, 0, 1);
 		if (read == 0)
-			return -1;
+			throw new EndOfStreamException();
 		return buffer[0];
 	}
 
-	public virtual void Write(uint8[] buffer, int32 offset, int32 count) mut;
+	public virtual void Write(uint8[] buffer, int32 offset, int32 count);
 
 	public void Write(uint8[] buffer) mut
 	{
 		Write(buffer, 0, buffer.Length);
 	}
 
-	public void WriteByte(uint8 value) mut
+	public void WriteUInt8(uint8 value) mut
 	{
 		uint8[] buffer = new uint8[1];
 		buffer[0] = value;
@@ -71,29 +78,14 @@ public virtual class Stream : System.Object
 	{
 	}
 
-	public virtual int32 Seek(int32 offset, SeekOrigin origin) mut
+	public virtual int32 Seek(int32 offset, SeekOrigin origin)
 	{
-		ThrowUnsupportedOperation();
-		return 0;
+		throw new System.NotSupportedException("This stream does not support seeking.");
 	}
 
-	public virtual void SetLength(int32 value) mut
+	public virtual void SetLength(int32 value)
 	{
-		ThrowUnsupportedOperation();
-	}
-
-	public void ReadExactly(uint8[] buffer, int32 offset, int32 count) mut
-	{
-		if (offset < 0 || count < 0 || offset > buffer.Length - count)
-			throw new System.ArgumentOutOfRangeException();
-		int32 totalRead = 0;
-		while (totalRead < count)
-		{
-			int32 read = Read(buffer, offset + totalRead, count - totalRead);
-			if (read == 0)
-				throw new EndOfStreamException();
-			totalRead += read;
-		}
+		throw new System.NotSupportedException("This stream does not support changing its length.");
 	}
 
 	public void CopyTo(Stream destination) mut
@@ -115,27 +107,7 @@ public virtual class Stream : System.Object
 			destination.Write(buffer, 0, read);
 	}
 
-	public virtual void Close() mut
+	public virtual void Close()
 	{
-		Dispose();
-	}
-
-	public virtual void Dispose() mut
-	{
-	}
-
-	private int32 ThrowUnsupportedLength()
-	{
-		throw new System.NotSupportedException("This stream does not support length.");
-	}
-
-	private int32 ThrowUnsupportedPosition()
-	{
-		throw new System.NotSupportedException("This stream does not support seeking.");
-	}
-
-	private void ThrowUnsupportedOperation()
-	{
-		throw new System.NotSupportedException("This stream does not support this operation.");
 	}
 }

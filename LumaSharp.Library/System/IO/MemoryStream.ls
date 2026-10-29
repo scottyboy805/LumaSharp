@@ -31,24 +31,29 @@ public class MemoryStream : Stream
 		isExpandable = true;
 	}
 
-	public this(uint8[] initialContents)
+	public this(uint8[] buffer)
 	{
-		buffer = initialContents;
-		length = initialContents.Length;
+		this.buffer = buffer;
+		length = buffer.Length;
 		position = 0;
 		isOpen = true;
 		isWritable = false;
 		isExpandable = false;
 	}
 
-	public this(uint8[] initialContents, bool writable)
+	public this(uint8[] buffer, bool writable)
 	{
-		buffer = initialContents;
-		length = initialContents.Length;
+		this.buffer = buffer;
+		length = buffer.Length;
 		position = 0;
 		isOpen = true;
 		isWritable = writable;
 		isExpandable = false;
+	}
+
+	public unsafe uint8* Ptr
+	{
+		get => (uint8*)buffer.Ptr;
 	}
 
 	public override bool CanRead
@@ -175,11 +180,6 @@ public class MemoryStream : Stream
 	}
 
 	public override void Close() mut
-	{
-		Dispose();
-	}
-
-	public override void Dispose() mut
 	{
 		isOpen = false;
 	}
