@@ -516,9 +516,32 @@ public sealed class CompilerTests
                     int32 value = 42;
                     string formatted = (42).ToString();
                     string variableFormatted = value.ToString();
+                    bool yes = true;
+                    bool no = false;
+                    char character = 'é';
+                    int8 signed8 = -128;
+                    uint8 unsigned8 = 255;
+                    int16 signed16 = -32768;
+                    uint16 unsigned16 = 65535;
+                    uint32 unsigned32 = uint32.MaxValue;
+                    int64 signed64 = int64.MinValue;
+                    uint64 unsigned64 = uint64.MaxValue;
+                    int nativeSigned = 42;
+                    uint nativeUnsigned = 43;
+                    double decimalValue = -2.5;
+                    string notANumber = Double.NaN.ToString();
+                    string positiveInfinity = Float.PositiveInfinity.ToString();
+                    string negativeInfinity = Double.NegativeInfinity.ToString();
                     return top == 2147483647 && parsed == int32.MinValue && parsedBool && valid && maximum == top &&
                         !invalid && nativeMin < 0 && nativeMax > 0 && smallMin == -128 && letter == 'A' &&
                         empty.Length == 0 && precise == 125.0 && single == 1.5f && formatted == "42" && variableFormatted == "42" &&
+                        yes.ToString() == "True" && no.ToString() == "False" && character.ToString() == "é" &&
+                        signed8.ToString() == "-128" && unsigned8.ToString() == "255" &&
+                        signed16.ToString() == "-32768" && unsigned16.ToString() == "65535" &&
+                        unsigned32.ToString() == "4294967295" && signed64.ToString() == "-9223372036854775808" &&
+                        unsigned64.ToString() == "18446744073709551615" && nativeSigned.ToString() == "42" &&
+                        nativeUnsigned.ToString() == "43" && single.ToString() == "1.5" && decimalValue.ToString() == "-2.5" &&
+                        notANumber == "NaN" && positiveInfinity == "Infinity" && negativeInfinity == "-Infinity" &&
                         string.IsNullOrWhiteSpace(" \t") ? 0 : 1;
                 }
             }
@@ -6765,7 +6788,7 @@ public sealed class CompilerTests
     [Fact]
     public void PrimitiveAndEnumBoxesSupportExactTypeTestsCastsAndNullableBoxing()
     {
-        const string source = "enum Tone : int32 { Warm = 3, Cool = 4 } class Program { public static int32 Main() { int32 value = 42; object boxed = value; object alias = boxed; if (!(boxed is int32) || boxed is int64) return 1; int32? maybe = boxed as int32; if (maybe != 42) return 2; int32 unboxed = (int32)alias; if (unboxed != 42) return 3; try { int64 mismatch = (int64)boxed; return 4; } catch (InvalidCastException) { } object? nullableObject = null; try { int32 missing = (int32)nullableObject; return 5; } catch (NullReferenceException) { } int32? empty = null; object? emptyBox = empty; if (emptyBox != null) return 6; int32? nullableSource = 9; object nullableBox = nullableSource; int32? nullableUnbox = (int32?)nullableBox; if (nullableUnbox != 9) return 7; Tone color = Tone.Cool; object colorBox = color; if (!(colorBox is Tone)) return 8; Tone recovered = (Tone)colorBox; if (recovered != Tone.Cool || colorBox is int32) return 9; object doubleBox = 3.25; double floating = (double)doubleBox; if (floating != 3.25) return 10; if (doubleBox as int32 != null) return 11; bool flag = true; object boolBox = flag; if (!(boolBox is bool) || !(bool)boolBox) return 12; char letter = 'A'; object charBox = letter; if ((char)charBox != 'A') return 13; int8 small = -12; object smallBox = small; if ((int8)smallBox != -12) return 14; uint64 wide = 18446744073709551615u; object wideBox = wide; if ((uint64)wideBox != wide) return 15; float single = 1.25f; object floatBox = single; if ((float)floatBox != single) return 16; return boxed.ToString() == \"int32\" && colorBox.ToString() == \"Tone\" ? 0 : 17; } }";
+        const string source = "enum Tone : int32 { Warm = 3, Cool = 4 } class Program { public static int32 Main() { int32 value = 42; object boxed = value; object alias = boxed; if (!(boxed is int32) || boxed is int64) return 1; int32? maybe = boxed as int32; if (maybe != 42) return 2; int32 unboxed = (int32)alias; if (unboxed != 42) return 3; try { int64 mismatch = (int64)boxed; return 4; } catch (InvalidCastException) { } object? nullableObject = null; try { int32 missing = (int32)nullableObject; return 5; } catch (NullReferenceException) { } int32? empty = null; object? emptyBox = empty; if (emptyBox != null) return 6; int32? nullableSource = 9; object nullableBox = nullableSource; int32? nullableUnbox = (int32?)nullableBox; if (nullableUnbox != 9) return 7; Tone color = Tone.Cool; object colorBox = color; if (!(colorBox is Tone)) return 8; Tone recovered = (Tone)colorBox; if (recovered != Tone.Cool || colorBox is int32) return 9; object doubleBox = 3.25; double floating = (double)doubleBox; if (floating != 3.25) return 10; if (doubleBox as int32 != null) return 11; bool flag = true; object boolBox = flag; if (!(boolBox is bool) || !(bool)boolBox) return 12; char letter = 'A'; object charBox = letter; if ((char)charBox != 'A') return 13; int8 small = -12; object smallBox = small; if ((int8)smallBox != -12) return 14; uint64 wide = 18446744073709551615u; object wideBox = wide; if ((uint64)wideBox != wide) return 15; float single = 1.25f; object floatBox = single; if ((float)floatBox != single) return 16; return boxed.ToString() == \"42\" && doubleBox.ToString() == \"3.25\" && boolBox.ToString() == \"True\" && charBox.ToString() == \"A\" && smallBox.ToString() == \"-12\" && wideBox.ToString() == \"18446744073709551615\" && floatBox.ToString() == \"1.25\" && colorBox.ToString() == \"Tone\" ? 0 : 17; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("@luma_boxdesc_int32", result.LlvmIr!, StringComparison.Ordinal);

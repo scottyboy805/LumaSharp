@@ -1506,20 +1506,31 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
     }
     private void EmitStringLiterals()
     {
+        var needsFloatingStringification = UsesFloatStringConversion() ||
+            HasStringSupport() && compilation.ClassToStringCalls.Count > 0;
         _output.AppendLine("%luma.string = type { ptr, i32, i32, ptr, ptr, i32, i32, i8, i8, ptr }");
         _output.AppendLine("@luma_string_type_name = private unnamed_addr constant [7 x i8] c\"\\73\\74\\72\\69\\6E\\67\\00\"");
         _output.AppendLine("@luma_string_empty_utf8 = private unnamed_addr constant [1 x i8] c\"\\00\"");
         _output.AppendLine("@luma_string_empty = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([1 x i8], ptr @luma_string_empty_utf8, i64 0, i64 0), i32 0, i32 0, i8 0, i8 2, ptr null }");
-        _output.AppendLine("@luma_string_true_utf8 = private unnamed_addr constant [5 x i8] c\"true\\00\"");
-        _output.AppendLine("@luma_string_true_utf16 = private unnamed_addr constant [4 x i16] [i16 116, i16 114, i16 117, i16 101]");
+        _output.AppendLine("@luma_string_true_utf8 = private unnamed_addr constant [5 x i8] c\"True\\00\"");
+        _output.AppendLine("@luma_string_true_utf16 = private unnamed_addr constant [4 x i16] [i16 84, i16 114, i16 117, i16 101]");
         _output.AppendLine("@luma_string_true = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([5 x i8], ptr @luma_string_true_utf8, i64 0, i64 0), i32 4, i32 4, i8 0, i8 2, ptr getelementptr inbounds ([4 x i16], ptr @luma_string_true_utf16, i64 0, i64 0) }");
-        _output.AppendLine("@luma_string_false_utf8 = private unnamed_addr constant [6 x i8] c\"false\\00\"");
-        _output.AppendLine("@luma_string_false_utf16 = private unnamed_addr constant [5 x i16] [i16 102, i16 97, i16 108, i16 115, i16 101]");
+        _output.AppendLine("@luma_string_false_utf8 = private unnamed_addr constant [6 x i8] c\"False\\00\"");
+        _output.AppendLine("@luma_string_false_utf16 = private unnamed_addr constant [5 x i16] [i16 70, i16 97, i16 108, i16 115, i16 101]");
         _output.AppendLine("@luma_string_false = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([6 x i8], ptr @luma_string_false_utf8, i64 0, i64 0), i32 5, i32 5, i8 0, i8 2, ptr getelementptr inbounds ([5 x i16], ptr @luma_string_false_utf16, i64 0, i64 0) }");
-        if (UsesFloatStringConversion())
+        if (needsFloatingStringification)
         {
             _output.AppendLine("@luma_format_float = private unnamed_addr constant [5 x i8] c\"%.9g\\00\"");
             _output.AppendLine("@luma_format_double = private unnamed_addr constant [6 x i8] c\"%.17g\\00\"");
+            _output.AppendLine("@luma_string_nan_utf8 = private unnamed_addr constant [4 x i8] c\"NaN\\00\"");
+            _output.AppendLine("@luma_string_nan_utf16 = private unnamed_addr constant [3 x i16] [i16 78, i16 97, i16 78]");
+            _output.AppendLine("@luma_string_nan = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([4 x i8], ptr @luma_string_nan_utf8, i64 0, i64 0), i32 3, i32 3, i8 0, i8 2, ptr getelementptr inbounds ([3 x i16], ptr @luma_string_nan_utf16, i64 0, i64 0) }");
+            _output.AppendLine("@luma_string_positive_infinity_utf8 = private unnamed_addr constant [9 x i8] c\"Infinity\\00\"");
+            _output.AppendLine("@luma_string_positive_infinity_utf16 = private unnamed_addr constant [8 x i16] [i16 73, i16 110, i16 102, i16 105, i16 110, i16 105, i16 116, i16 121]");
+            _output.AppendLine("@luma_string_positive_infinity = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([9 x i8], ptr @luma_string_positive_infinity_utf8, i64 0, i64 0), i32 8, i32 8, i8 0, i8 2, ptr getelementptr inbounds ([8 x i16], ptr @luma_string_positive_infinity_utf16, i64 0, i64 0) }");
+            _output.AppendLine("@luma_string_negative_infinity_utf8 = private unnamed_addr constant [10 x i8] c\"-Infinity\\00\"");
+            _output.AppendLine("@luma_string_negative_infinity_utf16 = private unnamed_addr constant [9 x i16] [i16 45, i16 73, i16 110, i16 102, i16 105, i16 110, i16 105, i16 116, i16 121]");
+            _output.AppendLine("@luma_string_negative_infinity = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([10 x i8], ptr @luma_string_negative_infinity_utf8, i64 0, i64 0), i32 9, i32 9, i8 0, i8 2, ptr getelementptr inbounds ([9 x i16], ptr @luma_string_negative_infinity_utf16, i64 0, i64 0) }");
         }
         var literalsBySymbol = compilation.StringLiteralPool.Values.ToDictionary(value => value.Symbol, StringComparer.Ordinal);
         foreach (var className in compilation.ClassTypes.Keys)
@@ -1554,8 +1565,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         var stringSize = compilation.NativePointerSize == 8 ? 56 : 36;
-        var needsPrimitiveStringification = compilation.StringifiedPrimitiveTypes.Count > 0 || EntryPointHasStringArguments();
-        var needsFloatingStringification = UsesFloatStringConversion();
+        var needsBoxedPrimitiveStringification = HasStringSupport() && compilation.ClassToStringCalls.Count > 0;
+        var needsPrimitiveStringification = compilation.StringifiedPrimitiveTypes.Count > 0 || EntryPointHasStringArguments() || needsBoxedPrimitiveStringification;
+        var needsFloatingStringification = UsesFloatStringConversion() || needsBoxedPrimitiveStringification;
         string SizeCast(string result, string operand) => sizeType == "i64" ? $"  %{result} = zext i32 %{operand} to i64" : $"  %{result} = add i32 %{operand}, 0";
         _output.AppendLine($"declare ptr @malloc({sizeType})");
         _output.AppendLine("declare void @free(ptr)");
@@ -2015,6 +2027,21 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 entry:
                   %buffer = alloca [128 x i8], align 1
                   %buffer.start = getelementptr [128 x i8], ptr %buffer, i32 0, i32 0
+                  %is.nan = fcmp uno double %input, %input
+                  br i1 %is.nan, label %nan, label %check.positive.infinity
+                nan:
+                  ret ptr @luma_string_nan
+                check.positive.infinity:
+                  %is.positive.infinity = fcmp oeq double %input, 0x7FF0000000000000
+                  br i1 %is.positive.infinity, label %positive.infinity, label %check.negative.infinity
+                positive.infinity:
+                  ret ptr @luma_string_positive_infinity
+                check.negative.infinity:
+                  %is.negative.infinity = fcmp oeq double %input, 0xFFF0000000000000
+                  br i1 %is.negative.infinity, label %negative.infinity, label %format.check
+                negative.infinity:
+                  ret ptr @luma_string_negative_infinity
+                format.check:
                   br i1 %single, label %format.single, label %format.double
                 format.single:
                   %single.length = call i32 (ptr, {{sizeType}}, ptr, ...) @snprintf(ptr %buffer.start, {{sizeType}} 128, ptr @luma_format_float, double %input)
@@ -2867,8 +2894,54 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         "bool", "char", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "int", "uint", "float", "double"
     }.Concat(compilation.EnumUnderlyingTypes.Keys).Concat(BoxableStructTypeNames()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
 
+    private static bool IsPrimitiveStringType(string type) => type is "bool" or "char" or "float" or "double" or
+        "int" or "uint" or "int8" or "uint8" or "int16" or "uint16" or "int32" or "uint32" or "int64" or "uint64";
+
+    private static string PrimitiveBoxToStringThunkName(string type) => $"luma_primitive_box_tostring_{Safe(type)}";
+
+    private void EmitPrimitiveBoxToStringThunk(string type)
+    {
+        _output.AppendLine($"define internal ptr @{PrimitiveBoxToStringThunkName(type)}(ptr %box) {{");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %payload.address = getelementptr %luma.box, ptr %box, i32 0, i32 4");
+        _output.AppendLine("  %payload = load i64, ptr %payload.address");
+        if (type == "bool")
+        {
+            _output.AppendLine("  %value = trunc i64 %payload to i1");
+            _output.AppendLine("  %result = select i1 %value, ptr @luma_string_true, ptr @luma_string_false");
+        }
+        else if (type == "char")
+        {
+            _output.AppendLine("  %value = trunc i64 %payload to i16");
+            _output.AppendLine("  %result = call ptr @luma_string_from_char(i16 %value)");
+        }
+        else if (type is "float" or "double")
+        {
+            if (type == "float")
+            {
+                _output.AppendLine("  %bits = trunc i64 %payload to i32");
+                _output.AppendLine("  %single = bitcast i32 %bits to float");
+                _output.AppendLine("  %value = fpext float %single to double");
+                _output.AppendLine("  %result = call ptr @luma_string_from_float(double %value, i1 true)");
+            }
+            else
+            {
+                _output.AppendLine("  %value = bitcast i64 %payload to double");
+                _output.AppendLine("  %result = call ptr @luma_string_from_float(double %value, i1 false)");
+            }
+        }
+        else
+        {
+            var signed = type is "int" or "int8" or "int16" or "int32" or "int64";
+            _output.AppendLine($"  %result = call ptr @luma_string_from_i64(i64 %payload, i1 {(signed ? "true" : "false")})");
+        }
+        _output.AppendLine("  ret ptr %result");
+        _output.AppendLine("}");
+    }
+
     private void EmitBoxRuntime()
     {
+        var usesDynamicObjectToString = HasStringSupport() && compilation.ClassToStringCalls.Count > 0;
         var virtualMethods = VirtualDispatchLayout.GetMethods("System.Object", compilation.ClassTypes, compilation.Methods);
         var vtablePointer = virtualMethods.Count == 0 ? "ptr null" :
             $"ptr getelementptr inbounds ([{virtualMethods.Count} x ptr], ptr @luma_vtable_System_Object, i32 0, i32 0)";
@@ -2949,10 +3022,15 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 QualifiedTypeName(method.Owner) == type && method.Declaration.Name == "ToString" &&
                 method.Declaration.ReturnType == "string" && method.Declaration.Parameters.Count == 0 &&
                 method.Declaration.Body is not null);
-            if (structToString is not null && virtualMethods.Count > 0)
+            var primitiveToString = usesDynamicObjectToString && structToString is null && IsPrimitiveStringType(type);
+            if (primitiveToString)
+                EmitPrimitiveBoxToStringThunk(type);
+            if ((structToString is not null || primitiveToString) && virtualMethods.Count > 0)
             {
                 var entries = virtualMethods.Select(method => method.IsBuiltinObjectToString
-                    ? $"ptr @{StructToStringThunkName(type)}"
+                    ? primitiveToString
+                        ? $"ptr @{PrimitiveBoxToStringThunkName(type)}"
+                        : $"ptr @{StructToStringThunkName(type)}"
                     : method.Declaration.Body is null ? "ptr null" : $"ptr @{FunctionName(method, compilation.Methods)}");
                 _output.AppendLine($"@luma_struct_vtable_{safe} = private constant [{virtualMethods.Count} x ptr] [{string.Join(", ", entries)}]");
                 boxVtablePointer = $"ptr getelementptr inbounds ([{virtualMethods.Count} x ptr], ptr @luma_struct_vtable_{safe}, i32 0, i32 0)";
