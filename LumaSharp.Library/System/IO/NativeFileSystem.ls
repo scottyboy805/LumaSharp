@@ -10,8 +10,8 @@ internal static unsafe class NativeFileSystem
 	public const int32 OpenOrCreateMode = 3;
 	public const int32 CreateNewMode = 5;
 
-	public static extern int32 luma_fs_open(uint8* path, int32 mode, void** handle);
-	public static extern void luma_fs_console_write(uint8* buffer, int32 length, bool appendNewLine);
+	public static extern int32 luma_fs_open(char* path, int32 mode, void** handle);
+	public static extern void luma_fs_console_write(char* buffer, int32 length, bool appendNewLine);
 	public static extern int32 luma_fs_read(void* handle, uint8* buffer, int32 count, int32* bytesRead);
 	public static extern int32 luma_fs_write(void* handle, uint8* buffer, int32 count, int32* bytesWritten);
 	public static extern int32 luma_fs_seek(void* handle, int32 offset, int32 origin, int32* position);
@@ -19,13 +19,13 @@ internal static unsafe class NativeFileSystem
 	public static extern int32 luma_fs_flush(void* handle);
 	public static extern int32 luma_fs_close(void* handle);
 
-	public static extern bool luma_fs_file_exists(uint8* path);
-	public static extern bool luma_fs_directory_exists(uint8* path);
-	public static extern int32 luma_fs_create_directory(uint8* path);
-	public static extern int32 luma_fs_delete_file(uint8* path);
-	public static extern int32 luma_fs_delete_directory(uint8* path);
-	public static extern int32 luma_fs_move(uint8* source, uint8* destination, bool overwrite);
-	public static extern int32 luma_fs_copy(uint8* source, uint8* destination, bool overwrite);
+	public static extern bool luma_fs_file_exists(char* path);
+	public static extern bool luma_fs_directory_exists(char* path);
+	public static extern int32 luma_fs_create_directory(char* path);
+	public static extern int32 luma_fs_delete_file(char* path);
+	public static extern int32 luma_fs_delete_directory(char* path);
+	public static extern int32 luma_fs_move(char* source, char* destination, bool overwrite);
+	public static extern int32 luma_fs_copy(char* source, char* destination, bool overwrite);
 	public static extern string luma_fs_current_directory();
 	public static extern string luma_fs_temporary_directory();
 }

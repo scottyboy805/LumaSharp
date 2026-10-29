@@ -18,3 +18,12 @@ ABI version 2 adds a nullable weak-control pointer to class, string, and array h
 The compiler emits synchronized control blocks on first use, target promotion and
 invalidation helpers, and weak-handle accounting. Immortal strings and static objects
 use detached control blocks so read-only literal storage is never modified.
+
+`String.Ptr` exposes the string's NUL-terminated UTF-16 code-unit buffer as
+`char*`; `Length` remains the number of UTF-16 code units and excludes the
+terminator. String literals, the empty string, and dynamically created strings
+all provide this terminated representation. Generated `System.IO` shims consume
+UTF-16 paths and text: Windows passes them to wide-character APIs, while POSIX
+shims transcode to UTF-8 at the operating-system boundary. This OS shim contract
+does not define general C extern string marshalling; that will require an
+explicit encoding and lifetime policy.

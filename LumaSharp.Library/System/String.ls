@@ -2,7 +2,7 @@ namespace System;
 
 public class String : Object
 {
-	public unsafe uint8* Ptr
+	public unsafe char* Ptr
 	{
 		get => null;
 	}

@@ -8446,7 +8446,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     if (!UnsafeEnabledAt(access.Location)) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "String Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
                     else if (!access.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "String Ptr access may only be used in an unsafe context.", access.Location);
                     _managedArrayPointerAccesses[access] = "$string";
-                    return "uint8*";
+                    return "char*";
                 }
                 if (lengthReceiverType is not null && TryParseInlineArrayType(lengthReceiverType, out _, out _) && access.Member is "Length" or "Rank") return "int32";
                 var nullableLengthArray = lengthReceiverType is not null && IsNullableArrayType(lengthReceiverType);

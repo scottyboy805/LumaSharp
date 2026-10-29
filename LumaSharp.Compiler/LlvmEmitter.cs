@@ -1532,26 +1532,27 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         _output.AppendLine("%luma.string = type { ptr, i32, i32, ptr, ptr, i32, i32, i8, i8, ptr }");
         _output.AppendLine("@luma_string_type_name = private unnamed_addr constant [7 x i8] c\"\\73\\74\\72\\69\\6E\\67\\00\"");
         _output.AppendLine("@luma_string_empty_utf8 = private unnamed_addr constant [1 x i8] c\"\\00\"");
-        _output.AppendLine("@luma_string_empty = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([1 x i8], ptr @luma_string_empty_utf8, i64 0, i64 0), i32 0, i32 0, i8 0, i8 2, ptr null }");
+        _output.AppendLine("@luma_string_empty_utf16 = private unnamed_addr constant [1 x i16] [i16 0]");
+        _output.AppendLine("@luma_string_empty = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([1 x i8], ptr @luma_string_empty_utf8, i64 0, i64 0), i32 0, i32 0, i8 0, i8 2, ptr getelementptr inbounds ([1 x i16], ptr @luma_string_empty_utf16, i64 0, i64 0) }");
         _output.AppendLine("@luma_string_true_utf8 = private unnamed_addr constant [5 x i8] c\"True\\00\"");
-        _output.AppendLine("@luma_string_true_utf16 = private unnamed_addr constant [4 x i16] [i16 84, i16 114, i16 117, i16 101]");
-        _output.AppendLine("@luma_string_true = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([5 x i8], ptr @luma_string_true_utf8, i64 0, i64 0), i32 4, i32 4, i8 0, i8 2, ptr getelementptr inbounds ([4 x i16], ptr @luma_string_true_utf16, i64 0, i64 0) }");
+        _output.AppendLine("@luma_string_true_utf16 = private unnamed_addr constant [5 x i16] [i16 84, i16 114, i16 117, i16 101, i16 0]");
+        _output.AppendLine("@luma_string_true = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([5 x i8], ptr @luma_string_true_utf8, i64 0, i64 0), i32 4, i32 4, i8 0, i8 2, ptr getelementptr inbounds ([5 x i16], ptr @luma_string_true_utf16, i64 0, i64 0) }");
         _output.AppendLine("@luma_string_false_utf8 = private unnamed_addr constant [6 x i8] c\"False\\00\"");
-        _output.AppendLine("@luma_string_false_utf16 = private unnamed_addr constant [5 x i16] [i16 70, i16 97, i16 108, i16 115, i16 101]");
-        _output.AppendLine("@luma_string_false = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([6 x i8], ptr @luma_string_false_utf8, i64 0, i64 0), i32 5, i32 5, i8 0, i8 2, ptr getelementptr inbounds ([5 x i16], ptr @luma_string_false_utf16, i64 0, i64 0) }");
+        _output.AppendLine("@luma_string_false_utf16 = private unnamed_addr constant [6 x i16] [i16 70, i16 97, i16 108, i16 115, i16 101, i16 0]");
+        _output.AppendLine("@luma_string_false = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([6 x i8], ptr @luma_string_false_utf8, i64 0, i64 0), i32 5, i32 5, i8 0, i8 2, ptr getelementptr inbounds ([6 x i16], ptr @luma_string_false_utf16, i64 0, i64 0) }");
         if (needsFloatingStringification)
         {
             _output.AppendLine("@luma_format_float = private unnamed_addr constant [5 x i8] c\"%.9g\\00\"");
             _output.AppendLine("@luma_format_double = private unnamed_addr constant [6 x i8] c\"%.17g\\00\"");
             _output.AppendLine("@luma_string_nan_utf8 = private unnamed_addr constant [4 x i8] c\"NaN\\00\"");
-            _output.AppendLine("@luma_string_nan_utf16 = private unnamed_addr constant [3 x i16] [i16 78, i16 97, i16 78]");
-            _output.AppendLine("@luma_string_nan = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([4 x i8], ptr @luma_string_nan_utf8, i64 0, i64 0), i32 3, i32 3, i8 0, i8 2, ptr getelementptr inbounds ([3 x i16], ptr @luma_string_nan_utf16, i64 0, i64 0) }");
+            _output.AppendLine("@luma_string_nan_utf16 = private unnamed_addr constant [4 x i16] [i16 78, i16 97, i16 78, i16 0]");
+            _output.AppendLine("@luma_string_nan = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([4 x i8], ptr @luma_string_nan_utf8, i64 0, i64 0), i32 3, i32 3, i8 0, i8 2, ptr getelementptr inbounds ([4 x i16], ptr @luma_string_nan_utf16, i64 0, i64 0) }");
             _output.AppendLine("@luma_string_positive_infinity_utf8 = private unnamed_addr constant [9 x i8] c\"Infinity\\00\"");
-            _output.AppendLine("@luma_string_positive_infinity_utf16 = private unnamed_addr constant [8 x i16] [i16 73, i16 110, i16 102, i16 105, i16 110, i16 105, i16 116, i16 121]");
-            _output.AppendLine("@luma_string_positive_infinity = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([9 x i8], ptr @luma_string_positive_infinity_utf8, i64 0, i64 0), i32 8, i32 8, i8 0, i8 2, ptr getelementptr inbounds ([8 x i16], ptr @luma_string_positive_infinity_utf16, i64 0, i64 0) }");
+            _output.AppendLine("@luma_string_positive_infinity_utf16 = private unnamed_addr constant [9 x i16] [i16 73, i16 110, i16 102, i16 105, i16 110, i16 105, i16 116, i16 121, i16 0]");
+            _output.AppendLine("@luma_string_positive_infinity = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([9 x i8], ptr @luma_string_positive_infinity_utf8, i64 0, i64 0), i32 8, i32 8, i8 0, i8 2, ptr getelementptr inbounds ([9 x i16], ptr @luma_string_positive_infinity_utf16, i64 0, i64 0) }");
             _output.AppendLine("@luma_string_negative_infinity_utf8 = private unnamed_addr constant [10 x i8] c\"-Infinity\\00\"");
-            _output.AppendLine("@luma_string_negative_infinity_utf16 = private unnamed_addr constant [9 x i16] [i16 45, i16 73, i16 110, i16 102, i16 105, i16 110, i16 105, i16 116, i16 121]");
-            _output.AppendLine("@luma_string_negative_infinity = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([10 x i8], ptr @luma_string_negative_infinity_utf8, i64 0, i64 0), i32 9, i32 9, i8 0, i8 2, ptr getelementptr inbounds ([9 x i16], ptr @luma_string_negative_infinity_utf16, i64 0, i64 0) }");
+            _output.AppendLine("@luma_string_negative_infinity_utf16 = private unnamed_addr constant [10 x i16] [i16 45, i16 73, i16 110, i16 102, i16 105, i16 110, i16 105, i16 116, i16 121, i16 0]");
+            _output.AppendLine("@luma_string_negative_infinity = private unnamed_addr constant %luma.string { ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([10 x i8], ptr @luma_string_negative_infinity_utf8, i64 0, i64 0), i32 9, i32 9, i8 0, i8 2, ptr getelementptr inbounds ([10 x i16], ptr @luma_string_negative_infinity_utf16, i64 0, i64 0) }");
         }
         var literalsBySymbol = compilation.StringLiteralPool.Values.ToDictionary(value => value.Symbol, StringComparer.Ordinal);
         foreach (var className in compilation.ClassTypes.Keys)
@@ -1577,9 +1578,10 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             var literalFlags = literal.Utf16CodeUnits.All(value => value < 0x80) ? 2 : 0;
             var utf8Contents = string.Concat(literal.Utf8Bytes.Select(value => "\\" + value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))) + "\\00";
             _output.AppendLine($"{utf8Name} = private unnamed_addr constant [{utf8Length} x i8] c\"{utf8Contents}\"");
-            var utf16Values = string.Join(", ", literal.Utf16CodeUnits.Select(value => "i16 " + value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            _output.AppendLine($"{utf16Name} = private unnamed_addr constant [{literal.Length} x i16] [{utf16Values}]");
-            _output.AppendLine($"{objectName} = private unnamed_addr constant %luma.string {{ ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([{utf8Length} x i8], ptr {utf8Name}, i64 0, i64 0), i32 {literal.Length}, i32 {literal.Utf8Bytes.Length}, i8 0, i8 {literalFlags}, ptr getelementptr inbounds ([{literal.Length} x i16], ptr {utf16Name}, i64 0, i64 0) }}");
+            var utf16Values = string.Join(", ", literal.Utf16CodeUnits.Select(value => "i16 " + value.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("i16 0"));
+            var utf16Length = literal.Length + 1;
+            _output.AppendLine($"{utf16Name} = private unnamed_addr constant [{utf16Length} x i16] [{utf16Values}]");
+            _output.AppendLine($"{objectName} = private unnamed_addr constant %luma.string {{ ptr @luma_string_type, i32 1, i32 1, ptr null, ptr getelementptr inbounds ([{utf8Length} x i8], ptr {utf8Name}, i64 0, i64 0), i32 {literal.Length}, i32 {literal.Utf8Bytes.Length}, i8 0, i8 {literalFlags}, ptr getelementptr inbounds ([{utf16Length} x i16], ptr {utf16Name}, i64 0, i64 0) }}");
         }
     }
     private void EmitStringRuntime()
@@ -1712,7 +1714,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         EmitStringRuntimeOutOfMemory();
         _output.AppendLine("allocate.units:");
         _output.AppendLine(SizeCast("unit.count", "length"));
-        _output.AppendLine($"  %unit.allocation = mul {sizeType} %unit.count, 2");
+        _output.AppendLine($"  %unit.byte.count = mul {sizeType} %unit.count, 2");
+        _output.AppendLine($"  %unit.allocation = add {sizeType} %unit.byte.count, 2");
         _output.AppendLine($"  %units = call ptr @malloc({sizeType} %unit.allocation)");
         _output.AppendLine("  %units.failed = icmp eq ptr %units, null");
         _output.AppendLine("  br i1 %units.failed, label %free.data.oom, label %copy.bytes");
@@ -1763,6 +1766,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         _output.AppendLine($"  %right.units.copy = call ptr @memcpy(ptr %right.unit.destination, ptr %right.units, {sizeType} %right.unit.bytes)");
         _output.AppendLine("  br label %finish");
         _output.AppendLine("finish:");
+        _output.AppendLine("  %unit.terminator = getelementptr i16, ptr %units, i32 %length");
+        _output.AppendLine("  store i16 0, ptr %unit.terminator");
         _output.AppendLine($"  %terminator.address = getelementptr i8, ptr %data, {sizeType} %byte.count");
         _output.AppendLine("  store i8 0, ptr %terminator.address");
         _output.AppendLine("  %object.type.address = getelementptr %luma.string, ptr %object, i32 0, i32 0");
@@ -1883,7 +1888,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             allocate.units:
               %unit.count = {{(sizeType == "i64" ? "zext i32 %length to i64" : "add i32 %length, 0")}}
               %unit.bytes = mul {{sizeType}} %unit.count, 2
-              %units = call ptr @malloc({{sizeType}} %unit.bytes)
+              %unit.allocation = add {{sizeType}} %unit.bytes, 2
+              %units = call ptr @malloc({{sizeType}} %unit.allocation)
               %units.failed = icmp eq ptr %units, null
               br i1 %units.failed, label %free.data, label %copy.content
             free.data:
@@ -1893,6 +1899,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             copy.content:
               %data.copy = call ptr @memcpy(ptr %data, ptr %source, {{sizeType}} %byte.count)
               %units.copy = call ptr @memcpy(ptr %units, ptr %source.units, {{sizeType}} %unit.bytes)
+              %unit.terminator = getelementptr i16, ptr %units, {{sizeType}} %unit.count
+              store i16 0, ptr %unit.terminator
               %terminator = getelementptr i8, ptr %data, {{sizeType}} %byte.count
               store i8 0, ptr %terminator
               %type.address = getelementptr %luma.string, ptr %object, i32 0, i32 0
@@ -4900,10 +4908,10 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             if (elementType == "$string")
             {
                 var dataAddress = NewTemp();
-                Emit($"{dataAddress} = getelementptr %luma.string, ptr {receiver.Value}, i32 0, i32 4");
                 var stringData = NewTemp();
+                Emit($"{dataAddress} = getelementptr %luma.string, ptr {receiver.Value}, i32 0, i32 9");
                 Emit($"{stringData} = load ptr, ptr {dataAddress}");
-                return (stringData, "uint8*");
+                return (stringData, "char*");
             }
             var length = EmitManagedArrayLength(receiver.Value).Value;
             var data = NewTemp();

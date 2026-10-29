@@ -35,23 +35,6 @@ public static unsafe class Console
 			return;
 		}
 
-		int32 byteCount = 0;
-		for (int32 index = 0; index < value.Length; index++)
-		{
-			char character = value[index];
-			if (character <= '\u007F')
-				byteCount++;
-			else if (character <= '\u07FF')
-				byteCount += 2;
-			else if (character >= '\uD800' && character <= '\uDBFF' && index + 1 < value.Length && value[index + 1] >= '\uDC00' && value[index + 1] <= '\uDFFF')
-			{
-				byteCount += 4;
-				index++;
-			}
-			else
-				byteCount += 3;
-		}
-
-		IO.NativeFileSystem.luma_fs_console_write(value.Ptr, byteCount, appendNewLine);
+		IO.NativeFileSystem.luma_fs_console_write(value.Ptr, value.Length, appendNewLine);
 	}
 }
