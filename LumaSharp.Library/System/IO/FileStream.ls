@@ -11,19 +11,19 @@ public unsafe class FileStream : Stream
 	{
 		int32 nativeMode;
 		if (mode == FileMode.CreateNew)
-			nativeMode = 5;
+			nativeMode = NativeFileSystem.createNewMode;
 		else if (mode == FileMode.Open)
-			nativeMode = 0;
+			nativeMode = NativeFileSystem.openMode;
 		else if (mode == FileMode.Create || mode == FileMode.Truncate)
 		{
 			if (mode == FileMode.Truncate && !File.Exists(path))
 				throw new IOException("The file to truncate does not exist.");
-			nativeMode = 1;
+			nativeMode = NativeFileSystem.createMode;
 		}
 		else if (mode == FileMode.Append)
-			nativeMode = 2;
+			nativeMode = NativeFileSystem.appendMode;
 		else if (mode == FileMode.OpenOrCreate)
-			nativeMode = 3;
+			nativeMode = NativeFileSystem.openOrCreateMode;
 		else
 			throw new System.ArgumentOutOfRangeException();
 

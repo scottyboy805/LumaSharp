@@ -4,6 +4,12 @@ namespace System.IO;
 // Their names and signatures are part of the compiler/runtime ABI.
 internal static unsafe class NativeFileSystem
 {
+	public const int32 openMode = 0;
+	public const int32 createMode = 1;
+	public const int32 appendMode = 2;
+	public const int32 openOrCreateMode = 3;
+	public const int32 createNewMode = 5;
+
 	public static extern int32 luma_fs_open(uint8* path, int32 mode, void** handle);
 	public static extern int32 luma_fs_read(void* handle, uint8* buffer, int32 count, int32* bytesRead);
 	public static extern int32 luma_fs_write(void* handle, uint8* buffer, int32 count, int32* bytesWritten);
