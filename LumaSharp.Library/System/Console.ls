@@ -12,16 +12,6 @@ public static unsafe class Console
 		Write(value.ToString());
 	}
 
-	public static void Write(int32 value)
-	{
-		Write(value.ToString());
-	}
-
-	public static void Write(bool value)
-	{
-		Write(value.ToString());
-	}
-
 	public static void WriteLine()
 	{
 		WriteValue(null, true);
@@ -33,16 +23,6 @@ public static unsafe class Console
 	}
 
 	public static void WriteLine(char value)
-	{
-		WriteLine(value.ToString());
-	}
-
-	public static void WriteLine(int32 value)
-	{
-		WriteLine(value.ToString());
-	}
-
-	public static void WriteLine(bool value)
 	{
 		WriteLine(value.ToString());
 	}

@@ -513,10 +513,12 @@ public sealed class CompilerTests
                     string empty = string.Empty;
                     double precise = double.Parse("1.25e2");
                     float single = float.Parse("1.5");
+                    int32 value = 42;
                     string formatted = (42).ToString();
+                    string variableFormatted = value.ToString();
                     return top == 2147483647 && parsed == int32.MinValue && parsedBool && valid && maximum == top &&
                         !invalid && nativeMin < 0 && nativeMax > 0 && smallMin == -128 && letter == 'A' &&
-                        empty.Length == 0 && precise == 125.0 && single == 1.5f && formatted == "42" &&
+                        empty.Length == 0 && precise == 125.0 && single == 1.5f && formatted == "42" && variableFormatted == "42" &&
                         string.IsNullOrWhiteSpace(" \t") ? 0 : 1;
                 }
             }

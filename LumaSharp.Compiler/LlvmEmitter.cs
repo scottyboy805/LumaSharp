@@ -5783,6 +5783,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 case CallExpression call when classToStringCalls.TryGetValue(call, out var classToStringBinding) && call.Target is MemberAccessExpression target:
                     return EmitClassToString(target.Receiver, target.IsNullConditional, classToStringBinding.CallsBaseImplementation);
                 case CallExpression call when structToStringCalls.TryGetValue(call, out var structTypeName) && call.Target is MemberAccessExpression primitiveToStringTarget:
+                    if (structTypeName is "bool" or "char" or "float" or "double" || IsIntegerType(structTypeName))
+                        return EmitStringConversion(EmitExpression(primitiveToStringTarget.Receiver));
                     return StringLiteralCodec.TryCreate(structTypeName, out var structName, out _)
                         ? ("@" + structName.Symbol, "string")
                         : EmitStringConversion(EmitExpression(primitiveToStringTarget.Receiver));
