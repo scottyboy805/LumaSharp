@@ -664,7 +664,7 @@ void M(int32 p)
 
 ## 4.5 Constants and `readonly` Fields
 
-`const` and `readonly` are both available on fields; the **context decides the meaning** of each keyword. In a parameter list, `readonly` has a different meaning (§14.7).
+`const` and `readonly` are both available on fields; the **context decides the meaning** of each keyword. `scope` parameters carry the non-escaping borrow contract (§14.7); `in` parameters are read-only aliases of caller storage.
 
 ### 4.5.1 `const` fields
 
@@ -1381,10 +1381,10 @@ class Calculator
 ```
 parameter = { param_modifier } type identifier [ "=" constant ]
           | { param_modifier } type "..." identifier ;
-param_modifier = "ref" | "in" | "out" | "readonly" ;
+param_modifier = "ref" | "in" | "out" | "scope" ;
 ```
 
-Parameter modifiers precede the type and may be written **in any order**: `readonly ref int32 a` and `ref readonly int32 a` are the same.
+Parameter modifiers precede the type and may be written in either order. `scope` is orthogonal to `ref`, `in`, and `out`, and may be used with any of them. `readonly` is not a parameter modifier: use `scope` for a non-escaping parameter and `in` for a read-only reference parameter.
 
 | Modifier | Meaning |
 |---|---|
@@ -1392,7 +1392,7 @@ Parameter modifiers precede the type and may be written **in any order**: `reado
 | `ref` | The callee operates directly on the caller's storage. The argument MUST be an initialised variable; the call site writes `ref`. |
 | `in` | Read-only alias of the caller's storage: the callee cannot assign through it. Call site may write `in` (optional). |
 | `out` | The callee writes to caller storage and MUST assign it before returning normally. The call site writes `out`. |
-| `readonly` | The reference (or value) received **cannot escape the invocation** (§14.7). |
+| `scope` | The argument's referenced value **cannot escape the invocation** (§14.7). May be combined with any passing mode. |
 
 ### 7.2.1 By-value parameters
 
@@ -1465,18 +1465,17 @@ Rules:
 - If the callee throws, the caller's variable is considered **unassigned** after the call (flow analysis) but keeps whatever value it had.
 - **Ownership:** the caller's storage is treated as uninitialised for the callee. The first assignment inside the callee *replaces* any previous content; if the variable previously held a reference, that reference is released at the moment of that first assignment (§14.2). No retain is required merely because the variable is being passed.
 
-### 7.2.5 `readonly`
+### 7.2.5 `scope`
 
-`readonly` has no call-site syntax. It limits what the callee may do with the received value (§14.7):
+`scope` has no call-site syntax. It limits the lifetime of references exposed to the callee (§14.7). For by-value parameters it also prevents the callee from retaining the received reference; combined with `ref`, `in`, or `out`, it prevents references observed through the caller's storage from escaping:
 
 ```lumasharp
-void Observe(readonly Foo foo)
+void Observe(scope Foo foo)
 {
     foo.Describe();                    // fine: use it
-    stored = foo;                      // error: readonly parameter cannot escape
+    stored = foo;                      // error: scope parameter cannot escape
 }
-readonly ref int32 r                   // order of modifiers is free
-ref readonly int32 r2                  // same meaning
+in int32 r                             // read-only reference parameter
 ```
 
 ### 7.2.6 Restrictions on `ref`, `in`, `out`
@@ -1531,7 +1530,7 @@ Rules:
 - Inside the method, the parameter has the type `T[]` (an array) in this version. The language reserves the right to change the parameter's representation to a read-only span in a later version without changing call-site syntax; code SHOULD NOT mutate it.
 - At the call site the compiler gathers the trailing arguments into a sequence. **Representation is implementation-defined** (a new array, a `scope` array, a stack array, or reuse of an existing one), provided the parameter behaves like an array for the duration of the call.
 - **Normal form first:** if the call supplies exactly one argument implicitly convertible to `T[]`, it is passed as the array itself *without copying*. The callee therefore aliases the caller's array. Mutating it would affect the caller (a known limitation until read-only spans exist).
-- The `...` parameter MUST be last, MUST NOT have a default value, and MUST NOT carry `ref`/`out`/`in`. It MAY carry `readonly`.
+- The `...` parameter MUST be last, MUST NOT have a default value, and MUST NOT carry `ref`/`out`/`in`. It MAY carry `scope` to prevent the generated argument array from escaping.
 - The `...` parameter itself is non-null and its length may be zero.
 
 ```lumasharp
@@ -1789,7 +1788,7 @@ void Test()
 
 Rules:
 
-- Inside a finalizer, the implicit `this` behaves as a **`readonly` parameter** (§14.7): it cannot be stored in any field, static, array element, collection, closure, or passed to any parameter not marked `readonly`. Resurrection is therefore impossible in safe code.
+- Inside a finalizer, the implicit `this` is **scope-bound** (§14.7): it cannot be stored in any field, static, array element, collection, closure, or passed to any parameter not marked `scope`. Resurrection is therefore impossible in safe code.
 
 ```lumasharp
 class Evil
@@ -1798,8 +1797,8 @@ class Evil
     ~this()
     {
         saved = this;                  // error LS0701: 'this' cannot escape a finalizer
-        Register(this);                // error unless Register(readonly Evil e)
-        Log(this);                     // fine if Log(readonly Evil e)
+        Register(this);                // error unless Register(scope Evil e)
+        Log(this);                     // fine if Log(scope Evil e)
     }
 }
 ```
@@ -2727,7 +2726,7 @@ Non-nullable reference fields that can form a static cycle are diagnosed; nullab
 
 # 14. Ownership, Lifetime and `scope`
 
-This chapter defines the *observable* memory behaviour of LumaSharp programs. How the compiler and runtime achieve it (retain/release insertion, borrowing, elision, atomic operations) is specified in Part II (Chapters 25–33) and the Compiler Specification. **The programmer writes no ownership syntax**, with two exceptions: the `scope` allocation form (§14.4) and the `readonly` parameter modifier (§14.7).
+This chapter defines the *observable* memory behaviour of LumaSharp programs. How the compiler and runtime achieve it (retain/release insertion, borrowing, elision, atomic operations) is specified in Part II (Chapters 25–33) and the Compiler Specification. **The programmer writes no ownership syntax**, with two exceptions: the `scope` allocation form (§14.4) and `scope` parameters (§14.7).
 
 ## 14.1 The Model in One Page
 
@@ -2892,7 +2891,7 @@ A conforming compiler MUST reject every one of these uses of a scope-bound refer
 | Store it in a field, static, or property of any object | `field = foo;` |
 | Store it in an array element or collection | `list.Add(foo);`, `Foo[] arr = { scope Foo() };` (unless the container is itself scope allocated, see below and §14.4.1) |
 | Store it into a variable declared in an **outer** scope | `Foo outer; { var f = scope Foo(); outer = f; }` |
-| Pass it to a parameter that is not `readonly` | `Store(foo);` |
+| Pass it to a parameter that is neither `scope` nor `in` | `Store(foo);` |
 | Assign it through a `ref`/`out` parameter | `holder = foo;` where `holder` is a `ref Foo` or `out Foo` parameter |
 | Capture it in a lambda that is itself not scope-bound (a closure stored/returned) | `field = () => foo.Run();` |
 | Throw it as an exception | `throw foo;` |
@@ -2904,9 +2903,9 @@ A conforming compiler MUST accept at least:
 
 - Aliasing into locals of the same or an inner scope.
 - Member access, calling methods, reading/writing fields on it (subject to `mut`).
-- Passing it to a `readonly` parameter (including `readonly ref`).
+- Passing it to a `scope` parameter (or an `in` parameter).
 - Passing it as the receiver of a method call when the method (and, for virtual/interface calls, every possible target known to the compiler) does not let `this` escape.
-- Capturing it in a lambda that is assigned to a local of the same or inner scope, or passed directly to a `readonly` delegate parameter. The resulting delegate is scope-bound.
+- Capturing it in a lambda that is assigned to a local of the same or inner scope, or passed directly to a `scope` delegate parameter. The resulting delegate is scope-bound.
 - Storing it into a scoped array/collection allocated with `scope` in the same or an inner scope **only** if the compiler can prove the container's lifetime is no longer than the referent's; otherwise reject.
 - Using it as a constructor argument stored by another **scope**-allocated object in the same scope, only when the storing object is also scope-bound **and** was declared **after** the referent (so destruction order is safe).
 
@@ -2914,7 +2913,7 @@ Everything between the two lists is **implementation-defined, and MUST be conser
 
 ### 14.5.1 Receiver escape
 
-An instance method *lets `this` escape* if its body (or a callee it passes `this` to by non-`readonly` parameter) stores `this`, returns `this`, captures `this` in a non-scope-bound closure, or passes it to a non-`readonly` parameter. Calling such a method on a scope-bound receiver is error LS0702. For virtual/interface calls the compiler considers every override it can see; if the set of possible targets is open (cannot be proven), it MUST reject.
+An instance method *lets `this` escape* if its body (or a callee it passes `this` to by a non-`scope` parameter) stores `this`, returns `this`, captures `this` in a non-scope-bound closure, or passes it to a non-`scope` parameter. Calling such a method on a scope-bound receiver is error LS0702. For virtual/interface calls the compiler considers every override it can see; if the set of possible targets is open (cannot be proven), it MUST reject.
 
 ```lumasharp
 class Node
@@ -2972,53 +2971,54 @@ void Test()
 }
 ```
 
-## 14.7 `readonly` Parameters — Non-Escaping References
+## 14.7 `scope` Parameters — Non-Escaping References
 
-`readonly` before a parameter's type states: *this parameter's value cannot escape the invocation.*
+`scope` before a by-value parameter's type states: *a reference passed to this parameter cannot escape the invocation.* This is a lifetime contract, not a const modifier. It lets a caller pass a scope allocation without transferring ownership or extending the allocation's lifetime.
 
 ```lumasharp
-void Process(readonly Foo foo)
+void Process(scope Foo foo)
 {
     foo.DoSomething();            // use it freely
 }
 ```
 
-Inside a method, a `readonly` parameter (and the implicit `this` of a finalizer) MUST NOT be:
+Inside a method, a `scope` parameter MUST NOT be:
 
 - stored in a field, static, array element, or collection;
 - returned (directly or inside another value);
-- assigned to a variable of an outer scope or to a non-`readonly` `ref`/`out` target;
+- assigned to a variable whose lifetime can exceed the parameter's invocation;
+- assigned through a `ref`/`out` target;
 - captured by a lambda that is not scope-bound;
-- passed to a parameter that is not itself `readonly`;
+- passed to a parameter that is not itself `scope` (or an `in` parameter);
 - used as the receiver of a method that lets `this` escape (§14.5.1).
 
-It MAY be: read, have its members accessed, be passed to other `readonly` parameters, be compared, be assigned to a local variable of the callee's own scope (the alias is itself restricted).
+It MAY be read, have its members accessed, be passed to other `scope` parameters, be compared, and be aliased to a local. Such aliases retain the parameter's scope restriction. A nested block may use the alias or store it in a shorter-lived scope allocation, but MUST NOT store a child-scope allocation or alias into a longer-lived local, field, array, collection, closure, or return value.
 
 ```lumasharp
 class Container
 {
     Foo value = new Foo();
-    public void Store(readonly Foo foo) mut
+    public void Store(scope Foo foo) mut
     {
-        value = foo;              // error LS0701: readonly parameter cannot be stored
+        value = foo;              // error LS0701: scope parameter cannot be stored
     }
-    public void Draw(readonly Foo foo)
+    public void Draw(scope Foo foo)
     {
-        Render(foo);              // ok iff Render(readonly Foo f)
+        Render(foo);              // ok iff Render(scope Foo f)
     }
 }
 
 void Caller()
 {
     var s = scope Foo();
-    Process(s);                   // ok: Process takes a readonly parameter
-    container.Draw(s);            // ok: Draw only passes it on to readonly parameters
+    Process(s);                   // ok: Process takes a scope parameter
+    container.Draw(s);            // ok: Draw only passes it on to scope parameters
 }                                  // s destroyed here; nothing could have kept it
 ```
 
-`readonly` is also permitted in front of other modifiers (`readonly ref int32 a`, `ref readonly Foo f`) and means the same. It is **not** a mutability modifier for the referenced object's fields; `mut` governs that (§8.5).
+`readonly` is not valid on a parameter. Use `in` for a read-only reference parameter and `scope` to prevent references exposed through a parameter from escaping. `scope` does not make a parameter read-only; the binding's mutability follows its passing mode, and the referenced object's fields and methods are governed by `mut` (§8.5).
 
-Non-`readonly` ordinary heap references can be passed freely; only scope-bound references are restricted to `readonly` (or non-escaping-receiver) uses.
+Ordinary heap references can be passed freely to either scoped or unscoped parameters. Scope-bound references may only be passed to `scope` or `in` parameters and non-escaping receivers.
 
 ## 14.8 Reference Cycles `[P-21]`
 
@@ -3089,7 +3089,7 @@ void UseIt()
     f = Create();                   // old object count 1 (g), new object count 1 (f)
 }                                   // g released → old object destroyed; f released → new one destroyed
 
-void Process(readonly Foo foo) { }
+void Process(scope Foo foo) { }
 
 void Caller()
 {
@@ -3434,7 +3434,7 @@ A lambda may use local variables, parameters, and `this` of the enclosing method
 - Captured variables live in a compiler-generated **closure environment**, itself a managed, reference-counted object that lives as long as any delegate referring to it.
 - The environment **retains** every captured reference-typed variable's referent (strictly: the variable lives in the environment, and the environment owns the variable's reference). The environment releases them when it is destroyed.
 - Capturing `this` retains the receiver.
-- A lambda MUST NOT capture `ref`, `in`, or `out` parameters, nor a `readonly` parameter in a way that lets it escape (§14.7), nor `scope`-bound references unless the resulting delegate is itself scope-bound (§14.5).
+- A lambda MUST NOT capture `ref`, `in`, or `out` parameters, nor a `scope` parameter in a way that lets it escape (§14.7), nor `scope`-bound references unless the resulting delegate is itself scope-bound (§14.5).
 - A lambda body inside a non-`mut` method may not mutate receiver state (checked as part of that method).
 
 ```lumasharp
@@ -3915,7 +3915,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 | LS0622 | Switch label subsumed by an earlier label |
 | LS0630 | Not all code paths return a value |
 | LS0640 | Ambiguous `IEnumerable<T>` in a `for`-in loop (§6.6) |
-| LS0701 | Escape of a scope-bound or `readonly` reference (§14.5, §14.7) |
+| LS0701 | Escape of a scope-bound reference or `scope` parameter (§14.5, §14.7) |
 | LS0702 | Calling a `this`-escaping method on a scope-bound receiver |
 | LS0720 | `out` parameter not assigned on every normally-returning path |
 | LS0730 | Capturing `ref`/`in`/`out` parameter in a lambda |
@@ -4185,7 +4185,7 @@ Every managed object starts with an **object header** holding at least:
 - *Reference ordering:* retain uses a relaxed atomic increment; release uses an atomic decrement with *release* ordering, followed by an *acquire* fence when the old value was 1, before destruction begins.
 - The strong count has a maximum (at least 2^31 − 1). A retain that would exceed it is a **fatal error** (reference-count overflow).
 - A count never becomes negative: releasing more times than retaining is a compiler or unsafe-code bug (undefined behaviour in unsafe code; a runtime MAY detect it and report a fatal error).
-- Retain or release on an object in the **destroying** state is legal (for example when a finalizer passes `this` to a `readonly` parameter and the compiler conservatively retains it); such operations adjust the count but MUST NOT start a second destruction. When destruction completes, any outstanding count is irrelevant because the storage is freed (safe code cannot have kept a reference, §8.4).
+- Retain or release on an object in the **destroying** state is legal (for example when a finalizer passes `this` to a `scope` parameter and the compiler conservatively retains it); such operations adjust the count but MUST NOT start a second destruction. When destruction completes, any outstanding count is irrelevant because the storage is freed (safe code cannot have kept a reference, §8.4).
 
 ## 27.5 Destruction Protocol
 
@@ -4458,7 +4458,7 @@ This chapter states how the constructs of Part I execute. Where Part I already g
 
 - **Evaluation order:** the receiver, then arguments **left to right as written** (named arguments in written order, §7.3); then the call. Default values of omitted optional arguments are inserted at the call site.
 - **By-value parameters:** value types are copied; reference types pass the reference. Passing may be a **borrow** (no count change) or a retain, at the compiler's discretion subject to §27.7.
-- **`ref`/`in`/`out`:** the argument is the *address* of the caller's storage. `in` of a small value type may be passed by value instead (not observable, since `in` forbids mutation). `readonly` has no ABI effect: it only constrains the callee body.
+- **`ref`/`in`/`out`:** the argument is the *address* of the caller's storage. `in` of a small value type may be passed by value instead (not observable, since `in` forbids mutation). `scope` has no ABI effect: it only constrains escape and ownership in the callee.
 - **`out`:** the callee's first assignment replaces the previous content of the storage and releases the previous reference, if any (§7.2.4). The compiler zero-initialises caller storage that was unassigned so that the release is a no-op on null.
 - **Return values:** returned references are **owned** (+1) and transfer to the caller. Returned structs are copies.
 - **Variadic arguments:** the compiler gathers trailing arguments into a sequence typed as the array (§7.4); the representation (new array, scoped array, stack array, existing array) is the compiler's choice. A single argument convertible to the array type is passed as is, without a copy.
@@ -4788,7 +4788,7 @@ interface_indexer  = type "this" "[" parameters "]" "{" ( "get" ";" | "set" ";" 
 parameters         = parameter { "," parameter } ;
 parameter          = { param_modifier } type identifier [ "=" expression ]
                    | { param_modifier } type "..." identifier ;
-param_modifier     = "ref" | "in" | "out" | "readonly" ;
+param_modifier     = "ref" | "in" | "out" | "scope" ;
 arguments          = argument { "," argument } ;
 argument           = [ identifier ":" ] [ "ref" | "in" | "out" ] expression
                    | [ identifier ":" ] "out" ( type | "var" ) identifier ;
@@ -4905,13 +4905,13 @@ Disambiguation notes (informative):
 | Types | `bool char int uint int8 int16 int32 int64 uint8 uint16 uint32 uint64 float double object string void` |
 | Declarations | `class struct interface enum delegate namespace using const let var extern operator` |
 | Modifiers | `public private protected internal static virtual override readonly mut unsafe` |
-| Parameters | `ref in out readonly` |
+| Parameters | `ref in out scope` |
 | Control flow | `if else switch case default while do for in break continue return throw try catch finally` |
 | Expressions | `new scope this base null true false is as sizeof default checked unchecked` |
 | Contextual | `get set field value when and or not where` |
 | Reserved for future versions | `async await lock` |
 
-`when`, `and`, `or`, `not`, `where`, `get`, `set`, `field`, `value` are keywords only in the positions described in the text and are otherwise ordinary identifiers. `const` and `readonly` change meaning with context (field, local, parameter). There are no keywords for the excluded features of §24.1.
+`when`, `and`, `or`, `not`, `where`, `get`, `set`, `field`, `value` are keywords only in the positions described in the text and are otherwise ordinary identifiers. `const` and `readonly` change meaning with context (field or local); `scope` may modify allocations and by-value parameters. There are no keywords for the excluded features of §24.1.
 
 ---
 
@@ -5195,7 +5195,7 @@ class Program
         return true;
     }
 
-    static void Show(readonly Animal a)           // cannot be stored, so scoped objects may be passed
+    static void Show(scope Animal a)               // cannot be stored, so scoped objects may be passed
     {
         Console.WriteLine(a.Describe());
     }

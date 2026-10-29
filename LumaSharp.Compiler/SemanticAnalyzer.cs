@@ -3854,7 +3854,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var parameters = method.Declaration.Parameters;
         return parameters.Count == 0 || parameters is
         [
-            { TypeName: "string[]", PassingMode: "", DefaultValue: null, IsReadOnly: false, IsVariadic: false }
+            { TypeName: "string[]", PassingMode: "", DefaultValue: null, IsReadOnly: false, IsVariadic: false, IsScoped: false }
         ];
     }
 
@@ -3867,7 +3867,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var context = new MethodContext(method);
         foreach (var parameter in method.Declaration.Parameters)
         {
-            context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly, parameter.Location, isReadOnlyReference: parameter.IsReadOnly);
+            context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly,
+                parameter.Location, scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? context.ScopeDepth : null,
+                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
             if (IsNullableType(parameter.TypeName)) context.SetNullState(parameter.Name, NullState.MaybeNull);
         }
         if (method.IsClassConstructor) BindConstructorInitializer(method, context);
@@ -4006,7 +4008,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var constructorContext = new MethodContext(constructor);
             foreach (var parameter in constructor.Declaration.Parameters)
                 constructorContext.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly,
-                    parameter.Location, isReadOnlyReference: parameter.IsReadOnly);
+                    parameter.Location, scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? constructorContext.ScopeDepth : null,
+                    isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
 
             void Report(SourceLocation location, string message) =>
                 diagnostics.Add("LS0812", DiagnosticSeverity.Error, message, location);
@@ -4227,7 +4230,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var context = new MethodContext(method);
         foreach (var parameter in method.Declaration.Parameters)
             context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly, parameter.Location,
-                isReadOnlyReference: parameter.IsReadOnly);
+                scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? context.ScopeDepth : null,
+                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
         void CheckExpression(Expression expression)
         {
             switch (expression)
@@ -4246,7 +4250,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     for (var index = 0; index < call.Arguments.Count; index++)
                     {
                         var isReadOnlyParameter = _callTargets.TryGetValue(call, out var target) && _callArguments.TryGetValue(call, out var binding) &&
-                            index < binding.ParameterBySource.Count && target.Declaration.Parameters[binding.ParameterBySource[index]].IsReadOnly;
+                            index < binding.ParameterBySource.Count && (target.Declaration.Parameters[binding.ParameterBySource[index]].PassingMode == "in" ||
+                                target.Declaration.Parameters[binding.ParameterBySource[index]].IsReadOnly);
                         if (isReadOnlyParameter && call.Arguments[index] is ThisExpression) continue;
                         CheckExpression(call.Arguments[index]);
                     }
@@ -4327,7 +4332,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var context = new MethodContext(method);
         foreach (var parameter in method.Declaration.Parameters)
             context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly, parameter.Location,
-                isReadOnlyReference: parameter.IsReadOnly);
+                scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? context.ScopeDepth : null,
+                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
         bool ExpressionContainsCapture(Expression expression) => expression switch
         {
             LambdaExpression lambda => LambdaBodyReferencesThis(lambda) || LambdaReferencesImplicitInstanceMember(lambda, context),
@@ -4417,7 +4423,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     for (var index = 0; index < call.Arguments.Count; index++)
                     {
                         if (!ExpressionContainsThis(call.Arguments[index], receiverType, visiting)) continue;
-                        var isReadOnly = target.Declaration.Parameters[binding.ParameterBySource[index]].IsReadOnly;
+                        var isReadOnly = target.Declaration.Parameters[binding.ParameterBySource[index]].PassingMode == "in" ||
+                            target.Declaration.Parameters[binding.ParameterBySource[index]].IsReadOnly;
                         if (!isReadOnly || call.Arguments[index] is not (ThisExpression or BaseExpression)) return true;
                     }
                     argumentMayEscape = false;
@@ -6760,15 +6767,15 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 GetScopeBoundOrder(argument, context) is { } childOrder &&
                 scopedOwnerDepth is { } ownerDepth && scopedOwnerOrder is { } ownerOrder &&
                 ownerDepth >= childDepth && (ownerDepth > childDepth || ownerOrder > childOrder) &&
-                !IsReadOnlyReferenceExpression(argument, context) &&
+                !parameter.IsScoped && !IsReadOnlyReferenceExpression(argument, context) &&
                 TryGetScopedConstructorParameterStores(selected.Method, parameter.Name, out var storedFields))
             {
                 mayStoreScopedConstructorArgument = true;
                 _scopeBoundClassFields.UnionWith(storedFields);
             }
             if ((argumentScopeDepth is not null || IsReadOnlyReferenceExpression(argument, context)) &&
-                !parameter.IsReadOnly && !mayStoreScopedConstructorArgument)
-                diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound or readonly reference may only be passed to a readonly parameter.", call.Arguments[sourceIndex].Location);
+                parameter.PassingMode != "in" && !parameter.IsReadOnly && !parameter.IsScoped && !mayStoreScopedConstructorArgument)
+                diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound reference may only be passed to a scope or in parameter.", call.Arguments[sourceIndex].Location);
         }
         for (var parameterIndex = 0; parameterIndex < selected.Binding.DefaultsByParameter.Count; parameterIndex++)
             if (selected.Binding.DefaultsByParameter[parameterIndex] is { } defaultArgument)
@@ -7715,8 +7722,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 for (var sourceIndex = 0; sourceIndex < call.Arguments.Count; sourceIndex++)
                 {
                     var parameter = best[0].Method.Declaration.Parameters[best[0].Binding.ParameterBySource[sourceIndex]];
-                    if ((GetScopeBoundDepth(call.Arguments[sourceIndex], context) is not null || IsReadOnlyReferenceExpression(call.Arguments[sourceIndex], context)) && !parameter.IsReadOnly)
-                        diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound or readonly reference may only be passed to a readonly parameter.", call.Arguments[sourceIndex].Location);
+                    if ((GetScopeBoundDepth(call.Arguments[sourceIndex], context) is not null || IsReadOnlyReferenceExpression(call.Arguments[sourceIndex], context)) &&
+                        parameter.PassingMode != "in" && !parameter.IsReadOnly && !parameter.IsScoped)
+                        diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound reference may only be passed to a scope or in parameter.", call.Arguments[sourceIndex].Location);
                 }
                 if (!isBaseCall && virtualReceiverType is not null && best[0].Method.IsClassInstanceMethod &&
                     (best[0].Method.Declaration.IsVirtual || best[0].Method.Declaration.IsOverride))
@@ -8191,7 +8199,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     if (sourceParameter.TypeName is not null && actualType != targetParameter.TypeName)
                         diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Lambda parameter '{sourceParameter.Name}' has type '{actualType}', but delegate parameter '{targetParameter.Name}' requires '{targetParameter.TypeName}'.", sourceParameter.Location);
                     generatedParameters.Add(new(actualType, sourceParameter.Name, sourceParameter.Location,
-                        PassingMode: targetParameter.PassingMode));
+                        PassingMode: targetParameter.PassingMode, IsReadOnly: targetParameter.IsReadOnly,
+                        IsScoped: targetParameter.IsScoped));
                 }
                 var capturedNames = FindCapturedLambdaVariables(lambda, context);
                 var scopeBoundCaptures = capturedNames.Where(name => context.Lookup(name) is { } local &&
@@ -8232,7 +8241,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     .ToArray();
                 // A stored closure must not outlive any scoped value it borrows. The
                 // latest captured allocation is the order needed by container checks;
-                // readonly parameters without a local allocation order stay conservative.
+                // Scoped and in parameters without a local allocation order stay conservative.
                 if (scopeBoundCaptureOrders.Length > 0 && scopeBoundCaptureOrders.All(order => order is not null))
                     _scopeBoundLambdaOrders[lambda] = scopeBoundCaptureOrders.Max(order => order!.Value);
                 if (capturesThis && (context.Method.Owner.Kind is not ("class" or "struct") || context.Method.Declaration.IsStatic || context.Method.IsStructConstructor))
@@ -9013,7 +9022,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (!IsAccessibilityAvailable(setter.Declaration.Accessibility, setter.Owner, context.Method.Owner))
             diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Property '{GetQualifiedTypeName(property.Owner)}.{property.Declaration.Name}' has no accessible set accessor.", assignment.Left.Location);
         if (GetScopeBoundDepth(assignment.Right, context) is not null || IsReadOnlyReferenceExpression(assignment.Right, context))
-            diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound or readonly reference may only be passed to a readonly parameter.", assignment.Right.Location);
+            diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound reference cannot escape through a property assignment.", assignment.Right.Location);
 
         var mutationReceiver = receiver ?? new ThisExpression(assignment.Location);
         if (setter.IsStructInstanceMethod && setter.Declaration.IsMutating && !IsMutableStructLocation(mutationReceiver, context))
@@ -9069,7 +9078,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (setter.IsClassInstanceMethod && (HasThisRoot(index.Receiver) || IsCapturedThisRoot(index.Receiver, context)) && !CanMutateClassReceiver(context))
             diagnostics.Add("LS0821", DiagnosticSeverity.Error, "A non-mutating class method cannot assign an indexer on its receiver.", assignment.Location);
         if (GetScopeBoundDepth(assignment.Right, context) is not null || IsReadOnlyReferenceExpression(assignment.Right, context))
-            diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound or readonly reference may only be passed to a readonly parameter.", assignment.Right.Location);
+            diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound reference cannot escape through an indexer assignment.", assignment.Right.Location);
 
         var setterArguments = index.Indices.Append(assignment.Right).ToArray();
         var setterCall = new CallExpression(new MemberAccessExpression(index.Receiver, setter.Declaration.Name, index.Location,

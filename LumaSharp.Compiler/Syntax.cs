@@ -26,7 +26,7 @@ public sealed record ComputedIndexerDeclaration(string TypeName, IReadOnlyList<P
     string? ExplicitInterfaceName = null) : MemberDeclaration(At);
 public sealed record EnumMemberDeclaration(string Name, Expression? Initializer, SourceLocation At) : MemberDeclaration(At);
 public sealed record UnsupportedMember(string Description, SourceLocation At) : MemberDeclaration(At);
-public sealed record ParameterDeclaration(string TypeName, string Name, SourceLocation Location, Expression? DefaultValue = null, string PassingMode = "", bool IsReadOnly = false, bool IsVariadic = false);
+public sealed record ParameterDeclaration(string TypeName, string Name, SourceLocation Location, Expression? DefaultValue = null, string PassingMode = "", bool IsReadOnly = false, bool IsVariadic = false, bool IsScoped = false);
 
 public abstract record Statement(SourceLocation Location);
 public sealed record BlockStatement(IReadOnlyList<Statement> Statements, SourceLocation At) : Statement(At);

@@ -912,15 +912,18 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         {
             var at = Current.Location;
             var modifiers = new List<string>();
-            while (Current.Text is "ref" or "in" or "out" or "readonly") modifiers.Add(Take().Text);
+            while (Current.Text is "ref" or "in" or "out" or "readonly" or "scope") modifiers.Add(Take().Text);
             var passingModes = modifiers.Where(modifier => modifier is "ref" or "in" or "out").Distinct(StringComparer.Ordinal).ToArray();
             if (passingModes.Length > 1 || modifiers.Count != modifiers.Distinct(StringComparer.Ordinal).Count()) diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A parameter may have at most one of ref, in, or out and may not repeat modifiers.", at);
+            if (modifiers.Contains("readonly", StringComparer.Ordinal))
+                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "The readonly parameter modifier is not supported; use 'scope' for a non-escaping by-value parameter or 'in' for a read-only reference parameter.", at);
             var type = ParseTypeName(); if (type is null) { Error(Current, "Expected a parameter type."); break; }
             var isVariadic = Eat("...");
             if (isVariadic) type += "[]";
             var name = Take(); if (!IsIdentifier(name)) { Error(name, "Expected a non-keyword parameter name (use @ to escape a keyword)."); break; }
             var defaultValue = Eat("=") ? ParseExpression() : null;
-            result.Add(new(type, name.Text.TrimStart('@'), at, defaultValue, passingModes.FirstOrDefault() ?? "", modifiers.Contains("readonly", StringComparer.Ordinal), isVariadic));
+            result.Add(new(type, name.Text.TrimStart('@'), at, defaultValue, passingModes.FirstOrDefault() ?? "",
+                false, isVariadic, modifiers.Contains("scope", StringComparer.Ordinal)));
             if (!Eat(",")) break;
         }
         return result;

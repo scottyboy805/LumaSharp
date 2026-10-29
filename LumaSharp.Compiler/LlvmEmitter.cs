@@ -3421,10 +3421,11 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 else
                 {
                     var ptr = $"%p{i}"; Emit($"{ptr} = alloca {LlvmType(p.TypeName)}"); Emit($"store {LlvmType(p.TypeName)} %arg{i}, ptr {ptr}");
-                    if (IsStringType(p.TypeName) && !p.IsReadOnly) Emit($"call void @luma_string_retain(ptr %arg{i})");
-                    if (SemanticAnalyzer.TryParseManagedArrayType(p.TypeName, out _, out _) && !p.IsReadOnly) Emit($"call void @luma_array_retain(ptr %arg{i})");
-                    if (GetClassReferenceType(p.TypeName) is { } parameterClass && !p.IsReadOnly) RetainClassReference("%arg" + i, parameterClass);
-                    Declare(p.Name, p.TypeName, ptr, ownsString: !p.IsReadOnly, ownsArray: !p.IsReadOnly, ownsClass: !p.IsReadOnly, ownsAggregate: false);
+                    if (IsStringType(p.TypeName) && p.PassingMode != "in" && !p.IsReadOnly && !p.IsScoped) Emit($"call void @luma_string_retain(ptr %arg{i})");
+                    if (SemanticAnalyzer.TryParseManagedArrayType(p.TypeName, out _, out _) && p.PassingMode != "in" && !p.IsReadOnly && !p.IsScoped) Emit($"call void @luma_array_retain(ptr %arg{i})");
+                    if (GetClassReferenceType(p.TypeName) is { } parameterClass && p.PassingMode != "in" && !p.IsReadOnly && !p.IsScoped) RetainClassReference("%arg" + i, parameterClass);
+                    Declare(p.Name, p.TypeName, ptr, ownsString: p.PassingMode != "in" && !p.IsReadOnly && !p.IsScoped,
+                        ownsArray: p.PassingMode != "in" && !p.IsReadOnly && !p.IsScoped, ownsClass: p.PassingMode != "in" && !p.IsReadOnly && !p.IsScoped, ownsAggregate: false);
                 }
             }
             if (method.IsClassConstructor)

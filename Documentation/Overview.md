@@ -53,7 +53,7 @@ x, y = y, x;                    // simultaneous assignment
 int32? optional = default;       // target-typed default
 ```
 
-`let` is immutable, `var` is mutable, and explicit types may replace inference. Fields and locals can be `readonly` or `const` where allowed. `ref`, `in`, and `out` parameters express aliasing/borrowing modes; `out` values must be assigned before return. Named and optional arguments use `name: value`; variadic parameters use `T... values`.
+`let` is immutable, `var` is mutable, and explicit types may replace inference. Fields and locals can be `readonly` or `const` where allowed. `ref`, `in`, and `out` parameters express aliasing modes; `scope` can be combined with any of them to prevent references exposed to a method from escaping. `out` values must be assigned before return. Named and optional arguments use `name: value`; variadic parameters use `T... values`.
 
 ## Expressions and operators
 
@@ -161,7 +161,7 @@ for (let number in numbers) { }
 scope Counter local = new Counter(0); // lexical lifetime
 ```
 
-Strings are immutable UTF-8 values; `Length` and indexing use UTF-16 code units. Arrays include managed vectors, rectangular arrays (rank up to three), jagged arrays, and fixed-size inline arrays in structs. Array indexing is bounds-checked; arrays expose `Length`, `Rank`, and `GetLength`. Reference values are retained and released automatically. `scope` requests block lifetime and is subject to escape checks. `readonly` borrows and closure captures are also checked for lifetime safety.
+Strings are immutable UTF-8 values; `Length` and indexing use UTF-16 code units. Arrays include managed vectors, rectangular arrays (rank up to three), jagged arrays, and fixed-size inline arrays in structs. Array indexing is bounds-checked; arrays expose `Length`, `Rank`, and `GetLength`. Reference values are retained and released automatically. `scope` requests block lifetime, marks non-escaping borrowed parameters, and is subject to escape checks.
 
 ```lumasharp
 unsafe {

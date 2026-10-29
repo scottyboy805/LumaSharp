@@ -30,12 +30,36 @@ public sealed class CompilerTests
     [InlineData("class Program { public static virtual int32 Value() { return 0; } public static int32 Main() { return 0; } }")]
     [InlineData("static struct Data {} class Program { public static int32 Main() { return 0; } }")]
     [InlineData("class Program { public readonly int32 Value() { return 1; } public static int32 Main() { return 0; } }")]
+    [InlineData("class Program { public static int32 ReadonlyParameter(readonly int32 value) { return value; } public static int32 Main() { return 0; } }")]
     [InlineData("class Program { public virtual int32 Value; public static int32 Main() { return 0; } }")]
     public void InvalidModifiersAreRejectedForTheirDeclarationKind(string source)
     {
         var result = Compile(source);
         Assert.False(result.Succeeded);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS0001");
+    }
+
+    [Fact]
+    public void ScopeAndInParametersHaveDistinctReadOnlyBorrowSemantics()
+    {
+        const string accepted = "class Node { public int32 Read() { return 42; } } class Program { public static int32 Read(in Node node) { return node.Read(); } public static void Bump(scope ref int32 value) { value++; } public static int32 ReadScoped(scope in int32 value) { return value; } public static void Set(scope out int32 value) { value = 10; } public static int32 Main() { let node = scope Node(); int32 value = 1; Bump(ref value); int32 read = ReadScoped(in value); int32 output; Set(out output); return Read(in node) == 42 && value == 2 && read == 2 && output == 10 ? 0 : 1; } }";
+        var acceptedResult = Compile(accepted);
+        Assert.True(acceptedResult.Succeeded, string.Join(Environment.NewLine, acceptedResult.Diagnostics));
+
+        const string escaped = "class Node { } class Program { public static Node Escape(in Node node) { return node; } public static int32 Main() { return 0; } }";
+        var escapedResult = Compile(escaped);
+        Assert.False(escapedResult.Succeeded);
+        Assert.Contains(escapedResult.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        const string escapedRef = "class Node { } class Program { public static Node Escape(scope ref Node node) { return node; } public static int32 Main() { return 0; } }";
+        var escapedRefResult = Compile(escapedRef);
+        Assert.False(escapedRefResult.Succeeded);
+        Assert.Contains(escapedRefResult.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        const string oldSyntax = "class Program { public static int32 Readonly(readonly int32 value) { return value; } public static int32 Main() { return 0; } }";
+        var oldSyntaxResult = Compile(oldSyntax);
+        Assert.False(oldSyntaxResult.Succeeded);
+        Assert.Contains(oldSyntaxResult.Diagnostics, diagnostic => diagnostic.Code == "LS0001");
     }
 
     [Theory]
@@ -1436,7 +1460,7 @@ public sealed class CompilerTests
                     if (collector.Add(4, 5) != 14) return 10;
                     return 0;
                 }
-                public static int32 Sum(readonly int32... values) { int32 total = 0; for (let value in values) { total += value; } return total; }
+                public static int32 Sum(scope int32... values) { int32 total = 0; for (let value in values) { total += value; } return total; }
                 public static void Mutate(int32... values) { values[0] = 42; }
                 public static int32 SumFrom(int32 initial = 7, int32... values) { int32 total = initial; for (let value in values) { total += value; } return total; }
                 public static int32 TotalLength(string... values) { int32 total = 0; for (let value in values) { total += value.Length; } return total; }
@@ -3342,13 +3366,13 @@ public sealed class CompilerTests
         var returnedField = Compile("class Node { } class Holder { public Node? Item; } class Factory { public static Node? Get() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; return owner.Item; } } class Program { public static int32 Main() { return 0; } }");
         Assert.Contains(returnedField.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        var returnedThroughReadonlyParameter = Compile("class Node { } class Holder { public Node? Item; } class Factory { public static Node? Leak(readonly Holder owner) { return owner.Item; } public static int32 Main() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; Node? escaped = Leak(owner); return 0; } }");
+        var returnedThroughReadonlyParameter = Compile("class Node { } class Holder { public Node? Item; } class Factory { public static Node? Leak(scope Holder owner) { return owner.Item; } public static int32 Main() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; Node? escaped = Leak(owner); return 0; } }");
         Assert.Contains(returnedThroughReadonlyParameter.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        var returnedThroughReadonlyProperty = Compile("class Node { } class Holder { public Node? Item; public Node? Value { get { return Item; } } } class Factory { public static Node? Leak(readonly Holder owner) { return owner.Value; } } class Program { public static int32 Main() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; Node? escaped = Factory.Leak(owner); return 0; } }");
+        var returnedThroughReadonlyProperty = Compile("class Node { } class Holder { public Node? Item; public Node? Value { get { return Item; } } } class Factory { public static Node? Leak(scope Holder owner) { return owner.Value; } } class Program { public static int32 Main() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; Node? escaped = Factory.Leak(owner); return 0; } }");
         Assert.Contains(returnedThroughReadonlyProperty.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        var returnedThroughReadonlyIndexer = Compile("class Node { } class Holder { public Node? Item; public Node? this[int32 index] { get { return Item; } } } class Factory { public static Node? Leak(readonly Holder owner) { return owner[0]; } } class Program { public static int32 Main() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; Node? escaped = Factory.Leak(owner); return 0; } }");
+        var returnedThroughReadonlyIndexer = Compile("class Node { } class Holder { public Node? Item; public Node? this[int32 index] { get { return Item; } } } class Factory { public static Node? Leak(scope Holder owner) { return owner[0]; } } class Program { public static int32 Main() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; Node? escaped = Factory.Leak(owner); return 0; } }");
         Assert.Contains(returnedThroughReadonlyIndexer.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
         var returnedThroughInstanceCall = Compile("class Node { } class Holder { public Node? Item; public Node? GetItem() { return Item; } } class Program { public static Node? Leak() { Node child = scope Node(); Holder owner = scope Holder(); owner.Item = child; return owner.GetItem(); } public static int32 Main() { return 0; } }");
@@ -3375,7 +3399,7 @@ public sealed class CompilerTests
         Assert.Equal(0, aliasExecution.OutstandingAllocations);
         Assert.Null(aliasExecution.InteropError);
 
-        const string multiAssignmentAliasSource = "class Node { public int32 Read() { return 17; } } class Program { public static int32 ReadBorrowed(readonly Node source) { Node? alias = null; int32 borrowedValue = 0; alias, borrowedValue = source, source.Read(); return alias!.Read() == borrowedValue ? 0 : 1; } public static int32 Main() { Node? alias = null; int32 status = 1; Node child = scope Node(); alias, status = child, 7; return alias!.Read() == 17 && status == 7 && ReadBorrowed(child) == 0 ? 0 : 1; } }";
+        const string multiAssignmentAliasSource = "class Node { public int32 Read() { return 17; } } class Program { public static int32 ReadBorrowed(scope Node source) { Node? alias = null; int32 borrowedValue = 0; alias, borrowedValue = source, source.Read(); return alias!.Read() == borrowedValue ? 0 : 1; } public static int32 Main() { Node? alias = null; int32 status = 1; Node child = scope Node(); alias, status = child, 7; return alias!.Read() == 17 && status == 7 && ReadBorrowed(child) == 0 ? 0 : 1; } }";
         var multiAssignmentAliases = Compile(multiAssignmentAliasSource);
         Assert.True(multiAssignmentAliases.Succeeded, string.Join(Environment.NewLine, multiAssignmentAliases.Diagnostics));
         var multiAssignmentAliasExecution = LlvmJit.RunMain(multiAssignmentAliases.LlvmIr!);
@@ -3442,18 +3466,18 @@ public sealed class CompilerTests
         var openInterfaceReceiver = Compile(openInterfaceReceiverSource);
         Assert.Contains(openInterfaceReceiver.Diagnostics, diagnostic => diagnostic.Code == "LS0702");
 
-        const string readonlyInterfaceEscapeSource = "interface INode { void Escape(); } class Node : INode { public static Node? Last; public void Escape() { Node.Last = this; } } class Program { public static int32 Use(readonly INode node) { node.Escape(); return 0; } public static int32 Main() { Node node = new Node(); return Use(node); } }";
+        const string readonlyInterfaceEscapeSource = "interface INode { void Escape(); } class Node : INode { public static Node? Last; public void Escape() { Node.Last = this; } } class Program { public static int32 Use(scope INode node) { node.Escape(); return 0; } public static int32 Main() { Node node = new Node(); return Use(node); } }";
         var readonlyInterfaceEscape = Compile(readonlyInterfaceEscapeSource);
         Assert.Contains(readonlyInterfaceEscape.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        const string safeReadonlyInterfaceSource = "interface INode { int32 Read(); } class Node : INode { public int32 Read() { return 42; } } class Program { public static int32 Use(readonly INode node) { return node.Read(); } public static int32 Main() { Node node = new Node(); return Use(node) == 42 ? 0 : 1; } }";
+        const string safeReadonlyInterfaceSource = "interface INode { int32 Read(); } class Node : INode { public int32 Read() { return 42; } } class Program { public static int32 Use(scope INode node) { return node.Read(); } public static int32 Main() { Node node = new Node(); return Use(node) == 42 ? 0 : 1; } }";
         var safeReadonlyInterface = Compile(safeReadonlyInterfaceSource);
         Assert.True(safeReadonlyInterface.Succeeded, string.Join(Environment.NewLine, safeReadonlyInterface.Diagnostics));
 
-        var readonlyBorrow = Compile("class Node { public static int32 Read(readonly Node node) { return 0; } } class Program { public static int32 Main() { let node = scope Node(); return Node.Read(node); } }");
+        var readonlyBorrow = Compile("class Node { public static int32 Read(scope Node node) { return 0; } } class Program { public static int32 Main() { let node = scope Node(); return Node.Read(node); } }");
         Assert.True(readonlyBorrow.Succeeded, string.Join(Environment.NewLine, readonlyBorrow.Diagnostics));
 
-        const string readonlyLocalAliasSource = "class Node { public int32 Read() { return 23; } } class Program { public static int32 Read(readonly Node source) { Node? alias = null; alias = source; return alias!.Read(); } public static int32 Main() { Node node = new Node(); return Read(node) == 23 ? 0 : 1; } }";
+        const string readonlyLocalAliasSource = "class Node { public int32 Read() { return 23; } } class Program { public static int32 Read(scope Node source) { Node? alias = null; alias = source; return alias!.Read(); } public static int32 Main() { Node node = new Node(); return Read(node) == 23 ? 0 : 1; } }";
         var readonlyLocalAlias = Compile(readonlyLocalAliasSource);
         Assert.True(readonlyLocalAlias.Succeeded, string.Join(Environment.NewLine, readonlyLocalAlias.Diagnostics));
         var readonlyAliasExecution = LlvmJit.RunMain(readonlyLocalAlias.LlvmIr!);
@@ -3461,7 +3485,7 @@ public sealed class CompilerTests
         Assert.Equal(0, readonlyAliasExecution.OutstandingAllocations);
         Assert.Null(readonlyAliasExecution.InteropError);
 
-        const string readonlyAliasKeepsOwnedCallResultAliveSource = "delegate int32 Getter(); class Node { public static int32 destroyed; public int32 Read() { return 42; } ~this() { Node.destroyed++; } } class Owner { public Node Create() { return new Node(); } public Node Value { get { return new Node(); } } public Node this[int32 index] { get { return new Node(); } } } class Program { public static int32 Read(readonly Owner owner) { Node? alias = owner.Create(); if (Node.destroyed != 0) return 99; return alias!.Read(); } public static int32 Assign(readonly Owner owner) { Node? alias = null; alias = owner.Create(); if (Node.destroyed != 1) return 99; return alias!.Read(); } public static int32 Capture(readonly Owner owner) { Node? alias = owner.Create(); Getter closure = () => alias!.Read(); if (Node.destroyed != 2) return 99; return closure(); } public static int32 ReadProperty(readonly Owner owner) { Node? alias = owner.Value; if (Node.destroyed != 3) return 99; return alias!.Read(); } public static int32 ReadIndexer(readonly Owner owner) { Node? alias = owner[0]; if (Node.destroyed != 4) return 99; return alias!.Read(); } public static int32 Main() { Owner owner = new Owner(); return Read(owner) == 42 && Node.destroyed == 1 && Assign(owner) == 42 && Node.destroyed == 2 && Capture(owner) == 42 && Node.destroyed == 3 && ReadProperty(owner) == 42 && Node.destroyed == 4 && ReadIndexer(owner) == 42 && Node.destroyed == 5 ? 0 : 1; } }";
+        const string readonlyAliasKeepsOwnedCallResultAliveSource = "delegate int32 Getter(); class Node { public static int32 destroyed; public int32 Read() { return 42; } ~this() { Node.destroyed++; } } class Owner { public Node Create() { return new Node(); } public Node Value { get { return new Node(); } } public Node this[int32 index] { get { return new Node(); } } } class Program { public static int32 Read(scope Owner owner) { Node? alias = owner.Create(); if (Node.destroyed != 0) return 99; return alias!.Read(); } public static int32 Assign(scope Owner owner) { Node? alias = null; alias = owner.Create(); if (Node.destroyed != 1) return 99; return alias!.Read(); } public static int32 Capture(scope Owner owner) { Node? alias = owner.Create(); Getter closure = () => alias!.Read(); if (Node.destroyed != 2) return 99; return closure(); } public static int32 ReadProperty(scope Owner owner) { Node? alias = owner.Value; if (Node.destroyed != 3) return 99; return alias!.Read(); } public static int32 ReadIndexer(scope Owner owner) { Node? alias = owner[0]; if (Node.destroyed != 4) return 99; return alias!.Read(); } public static int32 Main() { Owner owner = new Owner(); return Read(owner) == 42 && Node.destroyed == 1 && Assign(owner) == 42 && Node.destroyed == 2 && Capture(owner) == 42 && Node.destroyed == 3 && ReadProperty(owner) == 42 && Node.destroyed == 4 && ReadIndexer(owner) == 42 && Node.destroyed == 5 ? 0 : 1; } }";
         var readonlyAliasKeepsOwnedCallResultAlive = Compile(readonlyAliasKeepsOwnedCallResultAliveSource);
         Assert.True(readonlyAliasKeepsOwnedCallResultAlive.Succeeded, string.Join(Environment.NewLine, readonlyAliasKeepsOwnedCallResultAlive.Diagnostics));
         var readonlyAliasKeepsOwnedCallResultAliveExecution = LlvmJit.RunMain(readonlyAliasKeepsOwnedCallResultAlive.LlvmIr!);
@@ -3469,7 +3493,7 @@ public sealed class CompilerTests
         Assert.Equal(0, readonlyAliasKeepsOwnedCallResultAliveExecution.OutstandingAllocations);
         Assert.Null(readonlyAliasKeepsOwnedCallResultAliveExecution.InteropError);
 
-        const string readonlyInitializedAliasesSource = "delegate int32 Getter(); class Node { public int32 Read() { return 23; } } class Program { public static int32 ReadNode(readonly Node source) { Node? alias = source; return alias!.Read(); } public static int32 ReadNodeByRef(readonly ref Node source) { Node? alias = source; return alias!.Read(); } public static int32 ReadNodeRefReadonly(ref readonly Node source) { Node? alias = source; return alias!.Read(); } public static int32 ReadNodeLoopAlias(readonly Node source) { Node? alias = null; int32 count = 0; while (count < 2) { alias = source; count++; } return alias!.Read(); } public static int32 ReadNodeViaLambda(readonly Node source) { Node? alias = source; Getter closure = () => alias!.Read(); return closure(); } public static int32 ReadArray(readonly int32[] source) { int32[]? alias = source; return alias!.Length; } public static int32 ReadString(readonly string source) { string? alias = source; return alias!.Length; } public static int32 ReadStringAssigned(readonly string source) { string? alias = null; alias = source; return alias!.Length; } public static int32 ReadDelegate(readonly Getter source) { Getter? alias = source; return alias!(); } public static int32 Main() { Node node = new Node(); int32[] items = { 1, 2, 3 }; string text = \"ab\"; text += \"cd\"; Getter getter = () => 37; return ReadNode(node) == 23 && ReadNodeByRef(ref node) == 23 && ReadNodeRefReadonly(ref node) == 23 && ReadNodeLoopAlias(node) == 23 && ReadNodeViaLambda(node) == 23 && ReadArray(items) == 3 && ReadString(text) == 4 && ReadStringAssigned(text) == 4 && ReadDelegate(getter) == 37 ? 0 : 1; } }";
+        const string readonlyInitializedAliasesSource = "delegate int32 Getter(); class Node { public int32 Read() { return 23; } } class Program { public static int32 ReadNode(scope Node source) { Node? alias = source; return alias!.Read(); } public static int32 ReadNodeByRef(in Node source) { Node? alias = source; return alias!.Read(); } public static int32 ReadNodeRefReadonly(in Node source) { Node? alias = source; return alias!.Read(); } public static int32 ReadNodeLoopAlias(scope Node source) { Node? alias = null; int32 count = 0; while (count < 2) { alias = source; count++; } return alias!.Read(); } public static int32 ReadNodeViaLambda(scope Node source) { Node? alias = source; Getter closure = () => alias!.Read(); return closure(); } public static int32 ReadArray(scope int32[] source) { int32[]? alias = source; return alias!.Length; } public static int32 ReadString(scope string source) { string? alias = source; return alias!.Length; } public static int32 ReadStringAssigned(scope string source) { string? alias = null; alias = source; return alias!.Length; } public static int32 ReadDelegate(scope Getter source) { Getter? alias = source; return alias!(); } public static int32 Main() { Node node = new Node(); int32[] items = { 1, 2, 3 }; string text = \"ab\"; text += \"cd\"; Getter getter = () => 37; return ReadNode(node) == 23 && ReadNodeByRef(in node) == 23 && ReadNodeRefReadonly(in node) == 23 && ReadNodeLoopAlias(node) == 23 && ReadNodeViaLambda(node) == 23 && ReadArray(items) == 3 && ReadString(text) == 4 && ReadStringAssigned(text) == 4 && ReadDelegate(getter) == 37 ? 0 : 1; } }";
         var readonlyInitializedAliases = Compile(readonlyInitializedAliasesSource);
         Assert.True(readonlyInitializedAliases.Succeeded, string.Join(Environment.NewLine, readonlyInitializedAliases.Diagnostics));
         var readonlyInitializedAliasesExecution = LlvmJit.RunMain(readonlyInitializedAliases.LlvmIr!);
@@ -3477,7 +3501,7 @@ public sealed class CompilerTests
         Assert.Equal(0, readonlyInitializedAliasesExecution.OutstandingAllocations);
         Assert.Null(readonlyInitializedAliasesExecution.InteropError);
 
-        const string readonlyArrayAliasSource = "class Program { public static int32 Read(readonly int32[] source) { int32[]? alias = null; alias = source; return alias!.Length; } public static int32 Main() { int32[] items = { 1, 2, 3 }; return Read(items) == 3 ? 0 : 1; } }";
+        const string readonlyArrayAliasSource = "class Program { public static int32 Read(scope int32[] source) { int32[]? alias = null; alias = source; return alias!.Length; } public static int32 Main() { int32[] items = { 1, 2, 3 }; return Read(items) == 3 ? 0 : 1; } }";
         var readonlyArrayAlias = Compile(readonlyArrayAliasSource);
         Assert.True(readonlyArrayAlias.Succeeded, string.Join(Environment.NewLine, readonlyArrayAlias.Diagnostics));
         var readonlyArrayAliasExecution = LlvmJit.RunMain(readonlyArrayAlias.LlvmIr!);
@@ -3485,13 +3509,13 @@ public sealed class CompilerTests
         Assert.Equal(0, readonlyArrayAliasExecution.OutstandingAllocations);
         Assert.Null(readonlyArrayAliasExecution.InteropError);
 
-        var readonlyAliasEscapesInnerScope = Compile("class Node { } class Program { public static void Keep(readonly Node source) { Node? outer = null; { Node? inner = null; inner = source; outer = inner; } } public static int32 Main() { return 0; } }");
+        var readonlyAliasEscapesInnerScope = Compile("class Node { } class Program { public static void Keep(scope Node source) { Node? outer = null; { Node? inner = null; inner = source; outer = inner; } } public static int32 Main() { return 0; } }");
         Assert.Contains(readonlyAliasEscapesInnerScope.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        var readonlyAliasHeapReplacement = Compile("class Node { } class Program { public static void Replace(readonly Node source) { Node? alias = null; alias = source; alias = new Node(); } public static int32 Main() { return 0; } }");
+        var readonlyAliasHeapReplacement = Compile("class Node { } class Program { public static void Replace(scope Node source) { Node? alias = null; alias = source; alias = new Node(); } public static int32 Main() { return 0; } }");
         Assert.Contains(readonlyAliasHeapReplacement.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        var readonlyStore = Compile("class Node { } class Holder { Node? value; public void Keep(readonly Node node) mut { value = node; } } class Program { public static int32 Main() { return 0; } }");
+        var readonlyStore = Compile("class Node { } class Holder { Node? value; public void Keep(scope Node node) mut { value = node; } } class Program { public static int32 Main() { return 0; } }");
         Assert.Contains(readonlyStore.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
         var fieldInitializer = Compile("class Node { } class Holder { Node? value = scope Node(); } class Program { public static int32 Main() { return 0; } }");
@@ -5759,8 +5783,8 @@ public sealed class CompilerTests
         var refParameter = Compile("delegate int32 Getter(); class Program { public static Getter Capture(ref int32 value) { return () => value; } public static int32 Main() { return 0; } }");
         Assert.Contains(refParameter.Diagnostics, diagnostic => diagnostic.Code == "LS0730" && diagnostic.Message.Contains("ref parameter", StringComparison.Ordinal));
 
-        var readonlyParameter = Compile("delegate int32 Getter(); class Program { public static Getter Capture(readonly int32 value) { return () => value; } public static int32 Main() { return 0; } }");
-        Assert.Contains(readonlyParameter.Diagnostics, diagnostic => diagnostic.Code == "LS0701" && diagnostic.Message.Contains("scope-bound", StringComparison.Ordinal));
+        var scopedParameter = Compile("delegate int32 Getter(); class Node { public int32 Read() { return 42; } } class Program { public static Getter Capture(scope Node value) { return () => value.Read(); } public static int32 Main() { return 0; } }");
+        Assert.Contains(scopedParameter.Diagnostics, diagnostic => diagnostic.Code == "LS0701" && diagnostic.Message.Contains("scope-bound", StringComparison.Ordinal));
 
         var nestedBlock = Compile("delegate int32 Getter(); class Program { public static Getter Capture() { Getter result = () => 0; { int32 value = 40; result = () => ++value; } return result; } public static int32 Main() { Getter getter = Capture(); if (getter() != 41) return 1; return getter() == 42 ? 0 : 2; } }");
         Assert.True(nestedBlock.Succeeded, string.Join(Environment.NewLine, nestedBlock.Diagnostics));
@@ -5929,7 +5953,7 @@ public sealed class CompilerTests
     [Fact]
     public void ScopeBoundLambdasMayBePassedDirectlyToReadonlyDelegateParameters()
     {
-        const string source = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static int32 Invoke(readonly Getter getter) { return getter(); } public static int32 Main() { Sample sample = scope Sample(); return Invoke(() => sample.Read()) == 42 ? 0 : 1; } }";
+        const string source = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static int32 Invoke(scope Getter getter) { return getter(); } public static int32 Main() { Sample sample = scope Sample(); return Invoke(() => sample.Read()) == 42 ? 0 : 1; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
@@ -7088,7 +7112,7 @@ public sealed class CompilerTests
     [Fact]
     public void RunsClassFinalizerExactlyOnceAndAllowsReadonlyBorrowDuringDestruction()
     {
-        const string source = "class Finalizable { public static int32 count; public static int32 Count() { return Finalizable.count; } public static void Observe(readonly Finalizable value) { } ~this() { Finalizable.count += 1; Observe(this); } } class Program { public static int32 Main() { { let item = new Finalizable(); let alias = item; } return Finalizable.Count() == 1 ? 0 : 1; } }";
+        const string source = "class Finalizable { public static int32 count; public static int32 Count() { return Finalizable.count; } public static void Observe(scope Finalizable value) { } ~this() { Finalizable.count += 1; Observe(this); } } class Program { public static int32 Main() { { let item = new Finalizable(); let alias = item; } return Finalizable.Count() == 1 ? 0 : 1; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("define void @luma_Finalizable_finalizer_0(ptr %this)", result.LlvmIr!, StringComparison.Ordinal);
@@ -7368,28 +7392,28 @@ public sealed class CompilerTests
     [Fact]
     public void ReadonlyParametersMayBeBorrowedByNonEscapingLambdas()
     {
-        const string source = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static int32 Invoke(readonly Getter getter) { return getter(); } public static int32 CaptureLocally(readonly Sample sample) { Getter getter = () => sample.Read(); return getter(); } public static int32 CaptureValueLocally(readonly int32 value) { Getter getter = () => value; return getter(); } public static int32 PassDirectly(readonly Sample sample) { return Invoke(() => sample.Read()); } public static int32 Main() { Sample sample = new Sample(); if (CaptureLocally(sample) != 42) return 1; if (CaptureValueLocally(43) != 43) return 2; if (PassDirectly(sample) != 42) return 3; return 0; } }";
+        const string source = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static int32 Invoke(scope Getter getter) { return getter(); } public static int32 CaptureLocally(scope Sample sample) { Getter getter = () => sample.Read(); return getter(); } public static int32 CaptureValueLocally(scope int32 value) { Getter getter = () => value; return getter(); } public static int32 PassDirectly(scope Sample sample) { return Invoke(() => sample.Read()); } public static int32 Main() { Sample sample = new Sample(); if (CaptureLocally(sample) != 42) return 1; if (CaptureValueLocally(43) != 43) return 2; if (PassDirectly(sample) != 42) return 3; return 0; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
 
-        var escaping = Compile("delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static Getter Capture(readonly Sample sample) { return () => sample.Read(); } public static int32 Main() { return 0; } }");
+        var escaping = Compile("delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static Getter Capture(scope Sample sample) { return () => sample.Read(); } public static int32 Main() { return 0; } }");
         Assert.Contains(escaping.Diagnostics, diagnostic => diagnostic.Code == "LS0701" && diagnostic.Message.Contains("scope-bound", StringComparison.OrdinalIgnoreCase));
 
-        var escapingValue = Compile("delegate int32 Getter(); class Program { public static Getter Capture(readonly int32 value) { return () => value; } public static int32 Main() { return 0; } }");
+        var escapingValue = Compile("delegate int32 Getter(); class Program { public static Getter Capture(scope int32 value) { return () => value; } public static int32 Main() { return 0; } }");
         Assert.Contains(escapingValue.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
     }
 
     [Fact]
     public void ReadonlyDelegateParametersCannotEscapeThroughHeapContainers()
     {
-        const string source = "delegate int32 Getter(); class Holder { public Getter? Callback; public void Store(readonly Getter callback) mut { Callback = callback; } } class Program { public static int32 Main() { return 0; } }";
+        const string source = "delegate int32 Getter(); class Holder { public Getter? Callback; public void Store(scope Getter callback) mut { Callback = callback; } } class Program { public static int32 Main() { return 0; } }";
         var result = Compile(source);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
 
-        const string capturedAliasSource = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Holder { public Getter? Callback; } class Program { public static void Store(readonly Sample sample) { Holder holder = new Holder(); Getter callback = () => sample.Read(); holder.Callback = callback; } public static int32 Main() { return 0; } }";
+        const string capturedAliasSource = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Holder { public Getter? Callback; } class Program { public static void Store(scope Sample sample) { Holder holder = new Holder(); Getter callback = () => sample.Read(); holder.Callback = callback; } public static int32 Main() { return 0; } }";
         var capturedAlias = Compile(capturedAliasSource);
         Assert.Contains(capturedAlias.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
     }
