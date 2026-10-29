@@ -74,6 +74,8 @@ The CLI may be a framework-dependent or self-contained .NET application. Packagi
 
 The compiler MUST generate code that follows the Language Specification's runtime contract. An executable MUST link the matching LumaSharp runtime as required by Part II of the Language Specification. A static-library build MUST expose or preserve the runtime dependencies needed when the library is linked into a final executable.
 
+The source runtime library MUST be distributed with the compiler installation so projects do not have to copy it into their source tree. Unless explicitly configured otherwise, the build API MUST look for `LumaSharp.Library` along the source paths' parent directories and alongside the compiler installation. A project MAY select another runtime source directory with `runtimeLibraryPath` or `--runtime-library`; the configured path MUST take precedence over automatic discovery. A configured relative path is resolved from the project root in project mode and from the current working directory in source mode.
+
 Appendix E of the Language Specification describes a reference ABI. A compiler and runtime built as one coordinated implementation MAY use a different internal ABI, but the generated program and runtime MUST agree exactly. If the reference ABI is used, its layouts, calling conventions, ownership conventions, and function contracts MUST be followed.
 
 ## 3. Build Command and Input Forms
@@ -139,6 +141,7 @@ The following JSON illustrates the initial project settings contract. All fields
   "outputName": "Example",
   "outputDirectory": "bin",
   "intermediateDirectory": "obj",
+  "runtimeLibraryPath": "../LumaSharp.Library",
   "targetTriple": "host",
   "unsafe": false,
   "optimize": false,
@@ -156,6 +159,7 @@ The following JSON illustrates the initial project settings contract. All fields
 | `outputName` | String | Project filename without `.json`. Used as the base output name; the platform-specific extension is chosen by the toolchain. |
 | `outputDirectory` | Path string | `bin`. Destination for final output. |
 | `intermediateDirectory` | Path string | `obj`. Destination for temporary and intermediate artifacts. |
+| `runtimeLibraryPath` | Path string | Omitted. Selects a runtime source directory explicitly; otherwise the compiler searches source ancestors and its installation directory. |
 | `targetTriple` | `"host"` or an LLVM target triple | `"host"`. Selects the host target or an explicitly named target. |
 | `unsafe` | Boolean | `false`. If false, source using unsafe constructs is rejected as required by the Language Specification (including LS1901). It does not change the meaning of valid safe code. |
 | `optimize` | Boolean | `false`. Enables additional LLVM optimisation when true; optimisation MUST preserve language semantics. |
@@ -164,7 +168,7 @@ The following JSON illustrates the initial project settings contract. All fields
 | `disabledWarnings` | Array of diagnostic-code strings | Empty. Disables listed warnings, subject to the Language Specification's diagnostic rules. |
 | `excludeDirectories` | Array of relative directory paths | Empty. Adds project-root-relative directories to source-discovery exclusions. |
 
-Relative project paths (including output and intermediate directories and exclusion paths) MUST be resolved from the project root. Absolute output and intermediate paths MAY be accepted. `outputDirectory` and `intermediateDirectory` MUST be kept outside source discovery even if their names are not `bin` and `obj`.
+Relative project paths (including output, intermediate, exclusion, and runtime-library paths) MUST be resolved from the project root. Absolute output, intermediate, and runtime-library paths MAY be accepted. `outputDirectory` and `intermediateDirectory` MUST be kept outside source discovery even if their names are not `bin` and `obj`.
 
 The project schema MAY be extended by a later schema version. Any extension MUST preserve the rule that project files do not enumerate source files. A compiler MAY support additional settings, but their names, types, defaults, and precedence MUST be documented.
 
@@ -208,6 +212,7 @@ The CLI MUST provide command-line overrides for the commonly used settings. At m
 --name <output-name>
 --out-dir <path>
 --intermediate-dir <path>
+--runtime-library <directory>
 --target <host-or-LLVM-triple>
 --unsafe / --no-unsafe
 --optimize / --no-optimize

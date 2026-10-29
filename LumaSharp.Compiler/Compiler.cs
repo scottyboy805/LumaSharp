@@ -16,6 +16,18 @@ public sealed record CompilationResult(IReadOnlyList<Diagnostic> Diagnostics, st
 public static class LumaCompiler
 {
     public static CompilationResult Compile(IEnumerable<(string Path, string Text)> sources, CompilationOptions? options = null, CancellationToken cancellationToken = default)
+        => CompileCore(sources, options, new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal), cancellationToken);
+
+    internal static CompilationResult CompileWithRuntimeLibrary(IEnumerable<(string Path, string Text)> sources, CompilationOptions options,
+        IEnumerable<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
+    {
+        var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var runtimePaths = runtimeSourcePaths.Select(Path.GetFullPath).ToHashSet(pathComparer);
+        return CompileCore(sources, options, runtimePaths, cancellationToken);
+    }
+
+    private static CompilationResult CompileCore(IEnumerable<(string Path, string Text)> sources, CompilationOptions? options,
+        IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken)
     {
         options ??= new();
         var diagnostics = new DiagnosticBag();
@@ -30,10 +42,11 @@ public static class LumaCompiler
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var tokens = new Lexer(path, text, diagnostics, cancellationToken).Scan();
-                units.Add(new Parser(tokens, diagnostics, options.UnsafeEnabled, cancellationToken).ParseCompilationUnit());
+                var isRuntimeSource = runtimeSourcePaths.Contains(Path.GetFullPath(path));
+                units.Add(new Parser(tokens, diagnostics, options.UnsafeEnabled || isRuntimeSource, cancellationToken).ParseCompilationUnit());
             }
             cancellationToken.ThrowIfCancellationRequested();
-            var analysis = new SemanticAnalyzer(options, diagnostics, cancellationToken).Analyze(units);
+            var analysis = new SemanticAnalyzer(options, diagnostics, runtimeSourcePaths, cancellationToken).Analyze(units);
             if (!options.StaticLibrary && analysis.EntryPoint is null)
                 diagnostics.Add("LS2201", DiagnosticSeverity.Error, "Executable compilation requires exactly one public static Main with a supported signature.");
             if (FinalDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error)) return new(FinalDiagnostics(), null);

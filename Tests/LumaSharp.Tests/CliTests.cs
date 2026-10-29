@@ -31,6 +31,47 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task ProjectModeLoadsRuntimeFromExternalConfiguredDirectory()
+    {
+        using var workspace = new TemporaryWorkspace();
+        workspace.Write("project/Program.ls", "using System; class Program { public static int32 Main() { Console.WriteLine(\"hello\"); return 0; } }");
+        workspace.Write("external-runtime/Console.ls", "namespace System; public static class Console { public static void WriteLine(string value) { } }");
+        var project = workspace.Write("project/sample.json", """{"schemaVersion":1,"runtimeLibraryPath":"../external-runtime","outputDirectory":"bin","intermediateDirectory":"obj"}""");
+
+        var result = await Run(workspace.Root, "build", project, "--no-llvm");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(Path.Combine(workspace.Root, "project", "obj", "sample.ll")));
+        Assert.Contains("luma_System_Console_WriteLine", File.ReadAllText(Path.Combine(workspace.Root, "project", "obj", "sample.ll")));
+    }
+
+    [Fact]
+    public async Task SourceModeDiscoversBundledRuntimeWithoutAnOverride()
+    {
+        using var workspace = new TemporaryWorkspace();
+        var source = workspace.Write("Program.ls", "using System; class Program { public static void Main() { Console.WriteLine(\"hello\"); } }");
+
+        var result = await Run(workspace.Root, "build", source, "--no-llvm", "--out-dir", "bin", "--intermediate-dir", "obj");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "Program.ll")));
+        Assert.Contains("luma_System_Console_WriteLine", File.ReadAllText(Path.Combine(workspace.Root, "obj", "Program.ll")));
+    }
+
+    [Fact]
+    public async Task SourceModeAcceptsAnExternalRuntimeLibraryOption()
+    {
+        using var workspace = new TemporaryWorkspace();
+        var source = workspace.Write("Program.ls", "using System; class Program { public static int32 Main() { Console.WriteLine(\"hello\"); return 0; } }");
+        var runtime = workspace.Write("external-runtime/Console.ls", "namespace System; public static class Console { public static void WriteLine(string value) { } }");
+
+        var result = await Run(workspace.Root, "build", source, "--runtime-library", Path.GetDirectoryName(runtime)!, "--no-llvm", "--out-dir", "bin", "--intermediate-dir", "obj");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "Program.ll")));
+    }
+
+    [Fact]
     public async Task ProjectModeExcludesCommandLineOutputOverridesAndConfiguredDirectories()
     {
         using var workspace = new TemporaryWorkspace();

@@ -5,7 +5,7 @@ return await Cli.RunAsync(args);
 
 internal static class Cli
 {
-    private static readonly HashSet<string> ProjectProperties = ["schemaVersion", "outputKind", "outputName", "outputDirectory", "intermediateDirectory", "targetTriple", "unsafe", "optimize", "logLevel", "warningsAsErrors", "disabledWarnings", "excludeDirectories"];
+    private static readonly HashSet<string> ProjectProperties = ["schemaVersion", "outputKind", "outputName", "outputDirectory", "intermediateDirectory", "targetTriple", "runtimeLibraryPath", "unsafe", "optimize", "logLevel", "warningsAsErrors", "disabledWarnings", "excludeDirectories"];
     public static async Task<int> RunAsync(string[] args)
     {
         if (args.Length == 0 || args[0] is "--help" or "-h") return Help();
@@ -24,6 +24,7 @@ internal static class Cli
                 case "--name": overrides.Name = Value(); if (overrides.Name is null) return Usage("--name requires a value."); break;
                 case "--out-dir": overrides.Output = Value(); if (overrides.Output is null) return Usage("--out-dir requires a value."); break;
                 case "--intermediate-dir": overrides.Intermediate = Value(); if (overrides.Intermediate is null) return Usage("--intermediate-dir requires a value."); break;
+                case "--runtime-library": overrides.RuntimeLibraryPath = Value(); if (overrides.RuntimeLibraryPath is null) return Usage("--runtime-library requires a directory path."); break;
                 case "--target": overrides.Target = Value(); if (overrides.Target is null) return Usage("--target requires a value."); break;
                 case "--log-level": overrides.LogLevel = Value(); if (overrides.LogLevel is not ("quiet" or "normal" or "verbose" or "debug")) return Usage("--log-level expects quiet, normal, verbose, or debug."); break;
                 case "--no-warn": var code = Value(); if (code is null) return Usage("--no-warn requires a diagnostic code."); overrides.DisabledWarnings.Add(code); break;
@@ -49,11 +50,6 @@ internal static class Cli
                 LoadProject(projectPath, settings);
                 ApplyOverrides(settings, overrides, projectRoot);
                 sourcePaths = DiscoverSources(projectRoot, settings.Output, settings.Intermediate, settings.ExcludedDirectories);
-                // Bind the repository runtime automatically for project builds. A
-                // project may also host its own library directory at this location.
-                var runtimeDirectory = Path.Combine(projectRoot, "LumaSharp.Library");
-                if (Directory.Exists(runtimeDirectory))
-                    sourcePaths.AddRange(DiscoverSources(runtimeDirectory, settings.Output, settings.Intermediate, []));
             }
             else
             {
@@ -77,7 +73,8 @@ internal static class Cli
                 options,
                 settings.Output!,
                 settings.Intermediate!,
-                settings.Name));
+                settings.Name,
+                settings.RuntimeLibraryPath));
             foreach (var diagnostic in build.Diagnostics) Console.Error.WriteLine(diagnostic);
             if (!build.Succeeded)
             {
@@ -95,7 +92,7 @@ internal static class Cli
     }
     private static int Help()
     {
-        Console.WriteLine("LumaSharp compiler\n\nUsage:\n  luma build <source.ls> [additional-source.ls ...] [options]\n  luma build <project.json> [options]\n  luma --help | --version\n\nOptions:\n  --kind <executable|staticLibrary> --name <name>\n  --out-dir <path> --intermediate-dir <path> --target <host|LLVM triple>\n  --unsafe | --no-unsafe --optimize | --no-optimize\n  --log-level <quiet|normal|verbose|debug> --warnings-as-errors\n  --no-warn <code> --no-llvm (write LLVM IR only)"); return 0;
+        Console.WriteLine("LumaSharp compiler\n\nUsage:\n  luma build <source.ls> [additional-source.ls ...] [options]\n  luma build <project.json> [options]\n  luma --help | --version\n\nOptions:\n  --kind <executable|staticLibrary> --name <name>\n  --out-dir <path> --intermediate-dir <path> --runtime-library <directory>\n  --target <host|LLVM triple> --unsafe | --no-unsafe\n  --optimize | --no-optimize --log-level <quiet|normal|verbose|debug>\n  --warnings-as-errors --no-warn <code> --no-llvm (write LLVM IR only)"); return 0;
     }
     private static int Usage(string message) { Console.Error.WriteLine($"LMC1001: error: {message}\nRun 'luma --help' for usage."); return 2; }
     private static int Fail(string code, string message, int exitCode) { Console.Error.WriteLine($"{code}: error: {message}"); return exitCode; }
@@ -120,6 +117,7 @@ internal static class Cli
         if (root.TryGetProperty("outputName", out var name)) settings.Name = String(name, "outputName");
         if (root.TryGetProperty("outputDirectory", out var output)) settings.Output = String(output, "outputDirectory");
         if (root.TryGetProperty("intermediateDirectory", out var intermediate)) settings.Intermediate = String(intermediate, "intermediateDirectory");
+        if (root.TryGetProperty("runtimeLibraryPath", out var runtimeLibraryPath)) settings.RuntimeLibraryPath = Resolve(rootPath, String(runtimeLibraryPath, "runtimeLibraryPath"));
         if (root.TryGetProperty("targetTriple", out var target)) settings.Target = String(target, "targetTriple");
         if (root.TryGetProperty("unsafe", out var unsafeElement)) settings.Unsafe = Boolean(unsafeElement, "unsafe");
         if (root.TryGetProperty("optimize", out var optimize)) settings.Optimize = Boolean(optimize, "optimize");
@@ -183,6 +181,7 @@ internal static class Cli
         else settings.Output ??= Resolve(root, "bin");
         if (overrides.Intermediate is not null) settings.Intermediate = Resolve(root, overrides.Intermediate);
         else settings.Intermediate ??= Resolve(root, "obj");
+        if (overrides.RuntimeLibraryPath is not null) settings.RuntimeLibraryPath = Resolve(root, overrides.RuntimeLibraryPath);
         if (overrides.Target is not null) settings.Target = overrides.Target; if (overrides.Unsafe is not null) settings.Unsafe = overrides.Unsafe.Value;
         if (overrides.Optimize is not null) settings.Optimize = overrides.Optimize.Value; if (overrides.LogLevel is not null) settings.LogLevel = overrides.LogLevel;
         if (overrides.WarningsAsErrors) settings.WarningsAsErrors = true; settings.DisabledWarnings.UnionWith(overrides.DisabledWarnings);
@@ -194,12 +193,13 @@ internal static class Cli
     private sealed class Settings
     {
         public string Kind { get; set; } = "executable"; public string Name { get; set; } = "LumaProgram"; public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } = "host";
+        public string? RuntimeLibraryPath { get; set; }
         public bool Unsafe { get; set; } public bool Optimize { get; set; } public bool WarningsAsErrors { get; set; } public string LogLevel { get; set; } = "normal";
         public HashSet<string> DisabledWarnings { get; } = new(StringComparer.OrdinalIgnoreCase); public HashSet<string> ExcludedDirectories { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
     private sealed class Overrides
     {
-        public string? Kind { get; set; } public string? Name { get; set; } public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; }
+        public string? Kind { get; set; } public string? Name { get; set; } public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } public string? RuntimeLibraryPath { get; set; }
         public bool? Unsafe { get; set; } public bool? Optimize { get; set; } public bool WarningsAsErrors { get; set; } public bool EmitIrOnly { get; set; } public string? LogLevel { get; set; }
         public HashSet<string> DisabledWarnings { get; } = new(StringComparer.OrdinalIgnoreCase);
     }

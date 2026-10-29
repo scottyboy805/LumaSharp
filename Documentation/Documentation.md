@@ -73,6 +73,7 @@ The CLI emits a native executable by default. Common options are:
 | `--name <name>` | Set the output name. |
 | `--out-dir <path>` | Choose the output directory. |
 | `--intermediate-dir <path>` | Choose where intermediate files are written. |
+| `--runtime-library <directory>` | Use runtime `.ls` sources from an explicit directory. |
 | `--kind staticLibrary` | Build a static library instead of an executable. |
 | `--target <triple>` | Choose an LLVM target triple; `host` selects the current machine. |
 | `--unsafe` | Allow source files to use unsafe features. |
@@ -83,7 +84,7 @@ Run `luma --help` (or `dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -
 
 ### Use a project file
 
-A JSON project describes output settings. The CLI discovers `.ls` files recursively below the JSON file's directory. A project directory can include a sibling `LumaSharp.Library` directory; the CLI includes it automatically.
+A JSON project describes output settings. The CLI discovers `.ls` files recursively below the JSON file's directory. The compiler locates the shipped runtime library automatically, so a project does not need its own copy. A project can select a different runtime source directory with `runtimeLibraryPath`:
 
 ```json
 {
@@ -92,13 +93,14 @@ A JSON project describes output settings. The CLI discovers `.ls` files recursiv
   "outputName": "Hello",
   "outputDirectory": "bin",
   "intermediateDirectory": "obj",
+  "runtimeLibraryPath": "../LumaSharp.Library",
   "targetTriple": "host",
   "unsafe": false,
   "optimize": false
 }
 ```
 
-Save it as `Hello.json`, then build it with:
+The runtime path is optional; when supplied, it is resolved relative to the JSON file. The equivalent CLI option is `--runtime-library <directory>`. Save the example as `Hello.json`, then build it with:
 
 ```powershell
 dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build Hello.json
@@ -926,7 +928,7 @@ Static `extern` methods bind to C ABI symbols at link time. LumaSharp does not m
 
 ## 16. Runtime library
 
-Project builds include the repository's sibling `LumaSharp.Library` automatically. The current library contains core types such as `Object`, `Array`, `Exception`, primitive keyword backing types, `String`, `Span<T>`, `ReadOnlySpan<T>`, `Weak<T>`, and the collections described above.
+The compiler package includes the LumaSharp runtime sources and locates them beside its installation. In a source checkout it also searches source-tree ancestors for `LumaSharp.Library`. Projects can override discovery with `runtimeLibraryPath` in JSON or `--runtime-library` on the command line. The current library contains core types such as `Object`, `Array`, `Exception`, primitive keyword backing types, `String`, `Span<T>`, `ReadOnlySpan<T>`, `Weak<T>`, and the collections described above.
 
 `System.Console` currently writes strings and chars through `Write` and `WriteLine`. To print a number or boolean, convert it explicitly with `ToString()`. `System.IO.TextWriter` also provides primitive overloads for derived writers.
 

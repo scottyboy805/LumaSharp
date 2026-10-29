@@ -21,5 +21,14 @@
     <PackageReference Include="libLLVMSharp.runtime.osx-arm64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'osx-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'osx-arm64'" />
     <PackageReference Include="libLLVMSharp.runtime.win-arm64" Version="22.1.8.1" Condition="'$(RuntimeIdentifier)' == 'win-arm64' or '$(NETCoreSdkRuntimeIdentifier)' == 'win-arm64'" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\LumaSharp.Library\**\*.ls"
+             Link="LumaSharp.Library\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest"
+             Pack="true"
+             PackagePath="contentFiles\any\any\LumaSharp.Library\%(RecursiveDir)%(Filename)%(Extension)"
+             PackageCopyToOutput="true" />
+  </ItemGroup>
 
 </Project>

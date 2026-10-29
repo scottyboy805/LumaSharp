@@ -178,8 +178,11 @@ internal static class VirtualDispatchLayout
             string.Join("\u001f", method.Declaration.Parameters.Select(parameter => parameter.TypeName)));
 }
 
-internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, CancellationToken cancellationToken = default)
+internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
 {
+    private bool UnsafeEnabledAt(SourceLocation location) => options.UnsafeEnabled ||
+        runtimeSourcePaths.Contains(Path.GetFullPath(location.File));
+
     private sealed class OutFlowLoop(string? label, int switchDepth)
     {
         public string? Label { get; } = label;
@@ -947,7 +950,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
 
-    private static bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
+    private bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
+        runtimeSourcePaths.Contains(Path.GetFullPath(type.Location.File)) ||
         type.Location.File.Replace('\\', '/').Contains("LumaSharp.Library/", StringComparison.OrdinalIgnoreCase);
 
     private void DiscoverPotentialScopeBoundClassFieldStores(IReadOnlyList<MethodSymbol> methods)
@@ -1640,7 +1644,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private string NormalizePointerMemberReceiverType(string pointerType, bool unsafeContext, SourceLocation location)
     {
         if (!IsPointerType(pointerType)) return pointerType;
-        if (!options.UnsafeEnabled)
+        if (!UnsafeEnabledAt(location))
             diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Pointer member access requires unsafe code, but unsafe is disabled for this compilation.", location);
         else if (!unsafeContext)
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Pointer member access may only be used in an unsafe context.", location);
@@ -5540,7 +5544,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "The current backend supports for-in over managed arrays and addressable inline arrays.", loop.Collection.Location);
             return;
         }
-        if (!isManagedArray && !options.UnsafeEnabled)
+        if (!isManagedArray && !UnsafeEnabledAt(loop.Location))
             diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Inline array iteration requires unsafe code, but unsafe is disabled for this compilation.", loop.Location);
         else if (!isManagedArray && !loop.IsUnsafeContext)
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Inline array iteration may only be used in an unsafe context.", loop.Location);
@@ -8176,7 +8180,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     if (receiverType != "?") diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Array and indexer access are not yet supported by the current backend.", index.Location);
                     return "?";
                 }
-                if (!options.UnsafeEnabled) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Pointer and inline array indexing require unsafe code, but unsafe is disabled for this compilation.", index.Location);
+                if (!UnsafeEnabledAt(index.Location)) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Pointer and inline array indexing require unsafe code, but unsafe is disabled for this compilation.", index.Location);
                 else if (!index.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Pointer and inline array indexing may only be used in an unsafe context.", index.Location);
                 if (index.Indices.Count != 1)
                 { diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "Pointer indexing accepts exactly one index.", index.Location); return "?"; }
@@ -8427,14 +8431,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "The Ptr property cannot be used with conditional access because it returns a pointer.", access.Location);
                         return "?";
                     }
-                    if (!options.UnsafeEnabled) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Managed array Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
+                    if (!UnsafeEnabledAt(access.Location)) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Managed array Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
                     else if (!access.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Managed array Ptr access may only be used in an unsafe context.", access.Location);
                     _managedArrayPointerAccesses[access] = pointerElementType;
                     return pointerElementType + "*";
                 }
                 if (access.Member == "Ptr" && lengthReceiverType is not null && IsStringType(lengthReceiverType))
                 {
-                    if (!options.UnsafeEnabled) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "String Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
+                    if (!UnsafeEnabledAt(access.Location)) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "String Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
                     else if (!access.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "String Ptr access may only be used in an unsafe context.", access.Location);
                     _managedArrayPointerAccesses[access] = "$string";
                     return "uint8*";

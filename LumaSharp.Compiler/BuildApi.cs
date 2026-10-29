@@ -9,7 +9,8 @@ public sealed record CompilerBuildRequest(
     CompilationOptions Options,
     string OutputDirectory,
     string IntermediateDirectory,
-    string OutputName);
+    string OutputName,
+    string? RuntimeLibraryPath = null);
 
 /// <summary>Structured result from the standalone compiler-library build API.</summary>
 public sealed record CompilerBuildResult(
@@ -48,13 +49,12 @@ public static class LumaBuild
             var sources = new List<(string Path, string Text)>();
             var seen = new HashSet<string>(PathComparer);
             var inputPaths = request.SourcePaths.ToList();
-            if (inputPaths.Count > 0)
-            {
-                var firstDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPaths[0]))!;
-                var runtimeDirectory = Path.Combine(firstDirectory, "LumaSharp.Library");
-                if (Directory.Exists(runtimeDirectory))
-                    inputPaths.AddRange(Directory.EnumerateFiles(runtimeDirectory, "*.ls", SearchOption.AllDirectories));
-            }
+            var runtimeDirectory = RuntimeLibraryResolver.Resolve(request.RuntimeLibraryPath, inputPaths);
+            var runtimeSourcePaths = runtimeDirectory is null
+                ? Array.Empty<string>()
+                : Directory.EnumerateFiles(runtimeDirectory, "*.ls", SearchOption.AllDirectories).ToArray();
+            if (runtimeDirectory is not null)
+                inputPaths.AddRange(runtimeSourcePaths);
             foreach (var inputPath in inputPaths)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -75,7 +75,7 @@ public static class LumaBuild
                 return Failure("LMC2001", targetValidation.Error ?? $"LLVM target '{request.Options.TargetTriple}' is unavailable.");
             var target = targetValidation.TargetTriple!;
 
-            var compilation = LumaCompiler.Compile(sources, request.Options, cancellationToken);
+            var compilation = LumaCompiler.CompileWithRuntimeLibrary(sources, request.Options, runtimeSourcePaths, cancellationToken);
             diagnostics.AddRange(compilation.Diagnostics);
             if (!compilation.Succeeded) return new(false, diagnostics.ToArray(), []);
 

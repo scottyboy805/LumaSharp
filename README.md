@@ -47,7 +47,7 @@ Use `dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- --help` for opti
 
 ### JSON project builds
 
-A `.json` project file sets build options; it does not list source files. The CLI recursively finds `.ls` files below the project directory and excludes version-control, `bin`, `obj`, and configured output directories.
+A `.json` project file sets build options; it does not list source files. The CLI recursively finds `.ls` files below the project directory and excludes version-control, `bin`, `obj`, and configured output directories. The compiler discovers its bundled runtime automatically; use `runtimeLibraryPath` or `--runtime-library` to select another runtime source directory.
 
 ```json
 {
