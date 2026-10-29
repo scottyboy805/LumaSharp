@@ -7279,9 +7279,36 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (call.Target is NameExpression structName && context.Lookup(structName.Name) is null && !_methods.Any(candidate => candidate.Owner == context.Method.Owner && candidate.Declaration.Name == structName.Name && candidate.Declaration.IsStatic))
                 {
                     var structMatches = FindTypes(structName.Name, context.Method.Owner).Where(candidate => candidate.Kind == "struct").ToArray();
-                    if (structMatches.Length == 1)
+                    var genericStructDefinition = call.TypeArguments is { Count: > 0 }
+                        ? GenericTypeSpecializer.ResolveDefinition(structName.Name, context.Method.Owner, _genericDefinitions)
+                        : null;
+                    var structDefinition = structMatches.Length == 1
+                        ? structMatches[0]
+                        : genericStructDefinition is { Kind: "struct" } ? genericStructDefinition : null;
+                    if (structDefinition is not null)
                     {
-                        var structType = GetQualifiedTypeName(structMatches[0]);
+                        var structType = GetQualifiedTypeName(structDefinition);
+                        if (call.TypeArguments is { } structTypeArguments && structDefinition.HasTypeParameters)
+                        {
+                            var typeParameters = structDefinition.TypeParameters ?? [];
+                            if (structTypeArguments.Count != typeParameters.Count)
+                            {
+                                diagnostics.Add("LS1101", DiagnosticSeverity.Error,
+                                    $"Generic struct '{structType}' requires {typeParameters.Count} type argument(s), but {structTypeArguments.Count} were supplied.", call.Location);
+                                return "?";
+                            }
+                            var normalizedArguments = structTypeArguments
+                                .Select(argument => NormalizeEnumType(argument, context.Method.Owner))
+                                .ToArray();
+                            var constructedName = $"{structType}<{string.Join(",", normalizedArguments)}>";
+                            if (ResolveGenericInstance(constructedName, context.Method.Owner) is not { } specializedStruct)
+                            {
+                                diagnostics.Add("LS1101", DiagnosticSeverity.Error,
+                                    $"Generic struct construction '{constructedName}' was not expanded.", call.Location);
+                                return "?";
+                            }
+                            structType = GetQualifiedTypeName(specializedStruct);
+                        }
                         if (call.Arguments.Count == 0) { _structConstructors[call] = structType; return structType; }
                         var constructorCandidates = _methods.Where(candidate => candidate.IsStructConstructor && GetQualifiedTypeName(candidate.Owner) == structType &&
                             IsConstructorAccessible(candidate, context.Method.Owner)).ToArray();

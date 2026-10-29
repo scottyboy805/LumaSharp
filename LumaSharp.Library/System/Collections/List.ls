@@ -1,3 +1,5 @@
+using System;
+
 namespace System.Collections;
 
 // TODO: Re-enable IEnumerable<T> when nested generic iterator allocation is supported.
@@ -41,6 +43,20 @@ public class List<T> where T : default
 				return &items[0];
 			}
 		}
+	}
+
+	public static unsafe implicit operator System.Span<T>(List<T> source)
+	{
+		if (source == null)
+			throw new System.ArgumentNullException();
+		return Span<T>(source.Ptr, source.Count);
+	}
+
+	public static unsafe implicit operator System.ReadOnlySpan<T>(List<T> source)
+	{
+		if (source == null)
+			throw new System.ArgumentNullException();
+		return ReadOnlySpan<T>(source.Ptr, source.Count);
 	}
 
 	public T this[int32 index]

@@ -185,7 +185,7 @@ public sealed class CompilerTests
 
                 public int32 Hash
                 {
-	                get => value;
+                    get => value;
                 }
             }
 
@@ -281,6 +281,34 @@ public sealed class CompilerTests
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
+    }
+
+    [Fact]
+    public void ListImplicitlyConvertsToSpanAndReadOnlySpan()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("span-conversion-test.ls", """
+            using System;
+            using System.Collections;
+
+            public class Program
+            {
+                public static unsafe int32 Main()
+                {
+                    List<int32> values = new List<int32>();
+                    values.Add(42);
+                    Span<int32> writable = values;
+                    ReadOnlySpan<int32> readonlyFromSpan = writable;
+                    ReadOnlySpan<int32> readonlyDirectly = values;
+                    return writable[0] == 42 && readonlyFromSpan[0] == 42 && readonlyDirectly[0] == 42 ? 0 : 1;
+                }
+            }
+            """)), new CompilationOptions(UnsafeEnabled: true));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
     }
 
     [Fact]

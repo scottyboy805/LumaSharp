@@ -63,4 +63,9 @@ public unsafe struct Span<T>
 	{
 		return ReadOnlySpan<T>(pointer, length);
 	}
+
+	public static implicit operator ReadOnlySpan<T>(Span<T> source)
+	{
+		return source.AsReadOnlySpan();
+	}
 }
