@@ -101,7 +101,7 @@ Nested class, struct, interface, and enum declarations are lowered under qualifi
 
 - Add a versioned conformance corpus derived from both specifications, with positive, negative, diagnostic, LLVM-verification, and execution cases.
 - Validate reproducible builds and target triples; improve linker/runtime discovery, packaging, and actionable diagnostics. Windows LLVM discovery now checks common LLVM installation roots and static-library builds have a native archive integration test that verifies a valid archive is published without an executable entry point. The matching standalone runtime package and ABI compatibility checks across separately built archives remain open.
-- Add CI across supported hosts/targets, documentation for the public compiler API and project schema, and release packaging/versioning. A Windows/Linux workflow now restores, builds Release, and runs the full test suite; add remaining host architectures and published artifact validation.
+- Add CI across supported hosts/targets, documentation for the public compiler API and project schema, and release packaging/versioning. The new language and usage guide documents the implemented syntax and runtime for users, and all 36 LumaSharp examples in the guide compile against the current runtime; compiler API reference coverage remains open. A Windows/Linux workflow now restores, builds Release, and runs the full test suite; add remaining host architectures and published artifact validation.
 
 **Exit gate:** the documented conformance suite passes in CI, published artifacts contain the compiler and runtime, and the README no longer describes major specified features as missing.
 

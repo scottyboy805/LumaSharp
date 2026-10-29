@@ -12,7 +12,7 @@ LumaSharp is a statically typed language with C#-style syntax, ahead-of-time nat
 - `Specification/` — normative language/runtime and compiler specifications.
 - `Progress/` — implementation roadmap and runtime ABI notes.
 
-Start with [Documentation/Overview.md](Documentation/Overview.md) for a compact syntax reference. The [language specification](Specification/LumaSharp_LanguageSpecification.md) defines intended semantics; the [compiler specification](Specification/LumaSharp_CompilerSpecification.md) describes project files, outputs, and CLI behaviour. Some specified features are not implemented yet.
+Start with the [LumaSharp Language and Usage Guide](Documentation/Documentation.md) for an approachable tour of the implemented language and runtime. [Documentation/Overview.md](Documentation/Overview.md) is the compact syntax reference. The [language specification](Specification/LumaSharp_LanguageSpecification.md) defines intended semantics; the [compiler specification](Specification/LumaSharp_CompilerSpecification.md) describes project files, outputs, and CLI behaviour. Some specified features are not implemented yet.
 
 ## Requirements
 

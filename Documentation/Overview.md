@@ -2,6 +2,8 @@
 
 This page is a compact syntax guide to the language features currently represented by the compiler. It is not a complete semantics document: the language is still evolving, and parts of the draft specification remain unimplemented. See [the language specification](../Specification/LumaSharp_LanguageSpecification.md) for intended rules and [the compiler specification](../Specification/LumaSharp_CompilerSpecification.md) for build behaviour.
 
+For a guided explanation with examples, see the [LumaSharp Language and Usage Guide](Documentation.md).
+
 ## Smallest program
 
 Source files use `.ls`. An executable entry point is a public or accessible static `Main` returning `void` or `int32`, with no arguments or `string[] args`.
