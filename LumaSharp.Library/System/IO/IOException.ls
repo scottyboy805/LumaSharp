@@ -1,6 +1,6 @@
 namespace System.IO;
 
-public class IOException : System.Exception
+public virtual class IOException : System.Exception
 {
 	public this() { }
 	public this(string message) : base(message) { }
