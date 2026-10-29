@@ -16,7 +16,15 @@ public sealed record CompilationResult(IReadOnlyList<Diagnostic> Diagnostics, st
 public static class LumaCompiler
 {
     public static CompilationResult Compile(IEnumerable<(string Path, string Text)> sources, CompilationOptions? options = null, CancellationToken cancellationToken = default)
-        => CompileCore(sources, options, new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal), cancellationToken);
+    {
+        var sourceList = sources.ToArray();
+        var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var runtimePaths = sourceList
+            .Select(source => Path.GetFullPath(source.Path))
+            .Where(IsRuntimeLibraryPath)
+            .ToHashSet(pathComparer);
+        return CompileCore(sourceList, options, runtimePaths, cancellationToken);
+    }
 
     internal static CompilationResult CompileWithRuntimeLibrary(IEnumerable<(string Path, string Text)> sources, CompilationOptions options,
         IEnumerable<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
@@ -62,4 +70,7 @@ public static class LumaCompiler
             return new(FinalDiagnostics(), null);
         }
     }
+
+    private static bool IsRuntimeLibraryPath(string path) =>
+        path.Replace('\\', '/').Contains("/LumaSharp.Library/", StringComparison.OrdinalIgnoreCase);
 }

@@ -37,5 +37,47 @@ public struct Double : ValueType
 		}
 		result = negative ? -value : value; return true;
 	}
-}
 
+	public unsafe uint8[] GetBytes()
+	{
+		uint8[] bytes = new uint8[8];
+		GetBytes(bytes);
+		return bytes;
+	}
+
+	public unsafe void GetBytes(scope uint8[] bytes)
+	{
+		if (bytes.Length < 8)
+			throw new ArgumentException("The destination array is too short.");
+
+		uint64 bits = ToBits(this);
+		for (int32 index = 0; index < 8; index++)
+			bytes[index] = (uint8)((bits >> (index * 8)) & 0xFF);
+	}
+
+	public static unsafe double FromBytes(scope uint8[] bytes)
+	{
+		if (bytes.Length < 8)
+			throw new ArgumentException("The source array is too short.");
+
+		uint64 bits = 0;
+		for (int32 index = 0; index < 8; index++)
+			bits |= (uint64)bytes[index] << (index * 8);
+
+		return FromBits(bits);
+	}
+
+	private static unsafe uint64 ToBits(double value)
+	{
+		uint64* bits = (uint64*)&value;
+		return *bits;
+	}
+
+	private static unsafe double FromBits(uint64 bits)
+	{
+		double value = 0.0;
+		uint64* destination = (uint64*)&value;
+		*destination = bits;
+		return value;
+	}
+}

@@ -6866,9 +6866,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "'this' is supported only inside instance constructors and methods.", thisExpression.Location);
                     return "?";
                 }
-                return GetQualifiedTypeName(context.Method.Owner) == "System.String"
-                    ? "string"
-                    : GetQualifiedTypeName(context.Method.Owner);
+                var thisOwner = GetQualifiedTypeName(context.Method.Owner);
+                if (thisOwner == "System.String") return "string";
+                return PrimitiveKeywordAlias(thisOwner) ?? thisOwner;
             case BaseExpression baseExpression:
                 var baseContextOwner = context.Method.Owner;
                 var enclosingOwners = new HashSet<string>(StringComparer.Ordinal);
@@ -7508,19 +7508,22 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Enum '{instanceReceiverType}' has no instance method named '{instanceCall.Member}'.", instanceCall.Location);
                         return "?";
                     }
-                    else if (IsStructType(instanceReceiverType))
+                    else if (IsStructType(instanceReceiverType) || IsStructType(NormalizeBuiltinTypeQualifier(instanceReceiverType)))
                     {
                         instanceReceiver = instanceCall.Receiver;
-                        candidates = _methods.Concat(_genericMethodDefinitions).Where(candidate => candidate.IsStructInstanceMethod && GetQualifiedTypeName(candidate.Owner) == instanceReceiverType && candidate.Declaration.Name == instanceCall.Member).ToArray();
+                        var normalizedStructType = IsStructType(instanceReceiverType)
+                            ? instanceReceiverType
+                            : NormalizeBuiltinTypeQualifier(instanceReceiverType);
+                        candidates = _methods.Concat(_genericMethodDefinitions).Where(candidate => candidate.IsStructInstanceMethod && GetQualifiedTypeName(candidate.Owner) == normalizedStructType && candidate.Declaration.Name == instanceCall.Member).ToArray();
                         if (candidates.Length == 0)
                         {
-                            if (instanceCall.Member == "ToString" && call.Arguments.Count == 0 && !HasCustomStructToString(instanceReceiverType))
+                            if (instanceCall.Member == "ToString" && call.Arguments.Count == 0 && !HasCustomStructToString(normalizedStructType))
                             {
-                                _structToStringCalls[call] = instanceReceiverType;
-                                RecordStringification(instanceReceiverType);
+                                _structToStringCalls[call] = normalizedStructType;
+                                RecordStringification(normalizedStructType);
                                 return "string";
                             }
-                            diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Struct '{instanceReceiverType}' has no instance method named '{instanceCall.Member}'.", instanceCall.Location);
+                            diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Struct '{normalizedStructType}' has no instance method named '{instanceCall.Member}'.", instanceCall.Location);
                             return "?";
                         }
                     }
@@ -9297,6 +9300,18 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         "float" => "System.Float", "double" => "System.Double",
         "string" => "System.String",
         _ => typeName
+    };
+
+    private static string? PrimitiveKeywordAlias(string typeName) => typeName switch
+    {
+        "System.Bool" => "bool", "System.Char" => "char",
+        "System.Int8" => "int8", "System.UInt8" => "uint8",
+        "System.Int16" => "int16", "System.UInt16" => "uint16",
+        "System.Int32" => "int32", "System.UInt32" => "uint32",
+        "System.Int64" => "int64", "System.UInt64" => "uint64",
+        "System.Int" => "int", "System.UInt" => "uint",
+        "System.Float" => "float", "System.Double" => "double",
+        _ => null
     };
 
     private IEnumerable<string> EnumerateTypeConstituents(string typeName)

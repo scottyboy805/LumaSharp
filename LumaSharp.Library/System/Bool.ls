@@ -29,5 +29,27 @@ public struct Bool : ValueType
 		}
 		return true;
 	}
-}
 
+	public uint8[] GetBytes()
+	{
+		uint8[] bytes = new uint8[1];
+		GetBytes(bytes);
+		return bytes;
+	}
+
+	public void GetBytes(scope uint8[] bytes)
+	{
+		if (bytes.Length < 1)
+			throw new ArgumentException("The destination array is too short.");
+
+		bytes[0] = this ? (uint8)1 : (uint8)0;
+	}
+
+	public static bool FromBytes(scope uint8[] bytes)
+	{
+		if (bytes.Length < 1)
+			throw new ArgumentException("The source array is too short.");
+
+		return bytes[0] != 0;
+	}
+}

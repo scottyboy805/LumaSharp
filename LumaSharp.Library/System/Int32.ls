@@ -33,5 +33,35 @@ public struct Int32 : ValueType
 		result = negative ? value : -value;
 		return true;
 	}
-}
 
+	public uint8[] GetBytes()
+	{
+		uint8[] bytes = new uint8[4];
+		GetBytes(bytes);
+		return bytes;
+	}
+
+	public void GetBytes(scope uint8[] bytes)
+	{
+		if (bytes.Length < 4)
+			throw new ArgumentException("The destination array is too short.");
+
+		for (int32 index = 0; index < 4; index++)
+			bytes[index] = (uint8)((this >> (index * 8)) & 0xFF);
+	}
+
+	public static int32 FromBytes(scope uint8[] bytes)
+	{
+		if (bytes.Length < 4)
+			throw new ArgumentException("The source array is too short.");
+
+		uint32 bits = 0;
+		for (int32 index = 0; index < 4; index++)
+			bits |= (uint32)bytes[index] << (index * 8);
+
+		if (bits <= 2147483647u)
+			return (int32)bits;
+
+		return -1 - (int32)(4294967295u - bits);
+	}
+}

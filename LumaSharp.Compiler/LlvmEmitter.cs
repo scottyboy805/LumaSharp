@@ -12,6 +12,25 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         .ToDictionary(method => QualifiedTypeName(method.Owner), method => TypeInitializationFunctionName(QualifiedTypeName(method.Owner)), StringComparer.Ordinal);
 
     private static string QualifiedTypeName(TypeDeclaration type) => string.IsNullOrEmpty(type.Namespace) ? type.Name : type.Namespace + "." + type.Name;
+
+    private static string? PrimitiveKeywordAlias(string typeName) => typeName switch
+    {
+        "System.Bool" => "bool",
+        "System.Char" => "char",
+        "System.Int8" => "int8",
+        "System.UInt8" => "uint8",
+        "System.Int16" => "int16",
+        "System.UInt16" => "uint16",
+        "System.Int32" => "int32",
+        "System.UInt32" => "uint32",
+        "System.Int64" => "int64",
+        "System.UInt64" => "uint64",
+        "System.Int" => "int",
+        "System.UInt" => "uint",
+        "System.Float" => "float",
+        "System.Double" => "double",
+        _ => null
+    };
     private static string TypeInitializationFunctionName(string typeName) => "luma_type_init_" + Safe(typeName);
     private static string TypeInitializationFailureMessage(string typeName) => $"The type initializer for '{typeName}' threw an exception.";
     private static string TypeInitializationCircularMessage(string typeName) => $"circular static initialization of {typeName}";
@@ -5773,7 +5792,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                     if (method.IsClassConstructor || method.IsClassInstanceMethod) return ("%this", QualifiedTypeName(method.Owner));
                     if (method.IsClassFinalizer) return ("%this", QualifiedTypeName(method.Owner));
                     if (!method.IsStructConstructor && !method.IsStructInstanceMethod) throw new NotSupportedException("Only instance constructors and methods have a lowered this value.");
-                    var thisType = method.Declaration.ReturnType;
+                    var thisType = PrimitiveKeywordAlias(QualifiedTypeName(method.Owner)) ?? method.Declaration.ReturnType;
                     var thisValue = NewTemp(); Emit($"{thisValue} = load {LlvmType(thisType)}, ptr %this"); return (thisValue, thisType);
                 case BaseExpression:
                     return EmitBaseExpression();
