@@ -7109,7 +7109,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                           (IsInterfaceType(sourceClass) || IsInterfaceType(targetClass)));
                 var explicitStructInterfaceBoxing = IsStructType(sourceType) && targetClass is not null && IsInterfaceType(targetClass) &&
                     _interfaceConversions.Contains((sourceType, targetClass));
-                var userConversion = FindUserConversionOperator(sourceType, targetType, allowExplicit: true);
+                var userConversion = FindUserConversionOperator(sourceType, targetType, allowExplicit: true) ??
+                    FindArraySpanConversionMethod(sourceType, targetType);
                 if (!IsSupportedType(targetType) || targetType == "void" ||
                     !(sourceType == targetType || NumericTypes.Contains(sourceType) && NumericTypes.Contains(targetType) ||
                       sourceType == "null" && (IsNullableValueType(targetType) || IsNullableStringType(targetType) || IsNullableArrayType(targetType)) ||
@@ -8734,6 +8735,68 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             .ToArray();
         var implicitCandidate = candidates.FirstOrDefault(method => method.Declaration.Operator == "implicit");
         return implicitCandidate ?? (candidates.Length == 1 ? candidates[0] : null);
+    }
+
+    private MethodSymbol? FindArraySpanConversionMethod(string sourceType, string targetType)
+    {
+        if (!TryParseManagedArrayType(sourceType, out var elementType, out var rank) || rank != 1)
+            return null;
+
+        var targetDefinition = targetType.StartsWith("System.Span__g_", StringComparison.Ordinal)
+            ? "System.Span"
+            : targetType.StartsWith("System.ReadOnlySpan__g_", StringComparison.Ordinal)
+                ? "System.ReadOnlySpan"
+                : null;
+        if (targetDefinition is null || !_genericTypeInstantiations.Any(instance =>
+                GetQualifiedTypeName(instance.Definition) == targetDefinition &&
+                GetQualifiedTypeName(instance.Specialized) == targetType &&
+                instance.Arguments.Count == 1 &&
+                NormalizeEnumType(instance.Arguments[0], instance.RequestContext) == elementType))
+            return null;
+
+        var helperName = targetDefinition == "System.Span" ? "ToSpan" : "ToReadOnlySpan";
+        var template = _genericMethodDefinitions.FirstOrDefault(method =>
+            GetQualifiedTypeName(method.Owner) == "System.Array" &&
+            method.Declaration.Name == helperName &&
+            method.Declaration.HasTypeParameters &&
+            method.Declaration.TypeParameters is { Count: 1 });
+        if (template is null)
+            return null;
+
+        var cacheKey = $"array-span-conversion:{template.QualifiedName}:{elementType}";
+        if (_genericMethodSpecializations.TryGetValue(cacheKey, out var cached))
+            return cached;
+
+        var typeParameter = template.Declaration.TypeParameters![0];
+        var substitutions = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [typeParameter] = elementType
+        };
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(elementType)).AsSpan(0, 6)).ToLowerInvariant();
+        var declaration = (MethodDeclaration)GenericTypeSpecializer.RewriteMember(
+            template.Declaration, template.Owner.Name, substitutions);
+        declaration = declaration with
+        {
+            Name = $"{helperName}__array_g_{hash}",
+            HasTypeParameters = false,
+            TypeParameters = null,
+            GenericConstraints = null,
+            ReturnType = NormalizeEnumType(declaration.ReturnType, template.Owner),
+            Parameters = declaration.Parameters.Select(parameter => parameter with
+            {
+                TypeName = NormalizeEnumType(parameter.TypeName, template.Owner)
+            }).ToArray()
+        };
+        var specialized = template with
+        {
+            Declaration = declaration,
+            IsGenericMethodSpecialization = true,
+            GenericTemplate = template.Declaration
+        };
+        _genericMethodSpecializations.Add(cacheKey, specialized);
+        _methodList.Add(specialized);
+        return specialized;
     }
 
     private ConstantFieldBinding GetPrimitiveConstantBinding(string key, ConstantFieldBinding fallback)
@@ -12166,6 +12229,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var parsed = ParseInteger(charTargetLiteral.Value); return parsed.Value.HasValue && Fits(parsed.Value.Value, "char");
         }
         if (from == "char" && (to is "int8" or "uint8" or "int16" or "int32" or "uint32" or "int64" or "uint64" or "int" or "uint")) return true;
+        if (FindArraySpanConversionMethod(from, to) is { } arraySpanConversion)
+        {
+            _userConversionOperators[(from, to)] = arraySpanConversion;
+            return true;
+        }
         var userConversion = FindUserConversionOperator(from, to, allowExplicit: false);
         if (userConversion is not null)
         {

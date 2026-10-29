@@ -49,11 +49,4 @@ public unsafe struct ReadOnlySpan<T>
 			throw new System.ArgumentOutOfRangeException();
 		return ReadOnlySpan<T>(pointer + start, sliceLength);
 	}
-
-	public static unsafe implicit operator ReadOnlySpan<T>(T[] source)
-	{
-		if (source.Length == 0)
-			return ReadOnlySpan<T>(null, 0);
-		return ReadOnlySpan<T>(&source[0], source.Length);
-	}
 }

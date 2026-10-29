@@ -435,6 +435,7 @@ Conversions are *implicit* (performed automatically) or *explicit* (require a ca
 | interface `I` | any base interface of `I`; `object` |
 | struct / enum / primitive `V` | `object`; any interface `V` implements (**boxing**, §3.7) |
 | array, delegate, class, string | `object` |
+| one-dimensional `T[]` | `Span<T>`, `ReadOnlySpan<T>` |
 | `T` | `T?` |
 | `null` literal | any nullable reference type, any `T?`, any pointer type |
 | `Foo?` | `Foo` *only* where the compiler proves the value non-null (§13.3) |
