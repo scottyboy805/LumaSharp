@@ -50,6 +50,26 @@ internal sealed record TypeNameSyntax(
 
     private TypeNameSyntax Rewrite(IReadOnlyDictionary<string, string> substitutions, HashSet<string> resolving)
     {
+        var closedName = Arguments.Count == 0 ? Name : Name + "<" + string.Join(",", Arguments) + ">";
+        if (substitutions.TryGetValue(closedName, out var closedReplacement) && resolving.Add(closedName))
+        {
+            try
+            {
+                if (TryParse(closedReplacement, out var parsedReplacement))
+                {
+                    var rewrittenReplacement = parsedReplacement.Rewrite(substitutions, resolving);
+                    return rewrittenReplacement with
+                    {
+                        Suffixes = [.. rewrittenReplacement.Suffixes, .. Suffixes]
+                    };
+                }
+            }
+            finally
+            {
+                resolving.Remove(closedName);
+            }
+        }
+
         if (Arguments.Count == 0 && substitutions.TryGetValue(Name, out var replacement) && resolving.Add(Name))
         {
             try

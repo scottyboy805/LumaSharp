@@ -132,8 +132,48 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             }
         }
 
+        var closedTypeNames = BuildClosedTypeNameMap(_instantiations);
+        if (closedTypeNames.Count > 0)
+            concreteTypes = concreteTypes.Select(type => RewriteClosedTypeReferences(type, closedTypeNames)).ToList();
+
         return new(concreteTypes, genericDefinitions, _instantiations.ToArray());
     }
+
+    private static Dictionary<string, string> BuildClosedTypeNameMap(IReadOnlyList<GenericTypeInstantiation> instantiations)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var ambiguousSimpleUses = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var instantiation in instantiations)
+        {
+            var qualifiedDefinition = QualifiedName(instantiation.Definition);
+            var qualifiedUse = qualifiedDefinition + "<" + string.Join(",", instantiation.Arguments) + ">";
+            var qualifiedReplacement = QualifiedName(instantiation.Specialized);
+            result[qualifiedUse] = qualifiedReplacement;
+
+            var simpleUse = instantiation.Definition.Name + "<" + string.Join(",", instantiation.Arguments) + ">";
+            if (ambiguousSimpleUses.Contains(simpleUse))
+                continue;
+
+            if (!result.TryGetValue(simpleUse, out var existing) || existing == qualifiedReplacement)
+                result[simpleUse] = qualifiedReplacement;
+            else
+            {
+                result.Remove(simpleUse);
+                ambiguousSimpleUses.Add(simpleUse);
+            }
+        }
+
+        return result;
+    }
+
+    private static TypeDeclaration RewriteClosedTypeReferences(TypeDeclaration type, IReadOnlyDictionary<string, string> substitutions) => type with
+    {
+        BaseTypes = type.BaseTypes?.Select(baseType => RewriteTypeName(baseType, substitutions)).ToArray(),
+        EnumUnderlyingType = type.EnumUnderlyingType is null ? null : RewriteTypeName(type.EnumUnderlyingType, substitutions),
+        DelegateReturnType = type.DelegateReturnType is null ? null : RewriteTypeName(type.DelegateReturnType, substitutions),
+        DelegateParameters = type.DelegateParameters?.Select(parameter => RewriteParameter(parameter, substitutions)).ToArray(),
+        Members = type.Members.Select(member => RewriteMember(member, type.Name, substitutions)).ToArray()
+    };
 
     internal GenericTypeInstantiation? EnsureClosedDelegate(string definitionName, IReadOnlyList<string> arguments,
         TypeDeclaration context, SourceLocation location)

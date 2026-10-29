@@ -1,7 +1,17 @@
+using System.Text;
+
 namespace System;
 
 public class String : Object
 {
+	public static unsafe implicit operator ReadOnlySpan<char>(String value)
+	{
+		if (value.Length == 0)
+			return ReadOnlySpan<char>.Empty;
+
+		return ReadOnlySpan<char>(value.Ptr, value.Length);
+	}
+
 	public unsafe char* Ptr
 	{
 		get => null;
@@ -139,6 +149,50 @@ public class String : Object
 		for (int32 index = 0; index < Length; index++)
 			result[index] = this[index];
 		return result;
+	}
+
+	public uint8[] GetBytes()
+	{
+		return GetBytes(Encoding.UTF8);
+	}
+
+	public uint8[] GetBytes(Encoding encoding)
+	{
+		if (encoding == null)
+			throw new ArgumentNullException();
+
+		return encoding.GetBytes((ReadOnlySpan<char>)this);
+	}
+
+	public void GetBytes(scope uint8[] bytes)
+	{
+		GetBytes(bytes, Encoding.UTF8);
+	}
+
+	public void GetBytes(scope uint8[] bytes, Encoding encoding)
+	{
+		if (encoding == null)
+			throw new ArgumentNullException();
+
+		uint8[] encoded = GetBytes(encoding);
+		if (bytes.Length < encoded.Length)
+			throw new ArgumentException("The destination array is too short.");
+
+		for (int32 index = 0; index < encoded.Length; index++)
+			bytes[index] = encoded[index];
+	}
+
+	public static string FromBytes(scope uint8[] bytes)
+	{
+		return FromBytes(bytes, Encoding.UTF8);
+	}
+
+	public static string FromBytes(scope uint8[] bytes, Encoding encoding)
+	{
+		if (encoding == null)
+			throw new ArgumentNullException();
+
+		return FromChars(encoding.GetChars(bytes));
 	}
 
 	private static bool IsWhitespace(char value)
