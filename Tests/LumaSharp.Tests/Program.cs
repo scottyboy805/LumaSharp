@@ -618,6 +618,15 @@ public sealed class CompilerTests
         Assert.Equal(0, execution.ExitCode);
     }
 
+    [Fact]
+    public void AbruptComputedPropertySetterDoesNotAddAnUnreachableSyntheticReturn()
+    {
+        const string source = "class Box { public int32 Value { get => 0; set { return; } } } class Program { public static int32 Main() { return 0; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "LS3001");
+    }
+
     [Theory]
     [InlineData("class Box { int32 stored; public int32 Value { get { return stored; } } } class Program { public static int32 Main() { Box box = new Box(); box.Value = 1; return 0; } }")]
     [InlineData("class Box { int32 stored; public int32 Value { get { return stored; } set { stored = value; } } public void Bad() { this.Value = 1; } } class Program { public static int32 Main() { return 0; } }")]

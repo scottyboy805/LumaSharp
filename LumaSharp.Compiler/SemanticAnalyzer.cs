@@ -2799,6 +2799,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private BlockStatement CompletePropertySetterBody(BlockStatement body, SourceLocation location)
     {
         var rewritten = (BlockStatement)RewriteSetterReturns(body);
+        if (AlwaysAbrupt(rewritten))
+            return rewritten;
+
         return rewritten with
         {
             Statements = rewritten.Statements.Append(new ReturnStatement(new NameExpression("value", location), location)).ToArray()
