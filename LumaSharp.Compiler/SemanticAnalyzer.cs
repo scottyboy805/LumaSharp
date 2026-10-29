@@ -2890,8 +2890,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (declaration.IsOverride)
             {
                 if (inherited is null || !inherited.Declaration.IsVirtual && !inherited.Declaration.IsOverride ||
-                    inherited.Declaration.ReturnType != declaration.ReturnType || inherited.Declaration.Accessibility != declaration.Accessibility)
-                    diagnostics.Add("LS0832", DiagnosticSeverity.Error, $"Override '{method.QualifiedName}' does not match an inherited virtual member with the same signature, return type, and accessibility.", declaration.Location);
+                    inherited.Declaration.ReturnType != declaration.ReturnType || inherited.Declaration.Accessibility != declaration.Accessibility ||
+                    !OverrideParameterContractsMatch(inherited.Declaration.Parameters, declaration.Parameters))
+                    diagnostics.Add("LS0832", DiagnosticSeverity.Error, $"Override '{method.QualifiedName}' does not match an inherited virtual member's signature, parameter modifiers, return type, and accessibility.", declaration.Location);
             }
             else if (inherited is not null && (inherited.Declaration.IsVirtual || inherited.Declaration.IsOverride))
                 diagnostics.Add("LS0833", DiagnosticSeverity.Error, $"Member '{method.QualifiedName}' must be marked override to replace an inherited virtual member.", declaration.Location);
@@ -2902,6 +2903,27 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var (typeName, symbol) in _classTypes)
             if (!symbol.Declaration.IsVirtual && HasUnimplementedVirtualMembers(typeName))
                 diagnostics.Add("LS0835", DiagnosticSeverity.Error, $"Non-virtual class '{typeName}' leaves an inherited abstract virtual member unimplemented.", symbol.Declaration.Location);
+    }
+
+    private static bool OverrideParameterContractsMatch(
+        IReadOnlyList<ParameterDeclaration> baseParameters,
+        IReadOnlyList<ParameterDeclaration> overrideParameters)
+    {
+        if (baseParameters.Count != overrideParameters.Count)
+            return false;
+
+        for (var index = 0; index < baseParameters.Count; index++)
+        {
+            var baseParameter = baseParameters[index];
+            var overrideParameter = overrideParameters[index];
+            if (baseParameter.TypeName != overrideParameter.TypeName ||
+                baseParameter.PassingMode != overrideParameter.PassingMode ||
+                baseParameter.IsScoped != overrideParameter.IsScoped ||
+                baseParameter.IsVariadic != overrideParameter.IsVariadic)
+                return false;
+        }
+
+        return true;
     }
 
     private void ValidateFinalizerCompletionCapacity(IReadOnlyList<MethodSymbol> methods)

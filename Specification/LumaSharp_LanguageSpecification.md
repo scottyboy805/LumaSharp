@@ -1922,7 +1922,7 @@ Rules:
 
 1. A class can derive only from a `virtual` class (or `object`). Deriving from a non-`virtual` class is error LS0830.
 2. `virtual` members are only valid in `virtual` classes. A `virtual` member in a non-virtual class is error LS0831.
-3. `override` MUST match an inherited `virtual` (or `override`) member with an identical signature, return type, and accessibility, else error LS0832. Overriding is never implicit.
+3. `override` MUST match an inherited `virtual` (or `override`) member with an identical signature, parameter passing modes (`ref`, `in`, `out`), `scope` modifiers, return type, and accessibility, else error LS0832. These modifiers must be written explicitly on the override; they are not inherited. Overriding is never implicit.
 4. A member that has the same signature as an inherited **virtual** member but is declared without `override` is error LS0833. Hiding an inherited **non-virtual** member is warning LS3002; there is no `new` modifier for hiding.
 5. An `override` member is itself virtual if its class is `virtual`, so a further-derived class may override it again.
 6. Calling the base implementation: `base.Method(...)`.
@@ -3934,7 +3934,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 | LS0824 | `mut` written on an interface member |
 | LS0830 | Deriving from a non-`virtual` class |
 | LS0831 | `virtual` member in a non-`virtual` class |
-| LS0832 | `override` without a matching virtual member |
+| LS0832 | `override` without a matching virtual member or with mismatched parameter modifiers |
 | LS0833 | Missing `override` for an inherited virtual member |
 | LS0834 | Instantiating an abstract class |
 | LS0835 | Non-virtual class leaves abstract members unimplemented |

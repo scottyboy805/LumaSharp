@@ -3164,6 +3164,15 @@ public sealed class CompilerTests
 
         var missingOverride = Compile("virtual class Base { public virtual int32 Get() { return 1; } } class Derived : Base { public int32 Get() { return 2; } }");
         Assert.Contains(missingOverride.Diagnostics, diagnostic => diagnostic.Code == "LS0833");
+
+        var missingScope = Compile("virtual class Base { public virtual int32 Read(scope int32[] buffer) { return buffer.Length; } } class Derived : Base { public override int32 Read(int32[] buffer) { return buffer.Length; } }");
+        Assert.Contains(missingScope.Diagnostics, diagnostic => diagnostic.Code == "LS0832");
+
+        var unexpectedScope = Compile("virtual class Base { public virtual int32 Read(int32[] buffer) { return buffer.Length; } } class Derived : Base { public override int32 Read(scope int32[] buffer) { return buffer.Length; } }");
+        Assert.Contains(unexpectedScope.Diagnostics, diagnostic => diagnostic.Code == "LS0832");
+
+        var matchingScope = Compile("virtual class Base { public virtual int32 Read(scope int32[] buffer) { return buffer.Length; } } class Derived : Base { public override int32 Read(scope int32[] buffer) { return buffer.Length; } } class Program { public static int32 Main() { return 0; } }");
+        Assert.True(matchingScope.Succeeded, string.Join(Environment.NewLine, matchingScope.Diagnostics));
     }
 
     [Fact]

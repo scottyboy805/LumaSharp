@@ -44,32 +44,32 @@ public virtual class Stream : System.Object
 		}
 	}
 
-	public virtual int32 Read(uint8[] buffer, int32 offset, int32 count);
+	public virtual int32 Read(scope uint8[] buffer, int32 offset, int32 count);
 
-	public int32 Read(uint8[] buffer) mut
+	public int32 Read(scope uint8[] buffer) mut
 	{
 		return Read(buffer, 0, buffer.Length);
 	}
 
-	public uint8 ReadUInt8() mut
+	public uint8 Read() mut
 	{
-		uint8[] buffer = new uint8[1];
+		let buffer = scope uint8[1];
 		int32 read = Read(buffer, 0, 1);
 		if (read == 0)
 			throw new EndOfStreamException();
 		return buffer[0];
 	}
 
-	public virtual void Write(uint8[] buffer, int32 offset, int32 count);
+	public virtual void Write(scope uint8[] buffer, int32 offset, int32 count);
 
-	public void Write(uint8[] buffer) mut
+	public void Write(scope uint8[] buffer) mut
 	{
 		Write(buffer, 0, buffer.Length);
 	}
 
-	public void WriteUInt8(uint8 value) mut
+	public void Write(uint8 value) mut
 	{
-		uint8[] buffer = new uint8[1];
+		let buffer = scope uint8[1];
 		buffer[0] = value;
 		Write(buffer, 0, 1);
 	}

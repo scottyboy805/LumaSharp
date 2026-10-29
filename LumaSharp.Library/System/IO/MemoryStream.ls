@@ -96,7 +96,7 @@ public class MemoryStream : Stream
 		}
 	}
 
-	public override int32 Read(uint8[] destination, int32 offset, int32 count) mut
+	public override int32 Read(scope uint8[] destination, int32 offset, int32 count) mut
 	{
 		EnsureOpen();
 		ValidateBufferArguments(destination, offset, count);
@@ -110,7 +110,7 @@ public class MemoryStream : Stream
 		return read;
 	}
 
-	public override void Write(uint8[] source, int32 offset, int32 count) mut
+	public override void Write(scope uint8[] source, int32 offset, int32 count) mut
 	{
 		EnsureOpen();
 		ValidateBufferArguments(source, offset, count);
@@ -184,7 +184,7 @@ public class MemoryStream : Stream
 		isOpen = false;
 	}
 
-	private void ValidateBufferArguments(uint8[] value, int32 offset, int32 count)
+	private void ValidateBufferArguments(scope uint8[] value, int32 offset, int32 count)
 	{
 		if (offset < 0 || count < 0 || offset > value.Length - count)
 			throw new System.ArgumentOutOfRangeException();
