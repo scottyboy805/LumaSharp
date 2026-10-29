@@ -160,6 +160,7 @@ The language itself needs a small, fixed set of types to exist in the standard l
 |---|---|
 | `object` (`System.Object`) | Root of the class hierarchy. Only member: `virtual string ToString()` |
 | `System.ValueType` | Special struct base marker for primitive, enum, and struct values; boxing produces an object reference implicitly (§3.7, §9.1) |
+| `System.Enum` | Value-type helper for enum metadata: `static T[] GetValues<T>(T value) where T : enum` (§11.5) |
 | `string` (`System.String`) | Immutable string: `int32 Length`, `char this[int32]`, `==`, `+` (§16) |
 | `Exception` | Base class of everything thrown: `string Message { get; }`, `Exception? InnerException { get; }`, constructors `this()`, `this(string message)`, `this(string message, Exception? inner)` |
 | `NullReferenceException`, `InvalidCastException`, `IndexOutOfRangeException`, `OverflowException`, `DivideByZeroException`, `OutOfMemoryException`, `TypeInitializationException` | Thrown by language operations (§18.5); each derives from `Exception` and has the `Exception` constructors |
@@ -2385,6 +2386,14 @@ switch (c)
     case Color.Red:   Print("r");
     case Color.Green, Color.Blue: Print("g or b");
 }
+```
+
+## 11.5 Enum metadata helper
+
+`System.Enum.GetValues<T>(T value)` returns a newly allocated array containing every declared member of `T`. The `value` argument supplies the enum type for generic inference; its value is ignored. Aliases are retained as separate entries, and entries are ordered by their unsigned underlying value (ties retain declaration order). The compiler specializes the generic method from the enum declaration because the runtime has no reflection-based enum metadata.
+
+```lumasharp
+Color[] colors = Enum.GetValues(Color.Green);
 ```
 
 ---

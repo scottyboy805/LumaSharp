@@ -10914,6 +10914,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             ReturnType = NormalizeEnumType(rewritten.ReturnType, template.Owner),
             Parameters = rewritten.Parameters.Select(parameter => parameter with { TypeName = NormalizeEnumType(parameter.TypeName, template.Owner) }).ToArray()
         };
+        if (GetQualifiedTypeName(template.Owner) == "System.Enum" && declaration.Name == "GetValues")
+            rewritten = rewritten with { Body = CreateEnumGetValuesBody(typeArguments[0], callLocation) };
         var specialized = template with
         {
             Declaration = rewritten,
@@ -10923,6 +10925,48 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         _genericMethodSpecializations.Add(cacheKey, specialized);
         _methodList.Add(specialized);
         return specialized;
+    }
+
+    private BlockStatement CreateEnumGetValuesBody(string enumTypeName, SourceLocation location)
+    {
+        var enumType = _types.FirstOrDefault(type => type.Kind == "enum" && GetQualifiedTypeName(type) == enumTypeName);
+        if (enumType is null || !_enumUnderlyingTypes.TryGetValue(enumTypeName, out var underlyingType))
+            return new([new ReturnStatement(new UnsupportedExpression("enum value metadata could not be resolved", location), location)], location);
+
+        var width = underlyingType switch
+        {
+            "int8" or "uint8" => 8,
+            "int16" or "uint16" or "char" => 16,
+            "int32" or "uint32" => 32,
+            "int64" or "uint64" => 64,
+            "int" or "uint" => _nativePointerSize * 8,
+            _ => 0
+        };
+        var values = enumType.Members.OfType<EnumMemberDeclaration>()
+            .Select((member, index) =>
+            {
+                var key = enumTypeName + "." + member.Name;
+                var text = _constantFields.TryGetValue(key, out var constant) ? constant.Binding.Value : "0";
+                var value = BigInteger.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+                var unsignedValue = value.Sign < 0 && width > 0 ? value + (BigInteger.One << width) : value;
+                return (Member: member, Value: value, SortValue: unsignedValue, Index: index);
+            })
+            .OrderBy(item => item.SortValue)
+            .ThenBy(item => item.Index)
+            .ToArray();
+
+        var enumNameParts = enumTypeName.Split('.');
+        Expression CreateEnumReceiver()
+        {
+            Expression receiver = new NameExpression(enumNameParts[0], location);
+            foreach (var namePart in enumNameParts.Skip(1))
+                receiver = new MemberAccessExpression(receiver, namePart, location);
+            return receiver;
+        }
+        var elements = values.Select(item => (Expression)new MemberAccessExpression(CreateEnumReceiver(), item.Member.Name, location)).ToArray();
+        var initializer = new InlineArrayInitializerExpression(elements, location);
+        var allocation = new AllocationExpression(enumTypeName + "[]", [], initializer, false, location);
+        return new([new ReturnStatement(allocation, location)], location);
     }
 
     private bool TryBindCallArguments(CallExpression call, MethodSymbol candidate, IReadOnlyList<string> argumentTypes, out BoundCallArguments binding)

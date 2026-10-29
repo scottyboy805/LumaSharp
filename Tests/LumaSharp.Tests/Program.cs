@@ -1875,6 +1875,41 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void EnumGetValuesReturnsAllValuesInUnsignedValueOrder()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("enum-values-test.ls", """
+            using System;
+
+            public enum Status : int8
+            {
+                Later = 5,
+                Negative = -1,
+                Middle = 0,
+                Alias = 5
+            }
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Status[] values = Enum.GetValues(Status.Negative);
+                    return values.Length == 4 &&
+                        values[0] == Status.Middle &&
+                        values[1] == Status.Later &&
+                        values[2] == Status.Alias &&
+                        values[3] == Status.Negative ? 0 : 1;
+                }
+            }
+            """)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
     public void ReportsAmbiguousAndMissingApplicableOverloads()
     {
         var ambiguous = Compile("class Program { public static int32 Main() { uint32 value = 1u; return Pick(value); } public static int32 Pick(int64 value) { return 1; } public static int32 Pick(uint64 value) { return 2; } }");
