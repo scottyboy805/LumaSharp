@@ -45,17 +45,13 @@ public class List<T> where T : default
 		}
 	}
 
-	public static unsafe implicit operator System.Span<T>(List<T> source)
+	public static unsafe implicit operator Span<T>(List<T> source)
 	{
-		if (source == null)
-			throw new System.ArgumentNullException();
 		return Span<T>(source.Ptr, source.Count);
 	}
 
-	public static unsafe implicit operator System.ReadOnlySpan<T>(List<T> source)
+	public static unsafe implicit operator ReadOnlySpan<T>(List<T> source)
 	{
-		if (source == null)
-			throw new System.ArgumentNullException();
 		return ReadOnlySpan<T>(source.Ptr, source.Count);
 	}
 

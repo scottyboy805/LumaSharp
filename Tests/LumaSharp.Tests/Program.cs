@@ -302,7 +302,15 @@ public sealed class CompilerTests
                     Span<int32> writable = values;
                     ReadOnlySpan<int32> readonlyFromSpan = writable;
                     ReadOnlySpan<int32> readonlyDirectly = values;
-                    return writable[0] == 42 && readonlyFromSpan[0] == 42 && readonlyDirectly[0] == 42 ? 0 : 1;
+                    int32[] array = new int32[1];
+                    array[0] = 51;
+                    Span<int32> writableArraySpan = array;
+                    ReadOnlySpan<int32> readonlyArraySpan = array;
+                    writableArraySpan[0] = 52;
+                    Span<int32> emptyArraySpan = new int32[0];
+                    ReadOnlySpan<int32> emptyReadonlyArraySpan = new int32[0];
+                    return writable[0] == 42 && readonlyFromSpan[0] == 42 && readonlyDirectly[0] == 42 &&
+                        readonlyArraySpan[0] == 52 && array[0] == 52 && emptyArraySpan.IsEmpty && emptyReadonlyArraySpan.IsEmpty ? 0 : 1;
                 }
             }
             """)), new CompilationOptions(UnsafeEnabled: true));
