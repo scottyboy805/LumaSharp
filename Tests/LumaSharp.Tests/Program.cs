@@ -115,6 +115,43 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void UserDefinedImplicitAndExplicitConversionsAreBoundAndLowered()
+    {
+        var result = Compile("""
+            struct Number
+            {
+                public int32 value;
+                public this(int32 value) { this.value = value; }
+                public static implicit operator int32(Number value) { return value.value; }
+                public static explicit operator Number(int32 value) { return Number(value); }
+            }
+
+            class Program
+            {
+                public static int32 Main()
+                {
+                    Number number = Number(42);
+                    int32 implicitResult = number;
+                    Number explicitResult = (Number)implicitResult;
+                    return explicitResult.value == 42 ? 0 : 1;
+                }
+            }
+            """);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
+    public void ExplicitUserConversionIsNotUsedForImplicitAssignment()
+    {
+        var result = Compile("struct Number { public static explicit operator Number(int32 value) { return Number(); } } class Program { public static int32 Main() { Number number = 42; return 0; } }");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void StructsMayUseOnlyValueTypeAsTheirSpecialClassBase()
     {
         var result = Compile("virtual class Base {} struct Invalid : Base {} class Program { public static int32 Main() { return 0; } }");

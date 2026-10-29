@@ -414,7 +414,7 @@ The consequences of these rules are collected in §4.3 (locals), §8.3.1 (fields
 
 ## 3.6 Conversions
 
-Conversions are *implicit* (performed automatically) or *explicit* (require a cast `(T)e`). **Only the conversions listed here exist.** User-defined conversion operators do not exist in this version.
+Conversions are *implicit* (performed automatically) or *explicit* (require a cast `(T)e`). The built-in conversions are listed here. A class or struct may also declare public static `implicit operator` and `explicit operator` conversions (§9.4).
 
 ### 3.6.1 Implicit conversions
 
@@ -441,6 +441,7 @@ Conversions are *implicit* (performed automatically) or *explicit* (require a ca
 | `void*` ↔ pointer types | pointer to `void*` implicit; reverse is explicit (unsafe) |
 | constant expression of integer type | any integer type where the value fits (§5.9) |
 | lambda / method group | compatible delegate type (§17) |
+| user-defined `implicit operator` source type | its declared target type |
 
 ### 3.6.2 Explicit conversions
 
@@ -452,6 +453,7 @@ An explicit conversion `(T)e` is permitted for:
 - `object` (or an interface) to a value type (**unboxing**, runtime-checked);
 - nullable → non-nullable (`(Foo)x` where `x` is `Foo?` or `(MyStruct)v` where `v` is `MyStruct?`): throws `NullReferenceException` if the value is null (equivalent to `(Foo)x!`);
 - pointer ↔ pointer, pointer ↔ integer (unsafe context only).
+- a user-defined `explicit operator`, or an applicable user-defined `implicit operator` (§9.4).
 
 **A cast that fails always throws an exception; it never produces null.** (The `as` operator is the non-throwing form, §5.12.)
 
@@ -2087,12 +2089,14 @@ let same = Vector2(1.0, 0.0) != Vector2(1.0, 0.0); // false (derived from ==)
 
 Rules:
 
-- At least one parameter (or the return type for unary `++`/`--`) MUST be the declaring type.
+- For non-conversion operators, at least one parameter (or the return type for unary `++`/`--`) MUST be the declaring type.
 - Operator methods MUST be `public static`.
 - **`!=` cannot be declared** (error LS0401); `a != b` is `!(a == b)`.
 - Compound assignment operators (`+=`, …) are derived from the binary operator.
 - `++`/`--` operators take and return the declaring type.
-- User-defined conversion operators (`implicit`/`explicit`) are not part of this version.
+- A conversion operator has exactly one by-value parameter, is `public static`, and either its source or target type MUST be the declaring class or struct.
+- `implicit operator T(Source value)` participates in implicit conversions and explicit casts. `explicit operator T(Source value)` participates only in explicit casts.
+- A conversion operator is selected when its declared source and target exactly match the conversion's source and target types; this version does not chain user-defined conversions with other conversions.
 - `&&`, `||`, `??`, `?:`, `=`, `.`, `is`, `as`, `new`, and `!` (postfix) cannot be overloaded.
 
 

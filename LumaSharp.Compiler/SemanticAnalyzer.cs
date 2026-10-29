@@ -86,6 +86,7 @@ internal sealed record CompilationAnalysis(
     IReadOnlyDictionary<AllocationExpression, ClassAllocationBinding> ClassAllocations,
     IReadOnlyDictionary<AllocationExpression, GenericConstructionBinding> GenericConstructions,
     IReadOnlyDictionary<Expression, MethodSymbol> OperatorTargets,
+    IReadOnlyDictionary<(string SourceType, string TargetType), MethodSymbol> UserConversionOperators,
     IReadOnlyDictionary<string, string> EnumUnderlyingTypes,
     IReadOnlyDictionary<CastExpression, string> CastTypes,
     IReadOnlyDictionary<BinaryExpression, string> TypeOperatorTargets,
@@ -302,6 +303,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<AllocationExpression, ClassAllocationBinding> _classAllocations = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<AllocationExpression, GenericConstructionBinding> _genericConstructions = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<Expression, MethodSymbol> _operatorTargets = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<(string SourceType, string TargetType), MethodSymbol> _userConversionOperators = [];
     private readonly Dictionary<BinaryExpression, string> _typeOperatorTargets = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<ConditionalExpression, string> _conditionalExpressionTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<SwitchLabel, string> _switchTypePatterns = new(ReferenceEqualityComparer.Instance);
@@ -830,7 +832,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var methodSignatures = new HashSet<string>(StringComparer.Ordinal);
         foreach (var method in methods)
         {
-            var signature = $"{method.QualifiedName}[{method.Declaration.HasTypeParameters}]:{method.Declaration.ExplicitInterfaceName}:{string.Join(",", method.Declaration.Parameters.Select(p => p.TypeName))}";
+            var signature = $"{method.QualifiedName}[{method.Declaration.HasTypeParameters}]:{method.Declaration.ExplicitInterfaceName}:{string.Join(",", method.Declaration.Parameters.Select(p => p.TypeName))}" +
+                (method.Declaration.IsConversionOperator ? "->" + method.Declaration.ReturnType : "");
             if (!methodSignatures.Add(signature)) diagnostics.Add("LMC3013", DiagnosticSeverity.Error, $"Method '{method.QualifiedName}' is declared more than once with the same parameter types.", method.Declaration.Location);
         }
         foreach (var symbolGroup in methods.Where(method => method.Declaration.IsExtern).GroupBy(method => method.Declaration.Name, StringComparer.Ordinal).Where(group => group.Count() > 1))
@@ -848,6 +851,27 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (declaration.IsMutating && !method.IsStructInstanceMethod && !method.IsClassInstanceMethod && !method.IsClassConstructor && !method.IsClassFinalizer) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "The 'mut' modifier is supported only on instance methods.", declaration.Location);
             if (declaration.IsOperator)
             {
+                if (declaration.IsConversionOperator)
+                {
+                    var expectedType = GetQualifiedTypeName(method.Owner);
+                    var sourceType = declaration.Parameters.Count == 1
+                        ? NormalizeEnumType(declaration.Parameters[0].TypeName, method.Owner)
+                        : "?";
+                    var targetType = NormalizeEnumType(declaration.ReturnType, method.Owner);
+                    var containingTypeParticipates = sourceType == expectedType || targetType == expectedType;
+                    var validParameters = declaration.Parameters.Count == 1 &&
+                        declaration.Parameters[0].PassingMode.Length == 0 &&
+                        !declaration.Parameters[0].IsVariadic &&
+                        declaration.Parameters[0].DefaultValue is null;
+                    if (method.Owner.Kind is not ("class" or "struct") || method.Owner.IsStatic ||
+                        !declaration.IsStatic || !declaration.IsPublic || !validParameters || !containingTypeParticipates ||
+                        declaration.ReturnType == "void" || sourceType == targetType)
+                        diagnostics.Add("LMC3010", DiagnosticSeverity.Error,
+                            $"A {method.Owner.Kind} conversion operator must be public static, have one by-value parameter, and involve its containing type.",
+                            declaration.Location);
+                }
+                else
+                {
                 var supportedOperator = declaration.Operator is "+" or "-" or "*" or "/" or "%" or "&" or "|" or "^" or "<<" or ">>" or "==" or "<" or ">" or "<=" or ">=" or "!" or "~" or "++" or "--";
                 if (method.Owner.Kind is not ("struct" or "class") || !supportedOperator)
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "User-defined operators are supported only on classes and structs, and only for operators listed by the language specification.", declaration.Location);
@@ -867,6 +891,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"A {method.Owner.Kind} '{declaration.Operator}' operator must be public static, use by-value operands with at least one containing-type operand, and return a valid operator result.", declaration.Location);
                     if (method.Owner.Kind == "struct" && declaration.Operator == "==" && declaration.Parameters.Any(parameter => parameter.TypeName != expectedType))
                         diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "A struct '==' operator must accept two values of its containing struct type.", declaration.Location);
+                }
                 }
             }
             if (declaration.IsExtern)
@@ -912,7 +937,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var multiAssignmentAccessorAssignments = new Dictionary<MultiAssignmentStatement, IReadOnlyDictionary<int, BinaryExpression>>(ReferenceEqualityComparer.Instance);
         foreach (var (statement, assignments) in _multiAssignmentAccessorAssignments)
             multiAssignmentAccessorAssignments.Add(statement, assignments);
-        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
+        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
 
     private static bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
@@ -7084,6 +7109,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                           (IsInterfaceType(sourceClass) || IsInterfaceType(targetClass)));
                 var explicitStructInterfaceBoxing = IsStructType(sourceType) && targetClass is not null && IsInterfaceType(targetClass) &&
                     _interfaceConversions.Contains((sourceType, targetClass));
+                var userConversion = FindUserConversionOperator(sourceType, targetType, allowExplicit: true);
                 if (!IsSupportedType(targetType) || targetType == "void" ||
                     !(sourceType == targetType || NumericTypes.Contains(sourceType) && NumericTypes.Contains(targetType) ||
                       sourceType == "null" && (IsNullableValueType(targetType) || IsNullableStringType(targetType) || IsNullableArrayType(targetType)) ||
@@ -7096,11 +7122,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                       IsEnumType(sourceType) && IntegerTypes.Contains(targetType) || IntegerTypes.Contains(sourceType) && IsEnumType(targetType) ||
                       IsEnumType(sourceType) && IsEnumType(targetType) ||
                       IsPointerType(sourceType) && (IsPointerType(targetType) || IntegerTypes.Contains(targetType)) ||
-                      IntegerTypes.Contains(sourceType) && IsPointerType(targetType)))
+                      IntegerTypes.Contains(sourceType) && IsPointerType(targetType) || userConversion is not null))
                 {
                     diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Explicit conversion from '{sourceType}' to '{targetType}' is not supported.", cast.Location);
                     return "?";
                 }
+                if (userConversion is not null)
+                    _userConversionOperators[(sourceType, targetType)] = userConversion;
                 _castTypes[cast] = targetType;
                 if (_checkedContext && IsConstantExpression(cast.Operand, context) && CanEvaluateConstantNow(cast.Operand) && !TryEvaluateConstant(cast with { TypeName = targetType }, out _, out var constantError))
                     diagnostics.Add("LS0301", DiagnosticSeverity.Error, constantError ?? $"Constant conversion overflows '{targetType}'.", cast.Location);
@@ -8666,6 +8694,19 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             return true;
         }
         return false;
+    }
+
+    private MethodSymbol? FindUserConversionOperator(string sourceType, string targetType, bool allowExplicit)
+    {
+        var candidates = _methods.Concat(_genericMethodDefinitions)
+            .Where(method => method.Declaration.IsConversionOperator &&
+                (method.Declaration.Operator == "implicit" || allowExplicit && method.Declaration.Operator == "explicit") &&
+                method.Declaration.Parameters.Count == 1 &&
+                NormalizeEnumType(method.Declaration.Parameters[0].TypeName, method.Owner) == sourceType &&
+                NormalizeEnumType(method.Declaration.ReturnType, method.Owner) == targetType)
+            .ToArray();
+        var implicitCandidate = candidates.FirstOrDefault(method => method.Declaration.Operator == "implicit");
+        return implicitCandidate ?? (candidates.Length == 1 ? candidates[0] : null);
     }
 
     private ConstantFieldBinding GetPrimitiveConstantBinding(string key, ConstantFieldBinding fallback)
@@ -12098,6 +12139,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var parsed = ParseInteger(charTargetLiteral.Value); return parsed.Value.HasValue && Fits(parsed.Value.Value, "char");
         }
         if (from == "char" && (to is "int8" or "uint8" or "int16" or "int32" or "uint32" or "int64" or "uint64" or "int" or "uint")) return true;
+        var userConversion = FindUserConversionOperator(from, to, allowExplicit: false);
+        if (userConversion is not null)
+        {
+            _userConversionOperators[(from, to)] = userConversion;
+            return true;
+        }
         return false;
     }
 

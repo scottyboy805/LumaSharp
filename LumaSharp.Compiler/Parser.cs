@@ -5,7 +5,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private static readonly HashSet<string> ReservedWords = [
         "bool", "char", "int", "uint", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float", "double", "object", "string", "void",
         "class", "struct", "interface", "enum", "delegate", "namespace", "using", "const", "let", "var", "extern", "operator",
-        "public", "private", "protected", "internal", "static", "virtual", "override", "readonly", "mut", "unsafe", "ref", "in", "out",
+        "public", "private", "protected", "internal", "static", "virtual", "override", "readonly", "mut", "unsafe", "ref", "in", "out", "implicit", "explicit",
         "if", "else", "switch", "case", "default", "while", "do", "for", "break", "continue", "return", "throw", "try", "catch", "finally",
         "new", "scope", "this", "base", "null", "true", "false", "is", "as", "sizeof", "checked", "unchecked", "async", "await", "lock"];
     private static readonly HashSet<string> TypeKeywords = [
@@ -217,6 +217,44 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                 continue;
             }
             if (Is("}")) { _unsafeDepth = previousMemberUnsafeDepth; break; }
+            if (Is("implicit") || Is("explicit"))
+            {
+                var conversionKind = Take().Text;
+                if (!Eat("operator")) Error(Current, "A conversion declaration must use 'implicit operator' or 'explicit operator'.");
+                var conversionType = ParseTypeName();
+                if (conversionType is null)
+                {
+                    Error(Current, "Expected a conversion target type.");
+                    SkipMember();
+                    _unsafeDepth = previousMemberUnsafeDepth;
+                    continue;
+                }
+                ValidateAllowedModifiers(memberModifiers, ["public", "private", "protected", "internal", "static", "unsafe"], memberStart.Location, "conversion operator");
+                if (!memberModifiers.Contains("static"))
+                    diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A conversion operator must be static.", memberStart.Location);
+                Expect("(");
+                var conversionParameters = ParseParameters();
+                Expect(")");
+                BlockStatement? conversionBody = null;
+                if (Eat("=>"))
+                {
+                    var expression = ParseExpression();
+                    Expect(";");
+                    conversionBody = new([new ReturnStatement(expression, expression.Location)], expression.Location);
+                }
+                else if (Is("{")) conversionBody = ParseBlock();
+                else
+                {
+                    Error(Current, "Expected a conversion body or expression body.");
+                    SkipMember();
+                }
+                members.Add(new MethodDeclaration(name.Text.TrimStart('@'), "$conversion_" + conversionKind, conversionType,
+                    conversionParameters, conversionBody, memberModifiers.Contains("static"), memberModifiers.Contains("public"), false, false,
+                    memberStart.Location, unsafeMember, IsOperator: true, Operator: conversionKind,
+                    Accessibility: GetMemberAccessibility(memberModifiers)));
+                _unsafeDepth = previousMemberUnsafeDepth;
+                continue;
+            }
             var returnType = ParseTypeName();
             if (returnType is null) { Error(Current, $"Unsupported member syntax beginning with '{Current.Text}'."); SkipMember(); members.Add(new UnsupportedMember("Unrecognized member", memberStart.Location)); _unsafeDepth = previousMemberUnsafeDepth; continue; }
             var memberName = Take();
