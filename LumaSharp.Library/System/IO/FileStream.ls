@@ -28,7 +28,7 @@ public unsafe class FileStream : Stream
 			throw new System.ArgumentOutOfRangeException();
 
 		void* openedHandle = null;
-		if (NativeFileSystem.luma_fs_open(path.Utf8Ptr, nativeMode, &openedHandle) != 0)
+		if (NativeFileSystem.luma_fs_open(path.Ptr, nativeMode, &openedHandle) != 0)
 			throw new IOException("Unable to open the file.");
 		handle = (int)openedHandle;
 

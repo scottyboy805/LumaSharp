@@ -52,6 +52,6 @@ public static unsafe class Console
 				byteCount += 3;
 		}
 
-		IO.NativeFileSystem.luma_fs_console_write(value.Utf8Ptr, byteCount, appendNewLine);
+		IO.NativeFileSystem.luma_fs_console_write(value.Ptr, byteCount, appendNewLine);
 	}
 }
