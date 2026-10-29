@@ -11,6 +11,7 @@ internal static unsafe class NativeFileSystem
 	public const int32 CreateNewMode = 5;
 
 	public static extern int32 luma_fs_open(uint8* path, int32 mode, void** handle);
+	public static extern void luma_fs_console_write(uint8* buffer, int32 length, bool appendNewLine);
 	public static extern int32 luma_fs_read(void* handle, uint8* buffer, int32 count, int32* bytesRead);
 	public static extern int32 luma_fs_write(void* handle, uint8* buffer, int32 count, int32* bytesWritten);
 	public static extern int32 luma_fs_seek(void* handle, int32 offset, int32 origin, int32* position);

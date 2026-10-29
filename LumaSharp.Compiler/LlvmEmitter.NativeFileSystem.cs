@@ -46,6 +46,8 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("declare ptr @getenv(ptr)");
         _output.AppendLine("@luma_fs_temp_variable = private unnamed_addr constant [7 x i8] c\"TMPDIR\\00\"");
         _output.AppendLine("@luma_fs_temp_default = private unnamed_addr constant [6 x i8] c\"/tmp/\\00\"");
+        _output.AppendLine("@luma_fs_console_newline = private unnamed_addr constant [1 x i8] c\"\\0A\"");
+        EmitPosixConsoleWrite(sizeType);
         _output.AppendLine("define internal i32 @luma_fs_open(ptr %path, i32 %mode, ptr %handle) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  %read = icmp eq i32 %mode, 0");
@@ -274,15 +276,89 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("declare i32 @CloseHandle(ptr)");
         _output.AppendLine("declare i32 @SetFilePointerEx(ptr, i64, ptr, i32)");
         _output.AppendLine("declare i32 @SetEndOfFile(ptr)");
+        _output.AppendLine("declare ptr @GetStdHandle(i32)");
         _output.AppendLine("define internal i1 @luma_fs_to_wide(ptr %source, ptr %destination) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  %count = call i32 @MultiByteToWideChar(i32 65001, i32 8, ptr %source, i32 -1, ptr %destination, i32 32768)");
         _output.AppendLine("  %valid = icmp sgt i32 %count, 0");
         _output.AppendLine("  ret i1 %valid");
         _output.AppendLine("}");
+        _output.AppendLine("@luma_fs_console_newline = private unnamed_addr constant [2 x i8] c\"\\0D\\0A\"");
+        EmitWindowsConsoleWrite();
         _output.AppendLine("; Windows file-system operations are emitted by the runtime intrinsic backend.");
         EmitWindowsFileSystemOperations();
         EmitWindowsSpecialDirectories();
+    }
+
+    private void EmitPosixConsoleWrite(string sizeType)
+    {
+        _output.AppendLine("define internal void @luma_fs_console_write(ptr %buffer, i32 %length, i1 %appendNewLine) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  br label %write.loop");
+        _output.AppendLine("write.loop:");
+        _output.AppendLine("  %offset = phi i32 [ 0, %entry ], [ %offset.next, %write.advance ]");
+        _output.AppendLine("  %finished = icmp sge i32 %offset, %length");
+        _output.AppendLine("  br i1 %finished, label %newline.check, label %write.body");
+        _output.AppendLine("write.body:");
+        _output.AppendLine("  %current = getelementptr i8, ptr %buffer, i32 %offset");
+        _output.AppendLine("  %remaining = sub i32 %length, %offset");
+        _output.AppendLine($"  %remaining.native = {(sizeType == "i64" ? "zext i32 %remaining to i64" : "add i32 %remaining, 0")}");
+        _output.AppendLine($"  %written.native = call {sizeType} @write(i32 1, ptr %current, {sizeType} %remaining.native)");
+        _output.AppendLine(sizeType == "i64" ? "  %written = trunc i64 %written.native to i32" : "  %written = add i32 %written.native, 0");
+        _output.AppendLine("  %write.failed = icmp sle i32 %written, 0");
+        _output.AppendLine("  br i1 %write.failed, label %newline.check, label %write.advance");
+        _output.AppendLine("write.advance:");
+        _output.AppendLine("  %offset.next = add i32 %offset, %written");
+        _output.AppendLine("  br label %write.loop");
+        _output.AppendLine("newline.check:");
+        _output.AppendLine("  br i1 %appendNewLine, label %newline.write, label %done");
+        _output.AppendLine("newline.write:");
+        _output.AppendLine("  %newline = getelementptr [1 x i8], ptr @luma_fs_console_newline, i32 0, i32 0");
+        _output.AppendLine($"  call {sizeType} @write(i32 1, ptr %newline, {sizeType} 1)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("done:");
+        _output.AppendLine("  ret void");
+        _output.AppendLine("}");
+    }
+
+    private void EmitWindowsConsoleWrite()
+    {
+        _output.AppendLine("define internal void @luma_fs_console_write(ptr %buffer, i32 %length, i1 %appendNewLine) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %handle = call ptr @GetStdHandle(i32 -11)");
+        _output.AppendLine($"  %invalid.handle = icmp eq ptr %handle, inttoptr (i{compilation.NativePointerSize * 8} -1 to ptr)");
+        _output.AppendLine("  %null.handle = icmp eq ptr %handle, null");
+        _output.AppendLine("  %bad.handle = or i1 %invalid.handle, %null.handle");
+        _output.AppendLine("  br i1 %bad.handle, label %done, label %text.check");
+        _output.AppendLine("text.check:");
+        _output.AppendLine("  br label %write.loop");
+        _output.AppendLine("write.loop:");
+        _output.AppendLine("  %offset = phi i32 [ 0, %text.check ], [ %offset.next, %write.advance ]");
+        _output.AppendLine("  %finished = icmp sge i32 %offset, %length");
+        _output.AppendLine("  br i1 %finished, label %newline.check, label %write.body");
+        _output.AppendLine("write.body:");
+        _output.AppendLine("  %current = getelementptr i8, ptr %buffer, i32 %offset");
+        _output.AppendLine("  %remaining = sub i32 %length, %offset");
+        _output.AppendLine("  %written.address = alloca i32, align 4");
+        _output.AppendLine("  %write.ok = call i32 @WriteFile(ptr %handle, ptr %current, i32 %remaining, ptr %written.address, ptr null)");
+        _output.AppendLine("  %written = load i32, ptr %written.address");
+        _output.AppendLine("  %failed = icmp eq i32 %write.ok, 0");
+        _output.AppendLine("  %no.progress = icmp eq i32 %written, 0");
+        _output.AppendLine("  %write.failed = or i1 %failed, %no.progress");
+        _output.AppendLine("  br i1 %write.failed, label %newline.check, label %write.advance");
+        _output.AppendLine("write.advance:");
+        _output.AppendLine("  %offset.next = add i32 %offset, %written");
+        _output.AppendLine("  br label %write.loop");
+        _output.AppendLine("newline.check:");
+        _output.AppendLine("  br i1 %appendNewLine, label %newline.write, label %done");
+        _output.AppendLine("newline.write:");
+        _output.AppendLine("  %newline = getelementptr [2 x i8], ptr @luma_fs_console_newline, i32 0, i32 0");
+        _output.AppendLine("  %newline.written.address = alloca i32, align 4");
+        _output.AppendLine("  call i32 @WriteFile(ptr %handle, ptr %newline, i32 2, ptr %newline.written.address, ptr null)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("done:");
+        _output.AppendLine("  ret void");
+        _output.AppendLine("}");
     }
 
     private void EmitWindowsSpecialDirectories()

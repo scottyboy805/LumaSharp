@@ -121,10 +121,11 @@ public sealed class CompilerTests
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
             .Select(path => (path, File.ReadAllText(path)));
-        const string source = "class Program { public static int32 Main() { string path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), \"runtime-test.bin\"); System.IO.File.WriteAllBytes(path, new uint8[0]); bool exists = System.IO.File.Exists(path); System.IO.File.Delete(path); return exists ? 0 : 1; } }";
+        const string source = "using System; class Program { public static int32 Main() { Console.WriteLine(\"filesystem\"); string path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), \"runtime-test.bin\"); System.IO.File.WriteAllBytes(path, new uint8[0]); bool exists = System.IO.File.Exists(path); System.IO.File.Delete(path); return exists ? 0 : 1; } }";
         var result = LumaCompiler.Compile(runtimeSources.Append(("filesystem-test.ls", source)), new CompilationOptions(UnsafeEnabled: true, TargetTriple: targetTriple));
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("define internal i32 @luma_fs_open", result.LlvmIr);
+        Assert.Contains("define internal void @luma_fs_console_write", result.LlvmIr);
         Assert.Contains("define internal ptr @luma_fs_current_directory", result.LlvmIr);
         Assert.Contains("define internal ptr @luma_fs_temporary_directory", result.LlvmIr);
         Assert.DoesNotContain("declare i32 @luma_fs_open", result.LlvmIr);

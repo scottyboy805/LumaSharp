@@ -99,6 +99,54 @@ public sealed class BuildApiTests
     }
 
     [Fact]
+    public async Task RuntimeConsoleWritesHelloWorldToStandardOutput()
+    {
+        using var workspace = new TemporaryWorkspace(AppContext.BaseDirectory);
+        var runtimeRoot = FindRuntimeRoot();
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories);
+        var program = workspace.Write("Program.ls", "using System; public class Program { public static int32 Main() { Console.WriteLine(\"Hello, LumaSharp! — 世界 🌍\"); return 0; } }");
+        var output = Path.Combine(workspace.Root, "bin");
+        var intermediate = Path.Combine(workspace.Root, "obj");
+
+        var result = await LumaBuild.BuildAsync(new CompilerBuildRequest(
+            runtimeSources.Append(program).ToArray(),
+            new CompilationOptions(UnsafeEnabled: true),
+            output,
+            intermediate,
+            "ConsoleSmoke"));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo(result.OutputPaths.Single())
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            }
+        };
+        process.Start();
+        var stderr = process.StandardError.ReadToEndAsync();
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        Assert.Equal(0, process.ExitCode);
+        Assert.Equal("Hello, LumaSharp! — 世界 🌍" + Environment.NewLine, await stdout);
+        Assert.Empty(await stderr);
+    }
+
+    private static string FindRuntimeRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "LumaSharp.Library");
+            if (Directory.Exists(candidate)) return candidate;
+        }
+        throw new DirectoryNotFoundException("Could not locate the LumaSharp runtime sources.");
+    }
+
+    [Fact]
     public async Task SeparatelyBuiltStaticLibrariesLinkTogetherOnWindows()
     {
         if (!OperatingSystem.IsWindows()) return;
