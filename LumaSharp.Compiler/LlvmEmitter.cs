@@ -3,7 +3,7 @@ using System.Text;
 
 namespace LumaSharp.Compiler;
 
-internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationToken cancellationToken = default)
+internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, CancellationToken cancellationToken = default)
 {
     private readonly StringBuilder _output = new();
     private readonly IReadOnlyDictionary<TryStatement, string> _exceptionCatchTableNames = BuildExceptionCatchTableNames(compilation);
@@ -174,11 +174,13 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
                 _output.AppendLine($"@luma_type_init_failure_{safeType} = internal global ptr null");
         }
         EmitTypeInitializationFunctions();
-        if (EntryPointHasStringArguments()) EmitUtf8ArgumentRuntime();
+        if (EntryPointHasStringArguments() || HasStringSupport()) EmitUtf8ArgumentRuntime();
+        var nativeFileSystemMethods = compilation.Methods.Where(IsNativeFileSystemShim).ToArray();
+        if (nativeFileSystemMethods.Length > 0) EmitNativeFileSystemRuntime();
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            EmitExternDeclaration(method);
+            if (!IsNativeFileSystemShim(method)) EmitExternDeclaration(method);
         }
         foreach (var method in compilation.Methods)
         {
@@ -192,7 +194,6 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine($"!0 = !{{i32 1, !\"{RuntimeAbi.ModuleFlag}\", i32 {RuntimeAbi.Version}}}");
         return _output.ToString();
     }
-
     private void EmitTypeInitializationFunctions()
     {
         foreach (var initializer in compilation.Methods.Where(method => method.IsTypeInitializer))
@@ -314,7 +315,6 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         {
             _output.AppendLine("declare ptr @GetCommandLineW()");
             _output.AppendLine("declare ptr @CommandLineToArgvW(ptr, ptr)");
-            _output.AppendLine("declare i32 @WideCharToMultiByte(i32, i32, ptr, i32, ptr, i32, ptr, ptr)");
             _output.AppendLine("declare ptr @LocalFree(ptr)");
         }
         _output.AppendLine("define internal { i32, i32 } @luma_utf8_decode(ptr %source, i32 %index) {");
@@ -630,33 +630,35 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine("  ret ptr %string");
         _output.AppendLine("}");
 
-        if (UsesWindowsCommandLineApi())
-        {
-            _output.AppendLine("define internal ptr @luma_string_from_winwide(ptr %source) {");
-            _output.AppendLine("entry:");
-            _output.AppendLine("  %needed = call i32 @WideCharToMultiByte(i32 65001, i32 0, ptr %source, i32 -1, ptr null, i32 0, ptr null, ptr null)");
-            _output.AppendLine("  %conversion.failed = icmp sle i32 %needed, 0");
-            _output.AppendLine("  br i1 %conversion.failed, label %out.of.memory, label %allocate");
-            _output.AppendLine("allocate:");
-            _output.AppendLine($"  %needed.native = {(sizeType == "i64" ? "zext i32 %needed to i64" : "add i32 %needed, 0")}");
-            _output.AppendLine($"  %buffer = call ptr @malloc({sizeType} %needed.native)");
-            _output.AppendLine("  %buffer.failed = icmp eq ptr %buffer, null");
-            _output.AppendLine("  br i1 %buffer.failed, label %out.of.memory, label %convert");
-            _output.AppendLine("convert:");
-            _output.AppendLine("  %written = call i32 @WideCharToMultiByte(i32 65001, i32 0, ptr %source, i32 -1, ptr %buffer, i32 %needed, ptr null, ptr null)");
-            _output.AppendLine("  %write.failed = icmp sle i32 %written, 0");
-            _output.AppendLine("  br i1 %write.failed, label %conversion.cleanup, label %create.string");
-            _output.AppendLine("conversion.cleanup:");
-            _output.AppendLine("  call void @free(ptr %buffer)");
-            _output.AppendLine("  br label %out.of.memory");
-            _output.AppendLine("create.string:");
-            _output.AppendLine("  %string = call ptr @luma_string_from_utf8z(ptr %buffer)");
-            _output.AppendLine("  call void @free(ptr %buffer)");
-            _output.AppendLine("  ret ptr %string");
-            _output.AppendLine("out.of.memory:");
-            _output.AppendLine(StringRuntimeOutOfMemoryBody("  "));
-            _output.AppendLine("}");
-        }
+    }
+
+    private void EmitWindowsWideStringRuntime(string sizeType)
+    {
+        _output.AppendLine("declare i32 @WideCharToMultiByte(i32, i32, ptr, i32, ptr, i32, ptr, ptr)");
+        _output.AppendLine("define internal ptr @luma_string_from_winwide(ptr %source) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %needed = call i32 @WideCharToMultiByte(i32 65001, i32 0, ptr %source, i32 -1, ptr null, i32 0, ptr null, ptr null)");
+        _output.AppendLine("  %conversion.failed = icmp sle i32 %needed, 0");
+        _output.AppendLine("  br i1 %conversion.failed, label %out.of.memory, label %allocate");
+        _output.AppendLine("allocate:");
+        _output.AppendLine($"  %needed.native = {(sizeType == "i64" ? "zext i32 %needed to i64" : "add i32 %needed, 0")}");
+        _output.AppendLine($"  %buffer = call ptr @malloc({sizeType} %needed.native)");
+        _output.AppendLine("  %buffer.failed = icmp eq ptr %buffer, null");
+        _output.AppendLine("  br i1 %buffer.failed, label %out.of.memory, label %convert");
+        _output.AppendLine("convert:");
+        _output.AppendLine("  %written = call i32 @WideCharToMultiByte(i32 65001, i32 0, ptr %source, i32 -1, ptr %buffer, i32 %needed, ptr null, ptr null)");
+        _output.AppendLine("  %write.failed = icmp sle i32 %written, 0");
+        _output.AppendLine("  br i1 %write.failed, label %conversion.cleanup, label %create.string");
+        _output.AppendLine("conversion.cleanup:");
+        _output.AppendLine("  call void @free(ptr %buffer)");
+        _output.AppendLine("  br label %out.of.memory");
+        _output.AppendLine("create.string:");
+        _output.AppendLine("  %string = call ptr @luma_string_from_utf8z(ptr %buffer)");
+        _output.AppendLine("  call void @free(ptr %buffer)");
+        _output.AppendLine("  ret ptr %string");
+        _output.AppendLine("out.of.memory:");
+        _output.AppendLine(StringRuntimeOutOfMemoryBody("  "));
+        _output.AppendLine("}");
     }
 
     private bool UsesWindowsCommandLineApi()
@@ -1558,6 +1560,7 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         _output.AppendLine($"declare ptr @malloc({sizeType})");
         _output.AppendLine("declare void @free(ptr)");
         _output.AppendLine($"declare ptr @memcpy(ptr, ptr, {sizeType})");
+        if (UsesWindowsCommandLineApi()) EmitWindowsWideStringRuntime(sizeType);
         _output.AppendLine("define internal void @luma_string_retain(ptr %input) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  %is.null = icmp eq ptr %input, null");
@@ -4795,6 +4798,14 @@ internal sealed class LlvmEmitter(CompilationAnalysis compilation, CancellationT
         private (string Value, string Type) EmitManagedArrayPointer(MemberAccessExpression access, string elementType)
         {
             var receiver = EmitExpression(access.Receiver);
+            if (elementType == "$string")
+            {
+                var dataAddress = NewTemp();
+                Emit($"{dataAddress} = getelementptr %luma.string, ptr {receiver.Value}, i32 0, i32 4");
+                var stringData = NewTemp();
+                Emit($"{stringData} = load ptr, ptr {dataAddress}");
+                return (stringData, "uint8*");
+            }
             var length = EmitManagedArrayLength(receiver.Value).Value;
             var data = NewTemp();
             Emit($"{data} = getelementptr %luma.array, ptr {receiver.Value}, i32 0, i32 7");

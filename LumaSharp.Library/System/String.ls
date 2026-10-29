@@ -2,6 +2,11 @@ namespace System;
 
 public class String : Object
 {
+	public unsafe uint8* Utf8Ptr
+	{
+		get => null;
+	}
+
 	public int32 Length
 	{
 		get => 0;

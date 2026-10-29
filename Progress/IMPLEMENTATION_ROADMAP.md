@@ -85,6 +85,7 @@ Nested class, struct, interface, and enum declarations are lowered under qualifi
 - Implement exceptions and specified runtime failures (including overflow, bounds, null, cast, allocation, and type-initialization failures) rather than backend traps.
 - Complete strings and arrays with the specified object descriptors, full element ownership, jagged and scoped arrays, and exception-compatible bounds/allocation failures.
 - Implement `scope` allocation and lifetime/escape enforcement.
+- The initial `System.IO` filesystem layer is emitted directly as target-specific LLVM calls, with no packaged C shim. The `System.IO.NativeFileSystem` compiler ABI currently provides file open/read/write/seek/resize/flush/close, file and directory existence, directory create/delete, file copy/move, and current/temp directory retrieval. LumaSharp wrappers provide `FileStream`, basic `File`/`Directory` operations, and lexical `Path` helpers. Windows uses UTF-8 to UTF-16 conversion plus Win32 APIs; POSIX targets use libc filesystem APIs. File/directory enumeration, recursive directory deletion, and canonical `.`/`..` path normalization are not implemented yet.
 
 **Exit gate:** generated programs link and run against the bundled runtime; lifetime, exceptions, arrays, strings, and initialization tests validate observable behavior, not only LLVM shape.
 

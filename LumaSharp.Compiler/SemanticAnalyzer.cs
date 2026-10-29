@@ -902,7 +902,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             {
                 if (declaration.Body is not null) diagnostics.Add("LS2101", DiagnosticSeverity.Error, "Extern methods must not have a body.", declaration.Location);
                 if (declaration.HasTypeParameters) diagnostics.Add("LS2101", DiagnosticSeverity.Error, "Extern methods cannot be generic.", declaration.Location);
-                ValidateExternType(declaration.ReturnType, allowVoid: true, declaration.Location);
+                var isFileSystemStringResult = method.Owner.Namespace == "System.IO" && method.Owner.Name == "NativeFileSystem" &&
+                    declaration.Name is "luma_fs_current_directory" or "luma_fs_temporary_directory" && declaration.ReturnType == "string";
+                if (!isFileSystemStringResult)
+                    ValidateExternType(declaration.ReturnType, allowVoid: true, declaration.Location);
                 foreach (var parameter in declaration.Parameters)
                 {
                     ValidateExternType(parameter.TypeName, allowVoid: false, parameter.Location);
@@ -8410,7 +8413,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     return NormalizeEnumType(expectedType, context.Method.Owner);
                 if (TryBindConstantField(access, context, out var field)) return field.TypeName;
                 if (TryBindStaticField(access, context, out var staticField)) return staticField.TypeName;
-                var lengthReceiverType = access.Member is "Length" or "Rank" or "Ptr" ? AnalyzeExpression(access.Receiver, context) : null;
+                var lengthReceiverType = access.Member is "Length" or "Rank" or "Ptr" or "Utf8Ptr" ? AnalyzeExpression(access.Receiver, context) : null;
                 if (access.Member == "Ptr" && lengthReceiverType is not null && TryParseManagedArrayType(lengthReceiverType, out var pointerElementType, out var pointerArrayRank) && pointerArrayRank <= 3)
                 {
                     var nullablePointerArray = IsNullableArrayType(lengthReceiverType);
@@ -8428,6 +8431,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     else if (!access.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Managed array Ptr access may only be used in an unsafe context.", access.Location);
                     _managedArrayPointerAccesses[access] = pointerElementType;
                     return pointerElementType + "*";
+                }
+                if (access.Member == "Utf8Ptr" && lengthReceiverType is not null && IsStringType(lengthReceiverType))
+                {
+                    if (!options.UnsafeEnabled) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "String Utf8Ptr access requires unsafe code, but unsafe is disabled for this compilation.", access.Location);
+                    else if (!access.IsUnsafeContext) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "String Utf8Ptr access may only be used in an unsafe context.", access.Location);
+                    _managedArrayPointerAccesses[access] = "$string";
+                    return "uint8*";
                 }
                 if (lengthReceiverType is not null && TryParseInlineArrayType(lengthReceiverType, out _, out _) && access.Member is "Length" or "Rank") return "int32";
                 var nullableLengthArray = lengthReceiverType is not null && IsNullableArrayType(lengthReceiverType);
