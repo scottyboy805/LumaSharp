@@ -163,6 +163,36 @@ scope Counter local = new Counter(0); // lexical lifetime
 
 Strings are immutable UTF-8 values; `Length` and indexing use UTF-16 code units. Arrays include managed vectors, rectangular arrays (rank up to three), jagged arrays, and fixed-size inline arrays in structs. Array indexing is bounds-checked; arrays expose `Length`, `Rank`, and `GetLength`. Reference values are retained and released automatically. `scope` requests block lifetime, marks non-escaping borrowed parameters, and is subject to escape checks.
 
+### Scoped parameters
+
+A `scope` parameter accepts both scope-allocated and ordinary heap values. It limits what the called method can do with the reference: the method may use it during the call, but cannot return it, store it in a longer-lived location, or capture it in an escaping closure.
+
+```lumasharp
+class Node
+{
+    public int32 Read()
+    {
+        return 42;
+    }
+}
+
+class Program
+{
+    public static int32 ReadNode(scope Node value)
+    {
+        return value.Read();
+    }
+
+    public static int32 Main()
+    {
+        Node heapValue = new Node();
+        return ReadNode(heapValue) + ReadNode(new Node());
+    }
+}
+```
+
+The argument does not need to be allocated with `scope`; the parameter declaration applies the non-escape rule inside `ReadNode`.
+
 ```lumasharp
 unsafe {
     int32[4] inline = { 1, 2, 3, 4 };
