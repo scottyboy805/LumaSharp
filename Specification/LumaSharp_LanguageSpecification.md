@@ -2096,6 +2096,7 @@ Rules:
 - Compound assignment operators (`+=`, …) are derived from the binary operator.
 - `++`/`--` operators take and return the declaring type.
 - A conversion operator has exactly one by-value parameter, is `public static`, and either its source or target type MUST be the declaring class or struct.
+- Conversion operators cannot currently declare method type parameters. Consequently, the compiler-provided implicit conversions from `T[]` to `Span<T>` and `ReadOnlySpan<T>` are implemented by generic helpers in `System.Array` and bound by the compiler; `System.Array` itself is not the `T[]` source type required by the operator rule.
 - `implicit operator T(Source value)` participates in implicit conversions and explicit casts. `explicit operator T(Source value)` participates only in explicit casts.
 - A conversion operator is selected when its declared source and target exactly match the conversion's source and target types; this version does not chain user-defined conversions with other conversions.
 - `&&`, `||`, `??`, `?:`, `=`, `.`, `is`, `as`, `new`, and `!` (postfix) cannot be overloaded.

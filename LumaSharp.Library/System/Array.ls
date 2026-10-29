@@ -12,14 +12,14 @@ public virtual class Array : Object
 	internal static unsafe Span<T> ToSpan<T>(T[] source)
 	{
 		if (source.Length == 0)
-			return default(Span<T>);
+			return Span<T>.Empty;
 		return Span<T>(source.Ptr, source.Length);
 	}
 
 	internal static unsafe ReadOnlySpan<T> ToReadOnlySpan<T>(T[] source)
 	{
 		if (source.Length == 0)
-			return default(ReadOnlySpan<T>);
+			return ReadOnlySpan<T>.Empty;
 		return ReadOnlySpan<T>(source.Ptr, source.Length);
 	}
 }

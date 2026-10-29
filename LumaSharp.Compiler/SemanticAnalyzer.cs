@@ -102,6 +102,7 @@ internal sealed record CompilationAnalysis(
     IReadOnlyDictionary<MemberAccessExpression, bool> ManagedArrayLengthAccesses,
     IReadOnlyDictionary<MemberAccessExpression, int> ManagedArrayRankAccesses,
     IReadOnlyDictionary<MemberAccessExpression, string> ManagedArrayPointerAccesses,
+    IReadOnlyDictionary<MemberAccessExpression, string> GenericSpanEmptyAccesses,
     IReadOnlyDictionary<CallExpression, int> ManagedArrayGetLengthCalls,
     IReadOnlyDictionary<ForInStatement, string> ManagedArrayForInElementTypes,
     IReadOnlyDictionary<CatchClause, string> ExceptionCatchTypes,
@@ -261,6 +262,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<MemberAccessExpression, bool> _managedArrayLengthAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<MemberAccessExpression, int> _managedArrayRankAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<MemberAccessExpression, string> _managedArrayPointerAccesses = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<MemberAccessExpression, string> _genericSpanEmptyAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CallExpression, int> _managedArrayGetLengthCalls = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<ForInStatement, string> _managedArrayForInElementTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CatchClause, string> _exceptionCatchTypes = new(ReferenceEqualityComparer.Instance);
@@ -939,7 +941,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var multiAssignmentAccessorAssignments = new Dictionary<MultiAssignmentStatement, IReadOnlyDictionary<int, BinaryExpression>>(ReferenceEqualityComparer.Instance);
         foreach (var (statement, assignments) in _multiAssignmentAccessorAssignments)
             multiAssignmentAccessorAssignments.Add(statement, assignments);
-        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
+        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
 
     private static bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
@@ -8354,6 +8356,21 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 {
                     ValidateTypeAccessibility(qualifiedTypeName, context.Method.Owner, access.Receiver.Location);
                     return "?";
+                }
+                if (access.Member == "Empty" &&
+                    TryFlattenName(access.Receiver, out var emptyTypeName) &&
+                    TrySplitGenericType(emptyTypeName, out var emptyDefinition, out var emptyArguments) && emptyArguments.Count == 1 &&
+                    emptyDefinition is "Span" or "System.Span" or "ReadOnlySpan" or "System.ReadOnlySpan")
+                {
+                    // Open generic type qualifiers cannot be resolved to a constructed type here.
+                    // Both runtime Empty properties are defined as the default span value, so bind
+                    // them to the closed expected type and let the emitter materialize that value.
+                    var emptyType = expectedType is not null &&
+                        (expectedType.StartsWith("System.Span__g_", StringComparison.Ordinal) || expectedType.StartsWith("System.ReadOnlySpan__g_", StringComparison.Ordinal))
+                        ? expectedType
+                        : NormalizeEnumType(emptyTypeName, context.Method.Owner);
+                    _genericSpanEmptyAccesses[access] = emptyType;
+                    return emptyType;
                 }
                 if (expectedType is not null && TryBindMethodGroup(access, expectedType, context))
                     return NormalizeEnumType(expectedType, context.Method.Owner);
