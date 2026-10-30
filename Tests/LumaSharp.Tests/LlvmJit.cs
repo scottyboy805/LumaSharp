@@ -18,10 +18,16 @@ internal static unsafe class LlvmJit
     private delegate IntPtr AllocateFunction(UIntPtr size);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr AllocateZeroedFunction(UIntPtr count, UIntPtr size);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate void FreeFunction(IntPtr pointer);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate IntPtr CopyFunction(IntPtr destination, IntPtr source, UIntPtr size);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr SetFunction(IntPtr destination, int value, UIntPtr size);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int WindowsWriteFunction(int descriptor, IntPtr buffer, uint count);
@@ -45,9 +51,11 @@ internal static unsafe class LlvmJit
     private static readonly object Gate = new();
     private static readonly ConcurrentDictionary<IntPtr, byte> Allocations = new();
     private static readonly AllocateFunction AllocateCallback = Allocate;
+    private static readonly AllocateZeroedFunction AllocateZeroedCallback = AllocateZeroed;
     private static readonly FreeFunction FreeCallback = Release;
     private static readonly CopyFunction CopyCallback = Copy;
     private static readonly CopyFunction MoveCallback = Move;
+    private static readonly SetFunction SetCallback = Set;
     private static readonly WindowsWriteFunction WindowsWriteCallback = CaptureWindowsWrite;
     private static readonly PosixWriteFunction PosixWriteCallback = CapturePosixWrite;
     private static readonly WindowsGetCommandLineFunction WindowsGetCommandLineCallback = GetSimulatedWindowsCommandLine;
@@ -209,9 +217,11 @@ internal static unsafe class LlvmJit
         LLVM.InitializeNativeAsmPrinter();
         LLVM.LinkInMCJIT();
         AddSymbol("malloc", Marshal.GetFunctionPointerForDelegate(AllocateCallback));
+        AddSymbol("calloc", Marshal.GetFunctionPointerForDelegate(AllocateZeroedCallback));
         AddSymbol("free", Marshal.GetFunctionPointerForDelegate(FreeCallback));
         AddSymbol("memcpy", Marshal.GetFunctionPointerForDelegate(CopyCallback));
         AddSymbol("memmove", Marshal.GetFunctionPointerForDelegate(MoveCallback));
+        AddSymbol("memset", Marshal.GetFunctionPointerForDelegate(SetCallback));
         AddSymbol("_write", Marshal.GetFunctionPointerForDelegate(WindowsWriteCallback));
         AddSymbol("write", Marshal.GetFunctionPointerForDelegate(PosixWriteCallback));
         if (OperatingSystem.IsWindows())
@@ -375,6 +385,34 @@ internal static unsafe class LlvmJit
             Buffer.MemoryCopy(source.ToPointer(), destination.ToPointer(), length, length);
         }
         catch (Exception ex) { SetInteropError($"memcpy callback failed: {ex.Message}"); }
+        return destination;
+    }
+
+    private static IntPtr AllocateZeroed(UIntPtr count, UIntPtr size)
+    {
+        try
+        {
+            var total = checked(count.ToUInt64() * size.ToUInt64());
+            var address = Allocate(new UIntPtr(total));
+            if (address != IntPtr.Zero && total > 0)
+                Marshal.Copy(new byte[checked((int)total)], 0, address, checked((int)total));
+            return address;
+        }
+        catch (Exception ex)
+        {
+            SetInteropError($"calloc callback failed: {ex.Message}");
+            return IntPtr.Zero;
+        }
+    }
+
+    private static IntPtr Set(IntPtr destination, int value, UIntPtr size)
+    {
+        try
+        {
+            var length = checked((int)size.ToUInt64());
+            Marshal.Copy(Enumerable.Repeat(unchecked((byte)value), length).ToArray(), 0, destination, length);
+        }
+        catch (Exception ex) { SetInteropError($"memset callback failed: {ex.Message}"); }
         return destination;
     }
 

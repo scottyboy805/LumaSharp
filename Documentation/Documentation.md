@@ -997,7 +997,7 @@ Pointers do not retain or release objects. The programmer must keep the referenc
 
 Static `extern` methods bind to C ABI symbols at link time. LumaSharp does not marshal managed objects, strings, arrays, or delegates for extern calls; pass C-compatible values and pointers only. The current runtime's OS file and console operations are compiler-provided native calls, so users can work with `System.IO` without shipping a separate C source shim.
 
-`System.Interop.NativeMemory` provides raw, untracked native allocation and byte operations. Use it only when you need storage outside normal LumaSharp ownership:
+`System.Interop.NativeMemory` provides raw, untracked native allocation and byte operations. `Allocate` returns uninitialized memory; `AllocateZeroed` initializes every byte to zero. `Zero` clears an existing region and returns its pointer. Use these only when you need storage outside normal LumaSharp ownership:
 
 ```lumasharp
 using System.Interop;
@@ -1006,7 +1006,7 @@ public static unsafe class NativeBufferExample
 {
     public static int32 Main()
     {
-        int32* values = (int32*)NativeMemory.Allocate(sizeof(int32) * 2);
+        int32* values = (int32*)NativeMemory.AllocateZeroed(sizeof(int32) * 2);
         if (values == null)
             return 1;
 

@@ -21,12 +21,19 @@ internal sealed partial class LlvmEmitter
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         AppendDeclarationIfMissing($"declare ptr @malloc({sizeType})");
+        _output.AppendLine($"declare ptr @calloc({sizeType}, {sizeType})");
         AppendDeclarationIfMissing("declare void @free(ptr)");
         _output.AppendLine($"declare void @llvm.memcpy.p0.p0.i{compilation.NativePointerSize * 8}(ptr, ptr, {sizeType}, i1)");
         _output.AppendLine($"declare void @llvm.memmove.p0.p0.i{compilation.NativePointerSize * 8}(ptr, ptr, {sizeType}, i1)");
+        _output.AppendLine($"declare void @llvm.memset.p0.i{compilation.NativePointerSize * 8}(ptr, i8, {sizeType}, i1)");
         _output.AppendLine($"define internal ptr @luma_interop_memory_allocate({sizeType} %size) {{");
         _output.AppendLine("entry:");
         _output.AppendLine("  %result = call ptr @malloc(" + sizeType + " %size)");
+        _output.AppendLine("  ret ptr %result");
+        _output.AppendLine("}");
+        _output.AppendLine($"define internal ptr @luma_interop_memory_allocate_zeroed({sizeType} %size) {{");
+        _output.AppendLine("entry:");
+        _output.AppendLine($"  %result = call ptr @calloc({sizeType} 1, {sizeType} %size)");
         _output.AppendLine("  ret ptr %result");
         _output.AppendLine("}");
         _output.AppendLine($"define internal void @luma_interop_memory_free(ptr %memory) {{");
@@ -36,6 +43,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("}");
         EmitMemoryCopyFunction("copy", "memcpy");
         EmitMemoryCopyFunction("move", "memmove");
+        EmitMemoryZeroFunction();
     }
 
     private void EmitMemoryCopyFunction(string operation, string intrinsic)
@@ -51,6 +59,22 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br label %done");
         _output.AppendLine("done:");
         _output.AppendLine("  ret ptr %destination");
+        _output.AppendLine("}");
+    }
+
+    private void EmitMemoryZeroFunction()
+    {
+        var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
+        var intrinsicBits = compilation.NativePointerSize * 8;
+        _output.AppendLine($"define internal ptr @luma_interop_memory_zero(ptr %memory, {sizeType} %count) {{");
+        _output.AppendLine("entry:");
+        _output.AppendLine($"  %empty = icmp sle {sizeType} %count, 0");
+        _output.AppendLine("  br i1 %empty, label %done, label %clear");
+        _output.AppendLine("clear:");
+        _output.AppendLine($"  call void @llvm.memset.p0.i{intrinsicBits}(ptr %memory, i8 0, {sizeType} %count, i1 false)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("done:");
+        _output.AppendLine("  ret ptr %memory");
         _output.AppendLine("}");
     }
 

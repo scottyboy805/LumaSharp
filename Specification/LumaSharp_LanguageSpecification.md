@@ -3732,7 +3732,7 @@ unsafe unchecked int32 Sum(int32[] values)
 
 ## 19.7 Unmanaged Memory
 
-`System.Interop.NativeMemory` provides allocation and byte operations for untracked native memory. `Allocate(int)` returns a pointer or null if allocation fails. `Free(void*)` releases a pointer returned by a compatible native allocator. `Copy(destination, source, byteCount)` copies non-overlapping bytes; `Move(destination, source, byteCount)` supports overlapping ranges. Both return `destination`. A negative byte count throws `ArgumentOutOfRangeException`; callers remain responsible for pointer validity, buffer size, allocator pairing, and avoiding use after free. Freeing null is a no-op. Native allocations are not reference-counted or automatically released.
+`System.Interop.NativeMemory` provides allocation and byte operations for untracked native memory. `Allocate(int)` returns uninitialized storage; `AllocateZeroed(int)` returns storage whose bytes are all zero. Both return a pointer or null if allocation fails. `Free(void*)` releases a pointer returned by either allocation method. `Copy(destination, source, byteCount)` copies non-overlapping bytes; `Move(destination, source, byteCount)` supports overlapping ranges. Both return `destination`. `Zero(memory, byteCount)` sets the requested bytes to zero and returns `memory`. A negative byte count throws `ArgumentOutOfRangeException`; callers remain responsible for pointer validity, buffer size, allocator pairing, and avoiding use after free. Freeing null is a no-op. Native allocations are not reference-counted or automatically released.
 
 Each operation has pointer parameters or a pointer result and therefore requires an unsafe context (§19.1). These methods are implemented by the runtime over the target C allocator and LLVM memory intrinsics; no C source file is required.
 
@@ -5035,7 +5035,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | Collection initializers | `{ … }`, `new { … }`, `scope { … }`; `let`/`var` need the expanded form; inline arrays take only `{ … }` (§15.3, §15.9) |
 | Inline arrays | Struct elements allowed, classes not; pointer elements in unsafe; unsafe required (§15.9) |
 | Empty string | Literal `""` is immutable literal data; it is not the default of `string` (§16.2.1, §28.10.2) |
-| `NativeMemory` | `Allocate`, `Free`, `Copy`, and `Move` for untracked unmanaged memory (§19.7) |
+| `NativeMemory` | `Allocate`, `AllocateZeroed`, `Free`, `Copy`, `Move`, and `Zero` for untracked unmanaged memory (§19.7) |
 | Entry point | Executables only; static libraries have none (§22.1) |
 | Static initialization | Lazy on first access; per generic instantiation; entry-type failure crashes before `Main` (§22.2) |
 | Excluded features | `event, weak/unowned, GC, partial, record, params, sealed, abstract, goto, fixed, stackalloc, dynamic, tuple syntax/deconstruction, linq` are not language features (§24.1); tuple-like types may be library-defined |

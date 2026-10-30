@@ -151,13 +151,15 @@ public sealed class CompilerTests
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
             .Select(path => (path, File.ReadAllText(path)));
-        const string source = "using System.Interop; unsafe class Program { public static int32 Main() { void* memory = NativeMemory.Allocate(sizeof(int32) * 3); int32* values = (int32*)memory; values[0] = 17; values[1] = 23; values[2] = 0; NativeMemory.Move(values + 1, values, sizeof(int32) * 2); bool valid = values[0] == 17 && values[1] == 17 && values[2] == 23; NativeMemory.Copy(values, values + 1, sizeof(int32) * 2); valid = valid && values[0] == 17 && values[1] == 23; NativeMemory.Free(memory); return valid ? 0 : 1; } }";
+        const string source = "using System.Interop; unsafe class Program { public static int32 Main() { void* memory = NativeMemory.AllocateZeroed(sizeof(int32) * 3); int32* values = (int32*)memory; bool valid = values[0] == 0 && values[1] == 0 && values[2] == 0; values[0] = 17; values[1] = 23; values[2] = 0; NativeMemory.Move(values + 1, values, sizeof(int32) * 2); valid = valid && values[0] == 17 && values[1] == 17 && values[2] == 23; NativeMemory.Copy(values, values + 1, sizeof(int32) * 2); valid = valid && values[0] == 17 && values[1] == 23; NativeMemory.Zero(values, sizeof(int32) * 3); valid = valid && values[0] == 0 && values[1] == 0 && values[2] == 0; NativeMemory.Free(memory); void* allocated = NativeMemory.Allocate(sizeof(int32)); NativeMemory.Free(allocated); return valid ? 0 : 1; } }";
         var result = LumaCompiler.Compile(runtimeSources.Append(("native-memory-test.ls", source)), new CompilationOptions(UnsafeEnabled: true));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("define internal ptr @luma_interop_memory_allocate", result.LlvmIr);
+        Assert.Contains("define internal ptr @luma_interop_memory_allocate_zeroed", result.LlvmIr);
         Assert.Contains("@llvm.memcpy.p0.p0.i64", result.LlvmIr);
         Assert.Contains("@llvm.memmove.p0.p0.i64", result.LlvmIr);
+        Assert.Contains("@llvm.memset.p0.i64", result.LlvmIr);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
