@@ -389,7 +389,7 @@ public sealed class CompilerTests
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("define internal void @luma_monitor_enter", result.LlvmIr);
         Assert.Contains("define internal void @luma_throw_preserve", result.LlvmIr);
-        Assert.DoesNotContain("luma_stack_name_luma_Program_hidden_async_body", result.LlvmIr, StringComparison.Ordinal);
+        Assert.DoesNotContain("luma_stack_name_luma_Program___hidden_", result.LlvmIr, StringComparison.Ordinal);
 
         var objectPath = Path.Combine(Path.GetTempPath(), "lumasharp-async-" + Guid.NewGuid().ToString("N") + ".obj");
         try
@@ -436,6 +436,18 @@ public sealed class CompilerTests
         var mutatingStruct = Compile("struct Counter { public int32 value; public async int32 Increment() mut { value++; return value; } } class Program { public static int32 Main() { return 0; } }");
         Assert.False(mutatingStruct.Succeeded);
         Assert.Contains(mutatingStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+    }
+
+    [Fact]
+    public void NullComparisonWarnsForNonNullableReferences()
+    {
+        const string source = "delegate void Callback(); interface IView { } class Item : IView { } class Program { public static int32 Main() { Item item = new Item(); IView view = item; string text = \"text\"; int32[] values = new int32[1]; Callback callback = () => { }; bool a = item == null; bool b = view != null; bool c = text == null; bool d = values != null; bool e = callback == null; string? nullableText = null; bool f = nullableText == null; return a || !b || c || !d || e || !f ? 1 : 0; } }";
+        var result = Compile(source);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var warnings = result.Diagnostics.Where(diagnostic => diagnostic.Code == "LS3104").ToArray();
+        Assert.Equal(5, warnings.Length);
+        Assert.All(warnings, warning => Assert.Contains("will never be null", warning.Message, StringComparison.Ordinal));
     }
 
     [Fact]

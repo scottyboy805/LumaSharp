@@ -158,9 +158,6 @@ public class String : Object
 
 	public uint8[] GetBytes(Encoding encoding)
 	{
-		if (encoding == null)
-			throw new ArgumentNullException();
-
 		return encoding.GetBytes((ReadOnlySpan<char>)this);
 	}
 
@@ -171,9 +168,6 @@ public class String : Object
 
 	public void GetBytes(scope uint8[] bytes, Encoding encoding)
 	{
-		if (encoding == null)
-			throw new ArgumentNullException();
-
 		uint8[] encoded = GetBytes(encoding);
 		if (bytes.Length < encoded.Length)
 			throw new ArgumentException("The destination array is too short.");
@@ -189,9 +183,6 @@ public class String : Object
 
 	public static string FromBytes(scope uint8[] bytes, Encoding encoding)
 	{
-		if (encoding == null)
-			throw new ArgumentNullException();
-
 		return FromChars(encoding.GetChars(bytes));
 	}
 

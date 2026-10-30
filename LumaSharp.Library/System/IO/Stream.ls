@@ -95,8 +95,6 @@ public virtual class Stream : System.Object
 
 	public void CopyTo(Stream destination, int32 bufferSize) mut
 	{
-		if (destination == null)
-			throw new System.ArgumentNullException();
 		if (destination == this)
 			throw new System.ArgumentException("A stream cannot copy to itself.");
 		if (bufferSize <= 0)

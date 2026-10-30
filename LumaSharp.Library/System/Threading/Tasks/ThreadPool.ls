@@ -5,8 +5,8 @@ namespace System.Threading.Tasks;
 
 internal class ThreadPoolWorkNode
 {
-	public Task Item;
-	public ThreadPoolWorkNode? Next;
+	internal Task Item;
+	internal ThreadPoolWorkNode? Next;
 
 	public this(Task item)
 	{
@@ -17,8 +17,8 @@ internal class ThreadPoolWorkNode
 
 internal class ThreadPoolWorker
 {
-	public Thread Thread;
-	public ThreadPoolWorker? Next;
+	internal Thread Thread;
+	internal ThreadPoolWorker? Next;
 
 	public this()
 	{
@@ -27,9 +27,9 @@ internal class ThreadPoolWorker
 	}
 }
 
-public static class ThreadPool
+internal static class ThreadPool
 {
-	private static TaskGate synchronization = new TaskGate();
+	private static readonly object synchronization = new object();
 	private static ThreadPoolWorkNode? first;
 	private static ThreadPoolWorkNode? last;
 	private static ThreadPoolWorker? workers;
@@ -41,9 +41,6 @@ public static class ThreadPool
 
 	internal static void QueueTask(Task workItem)
 	{
-		if (workItem == null)
-			throw new ArgumentNullException();
-
 		lock (synchronization)
 		{
 			ThreadPoolWorkNode node = new ThreadPoolWorkNode(workItem);
@@ -54,18 +51,18 @@ public static class ThreadPool
 				last!.Next = node;
 			last = node;
 
-			hidden_RemoveCompletedWorkers();
+			RemoveCompletedWorkers();
 			if (idleWorkers == 0 && first != null && activeWorkers < maximumWorkers + blockingWaiters)
 			{
 				try
 				{
-					hidden_StartWorker();
+					StartWorker();
 				}
 				catch (Exception)
 				{
 					if (previousLast == null)
 						first = null;
-				else
+					else
 						previousLast!.Next = null;
 					last = previousLast;
 					throw;
@@ -74,17 +71,17 @@ public static class ThreadPool
 		}
 	}
 
-	internal static void hidden_BeginBlockingWait()
+	internal static void BeginBlockingWait()
 	{
 		lock (synchronization)
 		{
 			blockingWaiters++;
 			while (first != null && idleWorkers == 0 && activeWorkers < maximumWorkers + blockingWaiters)
-				hidden_StartWorker();
+				StartWorker();
 		}
 	}
 
-	internal static void hidden_EndBlockingWait()
+	internal static void EndBlockingWait()
 	{
 		lock (synchronization)
 		{
@@ -93,12 +90,12 @@ public static class ThreadPool
 		}
 	}
 
-	private static void hidden_StartWorker()
+	private static void StartWorker()
 	{
 		ThreadPoolWorker worker = new ThreadPoolWorker();
 		worker.Next = workers;
 		workers = worker;
-		ThreadStart callback = hidden_WorkerLoop;
+		ThreadStart callback = WorkerLoop;
 		activeWorkers++;
 		try
 		{
@@ -112,7 +109,7 @@ public static class ThreadPool
 		}
 	}
 
-	private static void hidden_WorkerLoop()
+	private static void WorkerLoop()
 	{
 		bool isIdle = false;
 		int32 idleTime = 0;
@@ -154,7 +151,7 @@ public static class ThreadPool
 
 			if (node != null)
 			{
-				node!.Item.hidden_Execute();
+				node!.Item.Execute();
 				idleTime = 0;
 			}
 			else
@@ -165,7 +162,7 @@ public static class ThreadPool
 		}
 	}
 
-	private static void hidden_RemoveCompletedWorkers()
+	private static void RemoveCompletedWorkers()
 	{
 		ThreadPoolWorker? previous = null;
 		ThreadPoolWorker? current = workers;

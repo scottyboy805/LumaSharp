@@ -108,6 +108,60 @@ class Program
 		return await FaultAsync();
 	}
 
+	public static async int32 FaultTwoLevelsAsync()
+	{
+		return await FaultThroughAsync();
+	}
+
+	public static async int32 CatchAwaitFaultAsync()
+	{
+		Thread observerThread = Thread.CurrentThread;
+		try
+		{
+			return await FaultTwoLevelsAsync();
+		}
+		catch (InvalidOperationException error)
+		{
+			if (Thread.CurrentThread != observerThread)
+				return -2;
+			string? caughtTrace = error.StackTrace;
+			string expectedTrace = "at Program.FaultAsync()\n\n--- End of stack trace from previous location ---\nat Program.FaultThroughAsync()\n\n--- End of stack trace from previous location ---\nat Program.FaultTwoLevelsAsync()\n\n--- End of stack trace from previous location ---\nat Program.CatchAwaitFaultAsync()\n";
+			if (error.Message != "async failure" || caughtTrace != expectedTrace)
+				return -1;
+			return 23;
+		}
+	}
+
+	public static async void FaultVoidAsync()
+	{
+		throw new InvalidOperationException("void async failure");
+	}
+
+	public static async void FaultVoidThroughAsync()
+	{
+		await FaultVoidAsync();
+	}
+
+	public static async int32 CatchAwaitVoidFaultAsync()
+	{
+		Thread observerThread = Thread.CurrentThread;
+		try
+		{
+			await FaultVoidThroughAsync();
+			return -1;
+		}
+		catch (InvalidOperationException error)
+		{
+			if (Thread.CurrentThread != observerThread)
+				return -3;
+			string? caughtTrace = error.StackTrace;
+			string expectedTrace = "at Program.FaultVoidAsync()\n\n--- End of stack trace from previous location ---\nat Program.FaultVoidThroughAsync()\n\n--- End of stack trace from previous location ---\nat Program.CatchAwaitVoidFaultAsync()\n";
+			if (error.Message != "void async failure" || caughtTrace != expectedTrace)
+				return -2;
+			return 24;
+		}
+	}
+
 	public static int32 Main()
 	{
 		Task<int32> first = IncrementAsync();
@@ -150,6 +204,24 @@ class Program
 			if (trace != expectedTrace)
 				return 6;
 		}
+
+		try
+		{
+			int32 ignored = FaultTwoLevelsAsync().Result;
+			return 14;
+		}
+		catch (Exception error)
+		{
+			string expectedTrace = "at Program.FaultAsync()\n\n--- End of stack trace from previous location ---\nat Program.FaultThroughAsync()\n\n--- End of stack trace from previous location ---\nat Program.FaultTwoLevelsAsync()\nat Program.Main()\n";
+			if (error.StackTrace != expectedTrace)
+				return 15;
+		}
+
+		int32 caughtResult = CatchAwaitFaultAsync().Result;
+		if (caughtResult != 23)
+			return 16;
+		if (CatchAwaitVoidFaultAsync().Result != 24)
+			return 17;
 		Task faulted = FaultAsync();
 		faulted.Wait();
 		if (faulted.Exception == null)

@@ -5,6 +5,8 @@ internal static class AsyncMethodLowerer
     public static IReadOnlyList<CompilationUnit> Lower(IReadOnlyList<CompilationUnit> units, DiagnosticBag diagnostics)
     {
         var nextGeneratedMethod = 0;
+        string? currentAwaitFrame = null;
+        var appendAwaitObserverFrame = false;
         return units.Select(unit => unit with { Types = unit.Types.Select(LowerType).ToArray() }).ToArray();
 
         TypeDeclaration LowerType(TypeDeclaration type)
@@ -41,8 +43,13 @@ internal static class AsyncMethodLowerer
             if (method.Body is null)
                 return (method with { IsAsync = false }, method);
 
-            var generatedName = "__hidden_async_body_" + nextGeneratedMethod++;
+            var generatedName = "__hidden_" + method.Name + "_async_body_" + nextGeneratedMethod++;
+            var ownerName = string.IsNullOrEmpty(owner.Namespace) ? owner.Name : owner.Namespace + "." + owner.Name;
+            var parameterTypes = string.Join(", ", method.Parameters.Select(parameter => parameter.TypeName));
+            var sourceFrame = $"at {ownerName}.{method.Name}({parameterTypes})\n";
+            currentAwaitFrame = sourceFrame;
             var asyncBody = (BlockStatement)RewriteStatement(method.Body, inAsyncMethod: true);
+            currentAwaitFrame = null;
             var bodyMethod = method with
             {
                 Name = generatedName,
@@ -62,9 +69,6 @@ internal static class AsyncMethodLowerer
                         ConstructorArguments: [new LiteralExpression("0", location)]),
                     "ToString", location),
                 [], location);
-            var ownerName = string.IsNullOrEmpty(owner.Namespace) ? owner.Name : owner.Namespace + "." + owner.Name;
-            var parameterTypes = string.Join(", ", method.Parameters.Select(parameter => parameter.TypeName));
-            var sourceFrame = $"at {ownerName}.{method.Name}({parameterTypes})\n";
             var stackTrace = new BinaryExpression(
                 new LiteralExpression(QuoteStringLiteral(sourceFrame), location), "+", callerStackTrace, location);
             var taskAllocation = new AllocationExpression(taskType, [], null, false, location,
@@ -83,8 +87,8 @@ internal static class AsyncMethodLowerer
                     new MemberAccessExpression(new NameExpression(taskName, location), "SetResult", location),
                     [helperCall], location), location);
             var callback = new LambdaExpression([], null, new BlockStatement([callbackStatement], location), location);
-            var setAction = new ExpressionStatement(new CallExpression(
-                new MemberAccessExpression(new NameExpression(taskName, location), "SetAction", location),
+            var setCallback = new ExpressionStatement(new CallExpression(
+                new MemberAccessExpression(new NameExpression(taskName, location), "SetCallback", location),
                 [callback], location), location);
             var queueTask = new ExpressionStatement(new CallExpression(
                 new MemberAccessExpression(new NameExpression("System.Threading.Tasks.ThreadPool", location), "QueueTask", location),
@@ -92,7 +96,7 @@ internal static class AsyncMethodLowerer
             var wrapper = method with
             {
                 ReturnType = taskType,
-                Body = new BlockStatement([taskLocal, setAction, queueTask, new ReturnStatement(new NameExpression(taskName, location), location)], location),
+                Body = new BlockStatement([taskLocal, setCallback, queueTask, new ReturnStatement(new NameExpression(taskName, location), location)], location),
                 IsAsync = false
             };
             return (wrapper, bodyMethod);
@@ -184,16 +188,25 @@ internal static class AsyncMethodLowerer
                     };
                 }).ToArray()
             },
-            TryStatement attempt => attempt with
-            {
-                Body = (BlockStatement)RewriteStatement(attempt.Body, inAsyncMethod),
-                Catches = attempt.Catches.Select(clause => clause with { Body = (BlockStatement)RewriteStatement(clause.Body, inAsyncMethod) }).ToArray(),
-                Finally = attempt.Finally is null ? null : (BlockStatement)RewriteStatement(attempt.Finally, inAsyncMethod)
-            },
+            TryStatement attempt => RewriteTry(attempt, inAsyncMethod),
             ThrowStatement thrown => thrown with { Value = RewriteOptional(thrown.Value, inAsyncMethod) },
             OverflowContextStatement overflow => overflow with { Body = RewriteStatement(overflow.Body, inAsyncMethod) },
             _ => statement
         };
+
+        TryStatement RewriteTry(TryStatement attempt, bool inAsyncMethod)
+        {
+            var previousAppendAwaitObserverFrame = appendAwaitObserverFrame;
+            appendAwaitObserverFrame = previousAppendAwaitObserverFrame || attempt.Catches.Count > 0;
+            var body = (BlockStatement)RewriteStatement(attempt.Body, inAsyncMethod);
+            appendAwaitObserverFrame = previousAppendAwaitObserverFrame;
+            var catches = attempt.Catches.Select(clause => clause with
+            {
+                Body = (BlockStatement)RewriteStatement(clause.Body, inAsyncMethod)
+            }).ToArray();
+            var finallyBody = attempt.Finally is null ? null : (BlockStatement)RewriteStatement(attempt.Finally, inAsyncMethod);
+            return attempt with { Body = body, Catches = catches, Finally = finallyBody };
+        }
 
         Expression? RewriteOptional(Expression? expression, bool inAsyncMethod) =>
             expression is null ? null : RewriteExpression(expression, inAsyncMethod);
@@ -243,8 +256,11 @@ internal static class AsyncMethodLowerer
                 diagnostics.Add("LS0105", DiagnosticSeverity.Error, "The await operator requires a Task or Task<T> operand.", awaited.Location);
 
             return new CallExpression(
-                new MemberAccessExpression(new NameExpression("System.Threading.Tasks.Task", awaited.Location), "hidden_GetResult", awaited.Location),
-                [RewriteExpression(awaited.Operand, inAsyncMethod: true)], awaited.Location);
+                new MemberAccessExpression(new NameExpression("System.Threading.Tasks.Task", awaited.Location), "GetAwaitedResult", awaited.Location),
+                [
+                    RewriteExpression(awaited.Operand, inAsyncMethod: true),
+                    new LiteralExpression(QuoteStringLiteral(appendAwaitObserverFrame ? currentAwaitFrame ?? string.Empty : string.Empty), awaited.Location)
+                ], awaited.Location);
         }
 
         static bool IsTaskType(string? typeName) => typeName is "Task" or "System.Threading.Tasks.Task" ||

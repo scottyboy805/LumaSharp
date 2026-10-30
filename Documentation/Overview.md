@@ -41,7 +41,7 @@ int32? maybeCount = null; // nullable value type
 
 Integer literals support decimal, `0x` hexadecimal, `0b` binary, digit separators, and `u`, `l`, `ul` suffixes. Strings support escaped and verbatim forms (`@"C:\\path"`). Identifiers are case-sensitive; `@name` escapes a keyword.
 
-Reference types are non-null by default; append `?` for nullable references or value types. `!` asserts non-null at runtime. `??` supplies a fallback, `??=` assigns one only when null, `?.` and `?[...]` conditionally access nullable receivers, and `is null` / `is not null` test null state.
+Reference types are non-null by default; append `?` for nullable references or value types. `!` asserts non-null at runtime. Comparing a non-nullable reference with `null` is allowed but warns because the result is constant. `??` supplies a fallback, `??=` assigns one only when null, `?.` and `?[...]` conditionally access nullable receivers, and `is null` / `is not null` test null state.
 
 ## Declarations and assignment
 

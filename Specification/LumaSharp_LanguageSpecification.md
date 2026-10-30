@@ -869,6 +869,8 @@ Floating-point comparisons follow IEEE 754: any comparison involving NaN is `fal
 
 **`!=` is never user-defined.** `a != b` is always evaluated as `!(a == b)` (with `a`, `b` each evaluated once, in order). Declaring `operator !=` is a compile-time error (LS0401).
 
+Comparing a non-nullable reference value with the `null` literal is permitted but produces warning LS3104: the comparison is always false for `==` and always true for `!=`. Use a nullable reference type when testing whether a value may be null.
+
 ```lumasharp
 Foo a = new Foo();
 Foo b = a;
@@ -4049,6 +4051,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 | LS3002 | Member hides an inherited non-virtual member |
 | LS3101 | `is` test whose result is a compile-time constant |
 | LS3103 | `!` applied to a value already known to be non-null |
+| LS3104 | Non-nullable reference compared with `null`; comparison is constant |
 | LS3301 | Potential strong reference cycle (§14.8) |
 
 Optional (implementation-defined) warnings include unused variables and unused loop labels.

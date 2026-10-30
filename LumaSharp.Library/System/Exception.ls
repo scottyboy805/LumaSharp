@@ -38,8 +38,27 @@ public virtual class Exception : Object
 		return result;
 	}
 
-	internal void hidden_AppendAsyncStackTrace(string parentTrace) mut
+	internal void AppendAsyncStackTrace(string parentTrace) mut
 	{
+		if (parentTrace.Length == 0)
+			return;
+
+		if (stackTrace != null && stackTrace!.Length > 0)
+		{
+			int32 firstFrameEnd = parentTrace.IndexOf('\n');
+			if (firstFrameEnd >= 0)
+			{
+				string firstFrame = parentTrace.Substring(0, firstFrameEnd + 1);
+				bool duplicateFrame = firstFrame.Length <= stackTrace!.Length;
+				int32 frameOffset = stackTrace!.Length - firstFrame.Length;
+				for (int32 index = 0; duplicateFrame && index < firstFrame.Length; index++)
+					if (stackTrace![frameOffset + index] != firstFrame[index])
+						duplicateFrame = false;
+				if (duplicateFrame)
+					parentTrace = parentTrace.Substring(firstFrame.Length);
+			}
+		}
+
 		if (parentTrace.Length == 0)
 			return;
 

@@ -1731,6 +1731,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return type;
     }
     private bool IsClassReferenceType(string type) => IsClassType(type) || _interfaceTypes.ContainsKey(type) || IsNullableClassType(type);
+    private bool IsNonNullableReferenceType(string type) =>
+        IsClassReferenceType(type) && !IsNullableClassType(type) || IsDelegateType(type) ||
+        IsStringType(type) && !IsNullableStringType(type) ||
+        TryParseManagedArrayType(type, out _, out _) && !IsNullableArrayType(type);
     private bool IsScopeBoundReferenceType(string type) => IsClassReferenceType(type) ||
         IsDelegateType(NullableUnderlyingType(type)) || TryParseManagedArrayType(type, out _, out _);
     private string? GetClassReferenceTypeForAnalysis(string type) => IsClassReferenceType(type) || IsDelegateType(type) || IsNullableDelegateType(type)
@@ -3061,14 +3065,25 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var nodes = _classTypes.Keys.Concat(_structTypes.Keys).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         var edges = new List<(string From, string To, StructFieldSymbol Field)>();
         foreach (var (ownerName, classType) in _classTypes.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        // Inherited storage exists on every derived instance, so include inherited
-        // reference fields as edges from each derived type as well.
-        foreach (var field in classType.Fields)
         {
-            // Array edges are intentionally omitted by the v1 diagnostic contract.
-            if (!IsClassType(field.TypeName)) continue;
-            foreach (var target in _classTypes.Keys.Where(target => target == field.TypeName || IsBaseClassOf(field.TypeName, target)).Order(StringComparer.Ordinal))
-                edges.Add((ownerName, target, field));
+            // Inherited storage exists on every derived instance, so include inherited
+            // reference fields as edges from each derived type as well.
+            foreach (var field in classType.Fields)
+            {
+                // Array edges are intentionally omitted by the v1 diagnostic contract.
+                if (!IsClassType(field.TypeName)) continue;
+
+                // A readonly field initialized with a fresh System.Object cannot point
+                // back to its owner, so it cannot form a strong-reference cycle.
+                if (field.Declaration.IsReadOnly && field.Declaration.Initializer is AllocationExpression
+                    {
+                        TypeName: "object" or "System.Object"
+                    })
+                    continue;
+
+                foreach (var target in _classTypes.Keys.Where(target => target == field.TypeName || IsBaseClassOf(field.TypeName, target)).Order(StringComparer.Ordinal))
+                    edges.Add((ownerName, target, field));
+            }
         }
 
         var edgesBySource = edges.GroupBy(edge => edge.From, StringComparer.Ordinal)
@@ -12330,6 +12345,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (op is "&&" or "||") { if (left != "bool" || right != "bool") diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Operator '{op}' requires bool operands.", binary.Location); return "bool"; }
         if (op is "==" or "!=")
         {
+            var comparedReferenceType = left == "null" ? right : right == "null" ? left : null;
+            if (comparedReferenceType is not null && IsNonNullableReferenceType(comparedReferenceType))
+            {
+                var outcome = op == "==" ? "false" : "true";
+                diagnostics.Add("LS3104", DiagnosticSeverity.Warning,
+                    $"A value of non-nullable reference type '{comparedReferenceType}' will never be null; this comparison is always {outcome}.", binary.Location);
+            }
+
             var leftDelegate = NullableUnderlyingType(left);
             var rightDelegate = NullableUnderlyingType(right);
             if (IsDelegateType(leftDelegate) || IsDelegateType(rightDelegate))
@@ -12368,7 +12391,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
             if (IsNullableClassType(left) || IsNullableClassType(right) || left == "null" || right == "null")
             {
-                var referenceType = IsNullableClassType(left) ? NullableUnderlyingType(left) : IsNullableClassType(right) ? NullableUnderlyingType(right) :
+                var referenceType = left == "null" ? GetClassReferenceTypeForAnalysis(right) : right == "null" ? GetClassReferenceTypeForAnalysis(left) :
+                    IsNullableClassType(left) ? NullableUnderlyingType(left) : IsNullableClassType(right) ? NullableUnderlyingType(right) :
                     IsClassType(left) ? left : IsClassType(right) ? right : null;
                 if (referenceType is not null &&
                     (left == "null" && IsClassReferenceType(right) || right == "null" && IsClassReferenceType(left) ||
@@ -12378,12 +12402,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (IsStringType(left) || IsStringType(right))
             {
                 if (left == "string" && right == "string") return "bool";
+                if (left == "null" && IsStringType(right) || right == "null" && IsStringType(left)) return "bool";
                 diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "String equality requires two non-nullable string operands; use a nullable string for null comparisons.", binary.Location);
                 return "bool";
             }
             if (IsNullableArrayType(left) || IsNullableArrayType(right) || left == "null" && IsManagedArrayReferenceType(right) || right == "null" && IsManagedArrayReferenceType(left))
             {
                 var nullableArray = IsNullableArrayType(left) ? left : IsNullableArrayType(right) ? right : null;
+                if (left == "null" && IsManagedArrayReferenceType(right) || right == "null" && IsManagedArrayReferenceType(left)) return "bool";
                 if (nullableArray is not null && (left == "null" && IsManagedArrayReferenceType(right) || right == "null" && IsManagedArrayReferenceType(left) ||
                     IsManagedArrayReferenceType(left) && IsManagedArrayReferenceType(right) && NullableUnderlyingType(left) == NullableUnderlyingType(right))) return "bool";
             }

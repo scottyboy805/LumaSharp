@@ -60,9 +60,6 @@ public unsafe class Thread
 		if (hasStarted)
 			throw new InvalidOperationException();
 
-		if (callback == null)
-			throw new InvalidOperationException();
-
 		handle = __threadstart(callback);
 		if (handle == 0)
 			throw new InvalidOperationException("The operating system could not start the thread.");

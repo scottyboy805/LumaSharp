@@ -4,39 +4,32 @@ using System.Threading;
 
 namespace System.Threading.Tasks;
 
-internal class TaskGate
-{
-}
+public delegate void TaskCallback();
 
 public virtual class Task
 {
-	private TaskGate synchronization;
-	private Action? action;
+	private readonly object synchronization = new object();
+	private TaskCallback? callback;
 	private Exception? exception;
-	protected string parentStackTrace;
+	private string parentStackTrace;
 	private bool isCompleted;
 
 	internal this(string parentTrace)
 	{
-		synchronization = new TaskGate();
-		action = null;
+		callback = null;
 		exception = null;
 		parentStackTrace = parentTrace;
 		isCompleted = false;
 	}
 
-	internal this(Action callback, string parentTrace) : this(parentTrace)
+	internal this(TaskCallback callback, string parentTrace) : this(parentTrace)
 	{
-		if (callback == null)
-			throw new ArgumentNullException();
-		action = callback;
+		this.callback = callback;
 	}
 
-	internal void SetAction(Action callback) mut
+	internal void SetCallback(TaskCallback callback) mut
 	{
-		if (callback == null)
-			throw new ArgumentNullException();
-		action = callback;
+		this.callback = callback;
 	}
 
 	public bool IsCompleted
@@ -57,25 +50,25 @@ public virtual class Task
 		}
 	}
 
-	public virtual void hidden_Execute() mut
+	internal virtual void Execute() mut
 	{
 		Exception? failure = null;
 		try
 		{
-			if (action != null)
-				action!();
+			if (callback != null)
+				callback!();
 		}
 		catch (Exception error)
 		{
-			error.hidden_AppendAsyncStackTrace(parentStackTrace);
+			error.AppendAsyncStackTrace(parentStackTrace);
 			failure = error;
 		}
 
-		action = null;
-		hidden_Complete(failure);
+		callback = null;
+		Complete(failure);
 	}
 
-	protected void hidden_Complete(Exception? error) mut
+	private void Complete(Exception? error) mut
 	{
 		lock (synchronization)
 		{
@@ -84,12 +77,12 @@ public virtual class Task
 		}
 	}
 
-	public void hidden_Wait()
+	internal void WaitForCompletion()
 	{
 		if (IsCompleted)
 			return;
 
-		ThreadPool.hidden_BeginBlockingWait();
+		ThreadPool.BeginBlockingWait();
 		try
 		{
 			while (!IsCompleted)
@@ -97,39 +90,33 @@ public virtual class Task
 		}
 		finally
 		{
-			ThreadPool.hidden_EndBlockingWait();
+			ThreadPool.EndBlockingWait();
 		}
 	}
 
 	public void Wait()
 	{
-		hidden_Wait();
+		WaitForCompletion();
 	}
 
-	internal static void hidden_GetResult(Task task)
+	internal static void GetAwaitedResult(Task task, string awaitFrame)
 	{
-		if (task == null)
-			throw new ArgumentNullException();
-
-		task.hidden_Wait();
+		task.WaitForCompletion();
 		Exception? error = task.Exception;
 		if (error != null)
+		{
+			error!.AppendAsyncStackTrace(awaitFrame);
 			__throwpreserve(error!);
+		}
 	}
 
-	internal static T hidden_GetResult<T>(Task<T> task)
+	internal static T GetAwaitedResult<T>(Task<T> task, string awaitFrame)
 	{
-		if (task == null)
-			throw new ArgumentNullException();
-
-		return task.hidden_GetTaskResult();
+		return task.GetTaskResult(awaitFrame);
 	}
 
-	public static Task Run(Action callback)
+	public static Task Run(TaskCallback callback)
 	{
-		if (callback == null)
-			throw new ArgumentNullException();
-
 		Task task = new Task(callback, new StackTrace(1).ToString());
 		ThreadPool.QueueTask(task);
 		return task;
@@ -150,18 +137,26 @@ public class Task<T> : Task
 		result = value;
 	}
 
-	internal T hidden_GetTaskResult()
+	internal T GetTaskResult()
 	{
-		hidden_Wait();
+		return GetTaskResult("");
+	}
+
+	internal T GetTaskResult(string awaitFrame)
+	{
+		WaitForCompletion();
 		Exception? error = Exception;
 		if (error != null)
+		{
+			error!.AppendAsyncStackTrace(awaitFrame);
 			__throwpreserve(error!);
+		}
 		return result;
 	}
 
 	public T Result
 	{
-		get => hidden_GetTaskResult();
+		get => GetTaskResult();
 	}
 
 }

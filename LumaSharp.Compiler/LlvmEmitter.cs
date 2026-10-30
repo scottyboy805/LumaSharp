@@ -1261,7 +1261,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         string? frameNameSymbol = null;
         var frameNameLength = 0;
         if (HasStackTraceSupport() && !d.IsCompilerGenerated && !d.Name.StartsWith('$') && !d.Name.StartsWith("__", StringComparison.Ordinal) &&
-            !(method.Owner.Namespace == "System.Threading.Tasks" && d.Name.StartsWith("hidden_", StringComparison.Ordinal)))
+            !(method.Owner.Namespace == "System.Threading.Tasks" && d.Accessibility != "public"))
         {
             var functionName = FunctionName(method, compilation.Methods);
             var readableName = QualifiedTypeName(method.Owner) + "." + d.Name + "(" + string.Join(", ", d.Parameters.Select(parameter => parameter.TypeName)) + ")";
@@ -6348,7 +6348,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 Emit($"store {LlvmType(targetType)} {value}, ptr {pointer}"); return (value, targetType);
             }
             var left = EmitExpression(expression.Left); var right = EmitExpression(expression.Right); var type = left.Type;
-            if (op is "==" or "!=" && (IsNullableStringType(left.Type) || IsNullableStringType(right.Type)))
+            if (op is "==" or "!=" && (IsNullableStringType(left.Type) || IsNullableStringType(right.Type) ||
+                IsStringType(left.Type) && right.Type == "null" || IsStringType(right.Type) && left.Type == "null"))
                 return EmitNullableStringEquality(op, left, right);
             if (op is "==" or "!=" && (IsDelegateType(left.Type) || IsDelegateType(right.Type)))
                 return EmitDelegateEquality(op, left, right);
