@@ -2,24 +2,18 @@ using System;
 
 namespace System.Threading;
 
+public delegate void ThreadStart();
+
+public delegate void ThreadStart<T>(T argument);
+
 public unsafe class Thread
 {
-	private ThreadStart? start;
 	private int handle;
 	private bool isCurrentThread;
 	private bool hasStarted;
 
 	public this()
 	{
-		start = null;
-		handle = 0;
-		isCurrentThread = false;
-		hasStarted = false;
-	}
-
-	public this(ThreadStart start)
-	{
-		this.start = start;
 		handle = 0;
 		isCurrentThread = false;
 		hasStarted = false;
@@ -63,7 +57,7 @@ public unsafe class Thread
 		}
 	}
 
-	public void Start() mut
+	public void Start(ThreadStart callback) mut
 	{
 		if (isCurrentThread)
 			throw new InvalidOperationException();
@@ -71,11 +65,10 @@ public unsafe class Thread
 		if (hasStarted)
 			throw new InvalidOperationException();
 
-		ThreadStart? callback = start;
 		if (callback == null)
 			throw new InvalidOperationException();
 
-		handle = __threadstart(callback!);
+		handle = __threadstart(callback);
 		if (handle == 0)
 			throw new InvalidOperationException("The operating system could not start the thread.");
 		hasStarted = true;
