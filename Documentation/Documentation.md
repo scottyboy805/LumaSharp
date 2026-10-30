@@ -999,16 +999,17 @@ public class Worker
     {
         Thread thread = new Thread();
         thread.Start<int32>(PrintValue, 42);
-        bool finished = thread.Join(5000);
+        if (!thread.Join(5000))
+            thread.Abort();
         thread.Close();
-        return finished ? 0 : 1;
+        return 0;
     }
 }
 ```
 
-`Join()` waits until the callback finishes. `Join(millisecondsTimeout)` returns `false` if the wait expires; the worker keeps running. `Thread.Sleep(millisecondsTimeout)` pauses the current thread. `Thread.CurrentThread` returns the same thread instance each time it is read on a given thread, and `IsCurrentThread` identifies that instance. Call `Close()` after a worker has finished to release its native handle; `Close()` waits for completion if needed.
+`Join()` waits until the callback finishes. `Join(millisecondsTimeout)` returns `false` if the wait expires; the worker keeps running. If the timeout expires, call `Abort()` to forcefully terminate the worker and wait until it has exited. `Thread.Sleep(millisecondsTimeout)` pauses the current thread. `Thread.CurrentThread` returns the same thread instance each time it is read on a given thread, and `IsCurrentThread` identifies that instance. Call `Close()` after a worker has finished to release its native handle; `Close()` waits for completion if needed.
 
-LumaSharp supports cooperative stopping. A caller can use `Stop(timeout)` to request cancellation and wait up to the timeout. The worker must check `IsCancellationRequested` and return on its own. If the timeout expires, `Stop` returns `false` and the worker remains active. The runtime does not forcibly terminate threads because that could skip cleanup and leave shared runtime state corrupted.
+`Abort()` is a last resort. It can interrupt the worker while it is updating shared data or running cleanup, so use `Join()` first whenever the worker can finish normally.
 
 ## 16. Unsafe code and native pointers
 

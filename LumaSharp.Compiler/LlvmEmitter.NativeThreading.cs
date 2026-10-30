@@ -21,7 +21,6 @@ internal sealed partial class LlvmEmitter
 			EmitWindowsThreadRuntime(sizeType);
 		else
 			EmitPosixThreadRuntime(sizeType);
-		EmitThreadStopFunctions(sizeType);
 		EmitThreadCurrentRuntime(sizeType);
 	}
 
@@ -31,9 +30,13 @@ internal sealed partial class LlvmEmitter
 		var returnType = windows ? "i32" : "ptr";
 		_output.AppendLine($"define internal {callingConvention}{returnType} @luma_thread_entry(ptr %state) {{");
 		_output.AppendLine("entry:");
+		if (!windows)
+			_output.AppendLine("  call i32 @pthread_setcanceltype(i32 1, ptr null)");
 		_output.AppendLine("  %invoke.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 2");
 		_output.AppendLine("  %invoke = load ptr, ptr %invoke.address");
 		_output.AppendLine("  call void %invoke(ptr %state)");
+		_output.AppendLine("  %callback.returned.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
+		_output.AppendLine("  store atomic i32 1, ptr %callback.returned.address release, align 4");
 		_output.AppendLine("  call void @luma_thread_current_release()");
 		_output.AppendLine("  %delegate.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 0");
 		_output.AppendLine("  %delegate = load ptr, ptr %delegate.address");
@@ -141,25 +144,6 @@ internal sealed partial class LlvmEmitter
 			SemanticAnalyzer.TryParseManagedArrayType(type, out _, out _);
 	}
 
-	private void EmitThreadStopFunctions(string sizeType)
-	{
-		_output.AppendLine($"define internal void @luma_thread_request_stop({sizeType} %handle) {{");
-		_output.AppendLine("entry:");
-		_output.AppendLine($"  %state = inttoptr {sizeType} %handle to ptr");
-		_output.AppendLine("  %cancel.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
-		_output.AppendLine("  store atomic i32 1, ptr %cancel.address release, align 4");
-		_output.AppendLine("  ret void");
-		_output.AppendLine("}");
-		_output.AppendLine($"define internal i1 @luma_thread_stop_requested({sizeType} %handle) {{");
-		_output.AppendLine("entry:");
-		_output.AppendLine($"  %state = inttoptr {sizeType} %handle to ptr");
-		_output.AppendLine("  %cancel.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
-		_output.AppendLine("  %cancel = load atomic i32, ptr %cancel.address acquire, align 4");
-		_output.AppendLine("  %requested = icmp ne i32 %cancel, 0");
-		_output.AppendLine("  ret i1 %requested");
-		_output.AppendLine("}");
-	}
-
 	private void EmitThreadCurrentRuntime(string sizeType)
 	{
 		const string typeName = "System.Threading.Thread";
@@ -229,6 +213,7 @@ internal sealed partial class LlvmEmitter
 			closeHandleCc = "";
 		_output.AppendLine($"declare {cc}ptr @CreateThread(ptr, {sizeType}, ptr, ptr, i32, ptr)");
 		_output.AppendLine($"declare {cc}i32 @WaitForSingleObject(ptr, i32)");
+		_output.AppendLine($"declare {cc}i32 @TerminateThread(ptr, i32)");
 		AppendDeclarationIfMissing($"declare {closeHandleCc}i32 @CloseHandle(ptr)");
 		_output.AppendLine($"declare {cc}void @Sleep(i32)");
 		EmitThreadStartFunction(sizeType, true);
@@ -251,6 +236,30 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine("  call void @free(ptr %state)");
 		_output.AppendLine("  ret void");
 		_output.AppendLine("}");
+		_output.AppendLine($"define internal void @luma_thread_abort({sizeType} %handle) {{");
+		_output.AppendLine("entry:");
+		_output.AppendLine($"  %state = inttoptr {sizeType} %handle to ptr");
+		_output.AppendLine("  %native.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 3");
+		_output.AppendLine("  %native = load ptr, ptr %native.address");
+		_output.AppendLine($"  %terminate.status = call {cc}i32 @TerminateThread(ptr %native, i32 1)");
+		_output.AppendLine($"  %wait.status = call {cc}i32 @WaitForSingleObject(ptr %native, i32 -1)");
+		_output.AppendLine("  %callback.returned.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
+		_output.AppendLine("  %callback.returned = load atomic i32, ptr %callback.returned.address acquire, align 4");
+		_output.AppendLine("  %callback.finished = icmp ne i32 %callback.returned, 0");
+		_output.AppendLine("  br i1 %callback.finished, label %release.state, label %release.retained.references");
+		_output.AppendLine("release.retained.references:");
+		_output.AppendLine("  %delegate.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 0");
+		_output.AppendLine("  %delegate = load ptr, ptr %delegate.address");
+		_output.AppendLine("  call void @luma_class_release_dynamic(ptr %delegate)");
+		_output.AppendLine("  %argument.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 1");
+		_output.AppendLine("  %argument = load ptr, ptr %argument.address");
+		_output.AppendLine("  call void @luma_class_release_dynamic(ptr %argument)");
+		_output.AppendLine("  br label %release.state");
+		_output.AppendLine("release.state:");
+		_output.AppendLine($"  %closed = call {closeHandleCc}i32 @CloseHandle(ptr %native)");
+		_output.AppendLine("  call void @free(ptr %state)");
+		_output.AppendLine("  ret void");
+		_output.AppendLine("}");
 		_output.AppendLine("define internal void @luma_thread_sleep(i32 %milliseconds) {");
 		_output.AppendLine("entry:");
 		_output.AppendLine($"  call {cc}void @Sleep(i32 %milliseconds)");
@@ -264,6 +273,8 @@ internal sealed partial class LlvmEmitter
 		AppendDeclarationIfMissing("declare void @free(ptr)");
 		_output.AppendLine("declare i32 @pthread_create(ptr, ptr, ptr, ptr)");
 		_output.AppendLine($"declare i32 @pthread_join({sizeType}, ptr)");
+		_output.AppendLine($"declare i32 @pthread_cancel({sizeType})");
+		_output.AppendLine("declare i32 @pthread_setcanceltype(i32, ptr)");
 		_output.AppendLine("declare i32 @nanosleep(ptr, ptr)");
 		EmitThreadStartFunction(sizeType, false);
 		EmitPosixThreadJoin(sizeType);
@@ -278,6 +289,35 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine("  %id.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 4");
 		_output.AppendLine($"  %id = load {sizeType}, ptr %id.address");
 		_output.AppendLine($"  %joined.status = call i32 @pthread_join({sizeType} %id, ptr null)");
+		_output.AppendLine("  br label %release.state");
+		_output.AppendLine("release.state:");
+		_output.AppendLine("  call void @free(ptr %state)");
+		_output.AppendLine("  ret void");
+		_output.AppendLine("}");
+		_output.AppendLine($"define internal void @luma_thread_abort({sizeType} %handle) {{");
+		_output.AppendLine("entry:");
+		_output.AppendLine($"  %state = inttoptr {sizeType} %handle to ptr");
+		_output.AppendLine("  %joined.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 6");
+		_output.AppendLine("  %joined = load i32, ptr %joined.address");
+		_output.AppendLine("  %already.joined = icmp ne i32 %joined, 0");
+		_output.AppendLine("  br i1 %already.joined, label %release.state, label %cancel.thread");
+		_output.AppendLine("cancel.thread:");
+		_output.AppendLine("  %id.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 4");
+		_output.AppendLine($"  %id = load {sizeType}, ptr %id.address");
+		_output.AppendLine($"  %cancel.status = call i32 @pthread_cancel({sizeType} %id)");
+		_output.AppendLine($"  %join.status = call i32 @pthread_join({sizeType} %id, ptr null)");
+		_output.AppendLine("  store i32 1, ptr %joined.address");
+		_output.AppendLine("  %callback.returned.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
+		_output.AppendLine("  %callback.returned = load atomic i32, ptr %callback.returned.address acquire, align 4");
+		_output.AppendLine("  %callback.finished = icmp ne i32 %callback.returned, 0");
+		_output.AppendLine("  br i1 %callback.finished, label %release.state, label %release.retained.references");
+		_output.AppendLine("release.retained.references:");
+		_output.AppendLine("  %delegate.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 0");
+		_output.AppendLine("  %delegate = load ptr, ptr %delegate.address");
+		_output.AppendLine("  call void @luma_class_release_dynamic(ptr %delegate)");
+		_output.AppendLine("  %argument.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 1");
+		_output.AppendLine("  %argument = load ptr, ptr %argument.address");
+		_output.AppendLine("  call void @luma_class_release_dynamic(ptr %argument)");
 		_output.AppendLine("  br label %release.state");
 		_output.AppendLine("release.state:");
 		_output.AppendLine("  call void @free(ptr %state)");
@@ -333,8 +373,8 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine("  store i32 0, ptr %completed.address");
 		_output.AppendLine("  %joined.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 6");
 		_output.AppendLine("  store i32 0, ptr %joined.address");
-		_output.AppendLine("  %cancel.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
-		_output.AppendLine("  store i32 0, ptr %cancel.address");
+		_output.AppendLine("  %callback.returned.address = getelementptr %luma.thread_state, ptr %state, i32 0, i32 7");
+		_output.AppendLine("  store i32 0, ptr %callback.returned.address");
 		_output.AppendLine("  call void @luma_class_retain_dynamic(ptr %delegate)");
 		_output.AppendLine("  call void @luma_class_retain_dynamic(ptr %argument)");
 		if (windows)

@@ -46,17 +46,6 @@ public unsafe class Thread
 		}
 	}
 
-	public bool IsCancellationRequested
-	{
-		get
-		{
-			if (isCurrentThread || handle == 0)
-				return false;
-
-			return __threadstoprequested(handle);
-		}
-	}
-
 	public void Start(ThreadStart callback) mut
 	{
 		if (isCurrentThread)
@@ -102,28 +91,37 @@ public unsafe class Thread
 		if (isCurrentThread)
 			throw new InvalidOperationException();
 
+		if (CurrentThread == this)
+			throw new InvalidOperationException();
+
 		if (handle == 0)
 			return true;
 
 		return __threadjoin(handle, millisecondsTimeout);
 	}
 
-	public bool Stop(int32 millisecondsTimeout)
+	public void Abort() mut
 	{
 		if (isCurrentThread)
 			throw new InvalidOperationException();
 
-		if (handle == 0)
-			return true;
+		if (CurrentThread == this)
+			throw new InvalidOperationException();
 
-		__threadrequeststop(handle);
-		return Join(millisecondsTimeout);
+		if (handle == 0)
+			return;
+
+		__threadabort(handle);
+		handle = 0;
 	}
 
 	public void Close() mut
 	{
 		if (isCurrentThread || handle == 0)
 			return;
+
+		if (CurrentThread == this)
+			throw new InvalidOperationException();
 
 		__threadclose(handle);
 		handle = 0;

@@ -342,20 +342,27 @@ public sealed class CompilerTests
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
             .Select(path => (path, File.ReadAllText(path)));
-        const string source = "using System.Threading; class Program { public static void Work() { } public static void WorkValue(int32 value) { } public static int32 Main() { Thread current = Thread.CurrentThread; Thread currentAgain = Thread.CurrentThread; if (!current.IsCurrentThread) return 1; if (current != currentAgain) return 1; Thread worker = new Thread(); ThreadStart callback = Work; worker.Start(callback); if (!worker.Join(5000)) return 1; worker.Close(); Thread argumentWorker = new Thread(); argumentWorker.Start<int32>(WorkValue, 42); return argumentWorker.Join(5000) ? 0 : 1; } }";
+        const string source = "using System.Threading; class Program { public static void Work() { } public static void WorkValue(int32 value) { } public static void Spin() { while (true) { } } public static int32 Main() { Thread current = Thread.CurrentThread; Thread currentAgain = Thread.CurrentThread; if (!current.IsCurrentThread) return 1; if (current != currentAgain) return 1; Thread worker = new Thread(); ThreadStart callback = Work; worker.Start(callback); if (!worker.Join(5000)) return 1; worker.Close(); Thread argumentWorker = new Thread(); argumentWorker.Start<int32>(WorkValue, 42); if (!argumentWorker.Join(5000)) return 1; argumentWorker.Close(); Thread abortWorker = new Thread(); ThreadStart spinCallback = Spin; abortWorker.Start(spinCallback); if (!abortWorker.Join(1)) abortWorker.Abort(); abortWorker.Close(); return 0; } }";
         var result = LumaCompiler.Compile(runtimeSources.Append(("threading-target-test.ls", source)),
             new CompilationOptions(UnsafeEnabled: true, TargetTriple: targetTriple));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("define internal ptr @luma_thread_entry", result.LlvmIr);
         Assert.Contains("define internal i1 @luma_thread_join", result.LlvmIr);
+        Assert.Contains("define internal void @luma_thread_abort", result.LlvmIr);
         Assert.Contains("define internal void @luma_thread_sleep", result.LlvmIr);
         Assert.Contains("luma_thread_invoke_System_Threading_ThreadStart_int32", result.LlvmIr);
         Assert.Contains("luma_thread_invoke_System_Threading_ThreadStart", result.LlvmIr);
         if (targetTriple.Contains("windows", StringComparison.Ordinal))
+        {
             Assert.Contains("declare ptr @CreateThread", result.LlvmIr);
+            Assert.Contains("@TerminateThread", result.LlvmIr);
+        }
         else
+        {
             Assert.Contains("declare i32 @pthread_create", result.LlvmIr);
+            Assert.Contains("@pthread_cancel", result.LlvmIr);
+        }
 
         var objectPath = Path.Combine(Path.GetTempPath(), "lumasharp-threading-" + Guid.NewGuid().ToString("N") + ".obj");
         try

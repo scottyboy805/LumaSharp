@@ -73,8 +73,7 @@ internal static class CompilerIntrinsics
         Add("__threadstartarg", "int", "threading", "System.Delegate", "System.Object?");
         Add("__threadjoin", "bool", "threading", "int", "int32");
         Add("__threadclose", "void", "threading", "int");
-        Add("__threadrequeststop", "void", "threading", "int");
-        Add("__threadstoprequested", "bool", "threading", "int");
+        Add("__threadabort", "void", "threading", "int");
         Add("__threadsleep", "void", "threading", "int32");
         Add("__threadcurrent", "System.Threading.Thread", "threading");
         Add("__stacktrace", "string", "stacktrace", "int32");
@@ -132,8 +131,7 @@ internal static class CompilerIntrinsics
         "__threadstartarg" => "luma_thread_start",
         "__threadjoin" => "luma_thread_join",
         "__threadclose" => "luma_thread_close",
-        "__threadrequeststop" => "luma_thread_request_stop",
-        "__threadstoprequested" => "luma_thread_stop_requested",
+        "__threadabort" => "luma_thread_abort",
         "__threadsleep" => "luma_thread_sleep",
         "__threadcurrent" => "luma_thread_current",
         "__stacktrace" => "luma_stacktrace_capture",
