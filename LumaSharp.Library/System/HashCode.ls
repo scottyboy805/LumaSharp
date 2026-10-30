@@ -112,7 +112,7 @@ public static class HashCode
 		}
 	}
 
-	public static int32 Combine(int32... hashCodes)
+	public static int32 Combine(scope int32... hashCodes)
 	{
 		int32 hash = 0;
 		for (let hashCode in hashCodes)
