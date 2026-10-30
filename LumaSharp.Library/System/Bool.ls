@@ -1,6 +1,6 @@
 namespace System;
 
-public struct Bool : ValueType, IHashable, IEquality<bool>
+public struct Bool : IHashable, IEquality<bool>
 {
 	public int32 Hash
 	{

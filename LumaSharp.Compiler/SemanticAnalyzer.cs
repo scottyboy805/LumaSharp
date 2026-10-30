@@ -125,12 +125,9 @@ internal static class VirtualDispatchLayout
         HasBaseList: true, BaseTypes: ["System.Object"], Accessibility: "public");
     private static readonly TypeDeclaration BuiltinArrayType = new("System", "class", "Array", [], BuiltinLocation,
         HasBaseList: true, BaseTypes: ["System.Object"], Accessibility: "public");
-    private static readonly TypeDeclaration BuiltinValueType = new("System", "struct", "ValueType", [], BuiltinLocation,
-        Accessibility: "public");
     public static TypeDeclaration ObjectType => BuiltinObjectType;
     public static TypeDeclaration DelegateType => BuiltinDelegateType;
     public static TypeDeclaration ArrayType => BuiltinArrayType;
-    public static TypeDeclaration ValueType => BuiltinValueType;
     public static MethodSymbol ObjectToString { get; } = new(BuiltinObjectType,
         new MethodDeclaration("Object", "ToString", "string", [], null, false, true, false, false, BuiltinLocation,
             IsVirtual: true, Accessibility: "public"), IsBuiltinObjectToString: true);
@@ -540,9 +537,6 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var sourceArray = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Array" && IsRuntimeLibraryDeclaration(type));
         foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Array" && !IsRuntimeLibraryDeclaration(type)))
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Array' is a predefined type and cannot be declared in source.", declaration.Location);
-        var sourceValueType = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.ValueType" && IsRuntimeLibraryDeclaration(type));
-        foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.ValueType" && !IsRuntimeLibraryDeclaration(type)))
-            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.ValueType' is a predefined type and cannot be declared in source.", declaration.Location);
         // Delegate wrappers and closure environments allocate managed objects even though
         // those allocations are implicit in source syntax; preserve the specified catchable
         // out-of-memory path whenever a source delegate type can be used.
@@ -555,7 +549,6 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             .Append(sourceObject is null ? VirtualDispatchLayout.ObjectType : null)
             .Append(sourceDelegate is null ? VirtualDispatchLayout.DelegateType : null)
             .Append(sourceArray is null ? VirtualDispatchLayout.ArrayType : null)
-            .Append(sourceValueType is null ? VirtualDispatchLayout.ValueType : null)
             .Where(type => type is not null).Cast<TypeDeclaration>()
             .Concat(_usesExceptionHandling ? CreateBuiltinExceptionTypes(sourceTypes) : [])
             .ToArray();
@@ -2317,23 +2310,15 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
         foreach (var type in _types.Where(type => type.Kind is "struct" or "interface"))
         {
-            var hasValueTypeBase = false;
             foreach (var baseType in type.BaseTypes ?? [])
             {
                 ValidateTypeAccessibility(baseType, type, type.Location);
                 if (type.Kind != "struct") continue;
                 var candidates = FindTypes(NormalizeEnumType(baseType, type), type);
-                var isValueTypeBase = candidates.Any(candidate => candidate.Kind == "struct" && GetQualifiedTypeName(candidate) == "System.ValueType");
                 var isInterfaceBase = candidates.Any(candidate => candidate.Kind == "interface");
-                if (isValueTypeBase)
-                {
-                    if (hasValueTypeBase)
-                        diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A struct may declare System.ValueType only once.", type.Location);
-                    hasValueTypeBase = true;
-                }
-                else if (!isInterfaceBase)
+                if (!isInterfaceBase)
                     diagnostics.Add("LS0001", DiagnosticSeverity.Error,
-                        "A struct may implement interfaces and may declare System.ValueType as its special base, but cannot derive from another class.", type.Location);
+                        "A struct may implement interfaces only; it cannot inherit from a class or another struct.", type.Location);
             }
         }
 

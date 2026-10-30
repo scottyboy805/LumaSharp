@@ -574,7 +574,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void PrimitiveRuntimeTypesAreValueTypeStructsAndBoxImplicitlyToObject()
+    public void PrimitiveRuntimeTypesAreStructsAndBoxImplicitlyToObject()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
@@ -586,7 +586,6 @@ public sealed class CompilerTests
             {
                 public static int32 Main()
                 {
-                    ValueType marker = default;
                     object boxed = 42;
                     return Int32.Parse("42") == 42 && Char.Parse("A") == 'A' &&
                         boxed is int32 ? 0 : 1;
@@ -595,7 +594,7 @@ public sealed class CompilerTests
             """)));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("%struct.System_ValueType = type", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.DoesNotContain("%struct.System_ValueType", result.LlvmIr!, StringComparison.Ordinal);
         var integerBoxDescriptor = Assert.Single(result.LlvmIr!.Split('\n').Where(line => line.StartsWith("@luma_boxdesc_int32 =", StringComparison.Ordinal)));
         Assert.Contains("ptr @luma_classdesc_System_Object", integerBoxDescriptor, StringComparison.Ordinal);
     }
@@ -638,12 +637,13 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void StructsMayUseOnlyValueTypeAsTheirSpecialClassBase()
+    public void StructsCannotUseClassesAsBaseTypes()
     {
         var result = Compile("virtual class Base {} struct Invalid : Base {} class Program { public static int32 Main() { return 0; } }");
 
         Assert.False(result.Succeeded);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS0001" && diagnostic.Message.Contains("System.ValueType", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS0001" &&
+            diagnostic.Message.Contains("cannot inherit from a class or another struct", StringComparison.Ordinal));
     }
 
     [Fact]

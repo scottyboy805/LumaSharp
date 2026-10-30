@@ -160,7 +160,6 @@ The language itself needs a small, fixed set of types to exist in the standard l
 | Type | Purpose and required members |
 |---|---|
 | `object` (`System.Object`) | Root of the class hierarchy. Only member: `virtual string ToString()` |
-| `System.ValueType` | Special struct base marker for primitive, enum, and struct values; boxing produces an object reference implicitly (§3.7, §9.1) |
 | `System.Enum` | Value-type helper for enum metadata: `static T[] GetValues<T>(T value) where T : enum` (§11.5) |
 | `string` (`System.String`) | Immutable string: `int32 Length`, `char this[int32]`, `==`, `+` (§16) |
 | `Exception` | Base class of everything thrown: `string Message { get; }`, `Exception? InnerException { get; }`, constructors `this()`, `this(string message)`, `this(string message, Exception? inner)` |
@@ -2210,7 +2209,7 @@ struct Vector
 }
 ```
 
-- A struct MAY implement interfaces and MAY declare the special struct base type `System.ValueType`. This marker does not add fields or inheritance to the unboxed struct. When a value is boxed, the compiler makes its box an `object` implicitly (§3.7). A struct MAY NOT derive from a class, be `virtual`, or have finalizers.
+- A struct MAY implement interfaces but has no base type. Its value-type identity follows from the `struct` declaration; it does not require a `System.ValueType` runtime type. When a value is boxed, the compiler makes its box an `object` implicitly (§3.7). A struct MAY NOT derive from a class or another struct, be `virtual`, or have finalizers.
 - A struct MAY declare constructors, methods, properties, indexers, operators, static members, `const` and `readonly` fields, and nested types.
 - A struct MUST NOT contain itself, directly or through other structs (error LS0900); indirection through a nullable reference field is allowed.
 - A struct MUST NOT declare a parameterless instance constructor `[P-6]`: `S()` always yields the default value (§9.2).

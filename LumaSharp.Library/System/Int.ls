@@ -1,6 +1,6 @@
 namespace System;
 
-public struct Int : ValueType, IHashable, IEquality<int>
+public struct Int : IHashable, IEquality<int>
 {
 	public int32 Hash
 	{

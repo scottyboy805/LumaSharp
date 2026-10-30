@@ -1,6 +1,6 @@
 namespace System;
 
-public struct TimeSpan : ValueType
+public struct TimeSpan
 {
 	public const int64 TicksPerMillisecond = 10000;
 	public const int64 TicksPerSecond = 10000000;

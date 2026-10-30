@@ -1,6 +1,6 @@
 namespace System;
 
-public struct Float : ValueType, IHashable, IEquality<float>
+public struct Float : IHashable, IEquality<float>
 {
 	public int32 Hash
 	{

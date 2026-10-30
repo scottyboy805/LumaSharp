@@ -1,6 +1,6 @@
 namespace System;
 
-public struct UInt8 : ValueType, IHashable, IEquality<uint8>
+public struct UInt8 : IHashable, IEquality<uint8>
 {
 	public int32 Hash
 	{

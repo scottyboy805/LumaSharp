@@ -1,6 +1,6 @@
 namespace System;
 
-public struct Int64 : ValueType, IHashable, IEquality<int64>
+public struct Int64 : IHashable, IEquality<int64>
 {
 	public int32 Hash
 	{
