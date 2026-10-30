@@ -950,7 +950,7 @@ public class Example
 
 `finally` runs on normal exit, `return`, loop transfers, and exception unwinding. `throw;` inside a catch rethrows the current exception. Runtime checks can raise exceptions for null assertions, failed casts, invalid indices, integer overflow, division by zero, allocation failure, and static initialization errors.
 
-Exceptions expose a nullable `StackTrace` string. The runtime captures it when an exception is first thrown and keeps it when the exception is rethrown. To capture the current call stack directly, use `System.Diagnostics.StackTrace`:
+Exceptions expose a nullable `StackTrace` string. The runtime captures it at each explicit `throw value` site; a bare `throw;` preserves the trace from the original throw. To capture the current call stack directly, use `System.Diagnostics.StackTrace`. Its optional `skipFrames` argument skips caller frames, which is useful when a helper captures a trace on behalf of its caller:
 
 ```lumasharp
 using System;
@@ -963,6 +963,9 @@ public class Example
         StackTrace trace = new StackTrace();
         Console.WriteLine(trace.FrameCount.ToString());
         Console.WriteLine(trace.ToString());
+
+        StackTrace callerTrace = new StackTrace(1);
+        Console.WriteLine(callerTrace.ToString());
     }
 
     public static void Report(Exception error)

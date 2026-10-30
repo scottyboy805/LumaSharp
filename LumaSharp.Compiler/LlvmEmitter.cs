@@ -978,7 +978,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     {
         _output.AppendLine($"define internal void @{functionName}() {{");
         _output.AppendLine("entry:");
-        if (HasStackTraceSupport() && functionName == "luma_raise_overflow")
+        if (HasStackTraceSupport())
             _output.AppendLine($"  call void @luma_exception_capture_stacktrace(ptr @{instanceName}, i1 true)");
         _output.AppendLine("  %previous.exception = load ptr, ptr @luma_pending_exception");
         _output.AppendLine("  %has.previous.exception = icmp ne ptr %previous.exception, null");
@@ -3845,6 +3845,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         {
             string exception;
             string? exceptionType;
+            var isRethrow = statement.Value is null;
             if (statement.Value is null)
             {
                 if (!_currentCatchExceptions.TryPeek(out var currentCatch))
@@ -3865,14 +3866,14 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 EnsureOwnedClass(value, exceptionType);
                 _ownedClassValues.Remove((exception, GetClassReferenceType(value.Type) ?? exceptionType));
             }
-            EmitRaisePreparedException(exception);
+            EmitRaisePreparedException(exception, overwriteStackTrace: !isRethrow);
         }
 
-        private void EmitRaisePreparedException(string exception)
+        private void EmitRaisePreparedException(string exception, bool overwriteStackTrace = true)
         {
             if (classTypes.ContainsKey("System.Diagnostics.StackTrace") && classTypes.TryGetValue("System.Exception", out var exceptionType) &&
                 exceptionType.Fields.Any(field => field.Declaration.Name == "stackTrace"))
-                Emit($"call void @luma_exception_capture_stacktrace(ptr {exception}, i1 false)");
+                Emit($"call void @luma_exception_capture_stacktrace(ptr {exception}, i1 {(overwriteStackTrace ? "true" : "false")})");
             var previousException = NewTemp();
             Emit($"{previousException} = load ptr, ptr @luma_pending_exception");
             var hasPreviousException = NewTemp();

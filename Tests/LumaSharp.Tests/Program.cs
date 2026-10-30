@@ -5461,6 +5461,22 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void StackTraceCanSkipCallerFramesAndExplicitRethrowRefreshesTrace()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = "using System.Diagnostics; class Program { public static int32 Leaf() { StackTrace trace = new StackTrace(1); if (trace.FrameCount != 2 || trace.ToString() != \"at Program.Middle()\\nat Program.Main()\\n\") return 1; StackTrace empty = new StackTrace(int32.MaxValue); if (empty.FrameCount != 0 || empty.ToString() != \"\") return 2; try { StackTrace invalid = new StackTrace(-1); return 3; } catch (System.ArgumentOutOfRangeException) { } return 0; } public static int32 Middle() { return Leaf(); } public static void RaiseAgain(System.Exception error) { throw error; } public static void ThrowInside(System.Exception error) { throw error; } public static void RethrowFromCaller(System.Exception error) { try { ThrowInside(error); } catch (...) { throw; } } public static int32 Main() { if (Middle() != 0) return 1; System.Exception error = new System.Exception(); try { throw error; } catch (...) { } string? firstTrace = error.StackTrace; try { RaiseAgain(error); } catch (...) { } string? secondTrace = error.StackTrace; try { RethrowFromCaller(error); } catch (...) { } string? rethrowTrace = error.StackTrace; return firstTrace == \"at Program.Main()\\n\" && secondTrace == \"at Program.RaiseAgain(System.Exception)\\nat Program.Main()\\n\" && rethrowTrace == \"at Program.ThrowInside(System.Exception)\\nat Program.RethrowFromCaller(System.Exception)\\nat Program.Main()\\n\" ? 0 : 2; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("stacktrace-skip-test.ls", source)));
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void ExceptionsRethrowAndRunFinallyWhileUnwinding()
     {
         const string source = "class Failure : Exception { } class Program { public static int32 Value; public static void Raise() { throw new Failure(); } public static int32 Main() { try { try { Raise(); } finally { Program.Value = 42; } } catch (...) { try { throw; } catch (Exception) { } } return Program.Value == 42 ? 0 : 1; } }";

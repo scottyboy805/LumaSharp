@@ -4631,7 +4631,7 @@ The mechanism (zero-cost tables with an unwinder, setjmp/longjmp, explicit retur
 
 ## 31.2 Throw
 
-`throw e` evaluates `e` (non-null, §18.2), retains it for the duration of unwinding, and raises it. `throw;` in a `catch` block re-raises the *same object* currently being handled. The raising point's stack trace, if the implementation records one, is captured when first thrown.
+`throw e` evaluates `e` (non-null, §18.2), retains it for the duration of unwinding, and raises it. `throw;` in a `catch` block re-raises the *same object* currently being handled. If the implementation records stack traces, an explicit `throw e` captures a trace at that throw site, replacing any trace already stored on the object. A bare `throw;` preserves the trace already stored on the current exception.
 
 ## 31.3 Two-Phase Behaviour `[P-30]`
 
@@ -4668,9 +4668,9 @@ The exception object is a counted object. The runtime holds one reference from t
 
 ## 31.9 Stack Traces
 
-Recording and printing stack traces is **optional and implementation-defined**; no language construct depends on it. When an implementation provides traces, `Exception.StackTrace` contains the trace captured when the exception was first raised; `throw;` preserves that original trace. An implementation MAY expose a `System.Diagnostics.StackTrace` API for capturing the current call stack.
+Recording and printing stack traces is **optional and implementation-defined**; no language construct depends on it. When an implementation provides traces, `Exception.StackTrace` contains the most recent explicit throw site's trace; `throw;` preserves the current exception's existing trace. An implementation MAY expose a `System.Diagnostics.StackTrace` API for capturing the current call stack.
 
-The current LumaSharp runtime records compiled method names, ordered from the active method outward, without source file or line information. `new System.Diagnostics.StackTrace()` captures the current call stack; `FrameCount` reports its number of frames and `ToString()` returns one `at <type>.<method>(<parameter types>)` entry per line. `Exception.StackTrace` is nullable until the exception is thrown. Unhandled-exception reports include the trace when one was recorded.
+The current LumaSharp runtime records compiled method names, ordered from the active method outward, without source file or line information. `new System.Diagnostics.StackTrace()` captures the current call stack; `new System.Diagnostics.StackTrace(skipFrames)` additionally skips the requested number of caller frames. `FrameCount` reports the remaining number of frames and `ToString()` returns one `at <type>.<method>(<parameter types>)` entry per line. Negative skip counts throw `ArgumentOutOfRangeException`. `Exception.StackTrace` is nullable until the exception is thrown. Unhandled-exception reports include the trace when one was recorded.
 
 ---
 
