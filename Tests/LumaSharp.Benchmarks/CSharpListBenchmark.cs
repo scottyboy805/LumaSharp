@@ -27,7 +27,6 @@ internal static class CSharpListBenchmark
             if (list.Remove(iteration + 2))
                 checksum = (checksum + 1) % 127;
 
-            checksum = (checksum + list.ToArray().Length) % 127;
         }
 
         timer.Stop();

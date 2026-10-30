@@ -8,7 +8,7 @@ Run from the repository root:
 dotnet test Tests/LumaSharp.Benchmarks/LumaSharp.Benchmarks.csproj -c Release --logger "console;verbosity=detailed"
 ```
 
-The editable LumaSharp workload lives in `Fixtures/ListBenchmark.ls`; its C# counterpart is in `CSharpListBenchmark.cs`. The test generates a small LumaSharp `Main` entry point and compiles it with the fixture and runtime sources. Each implementation starts and stops its own timer immediately around the list workload: C# uses `System.Diagnostics.Stopwatch`, and LumaSharp uses `System.Diagnostics.StopWatch`. Both print or return a checksum and elapsed duration, which the test compares before reporting medians and sample ranges.
+The editable LumaSharp workload lives in `Fixtures/ListBenchmark.ls`; its C# counterpart is in `CSharpListBenchmark.cs`. The test generates a small LumaSharp `Main` entry point and compiles it with the fixture and runtime sources. Each implementation starts and stops its own timer immediately around the list workload: C# uses `System.Diagnostics.Stopwatch`, and LumaSharp uses `System.Diagnostics.StopWatch`. Both print or return a checksum and elapsed duration, which the test compares before reporting medians and sample ranges. The workload covers core list operations and excludes `ToArray()` so per-iteration array allocation does not affect this comparison.
 
 The reported durations exclude compiler/build time and process startup. The benchmark runs in Release with multiple warm-up and measurement executions. LumaSharp durations are converted from `TimeSpan.Ticks` to milliseconds. Process launch still affects system load between samples, but it is outside the measured intervals.
 
