@@ -1,12 +1,15 @@
 using System.Collections;
+using System.Diagnostics;
 
 public class ListBenchmark
 {
+	public static int64 ElapsedTicks;
+
 	public static int32 Run(int32 iterations)
 	{
-		List<int32> defaultList = new List<int32>();
 		List<int32> list = new List<int32>(4);
 		int32 checksum = 0;
+		StopWatch timer = StopWatch.StartNew();
 
 		for (int32 iteration = 0; iteration < iterations; iteration++)
 		{
@@ -31,6 +34,8 @@ public class ListBenchmark
 			checksum = (checksum + list.ToArray().Length) % 127;
 		}
 
+		timer.Stop();
+		ElapsedTicks = timer.Elapsed.Ticks;
 		list.Clear();
 		return checksum;
 	}

@@ -2,11 +2,11 @@ namespace LumaSharp.Benchmarks;
 
 internal static class CSharpListBenchmark
 {
-    public static int Run(int iterations)
+    public static ListBenchmarkResult Run(int iterations)
     {
-        var defaultList = new List<int>();
         var list = new List<int>(4);
         var checksum = 0;
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         for (var iteration = 0; iteration < iterations; iteration++)
         {
             list.Clear();
@@ -30,9 +30,11 @@ internal static class CSharpListBenchmark
             checksum = (checksum + list.ToArray().Length) % 127;
         }
 
+        timer.Stop();
         list.Clear();
-        GC.KeepAlive(defaultList);
         GC.KeepAlive(list);
-        return checksum;
+        return new(checksum, timer.Elapsed.TotalMilliseconds);
     }
 }
+
+internal readonly record struct ListBenchmarkResult(int Checksum, double ElapsedMilliseconds);

@@ -7,8 +7,8 @@ namespace LumaSharp.Benchmarks;
 
 public sealed class ListBenchmarkTests(ITestOutputHelper output)
 {
-    private const int Iterations = 100_000;
-    private const int Samples = 5;
+    private const int Iterations = 250_000;
+    private const int Samples = 7;
 
     [Fact]
     public async Task CompareRuntimeListWithCSharpList()
@@ -25,7 +25,7 @@ public sealed class ListBenchmarkTests(ITestOutputHelper output)
         try
         {
             await File.WriteAllTextAsync(generatedMain,
-                $"public class Program {{ public static int32 Main() {{ return ListBenchmark.Run({Iterations}); }} }}\n");
+                $"using System; public class Program {{ public static int32 Main() {{ int32 checksum = ListBenchmark.Run({Iterations}); Console.WriteLine(checksum.ToString()); Console.WriteLine(ListBenchmark.ElapsedTicks.ToString()); return 0; }} }}\n");
             var build = await LumaBuild.BuildAsync(new CompilerBuildRequest(
                 [fixturePath, generatedMain, .. runtimeSources],
                 new CompilationOptions(UnsafeEnabled: true, Optimize: true),
@@ -35,32 +35,35 @@ public sealed class ListBenchmarkTests(ITestOutputHelper output)
 
             Assert.True(build.Succeeded, string.Join(Environment.NewLine, build.Diagnostics));
             var executable = Assert.Single(build.OutputPaths);
-            var expectedChecksum = CSharpListBenchmark.Run(Iterations);
+            var expectedChecksum = CSharpListBenchmark.Run(Iterations).Checksum;
             var warmup = await RunNativeAsync(executable);
-            Assert.Equal(expectedChecksum, warmup.ExitCode);
+            Assert.Equal(expectedChecksum, warmup.Checksum);
             _ = CSharpListBenchmark.Run(Iterations);
 
             var csharpTimes = new List<double>(Samples);
             var lumaTimes = new List<double>(Samples);
             for (var sample = 0; sample < Samples; sample++)
             {
-                var csharpTimer = Stopwatch.StartNew();
-                Assert.Equal(expectedChecksum, CSharpListBenchmark.Run(Iterations));
-                csharpTimer.Stop();
-                csharpTimes.Add(csharpTimer.Elapsed.TotalMilliseconds);
+                var csharp = CSharpListBenchmark.Run(Iterations);
+                Assert.Equal(expectedChecksum, csharp.Checksum);
+                csharpTimes.Add(csharp.ElapsedMilliseconds);
 
                 var native = await RunNativeAsync(executable);
-                Assert.Equal(expectedChecksum, native.ExitCode);
+                Assert.Equal(0, native.ExitCode);
                 Assert.True(string.IsNullOrWhiteSpace(native.Error), native.Error);
-                lumaTimes.Add(native.ElapsedMilliseconds);
+                Assert.Equal(expectedChecksum, native.Checksum);
+                var lumaMilliseconds = native.ElapsedTicks / 10_000.0;
+                lumaTimes.Add(lumaMilliseconds);
+                output.WriteLine($"Sample {sample + 1}: C# {csharp.ElapsedMilliseconds:F3} ms; LumaSharp {lumaMilliseconds:F3} ms");
             }
 
             var csharpMedian = Median(csharpTimes);
             var lumaMedian = Median(lumaTimes);
             output.WriteLine($"List<T>: {Iterations:N0} iterations; {Samples} samples; checksum {expectedChecksum}");
-            output.WriteLine($"C# List<int> median: {csharpMedian:F3} ms");
-            output.WriteLine($"LumaSharp List<int32> median: {lumaMedian:F3} ms (includes native process startup)");
-            output.WriteLine($"C# / LumaSharp: {csharpMedian / lumaMedian:F2}x");
+            output.WriteLine($"C# List<int> internal median: {csharpMedian:F3} ms ({csharpTimes.Min():F3}–{csharpTimes.Max():F3} ms)");
+            output.WriteLine($"LumaSharp List<int32> internal median: {lumaMedian:F3} ms ({lumaTimes.Min():F3}–{lumaTimes.Max():F3} ms)");
+            output.WriteLine($"C# / LumaSharp: {csharpMedian / lumaMedian:F2}x (values above 1 mean LumaSharp is faster)");
+            output.WriteLine("LumaSharp's reported duration comes from StopWatch inside the generated executable; build time and process startup are excluded.");
         }
         finally
         {
@@ -78,7 +81,7 @@ public sealed class ListBenchmarkTests(ITestOutputHelper output)
         throw new DirectoryNotFoundException("Run the benchmark from inside the LumaSharp repository.");
     }
 
-    private static async Task<(int ExitCode, double ElapsedMilliseconds, string Error)> RunNativeAsync(string executable)
+    private static async Task<(int ExitCode, int Checksum, long ElapsedTicks, string Error)> RunNativeAsync(string executable)
     {
         using var process = new Process
         {
@@ -90,13 +93,14 @@ public sealed class ListBenchmarkTests(ITestOutputHelper output)
                 CreateNoWindow = true
             }
         };
-        var timer = Stopwatch.StartNew();
         process.Start();
         var standardError = process.StandardError.ReadToEndAsync();
-        _ = process.StandardOutput.ReadToEndAsync();
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
         await process.WaitForExitAsync();
-        timer.Stop();
-        return (process.ExitCode, timer.Elapsed.TotalMilliseconds, await standardError);
+        var values = (await standardOutput).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        if (values.Length != 2 || !int.TryParse(values[0], out var checksum) || !long.TryParse(values[1], out var elapsedTicks))
+            return (process.ExitCode, 0, 0, $"Unexpected benchmark output: '{string.Join(" | ", values)}'. {await standardError}");
+        return (process.ExitCode, checksum, elapsedTicks, await standardError);
     }
 
     private static double Median(List<double> values)
