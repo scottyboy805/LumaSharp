@@ -972,6 +972,27 @@ The compiler package includes the LumaSharp runtime sources and locates them bes
 
 `System.Environment` exposes the running executable's path, directory, and file name, the current processor count, and whether the platform is little-endian. Its `Platform` and `Architecture` properties report the target used to build the executable. The corresponding `System.Platform` values are `Windows`, `Linux`, `MacOS`, and `Unknown`; `System.Architecture` provides `X86`, `X64`, `Arm`, `Arm64`, and `Unknown`.
 
+`System.Diagnostics.StopWatch` measures elapsed time with a monotonic high-resolution clock. Use `Start`, `Stop`, `Reset`, or `Restart`, or create and start one with `StartNew()`. Its `Elapsed` property returns `System.TimeSpan`, which exposes `Ticks`, `TotalMilliseconds`, and `TotalSeconds`; one tick is 100 nanoseconds. Timing uses `QueryPerformanceCounter` on Windows and `clock_gettime(CLOCK_MONOTONIC)` on Linux and macOS.
+
+```lumasharp
+using System;
+using System.Diagnostics;
+
+public class Program
+{
+    public static int32 Main()
+    {
+        StopWatch watch = StopWatch.StartNew();
+        int32 value = 0;
+        while (value < 100000)
+            value++;
+        watch.Stop();
+        Console.WriteLine(watch.Elapsed.TotalMilliseconds.ToString());
+        return 0;
+    }
+}
+```
+
 The synchronous `System.IO` layer includes `Stream`, `MemoryStream`, `FileStream`, `File`, `Directory`, `Path`, `TextReader`, and `TextWriter`. `Stream.Read` and `Stream.Write` operate on byte arrays; `MemoryStream` supports seeking and exposes an unsafe pointer to its buffer. `FileStream` uses native OS operations, and handles can be released with `Close` or its finalizer.
 
 The IO surface is intentionally small: asynchronous methods, timeouts, `Dispose`, recursive directory deletion, file enumeration, and full canonical path normalization are not implemented.

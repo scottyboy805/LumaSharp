@@ -181,7 +181,10 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine($"  %failed = icmp slt {sizeType} %length.native, 0");
 		_output.AppendLine("  br i1 %failed, label %error, label %convert");
 		_output.AppendLine("convert:");
-		_output.AppendLine($"  %length = trunc {sizeType} %length.native to i32");
+		if (sizeType == "i32")
+			_output.AppendLine("  %length = add i32 %length.native, 0");
+		else
+			_output.AppendLine("  %length = trunc i64 %length.native to i32");
 		_output.AppendLine("  %invalid = icmp uge i32 %length, 32767");
 		_output.AppendLine("  br i1 %invalid, label %error, label %terminate");
 		_output.AppendLine("terminate:");
@@ -206,7 +209,10 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine("  br i1 %failed, label %error, label %measure");
 		_output.AppendLine("measure:");
 		_output.AppendLine($"  %length.native = call {sizeType} @strlen(ptr %buffer.ptr)");
-		_output.AppendLine($"  %length = trunc {sizeType} %length.native to i32");
+		if (sizeType == "i32")
+			_output.AppendLine("  %length = add i32 %length.native, 0");
+		else
+			_output.AppendLine("  %length = trunc i64 %length.native to i32");
 		_output.AppendLine("  br label %scan");
 		EmitExecutablePathScan(isDirectory, isWide: false, "measure");
 		_output.AppendLine("}");

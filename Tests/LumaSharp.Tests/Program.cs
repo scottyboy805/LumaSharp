@@ -207,6 +207,85 @@ public sealed class CompilerTests
         }
     }
 
+    [Theory]
+    [InlineData("x86_64-pc-windows-msvc")]
+    [InlineData("i686-pc-windows-msvc")]
+    [InlineData("x86_64-pc-linux-gnu")]
+    [InlineData("i386-pc-linux-gnu")]
+    [InlineData("aarch64-apple-darwin")]
+    public void StopWatchRuntimeIntrinsicsAreEmittedAndVerifiedForEachTarget(string targetTriple)
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = "using System.Diagnostics; class Program { public static int32 Main() { StopWatch watch = StopWatch.StartNew(); watch.Stop(); return watch.Elapsed.Ticks >= 0 ? 0 : 1; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("stopwatch-target-test.ls", source)), new CompilationOptions(UnsafeEnabled: true, TargetTriple: targetTriple));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("define internal i64 @luma_diag_timestamp", result.LlvmIr);
+        Assert.Contains("define internal i64 @luma_diag_frequency", result.LlvmIr);
+        Assert.DoesNotContain("declare i64 @luma_diag_timestamp", result.LlvmIr);
+        if (targetTriple.Contains("windows", StringComparison.Ordinal))
+            Assert.Contains("declare i32 @QueryPerformanceCounter(ptr)", result.LlvmIr);
+        else
+            Assert.Contains("declare i32 @clock_gettime(i32, ptr)", result.LlvmIr);
+
+        var objectPath = Path.Combine(Path.GetTempPath(), "lumasharp-stopwatch-" + Guid.NewGuid().ToString("N") + ".obj");
+        try
+        {
+            var emitted = LlvmToolchain.VerifyAndEmitObject(result.LlvmIr!, objectPath, targetTriple, optimize: true);
+            Assert.True(emitted.Succeeded, emitted.Error);
+        }
+        finally
+        {
+            if (File.Exists(objectPath)) File.Delete(objectPath);
+        }
+    }
+
+    [Fact]
+    public void StopWatchAndTimeSpanSupportElapsedStateTransitions()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("stopwatch-test.ls", """
+            using System;
+            using System.Diagnostics;
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    StopWatch watch = StopWatch.StartNew();
+                    int32 value = 0;
+                    while (value < 10000)
+                        value++;
+                    watch.Stop();
+                    if (watch.IsRunning || watch.Elapsed.Ticks < 0 || watch.Elapsed.TotalMilliseconds < 0.0)
+                        return 1;
+
+                    int64 firstElapsed = watch.Elapsed.Ticks;
+                    watch.Start();
+                    value = 0;
+                    while (value < 10000)
+                        value++;
+                    watch.Stop();
+                    if (watch.IsRunning || watch.Elapsed.Ticks < firstElapsed)
+                        return 2;
+
+                    watch.Restart();
+                    if (!watch.IsRunning || watch.Elapsed.Ticks < 0)
+                        return 3;
+                    watch.Reset();
+                    return !watch.IsRunning && watch.Elapsed.Ticks == 0 && TimeSpan.TicksPerSecond == 10000000 ? 0 : 4;
+                }
+            }
+            """)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
     [Fact]
     public void WeakReferencesPromoteLiveTargetsAndObserveDestruction()
     {
