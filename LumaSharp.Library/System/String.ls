@@ -9,7 +9,7 @@ public class String : Object
 		if (value.Length == 0)
 			return ReadOnlySpan<char>.Empty;
 
-		return ReadOnlySpan<char>(value.Ptr, value.Length);
+		return ReadOnlySpan<char>(value.Ptr, value.Length, value);
 	}
 
 	public unsafe char* Ptr

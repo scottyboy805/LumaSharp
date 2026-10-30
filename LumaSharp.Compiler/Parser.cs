@@ -108,9 +108,11 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         ValidateAllowedModifiers(modifiers, kind switch
         {
             "class" => ["public", "private", "protected", "internal", "virtual", "static", "unsafe"],
-            "struct" => ["public", "private", "protected", "internal", "unsafe"],
+            "struct" => ["public", "private", "protected", "internal", "unsafe", "ref"],
             _ => ["public", "private", "protected", "internal"]
         }, start.Location, $"{kind} declaration");
+        if (modifiers.Contains("ref") && kind != "struct")
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "The 'ref' type modifier is supported only on structs.", start.Location);
         if (kind == "enum") { ParseEnumType(types, name, start.Location, GetTypeAccessibility(modifiers, isNested), isNested ? _namespace : null); return true; }
         var typeParameters = ReadTypeParameterList();
         var generic = typeParameters.Count > 0; var hasBaseList = false; var baseTypes = new List<string>();
@@ -347,9 +349,17 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                     Accessibility: GetMemberAccessibility(memberModifiers)));
                 _unsafeDepth = previousMemberUnsafeDepth; continue;
             }
-            if (!Is("(")) { ValidateAllowedModifiers(memberModifiers, ["public", "private", "protected", "internal", "static", "readonly", "const", "unsafe"], memberStart.Location, "field"); ParseFieldDeclaration(returnType, memberName, memberModifiers, memberStart.Location, members); _unsafeDepth = previousMemberUnsafeDepth; continue; }
+            if (!Is("("))
+            {
+                ValidateAllowedModifiers(memberModifiers, ["public", "private", "protected", "internal", "static", "readonly", "const", "unsafe", "ref"], memberStart.Location, "field");
+                if (memberModifiers.Contains("ref"))
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Ref fields are not supported; use a ref local or ref return.", memberStart.Location);
+                ParseFieldDeclaration(returnType, memberName, memberModifiers.Where(modifier => modifier != "ref").ToArray(), memberStart.Location, members);
+                _unsafeDepth = previousMemberUnsafeDepth;
+                continue;
+            }
             ValidateAllowedModifiers(memberModifiers, explicitInterfaceName is null
-                ? ["public", "private", "protected", "internal", "static", "virtual", "override", "extern", "unsafe"]
+                ? ["public", "private", "protected", "internal", "static", "virtual", "override", "extern", "unsafe", "ref"]
                 : ["unsafe"], memberStart.Location, "explicit interface method");
             Take(); var parameters = ParseParameters(); Expect(")");
             var hasTypeParameters = methodTypeParameters.Count > 0;
@@ -368,9 +378,9 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Interface methods cannot have a body.", memberStart.Location);
             _unsafeDepth = previousMemberUnsafeDepth;
             if (!IsIdentifier(memberName)) Error(memberName, "Expected a non-keyword method name (use @ to escape a keyword).");
-            members.Add(new MethodDeclaration(name.Text.TrimStart('@'), memberName.Text.TrimStart('@'), returnType, parameters, body, memberModifiers.Contains("static"), memberModifiers.Contains("public"), isMutating, hasTypeParameters, memberStart.Location, unsafeMember, memberModifiers.Contains("extern"), IsVirtual: memberModifiers.Contains("virtual"), IsOverride: memberModifiers.Contains("override"), Accessibility: GetMemberAccessibility(memberModifiers), ExplicitInterfaceName: explicitInterfaceName, TypeParameters: methodTypeParameters, GenericConstraints: methodConstraints));
+            members.Add(new MethodDeclaration(name.Text.TrimStart('@'), memberName.Text.TrimStart('@'), returnType, parameters, body, memberModifiers.Contains("static"), memberModifiers.Contains("public"), isMutating, hasTypeParameters, memberStart.Location, unsafeMember, memberModifiers.Contains("extern"), IsVirtual: memberModifiers.Contains("virtual"), IsOverride: memberModifiers.Contains("override"), Accessibility: GetMemberAccessibility(memberModifiers), ExplicitInterfaceName: explicitInterfaceName, TypeParameters: methodTypeParameters, GenericConstraints: methodConstraints, ReturnsByRef: memberModifiers.Contains("ref")));
         }
-        Expect("}"); _unsafeDepth = previousUnsafeDepth; types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null)); return true;
+        Expect("}"); _unsafeDepth = previousUnsafeDepth; types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null, IsRefStruct: modifiers.Contains("ref"))); return true;
     }
     private bool TryParseDelegateDeclaration(List<TypeDeclaration> types, Token start, IReadOnlyList<string> modifiers, bool isNested)
     {
@@ -777,7 +787,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private List<string> ReadModifiers()
     {
         var result = new List<string>();
-        while (Current.Text is "public" or "private" or "protected" or "internal" or "static" or "virtual" or "override" or "extern" or "unsafe" or "readonly" or "const") result.Add(Take().Text);
+        while (Current.Text is "public" or "private" or "protected" or "internal" or "static" or "virtual" or "override" or "extern" or "unsafe" or "readonly" or "const" or "ref") result.Add(Take().Text);
         return result;
     }
     private static string GetMemberAccessibility(IReadOnlyList<string> modifiers)
@@ -1078,7 +1088,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         }
         if (Is("{")) return ParseBlock();
         if (Eat(";")) return new EmptyStatement(at);
-        if (Eat("return")) { var expr = Is(";") ? null : ParseExpression(); Expect(";"); return new ReturnStatement(expr, at); }
+        if (Eat("return")) { var returnsByRef = Eat("ref"); var expr = Is(";") ? null : ParseExpression(); Expect(";"); return new ReturnStatement(expr, at, returnsByRef); }
         if (Eat("throw")) { var expr = Is(";") ? null : ParseExpression(); Expect(";"); return new ThrowStatement(expr, at); }
         if (Eat("try")) return ParseTry(at);
         if (Eat("if")) { Expect("("); var condition = ParseExpression(); Expect(")"); var then = ParseStatement(); return new IfStatement(condition, then, Eat("else") ? ParseStatement() : null, at); }
@@ -1104,6 +1114,8 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             return new OverflowContextStatement(false, ParseBlock(), context.Location);
         }
         if (Is("switch")) return ParseSwitch(at);
+        if (Is("ref"))
+            return ParseLocalDeclaration(at, expectSemicolon: true);
         if (Is("let") || Is("var") || Is("const"))
         {
             return ParseLocalDeclaration(at, expectSemicolon: true);
@@ -1426,8 +1438,17 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     }
     private VariableDeclarationStatement ParseLocalDeclaration(SourceLocation at, bool expectSemicolon)
     {
-        var mutable = true; var isVar = false; var isConstant = false; string? explicitType = null;
-        if (Is("const"))
+        var mutable = true; var isVar = false; var isConstant = false; var isRefLocal = Eat("ref"); string? explicitType = null;
+        if (isRefLocal && Is("var"))
+        {
+            Error(Take(), "Use 'var name = ref expression' when the ref local type is inferred.");
+            isVar = true;
+        }
+        else if (isRefLocal)
+        {
+            explicitType = ParseTypeName();
+        }
+        else if (Is("const"))
         {
             Take(); mutable = false; isConstant = true;
             if (Is("let") || Is("var")) Error(Current, "const requires an explicit type and cannot be combined with let or var.");
@@ -1468,13 +1489,18 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         if (isConstant && (initializers.Count != names.Count || initializers.Any(initializer => initializer is null)))
             diagnostics.Add("LS0213", DiagnosticSeverity.Error, "Every const local must have a constant initializer in its declaration.", at);
 
+        if (initializers.Any(initializer => initializer is UnaryExpression { Operator: "ref" })) isRefLocal = true;
+        if (isRefLocal && (names.Count != 1 || initializers.Count != 1 || initializers[0] is not UnaryExpression { Operator: "ref" }))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A ref local must have exactly one initializer written as 'ref expression'.", at);
+
         var variables = names.Select((name, index) => new VariableStatement(
             name.Text.TrimStart('@'),
             mutable,
             explicitType,
             index < initializers.Count ? initializers[index] : null,
             name.Location,
-            isConstant)).ToArray();
+            isConstant,
+            isRefLocal && index == 0)).ToArray();
         return new(variables, at);
     }
     private bool LooksLikeTypedLocal()
@@ -1576,7 +1602,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             Expect("("); var value = ParseExpression(); Expect(")");
             return new OverflowContextExpression(checkedContext, value, token.Location);
         }
-        if (Current.Text is "+" or "-" or "!" or "~" or "++" or "--" or "&" or "*")
+        if (Current.Text is "+" or "-" or "!" or "~" or "++" or "--" or "&" or "*" or "ref")
         {
             var op = Take();
             if (op.Text is "&" or "*" && _unsafeDepth == 0)

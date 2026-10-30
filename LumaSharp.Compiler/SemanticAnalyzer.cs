@@ -617,6 +617,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
             if (type.IsStatic && type.Kind != "class")
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Only classes may be declared static.", type.Location);
+            if (type.IsRefStruct && type.BaseTypes is { Count: > 0 })
+                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A ref struct cannot declare a base class or implement interfaces in this language version.", type.Location);
             if (type.IsStatic && type.Kind == "class")
             {
                 if (type.HasBaseList || type.BaseTypes is { Count: > 0 })
@@ -783,6 +785,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     continue;
                 }
                 if (member is not MethodDeclaration method) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"{((UnsupportedMember)member).Description} are recognized but not supported yet.", member.Location); continue; }
+                if (method.ReturnsByRef && (method.ReturnType == "void" || method.IsVirtual || method.IsOverride || method.IsExtern || method.IsOperator))
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Ref returns require a non-void, non-virtual, non-extern ordinary method.", method.Location);
                 if (method.HasTypeParameters)
                 {
                     if (method.IsVirtual || method.IsOverride)
@@ -1617,6 +1621,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         if (contextType is not null) ValidateTypeAccessibility(type, contextType, location);
         var storageType = IsNullableArrayType(type) ? type[..^1] : type;
+        if (IsNullableType(type) && IsRefStructType(NullableUnderlyingType(type)))
+        {
+            diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{NullableUnderlyingType(type)}' cannot be nullable.", location);
+            return;
+        }
         if (type.EndsWith("?", StringComparison.Ordinal) && !IsNullableClassType(type) && !IsNullableDelegateType(type) && !IsNullableStringType(type) && !IsNullableArrayType(type) && !IsNullableValueType(type))
         {
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Nullable type '{type}' is not yet supported by the current backend.", location);
@@ -1631,9 +1640,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         {
             if (arrayRank > 3) diagnostics.Add("LS1503", DiagnosticSeverity.Error, "Rectangular arrays may have at most three dimensions.", location);
             else if (!IsManagedArrayElementType(arrayElementType)) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Managed arrays of element type '{arrayElementType}' are recognized but not yet supported by the current backend.", location);
+            else if (IsRefStructType(arrayElementType)) diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{arrayElementType}' cannot be stored in a managed array.", location);
             else if (role is not ("Local" or "Parameter" or "Return" or "Inline out local")) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Managed arrays are not yet supported as {role.ToLowerInvariant()}s.", location);
         }
         else if (IsPointerType(storageType) && !IsAllowedPointerType(storageType)) diagnostics.Add("LS1903", DiagnosticSeverity.Error, $"Pointer type '{type}' is not allowed by the current backend.", location);
+        else if (IsRefStructType(storageType) && role is not ("Local" or "Parameter" or "Return")) diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{storageType}' cannot be stored as a {role.ToLowerInvariant()}.", location);
         else if (!IsSupportedType(type)) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"{role} type '{type}' is not yet supported.", location);
     }
     private void ValidateExternType(string type, bool allowVoid, SourceLocation location)
@@ -1643,6 +1654,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     }
     private bool IsEnumType(string type) => _enumUnderlyingTypes.ContainsKey(type);
     private bool IsStructType(string type) => _structTypes.ContainsKey(type);
+    private bool IsRefStructType(string type) => _structTypes.TryGetValue(type, out var structure) && structure.Declaration.IsRefStruct;
     private string NormalizePointerMemberReceiverType(string pointerType, bool unsafeContext, SourceLocation location)
     {
         if (!IsPointerType(pointerType)) return pointerType;
@@ -1689,8 +1701,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         TypeNameSyntax.TryParse(type, out var parsed) && parsed.Suffixes.LastOrDefault() is NullableTypeNameSuffix &&
         parsed.Suffixes.Take(parsed.Suffixes.Count - 1).LastOrDefault() is ArrayRankTypeNameSuffix;
     private bool IsManagedArrayReferenceType(string type) => IsNullableArrayType(type) || TryParseManagedArrayType(type, out _, out _);
-    private static bool IsNullableStringType(string type) => type == "string?";
-    private static bool IsStringType(string type) => type is "string" or "string?";
+    private static bool IsNullableStringType(string type) => type is "string?" or "System.String?";
+    private static bool IsStringType(string type) => type is "string" or "string?" or "System.String" or "System.String?";
     private bool IsNullableValueType(string type)
     {
         if (!IsNullableTypeName(type)) return false;
@@ -1699,7 +1711,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     }
     private bool IsNullableValuePayloadType(string type) => NumericTypes.Contains(type) || type == "bool" || _enumUnderlyingTypes.ContainsKey(type) || _structTypes.ContainsKey(type);
     private bool IsBoxableScalarOrEnum(string type) => NumericTypes.Contains(type) || type == "bool" || _enumUnderlyingTypes.ContainsKey(type);
-    private bool IsBoxableValueType(string type) => IsBoxableScalarOrEnum(type) || IsStructType(type);
+    private bool IsBoxableValueType(string type) => IsBoxableScalarOrEnum(type) || IsStructType(type) && !IsRefStructType(type);
     private bool IsNullableType(string type) => IsNullableClassType(type) || IsNullableDelegateType(type) || IsNullableStringType(type) || IsNullableArrayType(type) || IsNullableValueType(type);
     private static string NullableUnderlyingType(string type) =>
         TypeNameSyntax.TryParse(type, out var parsed) && parsed.Suffixes.LastOrDefault() is NullableTypeNameSuffix
@@ -5143,6 +5155,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (_finallyDepth > 0)
                     diagnostics.Add("LS0610", DiagnosticSeverity.Error, "A return statement cannot leave a finally block.", ret.Location);
                 var expected = context.Method.Declaration.ReturnType;
+                if (ret.ReturnsByRef != context.Method.Declaration.ReturnsByRef)
+                    diagnostics.Add("LMC3010", DiagnosticSeverity.Error, context.Method.Declaration.ReturnsByRef
+                        ? "A ref-returning method must return with 'return ref'."
+                        : "'return ref' is valid only in a ref-returning method.", ret.Location);
                 if (context.Method.IsStructConstructor)
                 {
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "A struct constructor cannot return; let execution reach the end of its body.", ret.Location);
@@ -5153,6 +5169,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 else if (ret.Value is not null)
                 {
                     var actual = AnalyzeExpression(ret.Value, context, expected);
+                    if (ret.ReturnsByRef && !IsAllowedRefReturnTarget(ret.Value, context))
+                        diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A ref return must refer to a ref/out parameter or a mutable static field; local and instance-owned storage cannot escape safely.", ret.Value.Location);
                     if (GetScopeBoundDepth(ret.Value, context) is not null || IsReadOnlyReferenceExpression(ret.Value, context))
                         diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound or readonly reference cannot be returned from its lexical scope.", ret.Value.Location);
                     if (!CanConvertInContext(actual, expected, ret.Value, context)) AddReferenceConversionDiagnostic(actual, expected, ret.Value, context, ret.Location);
@@ -6544,7 +6562,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         continue;
                     }
                 }
-                else if (!local.Mutable) diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Cannot assign to immutable local '{name.Name}'.", name.Location);
+                else if (!local.Mutable && local.Declaration?.IsRefLocal != true) diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Cannot assign to immutable local '{name.Name}'.", name.Location);
             }
             else if (target is IndexExpression indexTarget)
             {
@@ -7021,6 +7039,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"The name '{name.Name}' does not exist in the current context.", name.Location); return "?";
             case UnaryExpression unary:
                 var operand = AnalyzeExpression(unary.Operand, context);
+                if (unary.Operator == "ref")
+                {
+                    if (!IsMutableVariableArgument(unary.Operand, context))
+                        diagnostics.Add("LMC3012", DiagnosticSeverity.Error, "A ref local must refer to a mutable local, field, or array element.", unary.Location);
+                    return operand;
+                }
                 if (unary.Operator == "!" && (IsStructType(operand) || IsClassType(operand)))
                 {
                     var logicalNot = FindUserUnaryOperator("!", operand, unary.Operand, context);
@@ -8084,9 +8108,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (IsPointerType(receiverType) &&
                     (IsClassType(receiverType[..^1]) || IsStructType(receiverType[..^1])))
                     receiverType = NormalizePointerMemberReceiverType(receiverType, index.IsUnsafeContext, index.Location);
-                if (receiverType is "string" or "string?")
+                if (IsStringType(receiverType))
                 {
-                    if (receiverType == "string?" && !index.IsNullConditional && !IsDefinitelyNotNull(index.Receiver, receiverType, context))
+                    if (IsNullableStringType(receiverType) && !index.IsNullConditional && !IsDefinitelyNotNull(index.Receiver, receiverType, context))
                     {
                         diagnostics.Add("LS1303", DiagnosticSeverity.Error, "The nullable string instance may be null; use a null check or null assertion before indexing.", index.Location);
                         return "?";
@@ -8247,7 +8271,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 {
                     var capturedLocal = context.Lookup(capturedName)!;
                     var parameter = context.Method.Declaration.Parameters.FirstOrDefault(candidate => candidate.Name == capturedName);
-                    if (parameter is { PassingMode.Length: > 0 })
+                    if (capturedLocal.Declaration?.IsRefLocal == true || IsRefStructType(capturedLocal.Type))
+                    {
+                        diagnostics.Add("LS0730", DiagnosticSeverity.Error, $"A lambda cannot capture ref local or ref struct '{capturedName}'.", lambda.Location);
+                        unsupportedCapture = true;
+                    }
+                    else if (parameter is { PassingMode.Length: > 0 })
                     {
                         diagnostics.Add("LS0730", DiagnosticSeverity.Error, $"Lambda cannot capture {parameter.PassingMode} parameter '{capturedName}'.", lambda.Location);
                         unsupportedCapture = true;
@@ -8469,17 +8498,17 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     else _managedArrayRankAccesses[access] = -1;
                     return nullableArrayBase && access.IsNullConditional ? "int32?" : "int32";
                 }
-                if (lengthReceiverType == "string")
+                if (lengthReceiverType is not null && IsStringType(lengthReceiverType) && !IsNullableStringType(lengthReceiverType))
                 {
                     _stringLengthAccesses[access] = true;
                     return "int32";
                 }
-                if (lengthReceiverType == "string?" && access.IsNullConditional)
+                if (lengthReceiverType is not null && IsNullableStringType(lengthReceiverType) && access.IsNullConditional)
                 {
                     _stringLengthAccesses[access] = true;
                     return "int32?";
                 }
-                if (lengthReceiverType == "string?")
+                if (lengthReceiverType is not null && IsNullableStringType(lengthReceiverType))
                 {
                     if (!IsDefinitelyNotNull(access.Receiver, lengthReceiverType, context))
                     {
@@ -8647,6 +8676,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private int? GetScopeBoundDepth(Expression expression, MethodContext context) => expression switch
     {
         AllocationExpression { IsScope: true } => context.ScopeDepth,
+        UnaryExpression { Operator: "ref" } reference => GetScopeBoundDepth(reference.Operand, context),
         LambdaExpression lambda when _scopeBoundLambdaDepths.TryGetValue(lambda, out var lambdaDepth) => lambdaDepth,
         NameExpression name when _boundUnqualifiedClassFields.TryGetValue(name, out var unqualifiedField) &&
             _scopeBoundClosureFields.TryGetValue((unqualifiedField.OwnerType, name.Name), out var unqualifiedCaptureDepth) => unqualifiedCaptureDepth,
@@ -8741,6 +8771,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private bool IsReadOnlyReferenceExpression(Expression expression, MethodContext context) => expression switch
     {
         NameExpression name => context.Lookup(name.Name)?.IsReadOnlyReference == true,
+        UnaryExpression { Operator: "ref" } reference => !IsMutableVariableArgument(reference.Operand, context),
         NullAssertionExpression assertion => IsReadOnlyReferenceExpression(assertion.Operand, context),
         CastExpression cast => IsReadOnlyReferenceExpression(cast.Operand, context),
         OverflowContextExpression overflow => IsReadOnlyReferenceExpression(overflow.Value, context),
@@ -8748,6 +8779,19 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         BinaryExpression { Operator: "??" } coalesce => IsReadOnlyReferenceExpression(coalesce.Left, context) || IsReadOnlyReferenceExpression(coalesce.Right, context),
         _ => false
     };
+
+    private bool IsAllowedRefReturnTarget(Expression expression, MethodContext context)
+    {
+        if (expression is NameExpression parameterName)
+        {
+            var parameter = context.Method.Declaration.Parameters.FirstOrDefault(candidate => candidate.Name == parameterName.Name);
+            if (parameter is not null)
+                return (parameter.PassingMode is "ref" or "out") && !parameter.IsScoped;
+            return _boundUnqualifiedStaticFields.TryGetValue(parameterName, out var field) && field.Mutable;
+        }
+        return expression is MemberAccessExpression access &&
+            _boundStaticFields.TryGetValue(access, out var staticField) && staticField.Mutable;
+    }
 
     private bool IsManagedReferenceValue(string type) => IsClassReferenceType(type) || IsDelegateType(type) || IsNullableDelegateType(type) ||
         IsStringType(type) || TryParseManagedArrayType(NullableUnderlyingType(type), out _, out _);
@@ -8820,8 +8864,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             .Where(method => method.Declaration.IsConversionOperator &&
                 (method.Declaration.Operator == "implicit" || allowExplicit && method.Declaration.Operator == "explicit") &&
                 method.Declaration.Parameters.Count == 1 &&
-                NormalizeEnumType(method.Declaration.Parameters[0].TypeName, method.Owner) == sourceType &&
-                NormalizeEnumType(method.Declaration.ReturnType, method.Owner) == targetType)
+                NormalizeBuiltinTypeQualifier(NormalizeEnumType(method.Declaration.Parameters[0].TypeName, method.Owner)) == NormalizeBuiltinTypeQualifier(sourceType) &&
+                NormalizeBuiltinTypeQualifier(NormalizeEnumType(method.Declaration.ReturnType, method.Owner)) == NormalizeBuiltinTypeQualifier(targetType))
             .ToArray();
         var implicitCandidate = candidates.FirstOrDefault(method => method.Declaration.Operator == "implicit");
         return implicitCandidate ?? (candidates.Length == 1 ? candidates[0] : null);
@@ -9174,7 +9218,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         NameExpression { Name: "$this" } when _closureEnclosingMethods.TryGetValue(GetQualifiedTypeName(context.Method.Owner), out var enclosingMethod) &&
             enclosingMethod.IsStructInstanceMethod => enclosingMethod.Declaration.IsMutating,
-        NameExpression name => context.Lookup(name.Name) is { Mutable: true } ||
+        NameExpression name => context.Lookup(name.Name) is { } local && (local.Mutable || local.Declaration?.IsRefLocal == true) ||
             context.Lookup(name.Name) is { Type: var pointerType } && IsPointerType(pointerType) && IsStructType(pointerType[..^1]),
         NullAssertionExpression assertion => IsMutableStructLocation(assertion.Operand, context),
         MemberAccessExpression member when _boundStructFields.TryGetValue(member, out var field) => !field.IsReadOnly && IsMutableStructLocation(member.Receiver, context),
@@ -11117,7 +11161,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         NameExpression name => context.Lookup(name.Name) is { Mutable: true } ||
             _boundUnqualifiedStructFields.TryGetValue(name, out var field) && !field.IsReadOnly && IsMutableStructLocation(new ThisExpression(name.Location), context),
         MemberAccessExpression access => _boundStaticFields.TryGetValue(access, out var field) && field.Mutable ||
+            _boundClassFields.TryGetValue(access, out var classField) && !classField.IsReadOnly ||
             _boundStructFields.TryGetValue(access, out var structField) && !structField.IsReadOnly && IsMutableStructLocation(access.Receiver, context),
+        CallExpression call => _callTargets.TryGetValue(call, out var method) && method.Declaration.ReturnsByRef,
         UnaryExpression { Operator: "*" } => true,
         IndexExpression index => IsMutableIndexTarget(index, context),
         _ => false
@@ -11824,7 +11870,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var assignmentPropertyIsNullConditional = false;
             var assignmentPropertyIsUnsafeContext = false;
             ComputedIndexerSymbol? assignmentIndexer = null;
-            if (binary.Left is NameExpression name && context.Lookup(name.Name) is { } local) { targetType = local.Type; mutable = local.Mutable; assignmentLocal = local; }
+            if (binary.Left is NameExpression name && context.Lookup(name.Name) is { } local) { targetType = local.Type; mutable = local.Mutable || local.Declaration?.IsRefLocal == true; assignmentLocal = local; }
             else if (binary.Left is NameExpression staticFieldName && _boundUnqualifiedStaticFields.TryGetValue(staticFieldName, out var unqualifiedStaticField))
             {
                 targetType = unqualifiedStaticField.TypeName;

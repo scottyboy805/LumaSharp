@@ -1175,7 +1175,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         compilation.Methods.Any(method => IsStringArrayType(method.Declaration.ReturnType) || method.Declaration.Parameters.Any(parameter => IsStringArrayType(parameter.TypeName)));
     private static bool IsStringArrayType(string type) => SemanticAnalyzer.TryParseManagedArrayType(type, out var elementType, out _) &&
         (elementType is "string" or "string?" || IsStringArrayType(elementType));
-    private static bool IsStringType(string type) => type is "string" or "string?";
+    private static bool IsStringType(string type) => type is "string" or "string?" or "System.String" or "System.String?";
     private static bool IsNullableArrayType(string type) => type.EndsWith("?", StringComparison.Ordinal) && SemanticAnalyzer.TryParseManagedArrayType(type[..^1], out _, out _);
     private bool HasManagedArrayReferenceElements() => compilation.StaticFields.Any(field => IsArrayOfArrays(field.Declaration.TypeName)) ||
         compilation.VariableTypes.Values.Any(IsArrayOfArrays) ||
@@ -1216,7 +1216,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
         var linkage = IsRuntimeIntrinsicType(method.Owner) ? "internal " : "";
-        _output.AppendLine($"define {linkage}{LlvmType(d.ReturnType)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", functionParameters)}) {{");
+        _output.AppendLine($"define {linkage}{LlvmReturnType(d)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", functionParameters)}) {{");
         var body = emitter.Emit(d.Body!); _output.Append(body); _output.AppendLine("}");
     }
     private void EmitExternDeclaration(MethodSymbol method)
@@ -1229,8 +1229,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             var attribute = AbiAttribute(parameter.TypeName, compilation.EnumUnderlyingTypes);
             return attribute.Length == 0 ? llvmType : $"{llvmType} {attribute.Trim()}";
         });
-        _output.AppendLine($"declare {returnAttribute}{LlvmType(declaration.ReturnType)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", parameters)})");
+        _output.AppendLine($"declare {returnAttribute}{LlvmReturnType(declaration)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", parameters)})");
     }
+    private string LlvmReturnType(MethodDeclaration declaration) => declaration.ReturnsByRef ? "ptr" : LlvmType(declaration.ReturnType);
     private static string AbiAttribute(string type, IReadOnlyDictionary<string, string> enumTypes) => enumTypes.TryGetValue(type, out var underlying) ? AbiAttribute(underlying, enumTypes) : type switch
     {
         "bool" or "uint8" or "uint16" or "char" => "zeroext ",
@@ -1270,7 +1271,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             var callArguments = string.Join(", ", arguments.Select((argument, index) =>
                 $"{LlvmParameterType(method.Declaration.Parameters[index])} %arg{index}"));
             var boxType = $"%luma.structbox.{Safe(structName)}";
-            var resultType = LlvmType(method.Declaration.ReturnType);
+            var resultType = LlvmReturnType(method.Declaration);
             _output.AppendLine($"define internal {resultType} @{StructDelegateThunkName(binding, compilation.Methods)}({signatureArguments}) {{");
             _output.AppendLine("entry:");
             _output.AppendLine($"  %payload = getelementptr {boxType}, ptr %box, i32 0, i32 3");
@@ -3580,7 +3581,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                     ReleaseAllOwnedStrings(); ReleaseAllOwnedArrays(); ReleaseAllOwnedClasses(); ReleaseAllOwnedAggregates();
                     ReleaseAllScopes();
                     MarkClassConstructorCompleted();
-                    Emit(method.Declaration.ReturnType == "void" ? "ret void" : $"ret {LlvmType(method.Declaration.ReturnType)} 0");
+                    Emit(method.Declaration.ReturnType == "void" ? "ret void" : method.Declaration.ReturnsByRef ? "ret ptr null" : $"ret {LlvmType(method.Declaration.ReturnType)} 0");
                 }
             }
             return _ir.ToString();
@@ -3607,6 +3608,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 case EmptyStatement: break;
                 case VariableStatement variable:
                     var type = variableTypes.GetValueOrDefault(variable) ?? variable.TypeName ?? InferType(variable.Initializer!);
+                    if (variable.IsRefLocal)
+                    {
+                        var (referenceType, referencePointer) = ResolveRefLocalTarget(variable.Initializer!);
+                        if (referenceType != type)
+                            throw new InvalidOperationException($"Validated ref local '{variable.Name}' has type '{type}', but its target has type '{referenceType}'.");
+                        Declare(variable.Name, type, referencePointer, ownsString: false, ownsArray: false, ownsClass: false, ownsAggregate: false);
+                        ReleaseAllOwnedArrays();
+                        ReleaseStatementScopeTemps();
+                        break;
+                    }
                     if (structTypes.ContainsKey(type)) EnsureTypeInitialized(type, force: true);
                     var closureEnvironmentForVariable = FindClosureEnvironmentForVariable(variable.Name);
                     var capturedIndex = -1;
@@ -3663,6 +3674,13 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                     }
                     else
                     {
+                        if (ret.ReturnsByRef)
+                        {
+                            var (_, reference) = ResolveAssignmentTarget(ret.Value!);
+                            if (EmitControlTransfer(0, 0, 0, 0)) Emit($"ret ptr {reference}");
+                            _terminated = true;
+                            break;
+                        }
                         var value = EmitExpression(ret.Value);
                         var converted = CastValue(value.Value, value.Type, method.Declaration.ReturnType);
                         if (IsStringType(method.Declaration.ReturnType)) { EnsureOwnedString(value); _ownedStringValues.Remove(value.Value); }
@@ -4433,6 +4451,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             {
                 var declaredType = variableTypes.GetValueOrDefault(variables[index]) ?? variables[index].TypeName ??
                     (variables[index].Initializer is { } initial ? InferType(initial) : "?");
+                if (variables[index].IsRefLocal)
+                    continue;
                 if (structTypes.ContainsKey(declaredType)) EnsureTypeInitialized(declaredType, force: true);
                 if (variables[index].Initializer is { } initializer)
                 {
@@ -4449,6 +4469,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             {
                 var variable = variables[index];
                 var type = variableTypes.GetValueOrDefault(variable) ?? variable.TypeName ?? InferType(variable.Initializer!);
+                if (variable.IsRefLocal)
+                {
+                    var (referenceType, referencePointer) = ResolveRefLocalTarget(variable.Initializer!);
+                    if (referenceType != type)
+                        throw new InvalidOperationException($"Validated ref local '{variable.Name}' has type '{type}', but its target has type '{referenceType}'.");
+                    Declare(variable.Name, type, referencePointer, ownsString: false, ownsArray: false, ownsClass: false, ownsAggregate: false);
+                    ReleaseAllOwnedArrays();
+                    ReleaseStatementScopeTemps();
+                    continue;
+                }
                 var closureEnvironmentForVariable = FindClosureEnvironmentForVariable(variable.Name);
                 var capturedIndex = -1;
                 var isCaptured = closureEnvironmentForVariable is not null &&
@@ -5973,7 +6003,15 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                     return (CastValue(castOperand.Item1, castOperand.Item2, castTarget, checkedConversion: _checkedContext), castTarget);
                 case BinaryExpression binary: return EmitBinary(binary);
                 case ConditionalExpression conditional: return EmitConditional(conditional);
-                case CallExpression call: return EmitCall(call);
+                case CallExpression call:
+                    var callValue = EmitCall(call);
+                    if (callTargets.TryGetValue(call, out var callTarget) && callTarget.Declaration.ReturnsByRef)
+                    {
+                        var loadedReference = NewTemp();
+                        Emit($"{loadedReference} = load {LlvmType(callTarget.Declaration.ReturnType)}, ptr {callValue.Value}");
+                        return (loadedReference, callTarget.Declaration.ReturnType);
+                    }
+                    return callValue;
                 case OverflowContextExpression overflow:
                     var previousChecked = _checkedContext; _checkedContext = overflow.Checked;
                     try { return EmitExpression(overflow.Value); } finally { _checkedContext = previousChecked; }
@@ -5982,6 +6020,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         }
         private (string, string) EmitUnary(UnaryExpression expression)
         {
+            if (expression.Operator == "ref")
+            {
+                var (referencedType, reference) = ResolveRefLocalTarget(expression.Operand);
+                return (reference, referencedType + "*");
+            }
             if (operatorTargets.TryGetValue(expression, out var unaryOperator))
             {
                 if (expression.Operator is "++" or "--")
@@ -7761,6 +7804,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             }
 
             var resultType = target.Declaration.ReturnType; var result = resultType == "void" ? null : NewTemp();
+            var llvmResultType = target.Declaration.ReturnsByRef ? "ptr" : LlvmType(resultType);
             var returnAttribute = target.Declaration.IsExtern ? AbiAttribute(target.Declaration.ReturnType, enumTypes) : "";
             var llvmCallArguments = valuesByParameter.Select((v, index) =>
             {
@@ -7784,7 +7828,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 var vtable = NewTemp(); Emit($"{vtable} = load ptr, ptr {vtableAddress}");
                 var entryAddress = NewTemp(); Emit($"{entryAddress} = getelementptr ptr, ptr {vtable}, i32 {virtualSlot}");
                 var function = NewTemp(); Emit($"{function} = load ptr, ptr {entryAddress}");
-                call = $"call {returnAttribute}{LlvmType(resultType)} {function}({string.Join(", ", allArguments)})";
+                call = $"call {returnAttribute}{llvmResultType} {function}({string.Join(", ", allArguments)})";
             }
             else if (interfaceCallSlots.TryGetValue(expression, out var interfaceSlot) && instanceReceiverAddress is not null)
             {
@@ -7793,7 +7837,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 var table = NewTemp(); Emit($"{table} = load ptr, ptr {tableAddress}");
                 var entryAddress = NewTemp(); Emit($"{entryAddress} = getelementptr ptr, ptr {table}, i32 {interfaceSlot}");
                 var function = NewTemp(); Emit($"{function} = load ptr, ptr {entryAddress}");
-                call = $"call {returnAttribute}{LlvmType(resultType)} {function}({string.Join(", ", allArguments)})";
+                call = $"call {returnAttribute}{llvmResultType} {function}({string.Join(", ", allArguments)})";
             }
             else if (IsWeakRuntimeHelper(target))
             {
@@ -7807,7 +7851,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 };
                 call = $"call {LlvmType(resultType)} @{intrinsic}({string.Join(", ", allArguments)})";
             }
-            else call = $"call {returnAttribute}{LlvmType(resultType)} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
+            else call = $"call {returnAttribute}{llvmResultType} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
             Emit(result is null ? call : $"{result} = {call}");
             if (!target.Declaration.IsExtern && checkPendingException) EmitCheckPendingException();
             if (releaseOwnedArguments)
@@ -7818,11 +7862,14 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 foreach (var argument in ownedAggregateArguments) ReleaseOwnedAggregate(argument);
             }
             if (ownedInstanceReceiver is { } ownedReceiver) ReleaseOwnedClass(ownedReceiver);
-            if (result is not null && IsStringType(resultType)) _ownedStringValues.Add(result);
-            if (result is not null && SemanticAnalyzer.TryParseManagedArrayType(resultType, out _, out _)) _ownedArrayValues.Add(result);
-            if (result is not null && GetClassReferenceType(resultType) is { } resultClass) _ownedClassValues.Add((result, resultClass));
-            if (result is not null && IsManagedAggregateType(resultType)) _ownedAggregateValues.Add((result, resultType));
-            return (result ?? "", resultType);
+            if (!target.Declaration.ReturnsByRef)
+            {
+                if (result is not null && IsStringType(resultType)) _ownedStringValues.Add(result);
+                if (result is not null && SemanticAnalyzer.TryParseManagedArrayType(resultType, out _, out _)) _ownedArrayValues.Add(result);
+                if (result is not null && GetClassReferenceType(resultType) is { } resultClass) _ownedClassValues.Add((result, resultClass));
+                if (result is not null && IsManagedAggregateType(resultType)) _ownedAggregateValues.Add((result, resultType));
+            }
+            return (result ?? "", target.Declaration.ReturnsByRef ? resultType + "*" : resultType);
         }
         private (string Address, string ElementType) EmitIndexAddress(IndexExpression expression, (string Value, string Type)? managedArrayReceiverOverride = null)
         {
@@ -8339,6 +8386,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         private string CastValue(string value, string fromType, string toType, bool checkedConversion = false)
         {
             if (fromType == toType) return value;
+            if (IsStringType(fromType) && IsStringType(toType)) return value;
             if (userConversionOperators.TryGetValue((fromType, toType), out var userDefinedConversion))
             {
                 var location = method.Declaration.Location;
@@ -8599,7 +8647,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             method.Owner.Name.StartsWith("Weak", StringComparison.Ordinal) &&
             method.Declaration.Name is "CreateControlRuntime" or "IsAliveRuntime" or "GetTargetRuntime" or "ReleaseControlRuntime";
 
-        private static bool IsStringType(string type) => type is "string" or "string?";
+        private static bool IsStringType(string type) => type is "string" or "string?" or "System.String" or "System.String?";
         private static bool IsNullableStringType(string type) => type == "string?";
         private bool IsDelegateType(string type) => delegateTypes.ContainsKey(type.EndsWith("?", StringComparison.Ordinal) ? type[..^1] : type);
         private bool IsNullableDelegateType(string type) => type.EndsWith("?", StringComparison.Ordinal) && delegateTypes.ContainsKey(type[..^1]);
@@ -9244,6 +9292,65 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             for (var scopeIndex = _scopeStringPointers.Count - 1; scopeIndex >= 0; scopeIndex--) { ReleaseScopeStrings(scopeIndex); ReleaseScopeArrays(scopeIndex); ReleaseScopeClasses(scopeIndex); ReleaseScopeAggregates(scopeIndex); ReleaseScopeAllocations(scopeIndex); }
         }
 
+        private (string Type, string Pointer) ResolveRefLocalTarget(Expression target)
+        {
+            if (target is UnaryExpression { Operator: "ref" } referenceExpression)
+                target = referenceExpression.Operand;
+
+            if (target is IndexExpression index && managedArrayIndexAccesses.ContainsKey(index))
+            {
+                var array = EmitExpression(index.Receiver);
+                if (_scopeBoundArrayValues.Contains(array.Value))
+                    PromoteScopeAllocationToCurrentScope(array.Value);
+                else
+                {
+                    EnsureOwnedArray(array);
+                    var heldArray = $"%v{_temp++}";
+                    Emit($"{heldArray} = alloca ptr");
+                    Emit($"store ptr {array.Value}, ptr {heldArray}");
+                    _ownedArrayValues.Remove(array.Value);
+                    _scopeArrayPointers[^1].Add(heldArray);
+                }
+                var (address, elementType) = EmitIndexAddress(index, array);
+                return (elementType, address);
+            }
+
+            if (target is MemberAccessExpression classAccess && classFields.TryGetValue(classAccess, out var classField))
+            {
+                var receiver = EmitExpression(classAccess.Receiver);
+                var receiverType = GetClassReferenceType(receiver.Type) ?? classField.OwnerType;
+                if (_scopeBoundClassValues.Contains(receiver.Value))
+                    PromoteScopeAllocationToCurrentScope(receiver.Value);
+                else
+                {
+                    EnsureOwnedClass(receiver, receiverType);
+                    var heldClass = $"%v{_temp++}";
+                    Emit($"{heldClass} = alloca ptr");
+                    Emit($"store ptr {receiver.Value}, ptr {heldClass}");
+                    _ownedClassValues.Remove((receiver.Value, receiverType));
+                    _scopeClassPointers[^1].Add((heldClass, receiverType));
+                }
+                var address = EmitClassFieldAddress(classAccess, classField, (receiver.Value, receiverType));
+                return (classField.TypeName, address);
+            }
+
+            if (target is CallExpression call && callTargets.TryGetValue(call, out var callTarget) && callTarget.Declaration.ReturnsByRef)
+            {
+                var address = EmitCall(call);
+                return (callTarget.Declaration.ReturnType, address.Value);
+            }
+
+            return ResolveAssignmentTarget(target);
+        }
+
+        private void PromoteScopeAllocationToCurrentScope(string value)
+        {
+            var index = _statementScopeTemps.FindLastIndex(allocation => allocation.Value == value);
+            if (index < 0) return;
+            _scopeAllocations[^1].Add(_statementScopeTemps[index]);
+            _statementScopeTemps.RemoveAt(index);
+        }
+
         private void ReleaseOwnedStringsAndScopesFrom(int scopeDepth)
         {
             ReleaseAllOwnedStrings(); ReleaseAllOwnedArrays(); ReleaseAllOwnedClasses();
@@ -9252,6 +9359,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         private (string Type, string Pointer) ResolveAssignmentTarget(Expression target)
         {
             if (target is NameExpression name && TryLookup(name.Name, out var local)) return (local.Type, local.Pointer);
+            if (target is CallExpression refCall && callTargets.TryGetValue(refCall, out var refTarget) && refTarget.Declaration.ReturnsByRef)
+            {
+                var address = EmitCall(refCall);
+                return (refTarget.Declaration.ReturnType, address.Value);
+            }
             if (target is NameExpression staticName && unqualifiedStaticFields.TryGetValue(staticName, out var unqualifiedStatic) && CanWriteStaticField(unqualifiedStatic))
             {
                 EnsureTypeInitialized(unqualifiedStatic.OwnerType);

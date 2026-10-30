@@ -1,9 +1,10 @@
 namespace System;
 
-public unsafe struct ReadOnlySpan<T>
+public unsafe ref struct ReadOnlySpan<T>
 {
 	private T* pointer;
 	private int32 length;
+	private object? owner;
 
 	public static ReadOnlySpan<T> Empty
 	{
@@ -16,6 +17,16 @@ public unsafe struct ReadOnlySpan<T>
 			throw new System.ArgumentOutOfRangeException();
 		this.pointer = pointer;
 		this.length = length;
+		this.owner = null;
+	}
+
+	public this(T* pointer, int32 length, object? owner)
+	{
+		if (length < 0)
+			throw new System.ArgumentOutOfRangeException();
+		this.pointer = pointer;
+		this.length = length;
+		this.owner = owner;
 	}
 
 	public int32 Length
@@ -52,6 +63,6 @@ public unsafe struct ReadOnlySpan<T>
 	{
 		if (start < 0 || start > length || sliceLength < 0 || sliceLength > length - start)
 			throw new System.ArgumentOutOfRangeException();
-		return ReadOnlySpan<T>(pointer + start, sliceLength);
+		return ReadOnlySpan<T>(pointer + start, sliceLength, owner);
 	}
 }

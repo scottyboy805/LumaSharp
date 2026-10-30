@@ -47,12 +47,12 @@ public class List<T> where T : default
 
 	public static unsafe implicit operator Span<T>(List<T> source)
 	{
-		return Span<T>(source.Ptr, source.Count);
+		return Span<T>(source.Ptr, source.Count, source.items);
 	}
 
 	public static unsafe implicit operator ReadOnlySpan<T>(List<T> source)
 	{
-		return ReadOnlySpan<T>(source.Ptr, source.Count);
+		return ReadOnlySpan<T>(source.Ptr, source.Count, source.items);
 	}
 
 	public T this[int32 index]

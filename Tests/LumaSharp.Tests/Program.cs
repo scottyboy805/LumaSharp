@@ -62,6 +62,39 @@ public sealed class CompilerTests
         Assert.Contains(oldSyntaxResult.Diagnostics, diagnostic => diagnostic.Code == "LS0001");
     }
 
+    [Fact]
+    public void RefLocalsReturnsAndRefStructsUseInferredOrExplicitRefSyntax()
+    {
+        const string source = "class Box { public int32 Value; } ref struct View { public int32 Value; } class Program { public static ref int32 Echo(ref int32 value) { return ref value; } public static View Copy(View value) { return value; } public static int32 Main() { int32[] values = { 3, 5 }; let first = ref values[0]; first = 11; Box box = new Box(); let field = ref box.Value; field = 13; int32 local = 17; ref int32 alias = ref local; var returned = ref Echo(ref alias); returned = 19; View view = default(View); View copy = Copy(view); return values[0] == 11 && box.Value == 13 && local == 19 && view.Value == 0 && copy.Value == 0 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+    }
+
+    [Fact]
+    public void RefReturnsCannotEscapeMethodLocalStorageAndRefFieldsAreRejected()
+    {
+        var escapingLocal = Compile("class Program { public static ref int32 Bad() { int32 value = 1; return ref value; } public static int32 Main() { return 0; } }");
+        Assert.False(escapingLocal.Succeeded);
+        Assert.Contains(escapingLocal.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        var refField = Compile("ref struct Holder { public ref int32 value; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(refField.Succeeded);
+        Assert.Contains(refField.Diagnostics, diagnostic => diagnostic.Code == "LMC3000");
+
+        var oldLocalForm = Compile("class Program { public static int32 Main() { int32 value = 1; let ref alias = ref value; return alias; } }");
+        Assert.False(oldLocalForm.Succeeded);
+
+        var oldVarForm = Compile("class Program { public static int32 Main() { int32 value = 1; ref var alias = ref value; return alias; } }");
+        Assert.False(oldVarForm.Succeeded);
+
+        var escapedRefStruct = Compile("ref struct View { public int32 Value; } class Container { public View stored; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(escapedRefStruct.Succeeded);
+        Assert.Contains(escapedRefStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+    }
+
     [Theory]
     [InlineData("public class Program { public static int32 Main() { return 0; } }")]
     [InlineData("internal class Program { public static int32 Main() { return 0; } }")]
@@ -477,8 +510,22 @@ public sealed class CompilerTests
                     ReadOnlySpan<int32> emptyReadonlyArraySpan = new int32[0];
                     Span<int32> emptySpan = Span<int32>.Empty;
                     ReadOnlySpan<int32> emptyReadonlySpan = ReadOnlySpan<int32>.Empty;
+                    ReadOnlySpan<char> stringSpan = "span";
+                    int32[]? arrayOwner = new int32[1];
+                    arrayOwner[0] = 61;
+                    Span<int32> retainedArraySpan = arrayOwner!;
+                    arrayOwner = null;
+                    string? stringOwner = "kept";
+                    ReadOnlySpan<char> retainedStringSpan = stringOwner!;
+                    stringOwner = null;
+                    List<int32>? listOwner = new List<int32>();
+                    listOwner.Add(71);
+                    Span<int32> retainedListSpan = listOwner!;
+                    listOwner = null;
                     return writable[0] == 42 && readonlyFromSpan[0] == 42 && readonlyDirectly[0] == 42 &&
                         readonlyArraySpan[0] == 52 && array[0] == 52 && *firstArrayElement == 52 &&
+                        stringSpan.Length == 4 && stringSpan[1] == 'p' &&
+                        retainedArraySpan[0] == 61 && retainedStringSpan[1] == 'e' && retainedListSpan[0] == 71 &&
                         emptyArraySpan.IsEmpty && emptyReadonlyArraySpan.IsEmpty && emptySpan.IsEmpty && emptyReadonlySpan.IsEmpty &&
                         emptyArraySpan.Ptr == null && emptyReadonlyArraySpan.Ptr == null ? 0 : 1;
                 }

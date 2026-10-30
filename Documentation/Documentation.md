@@ -407,6 +407,35 @@ Parameters pass by value unless a modifier says otherwise:
 
 `scope` can be combined with `ref`, `in`, or `out`. `readonly` is not a parameter modifier; use `in` for a readonly reference and `scope` for a non-escaping lifetime.
 
+### Ref locals and returns
+
+Use `ref` on the initializer to make a local alias existing storage. `let` and `var` infer the element type automatically; when you write the type yourself, put `ref` before it:
+
+```lumasharp
+int32[] values = { 3, 5, 8 };
+var first = ref values[0];
+first = 10;
+
+ref int32 second = ref values[1];
+```
+
+The alias can update the original location. `let` keeps the alias binding itself immutable, while writes through the alias still update the referenced value. A ref local cannot be captured by a lambda.
+
+A method can return a reference to caller storage:
+
+```lumasharp
+public static ref int32 First(ref int32 value)
+{
+    return ref value;
+}
+```
+
+Ref returns currently allow non-`scope` `ref`/`out` parameters and mutable static fields. The compiler rejects returning a method local or instance-owned field. Ref fields are not supported.
+
+Mark a struct `ref struct` when it represents a view over other storage. Ref structs are limited to locals, parameters, and return values; they cannot be fields, array elements, boxed, or captured. `Span<T>` and `ReadOnlySpan<T>` are ref structs.
+
+Spans created from arrays, strings, or collection backing arrays hold a strong reference to that storage, including after slicing or conversion to a read-only span. The pointer-and-length constructors do not hold an owner; use those only when unsafe code guarantees that the memory remains valid.
+
 ```lumasharp
 using System;
 
@@ -840,7 +869,7 @@ public class Example
 }
 ```
 
-Span values borrow the underlying memory. Do not keep a span after the source storage's lifetime. Compiler enforcement of all ref-struct-style storage restrictions is not complete yet.
+Span values borrow the underlying memory. Ref-struct rules prevent storing them in fields or arrays and prevent lambda capture. Keep a span within the lifetime of its source storage.
 
 ## 13. Collections
 
@@ -946,7 +975,6 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - There is no garbage collector. Strong reference cycles are not reclaimed automatically; use weak references or break cycles explicitly.
 - Generic method inference and generic constrained operations have edge cases that are still being completed.
 - `List<T>` does not currently participate in the generic enumerable protocol. Some collection APIs, including dictionary enumeration and custom comparers, are absent.
-- Span-like values are not yet fully protected by ref-struct storage and escape rules.
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls with compatible low-level types; dynamic library loading and managed callbacks are not part of the current surface.
 - IO is synchronous and minimal. Async, timeouts, and broad .NET `File`/`Directory` APIs are not present.

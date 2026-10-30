@@ -13,13 +13,13 @@ public virtual class Array : Object
 	{
 		if (source.Length == 0)
 			return Span<T>.Empty;
-		return Span<T>(source.Ptr, source.Length);
+		return Span<T>(source.Ptr, source.Length, source);
 	}
 
 	internal static unsafe ReadOnlySpan<T> ToReadOnlySpan<T>(T[] source)
 	{
 		if (source.Length == 0)
 			return ReadOnlySpan<T>.Empty;
-		return ReadOnlySpan<T>(source.Ptr, source.Length);
+		return ReadOnlySpan<T>(source.Ptr, source.Length, source);
 	}
 }

@@ -3020,6 +3020,26 @@ void Caller()
 
 Ordinary heap references can be passed freely to either scoped or unscoped parameters. Scope-bound references may only be passed to `scope` or `in` parameters and non-escaping receivers.
 
+### 14.7.1 Ref Locals, Ref Returns, and Ref Structs
+
+A ref local is an alias to existing storage. Inferred declarations use `let` or `var` with a `ref` initializer; the local name itself does not need a `ref` modifier. An explicitly typed ref local places `ref` before its type:
+
+```lumasharp
+int32[] values = { 1, 2, 3 };
+var first = ref values[0];
+first = 10;
+
+ref int32 second = ref values[1];
+```
+
+The alias reads and writes the referenced location. `let` makes the local binding immutable; it does not make the referenced value read-only. A ref initializer MUST identify mutable storage, such as a local, field, array element, or ref-returning call. Ref locals MUST NOT be captured by lambdas.
+
+Methods may declare `ref T` returns and return a location with `return ref expression;`. To keep the returned address valid, this version permits returning a non-`scope` `ref` or `out` parameter and a mutable static field. Returning a method local or instance-owned location is rejected. Ref-returning methods cannot be virtual, overrides, extern methods, or operators. A ref-returning call may be used as a ref local initializer or as an assignment target.
+
+`ref struct` declares a stack-bound struct, suitable for pointer-and-length views such as `Span<T>`. A ref struct can be used as a local, parameter, or return value, but MUST NOT be stored in a class/struct field, static field, managed array, boxed value, or captured by a lambda. Ref fields are not supported. A ref struct may contain ordinary fields, including managed owner references, to preserve the storage lifetime of its view.
+
+The runtime `Span<T>` and `ReadOnlySpan<T>` retain a strong owner when created from a managed array, string, or collection backing array, and preserve that owner through slicing and span-to-read-only-span conversion. Their pointer-and-length constructors do not establish an owner; using them with unmanaged storage is an unsafe operation and the caller is responsible for keeping that storage valid.
+
 ## 14.8 Reference Cycles `[P-21]`
 
 LumaSharp uses reference counting. **A group of objects that strongly reference each other is not reclaimed automatically**, even if nothing else refers to the group. There is no cycle collector. `System.Weak<T>` provides a non-owning observation of a class instance and can be used to break ownership cycles; it does not collect cycles by itself. Programs that build cyclic structures MUST still break the strong cycle, typically by assigning `null` to a nullable reference field.
@@ -4014,8 +4034,8 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Multicast delegates | Delegates are single-target (§17) |
 | Extension methods | |
 | User-defined implicit/explicit conversions | |
-| `ref` locals, `ref` returns, `ref` fields, `ref struct` | |
-| Ranges/indices, slicing, spans | `...` may move to a read-only span later |
+| `ref` fields | Ref fields are not supported; ref locals, ref returns, and ref structs are specified in §14.7.1 |
+| Ranges/indices | `...` may move to a read-only span later |
 | Rectangular arrays above three dimensions | |
 | Nested namespace blocks, `using static`, global usings | |
 | Generic variance (`in`/`out`), generic virtual methods, static abstract interface members | §12.6 |
