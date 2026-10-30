@@ -8034,6 +8034,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     var length = elements.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     var array = NewTemp();
                     EmitArrayAllocation(array, length, 1, [length], elementType);
+                    if (parameter.IsScoped)
+                    {
+                        _statementScopeTemps.Add((array, parameter.TypeName, true));
+                        _scopeBoundArrayValues.Add(array);
+                    }
                     var data = NewTemp(); Emit($"{data} = getelementptr %luma.array, ptr {array}, i32 0, i32 7");
                     for (var elementIndex = 0; elementIndex < elements.Count; elementIndex++)
                     {
@@ -8054,7 +8059,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                             if (element.Type != elementType) ReleaseOwnedAggregate(element);
                         }
                     }
-                    _ownedArrayValues.Add(array);
+                    if (!parameter.IsScoped) _ownedArrayValues.Add(array);
                     ownedArrayArguments.Add((array, parameter.TypeName));
                     valuesByParameter[parameterIndex] = (array, parameter.TypeName, false);
                     continue;
