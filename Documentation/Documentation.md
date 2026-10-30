@@ -977,6 +977,7 @@ Each line names a compiled method, starting with the active method and continuin
 ## 15. Unsafe code and native pointers
 
 Unsafe code is opt-in at build time with `--unsafe` and must also appear in an unsafe context. It provides pointer types (`T*`), address-of (`&`), dereference (`*`), pointer arithmetic, `sizeof`, inline arrays, and native `extern` calls.
+Generic types may use their type parameter as a pointer's element type, as in `T*`, inside an unsafe context. The compiler resolves that pointer when it specializes the generic type.
 
 ```lumasharp
 public static unsafe class PointerExamples

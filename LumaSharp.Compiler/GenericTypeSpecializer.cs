@@ -78,8 +78,15 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             var typeReferences = EnumerateTypeStrings(current).ToList();
             var currentInstantiation = _instantiations.FirstOrDefault(instance => ReferenceEquals(instance.Specialized, current));
             var genericLookupContext = currentInstantiation?.Definition ?? current;
+            var openGenericMethodCalls = current.Members.OfType<MethodDeclaration>()
+                .Where(method => method.HasTypeParameters && method.Body is not null)
+                .SelectMany(method => EnumerateNodes(method.Body!).OfType<CallExpression>()
+                    .Where(call => call.TypeArguments?.Any(argument =>
+                        ReferencesAnyTypeParameter(argument, (method.TypeParameters ?? []).ToHashSet(StringComparer.Ordinal))) == true))
+                .ToHashSet(ReferenceEqualityComparer.Instance);
             foreach (var call in EnumerateNodes(current).OfType<CallExpression>())
             {
+                if (openGenericMethodCalls.Contains(call)) continue;
                 if (call.Target is not NameExpression typeName || call.TypeArguments is not { Count: > 0 }) continue;
                 if (genericLookupContext.Members.OfType<MethodDeclaration>().Any(method => method.HasTypeParameters && method.Name == typeName.Name))
                     continue;

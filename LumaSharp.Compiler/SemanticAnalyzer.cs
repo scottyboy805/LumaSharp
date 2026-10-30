@@ -925,8 +925,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
             else if (declaration.Body is null && !(method.IsClassInstanceMethod && declaration.IsVirtual && method.Owner.IsVirtual))
                 diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Bodyless methods must be extern or virtual members in a virtual class.", declaration.Location);
-            ValidateDeclaredType(declaration.ReturnType, "Return", declaration.Location, method.Owner);
-            foreach (var p in declaration.Parameters) ValidateDeclaredType(p.TypeName, "Parameter", p.Location, method.Owner);
+            ValidateDeclaredType(declaration.ReturnType, "Return", declaration.Location, method.Owner, declaration.TypeParameters);
+            foreach (var p in declaration.Parameters)
+                ValidateDeclaredType(p.TypeName, "Parameter", p.Location, method.Owner, declaration.TypeParameters);
             if (declaration.Body is not null) { AnalyzeMethod(method); AnalyzeOutParameterFlow(method); }
         }
         ValidateConstructorDelegationCycles();
@@ -1434,7 +1435,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         };
     }
 
-    private bool IsSupportedType(string type) => SupportedTypes.Contains(type) || _enumUnderlyingTypes.ContainsKey(type) || _structTypes.ContainsKey(type) || _classTypes.ContainsKey(type) || _interfaceTypes.ContainsKey(type) || _delegateTypes.ContainsKey(type) || IsPointerType(type) && IsAllowedPointerType(type) ||
+    private bool IsSupportedType(string type, TypeDeclaration? contextType = null, IReadOnlyCollection<string>? methodTypeParameters = null) =>
+        SupportedTypes.Contains(type) || _enumUnderlyingTypes.ContainsKey(type) || _structTypes.ContainsKey(type) || _classTypes.ContainsKey(type) || _interfaceTypes.ContainsKey(type) || _delegateTypes.ContainsKey(type) || IsPointerType(type) && IsAllowedPointerType(type, contextType, methodTypeParameters) ||
         IsNullableClassType(type) || IsNullableDelegateType(type) || IsNullableStringType(type) || IsNullableArrayType(type) || IsNullableValueType(type) ||
         TryParseManagedArrayType(type, out var arrayElementType, out var rank) && rank <= 3 && IsManagedArrayElementType(arrayElementType) ||
         TryParseInlineArrayType(type, out var elementType, out var count) && count > 0 && IsInlineArrayElementType(elementType);
@@ -1611,15 +1613,18 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         private void SkipWhitespace() { while (_position < text.Length && char.IsWhiteSpace(text[_position])) _position++; }
     }
     private bool IsInlineArrayElementType(string type) => NumericTypes.Contains(type) || type == "bool" || IsEnumType(type) || IsStructType(type) || IsPointerType(type) && IsAllowedPointerType(type);
-    private bool IsAllowedPointerType(string type)
+    private bool IsAllowedPointerType(string type, TypeDeclaration? contextType = null, IReadOnlyCollection<string>? methodTypeParameters = null)
     {
         if (!IsPointerType(type)) return false;
         var pointee = type[..^1];
-        if (pointee == "void" || IsPointerType(pointee)) return pointee == "void" || IsAllowedPointerType(pointee);
+        if (pointee == "void" || IsPointerType(pointee)) return pointee == "void" || IsAllowedPointerType(pointee, contextType, methodTypeParameters);
         return SupportedTypes.Contains(pointee) && pointee is not ("void" or "string") ||
-            _enumUnderlyingTypes.ContainsKey(pointee) || IsStructType(pointee) || IsClassType(pointee) || IsNullableType(pointee);
+            _enumUnderlyingTypes.ContainsKey(pointee) || IsStructType(pointee) || IsClassType(pointee) || IsNullableType(pointee) ||
+            contextType?.TypeParameters?.Contains(pointee, StringComparer.Ordinal) == true ||
+            methodTypeParameters?.Contains(pointee, StringComparer.Ordinal) == true;
     }
-    private void ValidateDeclaredType(string type, string role, SourceLocation location, TypeDeclaration? contextType = null)
+    private void ValidateDeclaredType(string type, string role, SourceLocation location, TypeDeclaration? contextType = null,
+        IReadOnlyCollection<string>? methodTypeParameters = null)
     {
         if (contextType is not null) ValidateTypeAccessibility(type, contextType, location);
         var storageType = IsNullableArrayType(type) ? type[..^1] : type;
@@ -1645,9 +1650,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             else if (IsRefStructType(arrayElementType)) diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{arrayElementType}' cannot be stored in a managed array.", location);
             else if (role is not ("Local" or "Parameter" or "Return" or "Inline out local")) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Managed arrays are not yet supported as {role.ToLowerInvariant()}s.", location);
         }
-        else if (IsPointerType(storageType) && !IsAllowedPointerType(storageType)) diagnostics.Add("LS1903", DiagnosticSeverity.Error, $"Pointer type '{type}' is not allowed by the current backend.", location);
+        else if (IsPointerType(storageType) && !IsAllowedPointerType(storageType, contextType, methodTypeParameters)) diagnostics.Add("LS1903", DiagnosticSeverity.Error, $"Pointer type '{type}' is not allowed by the current backend.", location);
         else if (IsRefStructType(storageType) && role is not ("Local" or "Parameter" or "Return")) diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{storageType}' cannot be stored as a {role.ToLowerInvariant()}.", location);
-        else if (!IsSupportedType(type)) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"{role} type '{type}' is not yet supported.", location);
+        else if (!IsSupportedType(type, contextType, methodTypeParameters)) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"{role} type '{type}' is not yet supported.", location);
     }
     private void ValidateExternType(string type, bool allowVoid, SourceLocation location)
     {
@@ -2243,7 +2248,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
         foreach (var (name, structure) in _structTypes.ToArray())
         {
-            if (structure.Fields.All(field => IsSupportedType(field.TypeName)) &&
+            if (structure.Fields.All(field => IsSupportedType(field.TypeName, structure.Declaration)) &&
                 !TryGetTypeLayout(name, [], out _, out _))
                 diagnostics.Add("LS0900", DiagnosticSeverity.Error, $"Struct '{name}' has recursive or unrepresentable by-value containment.", structure.Declaration.Location);
         }
@@ -8027,7 +8032,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     {
                         var parameter = best[0].Method.Declaration.Parameters[best[0].Binding.ParameterBySource[index]];
                         var inlineType = inlineOut.TypeName is null ? parameter.TypeName : args[index];
-                        if (!IsSupportedType(inlineType)) ValidateDeclaredType(inlineType, "Inline out local", inlineOut.Location, context.Method.Owner);
+                        if (!IsSupportedType(inlineType, context.Method.Owner, context.Method.Declaration.TypeParameters))
+                            ValidateDeclaredType(inlineType, "Inline out local", inlineOut.Location, context.Method.Owner, context.Method.Declaration.TypeParameters);
                         if (context.Exists(inlineOut.Name)) diagnostics.Add("LS0201", DiagnosticSeverity.Error, $"Inline out local '{inlineOut.Name}' conflicts with an existing local.", inlineOut.Location);
                         else context.Declare(inlineOut.Name, inlineType, true, inlineOut.Location,
                             forHeaderOwner: context.ForInitializerOwner,
@@ -8819,7 +8825,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         {
             var variable = variables[index];
             var type = variable.TypeName is null ? inferredType : NormalizeEnumType(variable.TypeName, context.Method.Owner);
-                if (variable.TypeName is not null) ValidateDeclaredType(type, "Local", variable.Location, context.Method.Owner);
+            if (variable.TypeName is not null)
+                ValidateDeclaredType(type, "Local", variable.Location, context.Method.Owner, context.Method.Declaration.TypeParameters);
             if (variable.IsConstant && type is not ("bool" or "char" or "int" or "uint" or "int8" or "uint8" or "int16" or "uint16" or "int32" or "uint32" or "int64" or "uint64" or "float" or "double" or "string"))
                 diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Type '{type}' is not permitted for a local constant.", variable.Location);
             var initializerType = initializerTypes[index];

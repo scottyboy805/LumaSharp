@@ -1397,6 +1397,28 @@ public sealed class CompilerTests
         finally { if (File.Exists(objectPath)) File.Delete(objectPath); }
     }
 
+    [Fact]
+    public void RuntimeLibraryCompilesGenericElementPointersInUnsafeContext()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources, new CompilationOptions(UnsafeEnabled: true, StaticLibrary: true));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+    }
+
+    [Fact]
+    public void GenericTypeParametersCanBeUnsafePointerElements()
+    {
+        const string source = "public unsafe struct Buffer<T> { private T* pointer; public this(T* value) { pointer = value; } public T* Ptr => pointer; } " +
+            "unsafe class Program { public static unsafe int32 Main() { int32 value = 42; Buffer<int32> buffer = Buffer<int32>(&value); return *buffer.Ptr == 42 ? 0 : 1; } }";
+        var result = Compile(source, new CompilationOptions(UnsafeEnabled: true));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("%struct.Buffer__g_", result.LlvmIr!, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("x86_64-pc-linux-gnu")]
     [InlineData("i386-pc-linux-gnu")]

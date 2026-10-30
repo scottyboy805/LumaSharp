@@ -3632,7 +3632,7 @@ pointer_type = type "*" ;     // T*, T**, void*
 ```
 
 - `T*` is a **value type** holding an address; the default is `null` (address 0).
-- `T` MUST be: a primitive other than `string`, an enum, another pointer type, `void`, a struct, an inline array element type, or **a class type** (§19.5). Pointers to `string`, arrays, delegates, and interfaces are not permitted (error LS1903); take a pointer to the element or use `void*`.
+- `T` MUST be: a primitive other than `string`, an enum, another pointer type, `void`, a struct, an inline array element type, or **a class type** (§19.5). A type parameter may also be used as the pointee in a generic declaration; each closed instantiation resolves it to a concrete pointee type. Pointers to `string`, arrays, delegates, and interfaces are not permitted (error LS1903); take a pointer to the element or use `void*`.
 - Pointers have **no ownership semantics**: they do not retain, release, or keep anything alive. A pointer to something that is later destroyed *dangles*; dereferencing it is UB.
 - `void*` is an untyped pointer. Any `T*` converts implicitly to `void*`; `void*` converts to `T*` explicitly.
 - Pointers are not nullable-tracked: `null` is assignable to any pointer without `?`, and a pointer can always be compared to `null`.
