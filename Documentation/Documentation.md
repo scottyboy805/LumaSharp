@@ -942,6 +942,32 @@ public class Example
 
 `finally` runs on normal exit, `return`, loop transfers, and exception unwinding. `throw;` inside a catch rethrows the current exception. Runtime checks can raise exceptions for null assertions, failed casts, invalid indices, integer overflow, division by zero, allocation failure, and static initialization errors.
 
+Exceptions expose a nullable `StackTrace` string. The runtime captures it when an exception is first thrown and keeps it when the exception is rethrown. To capture the current call stack directly, use `System.Diagnostics.StackTrace`:
+
+```lumasharp
+using System;
+using System.Diagnostics;
+
+public class Example
+{
+    public static void PrintCallStack()
+    {
+        StackTrace trace = new StackTrace();
+        Console.WriteLine(trace.FrameCount.ToString());
+        Console.WriteLine(trace.ToString());
+    }
+
+    public static void Report(Exception error)
+    {
+        string? trace = error.StackTrace;
+        if (trace != null)
+            Console.WriteLine(trace);
+    }
+}
+```
+
+Each line names a compiled method, starting with the active method and continuing outward. File names and line numbers are not available yet.
+
 ## 15. Unsafe code and native pointers
 
 Unsafe code is opt-in at build time with `--unsafe` and must also appear in an unsafe context. It provides pointer types (`T*`), address-of (`&`), dereference (`*`), pointer arithmetic, `sizeof`, inline arrays, and native `extern` calls.

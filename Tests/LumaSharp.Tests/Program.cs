@@ -354,6 +354,7 @@ public sealed class CompilerTests
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
         Assert.Null(execution.InteropError);
+
     }
 
     [Fact]
@@ -5313,6 +5314,31 @@ public sealed class CompilerTests
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
         Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void StackTraceCapturesLiveCallsAndThrownExceptionCalls()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = "using System.Diagnostics; class Program { public static int32 Leaf() { StackTrace trace = new StackTrace(); string text = trace.ToString(); if (trace.FrameCount != 3 || text != \"at Program.Leaf()\\nat Program.Middle()\\nat Program.Main()\\n\") return 1; return 0; } public static int32 Middle() { return Leaf(); } public static void Raise() { throw new System.Exception(\"stack trace\"); } public static int32 Main() { if (Middle() != 0) return 1; try { Raise(); } catch (System.Exception error) { string? trace = error.StackTrace; if (trace != \"at Program.Raise()\\nat Program.Main()\\n\") return 2; return 0; } return 3; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("stacktrace-test.ls", source)));
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+
+        const string unhandledSource = "class Program { public static void Raise() { throw new System.Exception(\"unhandled stack\"); } public static int32 Main() { Raise(); return 0; } }";
+        var unhandledResult = LumaCompiler.Compile(runtimeSources.Append(("unhandled-stacktrace-test.ls", unhandledSource)));
+        Assert.True(unhandledResult.Succeeded, string.Join(Environment.NewLine, unhandledResult.Diagnostics));
+        var unhandledExecution = LlvmJit.RunMain(unhandledResult.LlvmIr!);
+        Assert.Equal(70, unhandledExecution.ExitCode);
+        Assert.Contains("Stack trace:", LlvmJit.CapturedStderr, StringComparison.Ordinal);
+        Assert.Contains("Program.Raise()", LlvmJit.CapturedStderr, StringComparison.Ordinal);
+        Assert.Null(unhandledExecution.InteropError);
     }
 
     [Fact]

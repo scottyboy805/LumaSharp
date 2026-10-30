@@ -145,6 +145,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             var fields = classType.Fields.Count == 0 ? "" : ", " + string.Join(", ", classType.Fields.Select(field => LlvmType(field.TypeName)));
             _output.AppendLine($"%class.{Safe(name)} = type {{ ptr, i32, i32, ptr{fields} }}");
         }
+        if (HasStackTraceSupport())
+        {
+            _output.AppendLine("%luma.stackframe = type { ptr, ptr, i32 }");
+            _output.AppendLine("@luma_stack_current = internal thread_local global ptr null");
+        }
         if (HasManagedClassSupport() || HasStringSupport())
             _output.AppendLine("%luma.typedesc = type { ptr, ptr, ptr, i32, ptr, ptr, ptr, ptr, i32, ptr }");
         foreach (var name in compilation.DelegateTypes.Keys.Order(StringComparer.Ordinal))
@@ -200,10 +205,12 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         if (nativeEnvironmentMethods.Length > 0) EmitNativeEnvironmentRuntime();
         var nativeStopWatchMethods = compilation.Methods.Where(IsNativeStopWatchShim).ToArray();
         if (nativeStopWatchMethods.Length > 0) EmitNativeStopWatchRuntime();
+        var nativeStackTraceMethods = compilation.Methods.Where(IsNativeStackTraceShim).ToArray();
+        if (nativeStackTraceMethods.Length > 0) EmitNativeStackTraceRuntime();
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsNativeFileSystemShim(method) && !IsNativeEnvironmentShim(method) && !IsNativeStopWatchShim(method)) EmitExternDeclaration(method);
+            if (!IsNativeFileSystemShim(method) && !IsNativeEnvironmentShim(method) && !IsNativeStopWatchShim(method) && !IsNativeStackTraceShim(method)) EmitExternDeclaration(method);
         }
         foreach (var method in compilation.Methods)
         {
@@ -249,6 +256,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 var ctor = FindTypeInitializationExceptionConstructor();
                 _output.AppendLine("  store ptr null, ptr @luma_pending_exception");
                 var circularWrapper = EmitTypeInitializationExceptionObject("circular.wrapper", circularMessage, "null", ctor);
+                if (HasStackTraceSupport()) _output.AppendLine($"  call void @luma_exception_capture_stacktrace(ptr {circularWrapper}, i1 false)");
                 _output.AppendLine("  %circular.previous.exception = load ptr, ptr @luma_pending_exception");
                 _output.AppendLine("  call void @luma_class_release_dynamic(ptr %circular.previous.exception)");
                 _output.AppendLine($"  store ptr {circularWrapper}, ptr @luma_pending_exception");
@@ -295,6 +303,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                 var ctor = FindTypeInitializationExceptionConstructor();
                 _output.AppendLine("  store ptr null, ptr @luma_pending_exception");
                 var failureWrapper = EmitTypeInitializationExceptionObject("failure.wrapper", failureMessage, "%initialization.exception", ctor);
+                if (HasStackTraceSupport()) _output.AppendLine($"  call void @luma_exception_capture_stacktrace(ptr {failureWrapper}, i1 false)");
                 _output.AppendLine("  call void @luma_class_release_dynamic(ptr %initialization.exception)");
                 _output.AppendLine($"  call void @luma_class_retain_dynamic(ptr {failureWrapper})");
                 _output.AppendLine($"  store ptr {failureWrapper}, ptr @luma_type_init_failure_{safeType}");
@@ -970,6 +979,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
     {
         _output.AppendLine($"define internal void @{functionName}() {{");
         _output.AppendLine("entry:");
+        if (HasStackTraceSupport() && functionName == "luma_raise_overflow")
+            _output.AppendLine($"  call void @luma_exception_capture_stacktrace(ptr @{instanceName}, i1 true)");
         _output.AppendLine("  %previous.exception = load ptr, ptr @luma_pending_exception");
         _output.AppendLine("  %has.previous.exception = icmp ne ptr %previous.exception, null");
         _output.AppendLine("  br i1 %has.previous.exception, label %release.previous, label %store.new");
@@ -1096,12 +1107,20 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         EmitUtf8CConstant("@luma_inner_exception_prefix", "  InnerException: ");
         EmitUtf8CConstant("@luma_exception_separator", ": ");
         EmitUtf8CConstant("@luma_exception_newline", "\n");
+        if (HasStackTraceSupport())
+            EmitUtf8CConstant("@luma_exception_stacktrace_prefix", "  Stack trace:\n");
 
         var unhandledPrefix = ConstantPointer("@luma_unhandled_prefix", "Unhandled exception: ");
         var innerPrefix = ConstantPointer("@luma_inner_exception_prefix", "  InnerException: ");
         var separator = ConstantPointer("@luma_exception_separator", ": ");
         var newline = ConstantPointer("@luma_exception_newline", "\n");
         var exceptionLayout = "%class." + Safe("System.Exception");
+        var exceptionFields = compilation.ClassTypes["System.Exception"].Fields;
+        var messageField = exceptionFields.FirstOrDefault(field => field.Declaration.Name is "$backing_Message" or "Message")
+            ?? throw new InvalidOperationException("System.Exception has no Message field.");
+        var innerExceptionField = exceptionFields.FirstOrDefault(field => field.Declaration.Name is "$backing_InnerException" or "InnerException")
+            ?? throw new InvalidOperationException("System.Exception has no InnerException field.");
+        var stackTraceField = HasStackTraceSupport() ? exceptionFields.Single(field => field.Declaration.Name == "stackTrace") : null;
         _output.AppendLine("define internal void @luma_report_unhandled_exception(ptr %exception) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  br label %walk");
@@ -1124,20 +1143,37 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         _output.AppendLine("  %name = load ptr, ptr %name.address");
         _output.AppendLine("  call void @luma_write_stderr_cstr(ptr %name)");
         _output.AppendLine($"  call void @luma_write_stderr_cstr(ptr {separator})");
-        _output.AppendLine($"  %message.address = getelementptr {exceptionLayout}, ptr %current.exception, i32 0, i32 3");
+        _output.AppendLine($"  %message.address = getelementptr {exceptionLayout}, ptr %current.exception, i32 0, i32 {messageField.Index + 4}");
         _output.AppendLine("  %message = load ptr, ptr %message.address");
         _output.AppendLine("  %message.is.null = icmp eq ptr %message, null");
-        _output.AppendLine("  br i1 %message.is.null, label %newline, label %write.message");
+        _output.AppendLine("  br i1 %message.is.null, label %message.newline, label %write.message");
         _output.AppendLine("write.message:");
         _output.AppendLine("  %message.bytes.address = getelementptr %luma.string, ptr %message, i32 0, i32 4");
         _output.AppendLine("  %message.bytes = load ptr, ptr %message.bytes.address");
         _output.AppendLine("  %message.length.address = getelementptr %luma.string, ptr %message, i32 0, i32 6");
         _output.AppendLine("  %message.length = load i32, ptr %message.length.address");
         _output.AppendLine("  call void @luma_write_stderr(ptr %message.bytes, i32 %message.length)");
-        _output.AppendLine("  br label %newline");
-        _output.AppendLine("newline:");
+        _output.AppendLine("  br label %message.newline");
+        _output.AppendLine("message.newline:");
         _output.AppendLine($"  call void @luma_write_stderr_cstr(ptr {newline})");
-        _output.AppendLine($"  %inner.address = getelementptr {exceptionLayout}, ptr %current.exception, i32 0, i32 4");
+        if (stackTraceField is not null)
+        {
+            var stackTracePrefix = ConstantPointer("@luma_exception_stacktrace_prefix", "  Stack trace:\n");
+            _output.AppendLine($"  %stacktrace.address = getelementptr {exceptionLayout}, ptr %current.exception, i32 0, i32 {stackTraceField.Index + 4}");
+            _output.AppendLine("  %stacktrace = load ptr, ptr %stacktrace.address");
+            _output.AppendLine("  %stacktrace.is.null = icmp eq ptr %stacktrace, null");
+            _output.AppendLine("  br i1 %stacktrace.is.null, label %inner.check, label %write.stacktrace");
+            _output.AppendLine("write.stacktrace:");
+            _output.AppendLine($"  call void @luma_write_stderr_cstr(ptr {stackTracePrefix})");
+            _output.AppendLine("  %stacktrace.bytes.address = getelementptr %luma.string, ptr %stacktrace, i32 0, i32 4");
+            _output.AppendLine("  %stacktrace.bytes = load ptr, ptr %stacktrace.bytes.address");
+            _output.AppendLine("  %stacktrace.length.address = getelementptr %luma.string, ptr %stacktrace, i32 0, i32 6");
+            _output.AppendLine("  %stacktrace.length = load i32, ptr %stacktrace.length.address");
+            _output.AppendLine("  call void @luma_write_stderr(ptr %stacktrace.bytes, i32 %stacktrace.length)");
+            _output.AppendLine("  br label %inner.check");
+            _output.AppendLine("inner.check:");
+        }
+        _output.AppendLine($"  %inner.address = getelementptr {exceptionLayout}, ptr %current.exception, i32 0, i32 {innerExceptionField.Index + 4}");
         _output.AppendLine("  %inner.exception = load ptr, ptr %inner.address");
         _output.AppendLine("  %has.inner = icmp ne ptr %inner.exception, null");
         _output.AppendLine("  br i1 %has.inner, label %next, label %done");
@@ -1160,6 +1196,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         var length = Encoding.UTF8.GetByteCount(value + "\0");
         return $"getelementptr inbounds ([{length} x i8], ptr {name}, i32 0, i32 0)";
     }
+    private bool HasStackTraceSupport() => compilation.ClassTypes.ContainsKey("System.Diagnostics.StackTrace") &&
+        compilation.ClassTypes.TryGetValue("System.Exception", out var exceptionType) && exceptionType.Fields.Any(field => field.Declaration.Name == "stackTrace");
     private bool HasStringSupport() => compilation.StringLiteralPool.Count > 0 ||
         compilation.StringLengthAccesses.Count > 0 || compilation.StringIndexAccesses.Count > 0 ||
         compilation.VariableTypes.Values.Any(IsStringType) ||
@@ -1218,8 +1256,18 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
         var linkage = IsRuntimeIntrinsicType(method.Owner) ? "internal " : "";
+        string? frameNameSymbol = null;
+        var frameNameLength = 0;
+        if (HasStackTraceSupport())
+        {
+            var functionName = FunctionName(method, compilation.Methods);
+            var readableName = QualifiedTypeName(method.Owner) + "." + d.Name + "(" + string.Join(", ", d.Parameters.Select(parameter => parameter.TypeName)) + ")";
+            frameNameSymbol = "@luma_stack_name_" + Safe(functionName);
+            frameNameLength = Encoding.UTF8.GetByteCount(readableName);
+            EmitUtf8CConstant(frameNameSymbol, readableName);
+        }
         _output.AppendLine($"define {linkage}{LlvmReturnType(d)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", functionParameters)}) {{");
-        var body = emitter.Emit(d.Body!); _output.Append(body); _output.AppendLine("}");
+        var body = emitter.Emit(d.Body!, frameNameSymbol, frameNameLength); _output.Append(body); _output.AppendLine("}");
     }
     private void EmitExternDeclaration(MethodSymbol method)
     {
@@ -3471,10 +3519,22 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         private sealed record TryFrame(TryStatement Statement, int Depth, int OuterScopeDepth, ExceptionRegion? Handler);
         private sealed record FinallyContext(TryFrame Frame, BlockStatement Body);
         private sealed record SavedPropagation(string ExceptionSlot, string HandlerSlot, int HandlerDepth);
-        public string Emit(BlockStatement body)
+        public string Emit(BlockStatement body, string? frameNameSymbol, int frameNameLength)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Label("entry");
+            if (frameNameSymbol is not null)
+            {
+                Emit("%luma.stack.frame = alloca %luma.stackframe");
+                Emit("%luma.stack.previous = load ptr, ptr @luma_stack_current");
+                Emit("%luma.stack.previous.address = getelementptr %luma.stackframe, ptr %luma.stack.frame, i32 0, i32 0");
+                Emit("store ptr %luma.stack.previous, ptr %luma.stack.previous.address");
+                Emit("%luma.stack.name.address = getelementptr %luma.stackframe, ptr %luma.stack.frame, i32 0, i32 1");
+                Emit($"store ptr {frameNameSymbol}, ptr %luma.stack.name.address");
+                Emit("%luma.stack.length.address = getelementptr %luma.stackframe, ptr %luma.stack.frame, i32 0, i32 2");
+                Emit($"store i32 {frameNameLength}, ptr %luma.stack.length.address");
+                Emit("store ptr %luma.stack.frame, ptr @luma_stack_current");
+            }
             foreach (var environment in closureEnvironments.Values
                          .Concat(forHeaderClosureEnvironments.Values)
                          .Concat(forInClosureEnvironments.Values)
@@ -3586,7 +3646,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                     Emit(method.Declaration.ReturnType == "void" ? "ret void" : method.Declaration.ReturnsByRef ? "ret ptr null" : $"ret {LlvmType(method.Declaration.ReturnType)} 0");
                 }
             }
-            return _ir.ToString();
+            var output = _ir.ToString();
+            if (frameNameSymbol is null) return output;
+            var framedOutput = new StringBuilder();
+            foreach (var line in output.Split('\n'))
+            {
+                if (line.TrimStart().StartsWith("ret ", StringComparison.Ordinal))
+                    framedOutput.AppendLine("  store ptr %luma.stack.previous, ptr @luma_stack_current");
+                framedOutput.AppendLine(line.TrimEnd('\r'));
+            }
+            return framedOutput.ToString();
         }
         private void EmitStatement(Statement statement)
         {
@@ -3767,6 +3836,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
 
         private void EmitRaisePreparedException(string exception)
         {
+            if (classTypes.ContainsKey("System.Diagnostics.StackTrace") && classTypes.TryGetValue("System.Exception", out var exceptionType) &&
+                exceptionType.Fields.Any(field => field.Declaration.Name == "stackTrace"))
+                Emit($"call void @luma_exception_capture_stacktrace(ptr {exception}, i1 false)");
             var previousException = NewTemp();
             Emit($"{previousException} = load ptr, ptr @luma_pending_exception");
             var hasPreviousException = NewTemp();
@@ -7852,6 +7924,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
                     _ => throw new NotSupportedException($"Unknown weak-reference runtime helper '{target.Declaration.Name}'.")
                 };
                 call = $"call {LlvmType(resultType)} @{intrinsic}({string.Join(", ", allArguments)})";
+            }
+            else if (IsNativeStackTraceShim(target))
+            {
+                var intrinsic = target.Declaration.Name switch
+                {
+                    "CaptureRuntime" => "luma_stacktrace_capture",
+                    "FrameCountRuntime" => "luma_stacktrace_frame_count",
+                    _ => throw new NotSupportedException($"Unknown stack trace runtime helper '{target.Declaration.Name}'.")
+                };
+                call = $"call {LlvmType(resultType)} @{intrinsic}({string.Join(", ", llvmCallArguments)})";
             }
             else call = $"call {returnAttribute}{llvmResultType} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
             Emit(result is null ? call : $"{result} = {call}");

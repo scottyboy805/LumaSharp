@@ -913,7 +913,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     declaration.Name is "luma_fs_current_directory" or "luma_fs_temporary_directory" && declaration.ReturnType == "string";
                 var isEnvironmentStringResult = method.Owner.Namespace == "System" && method.Owner.Name == "Environment" &&
                     declaration.Name is "luma_env_executable_path" or "luma_env_executable_directory" or "luma_env_executable_name" && declaration.ReturnType == "string";
-                if (!isFileSystemStringResult && !isEnvironmentStringResult)
+                var isStackTraceStringResult = method.Owner.Namespace == "System.Diagnostics" && method.Owner.Name == "StackTrace" &&
+                    declaration.Name == "CaptureRuntime" && declaration.ReturnType == "string";
+                if (!isFileSystemStringResult && !isEnvironmentStringResult && !isStackTraceStringResult)
                     ValidateExternType(declaration.ReturnType, allowVoid: true, declaration.Location);
                 foreach (var parameter in declaration.Parameters)
                 {

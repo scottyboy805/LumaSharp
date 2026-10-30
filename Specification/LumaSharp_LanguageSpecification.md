@@ -4656,7 +4656,9 @@ The exception object is a counted object. The runtime holds one reference from t
 
 ## 31.9 Stack Traces
 
-Recording and printing stack traces is **optional and implementation-defined**; no language construct depends on it.
+Recording and printing stack traces is **optional and implementation-defined**; no language construct depends on it. When an implementation provides traces, `Exception.StackTrace` contains the trace captured when the exception was first raised; `throw;` preserves that original trace. An implementation MAY expose a `System.Diagnostics.StackTrace` API for capturing the current call stack.
+
+The current LumaSharp runtime records compiled method names, ordered from the active method outward, without source file or line information. `new System.Diagnostics.StackTrace()` captures the current call stack; `FrameCount` reports its number of frames and `ToString()` returns one `at <type>.<method>(<parameter types>)` entry per line. `Exception.StackTrace` is nullable until the exception is thrown. Unhandled-exception reports include the trace when one was recorded.
 
 ---
 
