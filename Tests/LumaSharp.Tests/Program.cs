@@ -331,6 +331,43 @@ public sealed class CompilerTests
         }
     }
 
+    [Theory]
+    [InlineData("x86_64-pc-windows-msvc")]
+    [InlineData("i686-pc-windows-msvc")]
+    [InlineData("x86_64-pc-linux-gnu")]
+    [InlineData("i386-pc-linux-gnu")]
+    [InlineData("aarch64-apple-darwin")]
+    public void ThreadingRuntimeIntrinsicsAreEmittedAndVerifiedForEachTarget(string targetTriple)
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = "using System.Threading; class Program { public static void Work(int32 value) { } public static int32 Main() { Thread current = Thread.CurrentThread; Thread currentAgain = Thread.CurrentThread; if (!current.IsCurrentThread) return 1; if (current != currentAgain) return 1; Thread worker = new Thread(); worker.Start<int32>(Work, 42); return 0; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("threading-target-test.ls", source)),
+            new CompilationOptions(UnsafeEnabled: true, TargetTriple: targetTriple));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("define internal ptr @luma_thread_entry", result.LlvmIr);
+        Assert.Contains("define internal i1 @luma_thread_join", result.LlvmIr);
+        Assert.Contains("define internal void @luma_thread_sleep", result.LlvmIr);
+        Assert.Contains("luma_thread_invoke_System_Threading_ThreadStart_int32", result.LlvmIr);
+        if (targetTriple.Contains("windows", StringComparison.Ordinal))
+            Assert.Contains("declare ptr @CreateThread", result.LlvmIr);
+        else
+            Assert.Contains("declare i32 @pthread_create", result.LlvmIr);
+
+        var objectPath = Path.Combine(Path.GetTempPath(), "lumasharp-threading-" + Guid.NewGuid().ToString("N") + ".obj");
+        try
+        {
+            var emitted = LlvmToolchain.VerifyAndEmitObject(result.LlvmIr!, objectPath, targetTriple, optimize: true);
+            Assert.True(emitted.Succeeded, emitted.Error);
+        }
+        finally
+        {
+            if (File.Exists(objectPath)) File.Delete(objectPath);
+        }
+    }
+
     [Fact]
     public void StopWatchAndTimeSpanSupportElapsedStateTransitions()
     {

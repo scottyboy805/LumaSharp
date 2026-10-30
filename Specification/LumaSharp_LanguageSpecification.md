@@ -3097,7 +3097,7 @@ This guarantee does **not** make user objects thread-safe. In particular:
 - Concurrent unsynchronised reads/writes of the **same variable or field** (a data race on a reference-typed storage location itself) are not protected and are **undefined behaviour in unsafe contexts / unspecified in safe code** until synchronisation primitives are specified in a later version.
 - Finalizers run on the thread that performs the final release.
 
-Threading primitives themselves are not part of this version.
+Synchronization primitives beyond `Thread` are not part of this version.
 
 ## 14.10 Examples of Complete Lifetimes
 
@@ -4718,7 +4718,9 @@ The compiler may reserve identifiers beginning with `__` for operations needed b
 
 Each intrinsic is registered with a name, source-level signature, and lowering description. The registry is the single binding point for new intrinsic operations, so adding an intrinsic does not change the meaning of existing names. A call must match the registered signature, including `out` arguments where required. The compiler may lower an intrinsic to inline LLVM, a platform API, or an internal runtime shim.
 
-The current implementation uses short names for memory (`__memalloc`, `__memcpy`), arrays (`__arrlen`, `__arrdim`), dynamic libraries (`__libopen`), files (`__fileopen`, `__fileexists`), environment information, timing, weak references, and stack traces. These names are runtime implementation details and are not a general source-level API.
+The current implementation uses short names for memory (`__memalloc`, `__memcpy`), arrays (`__arrlen`, `__arrdim`), dynamic libraries (`__libopen`), files (`__fileopen`, `__fileexists`), environment information, timing, threads (`__threadstart`, `__threadjoin`, `__threadsleep`), weak references, and stack traces. These names are runtime implementation details and are not a general source-level API.
+
+The current `System.Threading.Thread` runtime runs `ThreadStart` and `ThreadStart<T>` callbacks on native threads. `Join(timeout)` bounds the wait and returns whether the worker finished; it does not terminate a worker when the timeout expires. `Stop(timeout)` requests cooperative cancellation, which worker code observes through `IsCancellationRequested`, and then waits up to the timeout. Forceful asynchronous termination is not provided because it can bypass scope cleanup, finalizers, and reference-count releases.
 
 Intrinsic parameters that accept `string` receive the LumaSharp UTF-16 string representation. A platform lowering performs any required conversion to a native encoding. The current POSIX conversion path reuses per-thread scratch storage for short strings and uses temporary heap storage for longer values; returned scratch storage is valid only for the duration of the synchronous intrinsic call. This conversion does not apply to user-declared extern methods.
 

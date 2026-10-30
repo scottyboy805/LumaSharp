@@ -205,6 +205,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         if (intrinsicFamilies.Contains("interop") || intrinsicFamilies.Contains("memory")) EmitNativeInteropRuntime();
         if (intrinsicFamilies.Contains("environment")) EmitNativeEnvironmentRuntime();
         if (intrinsicFamilies.Contains("clock")) EmitNativeStopWatchRuntime();
+        if (intrinsicFamilies.Contains("threading")) EmitNativeThreadRuntime();
         if (intrinsicFamilies.Contains("stacktrace")) EmitNativeStackTraceRuntime();
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
@@ -7829,6 +7830,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
 
             // Evaluate supplied arguments in source order, then arrange the values into parameter order.
             var valuesByParameter = new (string Value, string Type, bool IsAddress)?[target.Declaration.Parameters.Count];
+            var suppliedTypesByParameter = new string?[target.Declaration.Parameters.Count];
             var ownedStringArguments = new List<(string Value, string Type)>();
             var ownedArrayArguments = new List<(string Value, string Type)>();
             var ownedClassArguments = new List<(string Value, string Type)>();
@@ -7872,6 +7874,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     var supplied = sourceArgumentOverrides is not null
                         ? sourceArgumentOverrides[sourceIndex]
                         : EmitExpression(expression.Arguments[sourceIndex]);
+                    suppliedTypesByParameter[parameterIndex] = supplied.Type;
                     if (IsStringType(supplied.Type)) ownedStringArguments.Add(supplied);
                     if (SemanticAnalyzer.TryParseManagedArrayType(supplied.Type, out _, out _)) ownedArrayArguments.Add(supplied);
                     if (GetClassReferenceType(supplied.Type) is not null) ownedClassArguments.Add(supplied);
@@ -7946,7 +7949,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 var llvmType = LlvmType(value.Type);
                 var attribute = target.Declaration.IsExtern ? AbiAttribute(target.Declaration.Parameters[index].TypeName, enumTypes) : "";
                 return attribute.Length == 0 ? $"{llvmType} {argumentValue}" : $"{llvmType} {attribute.Trim()} {argumentValue}";
-            });
+            }).ToArray();
             var allArguments = instanceReceiverAddress is null ? llvmCallArguments : new[] { $"ptr {instanceReceiverAddress}" }.Concat(llvmCallArguments);
             if (target.IsClassConstructor) allArguments = allArguments.Append($"i1 {(classConstructorCompletes ? "true" : "false")}");
             if (target.Declaration.IsStatic && target.Intrinsic is null) EnsureTypeInitialized(QualifiedTypeName(target.Owner));
@@ -7974,7 +7977,14 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             }
             else if (target.Intrinsic is { } compilerIntrinsic)
             {
-                call = $"call {LlvmType(resultType)} @{compilerIntrinsic.Lowering}({string.Join(", ", llvmCallArguments)})";
+                if (compilerIntrinsic.Name is "__threadstart" or "__threadstartarg")
+                {
+                    var callbackType = suppliedTypesByParameter[0] ?? throw new InvalidOperationException("A thread start intrinsic requires a statically known delegate type.");
+                    var callbackEntry = $"@luma_thread_invoke_{Safe(callbackType)}";
+                    var argument = compilerIntrinsic.Name == "__threadstartarg" ? llvmCallArguments.ElementAt(1) : "ptr null";
+                    call = $"call {LlvmType(resultType)} @luma_thread_start({llvmCallArguments.First()}, {argument}, ptr {callbackEntry})";
+                }
+                else call = $"call {LlvmType(resultType)} @{compilerIntrinsic.Lowering}({string.Join(", ", llvmCallArguments)})";
             }
             else call = $"call {returnAttribute}{llvmResultType} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
             Emit(result is null ? call : $"{result} = {call}");

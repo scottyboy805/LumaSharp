@@ -981,7 +981,36 @@ public class Example
 
 Each line names a compiled method, starting with the active method and continuing outward. File names and line numbers are not available yet.
 
-## 15. Unsafe code and native pointers
+## 15. Threads
+
+`System.Threading.Thread` runs a delegate on a native operating-system thread. Use `ThreadStart` for a callback without arguments or `ThreadStart<T>` when the callback needs one argument:
+
+```lumasharp
+using System.Threading;
+
+public class Worker
+{
+    public static void PrintValue(int32 value)
+    {
+        Console.WriteLine(value.ToString());
+    }
+
+    public static int32 Main()
+    {
+        Thread thread = new Thread();
+        thread.Start<int32>(PrintValue, 42);
+        bool finished = thread.Join(5000);
+        thread.Close();
+        return finished ? 0 : 1;
+    }
+}
+```
+
+`Join()` waits until the callback finishes. `Join(millisecondsTimeout)` returns `false` if the wait expires; the worker keeps running. `Thread.Sleep(millisecondsTimeout)` pauses the current thread. `Thread.CurrentThread` returns the same thread instance each time it is read on a given thread, and `IsCurrentThread` identifies that instance. Call `Close()` after a worker has finished to release its native handle; `Close()` waits for completion if needed.
+
+LumaSharp supports cooperative stopping. A caller can use `Stop(timeout)` to request cancellation and wait up to the timeout. The worker must check `IsCancellationRequested` and return on its own. If the timeout expires, `Stop` returns `false` and the worker remains active. The runtime does not forcibly terminate threads because that could skip cleanup and leave shared runtime state corrupted.
+
+## 16. Unsafe code and native pointers
 
 Unsafe code is opt-in at build time with `--unsafe` and must also appear in an unsafe context. It provides pointer types (`T*`), address-of (`&`), dereference (`*`), pointer arithmetic, `sizeof`, inline arrays, and native `extern` calls.
 Generic types may use their type parameter as a pointer's element type, as in `T*`, inside an unsafe context. The compiler resolves that pointer when it specializes the generic type.
@@ -1049,7 +1078,7 @@ public static unsafe class NativeLibraryExample
 }
 ```
 
-## 16. Runtime library
+## 17. Runtime library
 
 The compiler package includes the LumaSharp runtime sources and locates them beside its installation. In a source checkout it also searches source-tree ancestors for `LumaSharp.Library`. Projects can override discovery with `runtimeLibraryPath` in JSON or `--runtime-library` on the command line. The current library contains core types such as `Object`, `Array`, `Exception`, primitive keyword backing types, `String`, `Span<T>`, `ReadOnlySpan<T>`, `Weak<T>`, and the collections described above.
 
@@ -1084,7 +1113,7 @@ The IO surface is intentionally small: asynchronous methods, timeouts, `Dispose`
 
 Some low-level runtime operations use compiler-reserved names beginning with `__`. They let the runtime reach platform services such as memory allocation, file APIs, and timing without declaring those operations as application-facing `extern` methods. These names are for runtime source files only; ordinary programs should use public runtime classes such as `NativeMemory`, `NativeLibrary`, `File`, and `Environment`.
 
-## 17. Current boundaries
+## 18. Current boundaries
 
 LumaSharp implements a broad language subset, but this guide is not a promise of complete C# compatibility. Keep these current limits in mind:
 
@@ -1099,7 +1128,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 
 When behavior matters for a particular edge case, consult the tests and the specifications. The test suite reflects the compiler's executable behavior; the specifications also describe intended rules that may not yet be implemented.
 
-## 18. Further reading
+## 19. Further reading
 
 - [Quick Reference](Overview.md) — compact syntax lookup.
 - [Language and Runtime Specification](../Specification/LumaSharp_LanguageSpecification.md) — detailed normative language and runtime rules.

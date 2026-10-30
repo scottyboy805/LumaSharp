@@ -69,6 +69,14 @@ internal static class CompilerIntrinsics
         Add("__libclose", "bool", "interop", "void*");
         Add("__timestamp", "int64", "clock");
         Add("__frequency", "int64", "clock");
+        Add("__threadstart", "int", "threading", "System.Threading.ThreadStart");
+        Add("__threadstartarg", "int", "threading", "System.Delegate", "System.Object?");
+        Add("__threadjoin", "bool", "threading", "int", "int32");
+        Add("__threadclose", "void", "threading", "int");
+        Add("__threadrequeststop", "void", "threading", "int");
+        Add("__threadstoprequested", "bool", "threading", "int");
+        Add("__threadsleep", "void", "threading", "int32");
+        Add("__threadcurrent", "System.Threading.Thread", "threading");
         Add("__stacktrace", "string", "stacktrace", "int32");
         Add("__stackframes", "int32", "stacktrace", "int32");
         Add("__weakcreate", "int", "weak", "System.Object");
@@ -120,6 +128,14 @@ internal static class CompilerIntrinsics
         "__libclose" => "luma_interop_library_unload",
         "__timestamp" => "luma_diag_timestamp",
         "__frequency" => "luma_diag_frequency",
+        "__threadstart" => "luma_thread_start",
+        "__threadstartarg" => "luma_thread_start",
+        "__threadjoin" => "luma_thread_join",
+        "__threadclose" => "luma_thread_close",
+        "__threadrequeststop" => "luma_thread_request_stop",
+        "__threadstoprequested" => "luma_thread_stop_requested",
+        "__threadsleep" => "luma_thread_sleep",
+        "__threadcurrent" => "luma_thread_current",
         "__stacktrace" => "luma_stacktrace_capture",
         "__stackframes" => "luma_stacktrace_frame_count",
         "__weakcreate" => "luma_weak_create",

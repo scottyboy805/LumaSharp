@@ -78,6 +78,8 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             var typeReferences = EnumerateTypeStrings(current).ToList();
             var currentInstantiation = _instantiations.FirstOrDefault(instance => ReferenceEquals(instance.Specialized, current));
             var genericLookupContext = currentInstantiation?.Definition ?? current;
+            var genericMethodTypeUses = GetClosedGenericMethodTypeUses(current, sourceTypes);
+            typeReferences.AddRange(genericMethodTypeUses);
             var openGenericMethodCalls = current.Members.OfType<MethodDeclaration>()
                 .Where(method => method.HasTypeParameters && method.Body is not null)
                 .SelectMany(method => EnumerateNodes(method.Body!).OfType<CallExpression>()
@@ -156,6 +158,32 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             concreteTypes = concreteTypes.Select(type => RewriteClosedTypeReferences(type, closedTypeNames)).ToList();
 
         return new(concreteTypes, genericDefinitions, _instantiations.ToArray());
+    }
+
+    private static IEnumerable<(string TypeText, SourceLocation Location)> GetClosedGenericMethodTypeUses(
+        TypeDeclaration current, IReadOnlyList<TypeDeclaration> genericDefinitions)
+    {
+        var calledGenericMethods = EnumerateNodes(current).OfType<CallExpression>()
+            .Where(call => call.TypeArguments is { Count: > 0 })
+            .Select(call => (Name: call.Target switch
+            {
+                NameExpression name => name.Name,
+                MemberAccessExpression member => member.Member,
+                _ => null
+            }, call.TypeArguments, call.Location))
+            .Where(call => call.Name is not null)
+            .ToArray();
+
+        foreach (var definition in genericDefinitions)
+        foreach (var method in definition.Members.OfType<MethodDeclaration>().Where(candidate => candidate.HasTypeParameters && candidate.Body is not null))
+        foreach (var call in calledGenericMethods.Where(call => call.Name == method.Name && call.TypeArguments!.Count == method.TypeParameters!.Count))
+        {
+            var substitutions = method.TypeParameters!.Zip(call.TypeArguments!).ToDictionary(pair => pair.First,
+                pair => pair.Second, StringComparer.Ordinal);
+            var closedMethod = RewriteMember(method, definition.Name, substitutions);
+            foreach (var typeUse in EnumerateTypeStrings(definition with { Members = [closedMethod] }))
+                yield return (typeUse.TypeText, call.Location);
+        }
     }
 
     private static Dictionary<string, string> BuildClosedTypeNameMap(IReadOnlyList<GenericTypeInstantiation> instantiations)
