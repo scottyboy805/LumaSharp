@@ -76,6 +76,17 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             var current = queue.Dequeue();
             if (!scanned.Add(current)) continue;
             var typeReferences = EnumerateTypeStrings(current).ToList();
+            var currentInstantiation = _instantiations.FirstOrDefault(instance => ReferenceEquals(instance.Specialized, current));
+            var genericLookupContext = currentInstantiation?.Definition ?? current;
+            foreach (var call in EnumerateNodes(current).OfType<CallExpression>())
+            {
+                if (call.Target is not NameExpression typeName || call.TypeArguments is not { Count: > 0 }) continue;
+                if (genericLookupContext.Members.OfType<MethodDeclaration>().Any(method => method.HasTypeParameters && method.Name == typeName.Name))
+                    continue;
+                var definition = ResolveDefinition(typeName.Name, genericLookupContext, definitions);
+                if (definition?.Kind == "struct" && definition.TypeParameters?.Count == call.TypeArguments.Count)
+                    typeReferences.Add(($"{typeName.Name}<{string.Join(",", call.TypeArguments)}>", call.Location));
+            }
             var referencedTypeText = typeReferences.Select(reference => reference.TypeText).ToArray();
             typeReferences.AddRange((current.Usings ?? []).Where(directive => directive.Alias is { } alias &&
                     directive.Target.Contains('<', StringComparison.Ordinal) &&
@@ -88,7 +99,6 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                 foreach (var use in EnumerateGenericUses(typeText))
                 {
                 var definition = ResolveDefinition(use.Name, current, definitions);
-                var currentInstantiation = _instantiations.FirstOrDefault(instance => ReferenceEquals(instance.Specialized, current));
                 if (definition is null && currentInstantiation is not null)
                     definition = ResolveDefinition(use.Name, currentInstantiation.Definition, definitions);
                 if (definition is null) continue;

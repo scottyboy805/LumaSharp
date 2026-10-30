@@ -96,9 +96,14 @@ public class Queue<T> : IEnumerable<T> where T : default
 		return item;
 	}
 
-	public IIterator<T> Iterate()
+	public Iterator<T> Iterate()
 	{
-		return new Iterator<T>(this);
+		return Iterator<T>(this);
+	}
+
+	IIterator<T> IEnumerable<T>.Iterate()
+	{
+		return Iterator<T>(this);
 	}
 
 	private void EnsureCapacity(int32 minimum) mut
@@ -118,9 +123,9 @@ public class Queue<T> : IEnumerable<T> where T : default
 		head = 0;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem> where TItem : default
+	public struct Iterator<TItem> : IIterator<TItem> where TItem : default
 	{
-		private Queue<TItem> queue;
+		private Queue<TItem>? queue;
 		private int32 index;
 
 		public this(Queue<TItem> source)
@@ -132,12 +137,12 @@ public class Queue<T> : IEnumerable<T> where T : default
 		public bool Next() mut
 		{
 			index++;
-			return index < queue.Count;
+			return index < queue!.Count;
 		}
 
 		public TItem Current
 		{
-			get => queue.GetAt(index);
+			get => queue!.GetAt(index);
 		}
 	}
 }

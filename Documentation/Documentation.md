@@ -899,7 +899,9 @@ public class Example
 | `Dictionary<TKey, TValue>` | Indexer, `Add`, `TryAdd`, `ContainsKey`, `TryGetValue`, `Remove`, `Clear`. |
 | `HashSet<T>` | `Add`, `Contains`, `Remove`, `Clear`; iteration order is unspecified. |
 
-These are an early runtime surface, not a complete copy of .NET collections. `List<T>`, `Stack<T>`, `Queue<T>`, and `HashSet<T>` implement `IEnumerable<T>` and can be used in a `for-in` loop. The compiler calls `Iterate()` once, then uses the returned iterator's `Next()` and `Current` members. For example:
+These are an early runtime surface, not a complete copy of .NET collections. `List<T>`, `Stack<T>`, `Queue<T>`, and `HashSet<T>` can be used in a `for-in` loop. When the variable has a concrete collection type, the compiler uses its `Iterate()` method and keeps a returned struct iterator as a value, avoiding an iterator allocation or boxing in the loop. When the variable is typed as `IEnumerable<T>`, iteration goes through the interface implementation instead.
+
+The same pattern can be used by your own types:
 
 ```lumasharp
 int32 total = 0;
@@ -907,6 +909,8 @@ for (let number in numbers)
     total += number;
 
 ```
+
+Implement `Iterate()` with no parameters and return a type that implements `IIterator<T>`. A struct iterator is a good choice for allocation-free concrete iteration. The iterator must expose accessible `bool Next()` and `T Current` members. A collection can also explicitly implement `IEnumerable<T>.Iterate()` for code that uses the interface type.
 
 Dictionary keys can be value types and enums; hash behavior can use `System.IHashable.Hash`, and custom equality is expressed by the root `System.IEquality<T>` interface. Dictionary enumeration and broader comparer APIs are not yet available. Hash-set iteration order is unspecified. Collection mutation during iteration has collection-defined behaviour.
 

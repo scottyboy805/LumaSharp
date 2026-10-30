@@ -1146,10 +1146,13 @@ for (let a in collection)
 
 The loop variable is scoped to the body, and a **fresh variable** is created for each iteration (so closures capture a per-iteration variable). Loop variables of non-nullable reference type are initialised by the loop and never null.
 
-**Iteration protocol.** `collection` is evaluated exactly once, MUST be of a non-nullable type, and MUST be one of:
+**Iteration protocol.** `collection` is evaluated exactly once and MUST be of a non-nullable type. Arrays are handled by the array rules below. For another concrete class or struct type, the compiler first looks for an accessible instance `Iterate()` method with no parameters whose result implements exactly one `IIterator<T>` contract. The result type may be a class or a struct. Its `Next()` and readable `Current` members MUST be accessible on that result type and match `bool Next()` and `T Current`.
+
+If that concrete pattern is not available, the type MUST implement `IEnumerable<T>`:
 
 1. an **array** of any supported rank: iterated in order. One-dimensional arrays iterate indices `0 .. Length-1`. Multi-dimensional arrays iterate **every element once in row-major order** (the last index varies fastest);
-2. a type implementing `IEnumerable<T>`.
+2. a concrete `Iterate()` pattern as described above; or
+3. a type implementing `IEnumerable<T>`.
 
 The compiler-known interfaces have exactly these members:
 
@@ -1175,7 +1178,7 @@ If a type implements `IEnumerable<T>` for more than one `T`, the loop is ambiguo
 ```lumasharp
 // for (let x in c) body
 {
-    var it = c.Iterate();
+    var it = c.Iterate(); // concrete pattern when available; otherwise via IEnumerable<T>
     while (it.Next())
     {
         let x = it.Current;
@@ -1184,7 +1187,9 @@ If a type implements `IEnumerable<T>` for more than one `T`, the loop is ambiguo
 }
 ```
 
-`break` leaves the loop; `continue` proceeds to the next `Next()` call. Modifying the underlying collection during iteration has library-defined behaviour. An explicit loop-variable type MUST be implicitly convertible from `T`. The iterator object returned by `Iterate()` is an ordinary reference-counted object, released when the loop is left.
+`break` leaves the loop; `continue` proceeds to the next `Next()` call. Modifying the underlying collection during iteration has library-defined behaviour. An explicit loop-variable type MUST be implicitly convertible from `T`.
+
+When the concrete pattern returns a struct iterator, the compiler stores and calls that value directly. The loop does not box or allocate the iterator. The `Iterate()` implementation itself may still allocate for its own work. When iteration goes through an `IEnumerable<T>` variable, interface dispatch and the ordinary interface conversion rules apply; converting a struct iterator to `IIterator<T>` boxes it. Collections may provide both forms, often with an explicit `IEnumerable<T>.Iterate()` implementation for interface callers.
 
 ```lumasharp
 int32[] values = { 10, 20, 30 };
@@ -4542,7 +4547,7 @@ Labels are tested in textual order; the first match executes its section and con
 
 ## 29.7 `for`-in
 
-Arrays are iterated by index (multi-dimensional arrays in row-major order); other collections through `IEnumerable<T>.Iterate()` and `IIterator<T>.Next()`/`Current` as lowered in §6.6. The iterator object is a counted object released when the loop ends by any path.
+Arrays are iterated by index (multi-dimensional arrays in row-major order). For other concrete class or struct types, the compiler prefers an accessible parameterless `Iterate()` method returning a type that implements one `IIterator<T>` contract; it stores struct results directly and releases class results when the loop ends. If that pattern is unavailable, iteration uses `IEnumerable<T>.Iterate()` and `IIterator<T>.Next()`/`Current` as lowered in §6.6.
 
 ## 29.8 Multiple Declaration and Assignment
 
@@ -5017,7 +5022,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | `defer` | Does not exist; removed everywhere |
 | Pointers | `.` member access with automatic dereference; no `->` (§19.3) |
 | Loop labels | `label: loop`, `break label;`, `continue label;`; labeled `break` in a `switch` needs an enclosing loop (§6.7) |
-| `for`-in | `IEnumerable<T>.Iterate()`, `IIterator<T>.Next()`, `IIterator<T>.Current` (§6.6) |
+| `for`-in | Concrete `Iterate()` pattern when available; `IEnumerable<T>` fallback; `IIterator<T>.Next()` and `Current` (§6.6) |
 | Interfaces and `mut` | Interface methods never use `mut`; the implementation declares it (§10.1) |
 | Reference arrays | Collection initializer or nullable element type; scoped elements only in a scope-allocated array (§15.2, §14.4.1) |
 | Collection initializers | `{ … }`, `new { … }`, `scope { … }`; `let`/`var` need the expanded form; inline arrays take only `{ … }` (§15.3, §15.9) |

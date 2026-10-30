@@ -286,9 +286,11 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                 _unsafeDepth = previousMemberUnsafeDepth; continue;
             }
             string? explicitInterfaceName = null;
+            if (Is("<") && LooksLikeExplicitInterfaceQualifier())
+                explicitInterfaceName = memberName.Text.TrimStart('@') + "<" + string.Join(",", ReadTypeArgumentList()) + ">";
             if (Eat("."))
             {
-                explicitInterfaceName = memberName.Text.TrimStart('@');
+                explicitInterfaceName ??= memberName.Text.TrimStart('@');
                 memberName = Take();
                 if (!IsIdentifier(memberName) && memberName.Text != "this") Error(memberName, "Expected a member name after the explicit interface qualifier.");
                 if (kind is not ("class" or "struct"))
@@ -1676,6 +1678,19 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             else if (tokens[index].Text == ">") depth--;
             else if (tokens[index].Text == ">>") depth -= 2;
             if (depth <= 0) return depth == 0 && index + 1 < tokens.Count && tokens[index + 1].Text == "(";
+        }
+        return false;
+    }
+    private bool LooksLikeExplicitInterfaceQualifier()
+    {
+        var depth = 0;
+        for (var index = _position; index < tokens.Count; index++)
+        {
+            if (tokens[index].Text == "<") depth++;
+            else if (tokens[index].Text == ">") depth--;
+            else if (tokens[index].Text == ">>") depth -= 2;
+            if (depth <= 0) return depth == 0 && index + 1 < tokens.Count && tokens[index + 1].Text == ".";
+            if (tokens[index].Text is ";" or "{" or "}" or "(" or "=>") return false;
         }
         return false;
     }

@@ -5532,6 +5532,131 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         while (iterator.MoveNext()) merged = new Dictionary<string, NullState>(MergeNullStates(merged, iterator.Current), StringComparer.Ordinal);
         return merged;
     }
+    private bool TryGetConcreteIteratorPattern(string sourceType, TypeDeclaration context,
+        out MethodSymbol iterateMethod, out string iteratorType, out string[] elementTypes)
+    {
+        iterateMethod = null!;
+        iteratorType = string.Empty;
+        elementTypes = [];
+        var normalizedSourceType = NormalizeEnumType(sourceType, context);
+        var sourceDefinitions = FindTypes(normalizedSourceType, context)
+            .Where(type => type.Kind is "class" or "struct")
+            .ToArray();
+        if (sourceDefinitions.Length != 1) return false;
+
+        var sourceInstance = _genericTypeInstantiations.FirstOrDefault(instance =>
+            GetQualifiedTypeName(instance.Specialized) == normalizedSourceType);
+        var sourceSubstitutions = sourceInstance is null
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            : (sourceInstance.Definition.TypeParameters ?? []).Zip(sourceInstance.Arguments)
+                .ToDictionary(pair => pair.First, pair => pair.Second, StringComparer.Ordinal);
+        var sourceOwners = new HashSet<string>(StringComparer.Ordinal) { GetQualifiedTypeName(sourceDefinitions[0]) };
+        if (sourceInstance is not null) sourceOwners.Add(GetQualifiedTypeName(sourceInstance.Definition));
+        if (sourceDefinitions[0].Kind == "class" && _classTypes.ContainsKey(normalizedSourceType))
+            sourceOwners.UnionWith(GetClassChain(normalizedSourceType));
+
+        foreach (var candidate in _methods.Concat(_genericMethodDefinitions).Where(method =>
+                     (method.IsClassInstanceMethod || method.IsStructInstanceMethod) &&
+                     method.Declaration.Name == "Iterate" && method.Declaration.Parameters.Count == 0 &&
+                     method.Declaration.ExplicitInterfaceName is null && sourceOwners.Contains(GetQualifiedTypeName(method.Owner))))
+        {
+            if (!IsMethodAccessible(candidate, context)) continue;
+            var substitutions = new Dictionary<string, string>(sourceSubstitutions, StringComparer.Ordinal);
+            var candidateOwnerInstance = _genericTypeInstantiations.FirstOrDefault(instance =>
+                GetQualifiedTypeName(instance.Specialized) == normalizedSourceType &&
+                GetQualifiedTypeName(instance.Definition) == GetQualifiedTypeName(candidate.Owner));
+            if (candidateOwnerInstance is not null)
+                foreach (var pair in (candidateOwnerInstance.Definition.TypeParameters ?? []).Zip(candidateOwnerInstance.Arguments))
+                    substitutions[pair.First] = pair.Second;
+            var returnedType = GenericTypeSpecializer.RewriteTypeName(candidate.Declaration.ReturnType, substitutions);
+            returnedType = NormalizeEnumType(returnedType, candidate.Owner);
+            if (returnedType.Contains("<", StringComparison.Ordinal) && sourceSubstitutions.Count > 0)
+                returnedType = NormalizeEnumType(GenericTypeSpecializer.RewriteTypeName(candidate.Declaration.ReturnType, sourceSubstitutions), context);
+            var returnedElements = GetIteratorElementTypes(returnedType, context);
+            if (returnedElements.Length == 0) continue;
+            iterateMethod = candidate;
+            iteratorType = returnedType;
+            elementTypes = returnedElements;
+            return true;
+        }
+        return false;
+    }
+
+    private string[] GetIteratorElementTypes(string iteratorType, TypeDeclaration context)
+    {
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        var pending = new Queue<(TypeDeclaration Type, IReadOnlyDictionary<string, string> Substitutions)>(
+            FindTypes(iteratorType, context).Select(type => (type, GetGenericSubstitutions(iteratorType, type))));
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (pending.Count > 0)
+        {
+            var (current, substitutions) = pending.Dequeue();
+            var key = GetQualifiedTypeName(current) + "<" + string.Join(",", substitutions.OrderBy(pair => pair.Key).Select(pair => pair.Value)) + ">";
+            if (!visited.Add(key)) continue;
+            var currentInstance = _genericTypeInstantiations.FirstOrDefault(instance =>
+                GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(current));
+            if (currentInstance is not null && IsIteratorDefinition(currentInstance.Definition) && currentInstance.Arguments.Count == 1)
+                found.Add(NormalizeEnumType(currentInstance.Arguments[0], currentInstance.Definition));
+            foreach (var basePattern in current.BaseTypes ?? [])
+            {
+                var closedBase = GenericTypeSpecializer.RewriteTypeName(basePattern, substitutions);
+                if (!TypeNameSyntax.TryParse(closedBase, out var parsed)) continue;
+                var baseTypes = FindTypes(parsed.Name, current);
+                if (baseTypes.Length != 1) continue;
+                var baseType = baseTypes[0];
+                if (IsIteratorDefinition(baseType) && parsed.Arguments.Count == 1)
+                {
+                    found.Add(NormalizeEnumType(parsed.Arguments[0].ToString(), current));
+                    continue;
+                }
+                var normalizedBase = NormalizeEnumType(closedBase, current);
+                foreach (var resolved in FindTypes(normalizedBase, current))
+                    pending.Enqueue((resolved, GetGenericSubstitutions(normalizedBase, resolved)));
+            }
+        }
+        return found.OrderBy(type => type, StringComparer.Ordinal).ToArray();
+    }
+
+    private TypeDeclaration[] GetIteratorInterfaces(string iteratorType, string elementType, TypeDeclaration context)
+    {
+        var found = new Dictionary<string, TypeDeclaration>(StringComparer.Ordinal);
+        var pending = new Queue<(TypeDeclaration Type, IReadOnlyDictionary<string, string> Substitutions)>(
+            FindTypes(iteratorType, context).Select(type => (type, GetGenericSubstitutions(iteratorType, type))));
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (pending.Count > 0)
+        {
+            var (current, substitutions) = pending.Dequeue();
+            var name = GetQualifiedTypeName(current);
+            if (!visited.Add(name)) continue;
+            var instance = _genericTypeInstantiations.FirstOrDefault(candidate =>
+                GetQualifiedTypeName(candidate.Specialized) == name && IsIteratorDefinition(candidate.Definition) &&
+                candidate.Arguments.Count == 1 && NormalizeEnumType(candidate.Arguments[0], candidate.Definition) == elementType);
+            if (instance is not null)
+            {
+                found[name] = instance.Specialized;
+                continue;
+            }
+            foreach (var basePattern in current.BaseTypes ?? [])
+            {
+                var closedBase = GenericTypeSpecializer.RewriteTypeName(basePattern, substitutions);
+                var normalizedBase = NormalizeEnumType(closedBase, current);
+                foreach (var resolved in FindTypes(normalizedBase, current))
+                    pending.Enqueue((resolved, GetGenericSubstitutions(normalizedBase, resolved)));
+            }
+        }
+        return found.Values.ToArray();
+    }
+
+    private IReadOnlyDictionary<string, string> GetGenericSubstitutions(string typeName, TypeDeclaration definition)
+    {
+        var instance = _genericTypeInstantiations.FirstOrDefault(candidate =>
+            GetQualifiedTypeName(candidate.Specialized) == typeName &&
+            GetQualifiedTypeName(candidate.Definition) == GetQualifiedTypeName(definition));
+        if (instance is null) return new Dictionary<string, string>(StringComparer.Ordinal);
+        return (instance.Definition.TypeParameters ?? []).Zip(instance.Arguments)
+            .ToDictionary(pair => pair.First, pair => pair.Second, StringComparer.Ordinal);
+    }
+
     private void AnalyzeForIn(ForInStatement loop, MethodContext context)
     {
         var sourceType = AnalyzeExpression(loop.Collection, context);
@@ -5544,6 +5669,26 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var isManagedArray = TryParseManagedArrayType(sourceType, out var elementType, out var arrayRank) && arrayRank <= 3;
         if (isManagedArray)
             _managedArrayForInElementTypes[loop] = elementType;
+        else if (TryGetConcreteIteratorPattern(sourceType, context.Method.Owner, out var iterateMethod, out var concreteIteratorType, out var patternElementTypes))
+        {
+            var candidates = patternElementTypes;
+            if (loop.TypeName is not null)
+            {
+                var requestedType = NormalizeEnumType(loop.TypeName, context.Method.Owner);
+                candidates = candidates.Where(candidate => CanConvert(candidate, requestedType, null)).ToArray();
+                if (candidates.Length > 1)
+                    diagnostics.Add("LS0640", DiagnosticSeverity.Error, "The Iterate() result implements IIterator<T> for multiple element types; the explicit loop-variable type must select exactly one.", loop.Location);
+                else if (candidates.Length == 0)
+                    diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"No IIterator<T> element type can be converted to loop variable type '{requestedType}'.", loop.Location);
+                else
+                    LowerEnumerableForIn(loop, sourceType, candidates[0], requestedType, context, iterateMethod, concreteIteratorType);
+            }
+            else if (patternElementTypes.Length > 1)
+                diagnostics.Add("LS0640", DiagnosticSeverity.Error, "The Iterate() result implements IIterator<T> for multiple element types; specify a loop-variable type that selects exactly one.", loop.Location);
+            else
+                LowerEnumerableForIn(loop, sourceType, patternElementTypes[0], null, context, iterateMethod, concreteIteratorType);
+            return;
+        }
         else if (TryGetEnumerableElementTypes(sourceType, context.Method.Owner, out var enumerableElementTypes))
         {
             var candidates = enumerableElementTypes;
@@ -5625,7 +5770,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
 
     private void LowerEnumerableForIn(ForInStatement loop, string sourceType, string elementType,
-        string? requestedElementType, MethodContext context)
+        string? requestedElementType, MethodContext context, MethodSymbol? concreteIterateMethod = null, string? concreteIteratorType = null)
     {
         // Rewrite to ordinary calls and a while loop so the existing binder, virtual/interface
         // dispatch, exception unwinding, and reference-counted local cleanup implement the
@@ -5640,36 +5785,50 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 foreach (var implemented in ResolveInterfaceTypes(declaredBase, sourceStruct.Declaration))
                     foreach (var inherited in GetInterfaceHierarchy(implemented)) availableInterfaces.Add(GetQualifiedTypeName(inherited));
 
-        var enumerableInstance = _genericTypeInstantiations.FirstOrDefault(instance =>
-            availableInterfaces.Contains(GetQualifiedTypeName(instance.Specialized)) &&
-            instance.Arguments.Count == 1 && IsEnumerableDefinition(instance.Definition) &&
-            NormalizeEnumType(instance.Arguments[0], context.Method.Owner) == elementType);
-        if (enumerableInstance is null)
+        TypeDeclaration? enumerableInterface = null;
+        MethodDeclaration? iterate = null;
+        TypeDeclaration? iteratorInterface;
+        if (concreteIterateMethod is null)
         {
-            diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
-                "The IEnumerable<T> iteration protocol is recognized, but its closed interface contract could not be resolved.", loop.Collection.Location);
-            return;
+            var enumerableInstance = _genericTypeInstantiations.FirstOrDefault(instance =>
+                availableInterfaces.Contains(GetQualifiedTypeName(instance.Specialized)) &&
+                instance.Arguments.Count == 1 && IsEnumerableDefinition(instance.Definition) &&
+                NormalizeEnumType(instance.Arguments[0], context.Method.Owner) == elementType);
+            if (enumerableInstance is not null)
+            {
+                enumerableInterface = enumerableInstance.Specialized;
+                iterate = enumerableInterface.Members.OfType<MethodDeclaration>().FirstOrDefault(method =>
+                    method.Name == "Iterate" && !method.IsStatic && method.Parameters.Count == 0);
+            }
+            var iteratorTypeName = iterate is null ? null : NormalizeEnumType(iterate.ReturnType, enumerableInterface!);
+            var iteratorTypes = iteratorTypeName is null ? [] : FindTypes(iteratorTypeName, enumerableInterface!)
+                .Where(type => type.Kind == "interface").ToArray();
+            var iteratorInstance = iteratorTypes.Length == 1
+                ? _genericTypeInstantiations.FirstOrDefault(instance =>
+                    GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(iteratorTypes[0]) &&
+                    IsIteratorDefinition(instance.Definition) && instance.Arguments.Count == 1 &&
+                    NormalizeEnumType(instance.Arguments[0], context.Method.Owner) == elementType)
+                : null;
+            if (enumerableInterface is null || iterate is null || iteratorTypes.Length != 1 || iteratorInstance is null)
+            {
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    "The IEnumerable<T> iteration protocol requires an instance Iterate() method returning IIterator<T>.", loop.Collection.Location);
+                return;
+            }
+            iteratorInterface = iteratorTypes[0];
         }
-        var enumerableInterface = enumerableInstance.Specialized;
-        var iterate = enumerableInterface.Members.OfType<MethodDeclaration>().FirstOrDefault(method =>
-            method.Name == "Iterate" && !method.IsStatic && method.Parameters.Count == 0);
-        var iteratorTypeName = iterate is null ? null : NormalizeEnumType(iterate.ReturnType, enumerableInterface);
-        var iteratorTypes = iteratorTypeName is null ? [] : FindTypes(iteratorTypeName, enumerableInterface)
-            .Where(type => type.Kind == "interface").ToArray();
-        var iteratorInstance = iteratorTypes.Length == 1
-            ? _genericTypeInstantiations.FirstOrDefault(instance =>
-                GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(iteratorTypes[0]) &&
-                IsIteratorDefinition(instance.Definition) && instance.Arguments.Count == 1 &&
-                NormalizeEnumType(instance.Arguments[0], context.Method.Owner) == elementType)
-            : null;
-        if (iterate is null || iteratorTypes.Length != 1 || iteratorInstance is null)
+        else
         {
-            diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
-                "The IEnumerable<T> iteration protocol requires an instance Iterate() method returning IIterator<T>.", loop.Collection.Location);
-            return;
+            var iteratorInterfaces = GetIteratorInterfaces(concreteIteratorType!, elementType, context.Method.Owner);
+            if (iteratorInterfaces.Length != 1)
+            {
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    "The Iterate() result must implement exactly one IIterator<T> interface for the selected element type.", loop.Collection.Location);
+                return;
+            }
+            iteratorInterface = iteratorInterfaces[0];
         }
-        var iteratorInterface = iteratorTypes[0];
-        var iteratorType = GetQualifiedTypeName(iteratorInterface);
+        var iteratorType = concreteIterateMethod is null ? GetQualifiedTypeName(iteratorInterface) : concreteIteratorType!;
         var hasNext = iteratorInterface.Members.OfType<MethodDeclaration>().Any(method =>
             method.Name == "Next" && !method.IsStatic && method.ReturnType == "bool" && method.Parameters.Count == 0);
         var current = iteratorInterface.Members.OfType<ComputedPropertyDeclaration>().FirstOrDefault(property =>
@@ -5685,8 +5844,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var iteratorName = "__ls_forin_iterator_" + _forInIteratorCounter++;
         while (context.Exists(iteratorName)) iteratorName = "__ls_forin_iterator_" + _forInIteratorCounter++;
         var at = loop.Location;
-        var cast = new CastExpression(GetQualifiedTypeName(enumerableInterface), loop.Collection, at);
-        var iterateCall = new CallExpression(new MemberAccessExpression(cast, "Iterate", at), [], at);
+        Expression iterableReceiver = concreteIterateMethod is null
+            ? new CastExpression(GetQualifiedTypeName(enumerableInterface!), loop.Collection, at)
+            : loop.Collection;
+        var iterateCall = new CallExpression(new MemberAccessExpression(iterableReceiver, "Iterate", at), [], at);
         var iteratorDeclaration = new VariableStatement(iteratorName, true, iteratorType, iterateCall, at);
         var iteratorForNext = new NameExpression(iteratorName, at);
         var nextCall = new CallExpression(new MemberAccessExpression(iteratorForNext, "Next", at), [], at);
@@ -7357,6 +7518,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     var genericStructDefinition = call.TypeArguments is { Count: > 0 }
                         ? GenericTypeSpecializer.ResolveDefinition(structName.Name, context.Method.Owner, _genericDefinitions)
                         : null;
+                    if (genericStructDefinition is null && call.TypeArguments is { Count: > 0 } &&
+                        _genericTypeInstantiations.FirstOrDefault(instance => GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(context.Method.Owner)) is { } enclosingInstance)
+                        genericStructDefinition = GenericTypeSpecializer.ResolveDefinition(structName.Name, enclosingInstance.Definition, _genericDefinitions);
                     var structDefinition = structMatches.Length == 1
                         ? structMatches[0]
                         : genericStructDefinition is { Kind: "struct" } ? genericStructDefinition : null;

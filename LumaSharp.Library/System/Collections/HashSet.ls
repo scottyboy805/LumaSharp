@@ -111,9 +111,14 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		return item;
 	}
 
-	public IIterator<T> Iterate()
+	public Iterator<T> Iterate()
 	{
-		return new Iterator<T>(this);
+		return Iterator<T>(this);
+	}
+
+	IIterator<T> IEnumerable<T>.Iterate()
+	{
+		return Iterator<T>(this);
 	}
 
 	private int32 GetHashCode(T item)
@@ -231,9 +236,9 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		return capacity;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem> where TItem : default
+	public struct Iterator<TItem> : IIterator<TItem> where TItem : default
 	{
-		private HashSet<TItem> set;
+		private HashSet<TItem>? set;
 		private int32 index;
 
 		public this(HashSet<TItem> source)
@@ -245,14 +250,14 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		public bool Next() mut
 		{
 			index++;
-			while (index < set.Capacity && !set.IsOccupied(index))
+			while (index < set!.Capacity && !set!.IsOccupied(index))
 				index++;
-			return index < set.Capacity;
+			return index < set!.Capacity;
 		}
 
 		public TItem Current
 		{
-			get => set.GetAt(index);
+			get => set!.GetAt(index);
 		}
 	}
 }

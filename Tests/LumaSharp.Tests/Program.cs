@@ -1,5 +1,6 @@
 using LumaSharp.Compiler;
 using System.Text;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LumaSharp.Tests;
@@ -512,6 +513,10 @@ public sealed class CompilerTests
                     int32 listTotal = 0;
                     for (let item in list)
                         listTotal += item;
+                    IEnumerable<int32> listEnumerable = list;
+                    int32 listInterfaceTotal = 0;
+                    for (let item in listEnumerable)
+                        listInterfaceTotal += item;
                     List<int32> emptyList = new List<int32>();
                     int32 emptyListCount = 0;
                     for (let item in emptyList)
@@ -555,7 +560,7 @@ public sealed class CompilerTests
                         copiedValues.Length == 3 && copiedValues[1] == 15 && inserted &&
                         stack.Pop() == 2 && stack.Pop() == 1 &&
                         queue.Dequeue() == 3 && queue.Dequeue() == 4 &&
-                        listTotal == 45 && emptyListCount == 0 && total == 3 && stackTotal == 3 && queueTotal == 7 &&
+                        listTotal == 45 && listInterfaceTotal == 45 && emptyListCount == 0 && total == 3 && stackTotal == 3 && queueTotal == 7 &&
                         found && value == "seven" && map.ContainsKey(new TestKey(11)) &&
                         map.Remove(new TestKey(11)) && added && !duplicate &&
                         setCount == 1 && set.Contains(new TestKey(9)) ? 0 : 1;
@@ -564,6 +569,10 @@ public sealed class CompilerTests
             """)), new CompilationOptions(UnsafeEnabled: true));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("call %struct.System_Collections_List_Iterator__g_", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("call %struct.System_Collections_Stack_Iterator__g_", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("call %struct.System_Collections_Queue_Iterator__g_", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("call %struct.System_Collections_HashSet_Iterator__g_", result.LlvmIr!, StringComparison.Ordinal);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
     }
@@ -6412,6 +6421,36 @@ public sealed class CompilerTests
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
         Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void ForInUsesConcreteStructIteratorsWithoutBoxingOrAllocation()
+    {
+        const string source = "public interface IEnumerable<T> { IIterator<T> Iterate(); } " +
+            "public interface IIterator<T> { bool Next(); T Current { get; } } " +
+            "public class List<T> : IEnumerable<T> where T : default { public T[] items; public int32 count; " +
+            "public this() { items = new T[4]; count = 0; } " +
+            "public void Add(T value) mut { items[count] = value; count++; } " +
+            "public Iterator<T> Iterate() { return Iterator<T>(this); } " +
+            "IIterator<T> IEnumerable<T>.Iterate() { return Iterator<T>(this); } " +
+            "public struct Iterator<TItem> : IIterator<TItem> where TItem : default { List<TItem>? list; int32 index; " +
+            "public this(List<TItem> source) { list = source; index = -1; } " +
+            "public bool Next() mut { index++; return index < list!.count; } " +
+            "public TItem Current { get => list!.items[index]; } } } " +
+            "class Program { public static int32 Main() { List<int32> values = new List<int32>(); values.Add(12); values.Add(13); " +
+            "int32 concrete = 0; for (let value in values) concrete += value; " +
+            "IEnumerable<int32> enumerable = values; int32 throughInterface = 0; for (let value in enumerable) throughInterface += value; " +
+            "return concrete == 25 && throughInterface == 25 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("call %struct.List_Iterator__g_", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("@luma_List_Iterator__g_", result.LlvmIr!, StringComparison.Ordinal);
+        var concreteIterateBody = Regex.Match(result.LlvmIr!,
+            @"define [^\n]*@[^\n]*List[^\n]*Iterate[^\n]*\{[\s\S]*?\n\}");
+        Assert.True(concreteIterateBody.Success, "The concrete Iterate method must return its specialized iterator struct.\n" +
+            string.Join(Environment.NewLine, Regex.Matches(result.LlvmIr!, @"define[^\n]*Iterate[^\n]*").Select(match => match.Value)));
+        Assert.DoesNotContain("luma_box", concreteIterateBody.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("luma_alloc", concreteIterateBody.Value, StringComparison.Ordinal);
     }
 
     [Fact]

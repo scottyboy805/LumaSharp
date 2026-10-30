@@ -161,9 +161,14 @@ public class List<T> : IEnumerable<T> where T : default
 		return IndexOf(item) >= 0;
 	}
 
-	public IIterator<T> Iterate()
+	public Iterator<T> Iterate()
 	{
-		return new Iterator<T>(this);
+		return Iterator<T>(this);
+	}
+
+	IIterator<T> IEnumerable<T>.Iterate()
+	{
+		return Iterator<T>(this);
 	}
 
 	public bool Remove(T item) mut
@@ -206,9 +211,9 @@ public class List<T> : IEnumerable<T> where T : default
 		items = replacement;
 	}
 
-	private class Iterator<TItem> : IIterator<TItem> where TItem : default
+	public struct Iterator<TItem> : IIterator<TItem> where TItem : default
 	{
-		private List<TItem> list;
+		private List<TItem>? list;
 		private int32 index;
 
 		public this(List<TItem> source)
@@ -220,12 +225,12 @@ public class List<T> : IEnumerable<T> where T : default
 		public bool Next() mut
 		{
 			index++;
-			return index < list.Count;
+			return index < list!.Count;
 		}
 
 		public TItem Current
 		{
-			get => list[index];
+			get => list![index];
 		}
 	}
 
