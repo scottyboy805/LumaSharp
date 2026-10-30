@@ -126,21 +126,28 @@ public class Stack<T> : IEnumerable<T> where T : default
 		private Stack<TItem>? stack;
 		private int32 index;
 
-		public this(Stack<TItem> source)
+		public this(Stack<TItem>? source)
 		{
 			stack = source;
-			index = source.Count;
+			index = source is null ? 0 : source.Count;
 		}
 
 		public bool Next() mut
 		{
+			if (stack is null)
+				return false;
 			index--;
 			return index >= 0;
 		}
 
 		public TItem Current
 		{
-			get => stack!.GetAt(index);
+			get
+			{
+				if (stack is null)
+					return default(TItem);
+				return stack.GetAt(index);
+			}
 		}
 	}
 }

@@ -216,7 +216,7 @@ public class List<T> : IEnumerable<T> where T : default
 		private List<TItem>? list;
 		private int32 index;
 
-		public this(List<TItem> source)
+		public this(List<TItem>? source)
 		{
 			list = source;
 			index = -1;
@@ -224,13 +224,20 @@ public class List<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
+			if (list is null)
+				return false;
 			index++;
-			return index < list!.Count;
+			return index < list.Count;
 		}
 
 		public TItem Current
 		{
-			get => list![index];
+			get
+			{
+				if (list is null)
+					return default(TItem);
+				return list[index];
+			}
 		}
 	}
 

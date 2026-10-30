@@ -6433,11 +6433,13 @@ public sealed class CompilerTests
             "public void Add(T value) mut { items[count] = value; count++; } " +
             "public Iterator<T> Iterate() { return Iterator<T>(this); } " +
             "IIterator<T> IEnumerable<T>.Iterate() { return Iterator<T>(this); } " +
+            "public bool DefaultIteratorIsSafe() { Iterator<T> defaultIterator = default; if (defaultIterator.Next()) return false; T defaultCurrent = defaultIterator.Current; " +
+            "Iterator<T> nullIterator = Iterator<T>(default(List<T>?)); if (nullIterator.Next()) return false; T nullCurrent = nullIterator.Current; return true; } " +
             "public struct Iterator<TItem> : IIterator<TItem> where TItem : default { List<TItem>? list; int32 index; " +
-            "public this(List<TItem> source) { list = source; index = -1; } " +
-            "public bool Next() mut { index++; return index < list!.count; } " +
-            "public TItem Current { get => list!.items[index]; } } } " +
-            "class Program { public static int32 Main() { List<int32> values = new List<int32>(); values.Add(12); values.Add(13); " +
+            "public this(List<TItem>? source) { list = source; index = -1; } " +
+            "public bool Next() mut { if (list is null) return false; index++; return index < list.count; } " +
+            "public TItem Current { get { if (list is null) return default(TItem); return list.items[index]; } } } } " +
+            "class Program { public static int32 Main() { List<int32> values = new List<int32>(); if (!values.DefaultIteratorIsSafe()) return 2; values.Add(12); values.Add(13); " +
             "int32 concrete = 0; for (let value in values) concrete += value; " +
             "IEnumerable<int32> enumerable = values; int32 throughInterface = 0; for (let value in enumerable) throughInterface += value; " +
             "return concrete == 25 && throughInterface == 25 ? 0 : 1; } }";

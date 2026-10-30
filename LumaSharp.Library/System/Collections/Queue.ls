@@ -128,7 +128,7 @@ public class Queue<T> : IEnumerable<T> where T : default
 		private Queue<TItem>? queue;
 		private int32 index;
 
-		public this(Queue<TItem> source)
+		public this(Queue<TItem>? source)
 		{
 			queue = source;
 			index = -1;
@@ -136,13 +136,20 @@ public class Queue<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
+			if (queue is null)
+				return false;
 			index++;
-			return index < queue!.Count;
+			return index < queue.Count;
 		}
 
 		public TItem Current
 		{
-			get => queue!.GetAt(index);
+			get
+			{
+				if (queue is null)
+					return default(TItem);
+				return queue.GetAt(index);
+			}
 		}
 	}
 }

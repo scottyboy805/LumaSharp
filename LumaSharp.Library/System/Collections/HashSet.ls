@@ -241,7 +241,7 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		private HashSet<TItem>? set;
 		private int32 index;
 
-		public this(HashSet<TItem> source)
+		public this(HashSet<TItem>? source)
 		{
 			set = source;
 			index = -1;
@@ -249,15 +249,22 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
+			if (set is null)
+				return false;
 			index++;
-			while (index < set!.Capacity && !set!.IsOccupied(index))
+			while (index < set.Capacity && !set.IsOccupied(index))
 				index++;
-			return index < set!.Capacity;
+			return index < set.Capacity;
 		}
 
 		public TItem Current
 		{
-			get => set!.GetAt(index);
+			get
+			{
+				if (set is null)
+					return default(TItem);
+				return set.GetAt(index);
+			}
 		}
 	}
 }

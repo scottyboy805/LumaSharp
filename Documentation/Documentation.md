@@ -912,6 +912,8 @@ for (let number in numbers)
 
 Implement `Iterate()` with no parameters and return a type that implements `IIterator<T>`. A struct iterator is a good choice for allocation-free concrete iteration. The iterator must expose accessible `bool Next()` and `T Current` members. A collection can also explicitly implement `IEnumerable<T>.Iterate()` for code that uses the interface type.
 
+The built-in collection iterators treat a default iterator or one constructed with a null collection as empty: `Next()` returns `false`, and `Current` returns `default(T)`.
+
 Dictionary keys can be value types and enums; hash behavior can use `System.IHashable.Hash`, and custom equality is expressed by the root `System.IEquality<T>` interface. Dictionary enumeration and broader comparer APIs are not yet available. Hash-set iteration order is unspecified. Collection mutation during iteration has collection-defined behaviour.
 
 The contiguous array-backed collections expose an unsafe `Ptr` to their backing storage. It is a low-level view: for a collection with a ring buffer or hash table, it does not imply that the logical contents form a packed sequence.
