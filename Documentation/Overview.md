@@ -39,7 +39,7 @@ object item = "text";
 int32? maybeCount = null; // nullable value type
 ```
 
-Integer literals support decimal, `0x` hexadecimal, `0b` binary, digit separators, and `u`, `l`, `ul` suffixes. Strings support escaped and verbatim forms (`@"C:\\path"`). Identifiers are case-sensitive; `@name` escapes a keyword. `async`, `await`, and `lock` are reserved for future use.
+Integer literals support decimal, `0x` hexadecimal, `0b` binary, digit separators, and `u`, `l`, `ul` suffixes. Strings support escaped and verbatim forms (`@"C:\\path"`). Identifiers are case-sensitive; `@name` escapes a keyword.
 
 Reference types are non-null by default; append `?` for nullable references or value types. `!` asserts non-null at runtime. `??` supplies a fallback, `??=` assigns one only when null, `?.` and `?[...]` conditionally access nullable receivers, and `is null` / `is not null` test null state.
 
@@ -107,6 +107,14 @@ class MathBox {
 ```
 
 Methods can be overloaded and generic, accept optional, named, variadic, `ref`, `in`, or `out` arguments, and return values or `void`. Entry points use `static [void|int32] Main([string[] args])`. Generic methods may infer type arguments from their calls; constraints include reference/value/enum, base/interface, and constructor constraints.
+
+```lumasharp
+async int32 AddLater(int32 value) { return value + 1; }
+async int32 UseLater() { return await AddLater(41); }
+lock (gate) { sharedValue++; }
+```
+
+An `async T` call returns `Task<T>` and an `async void` call returns `Task`; awaiting a task yields its result and continues on the awaiting thread after polling. Async bodies run on an automatically managed worker pool, which adds workers for queued work and blocked nested waits. `lock` synchronizes by object identity and is reentrant; `await` is not allowed inside its body.
 
 ## Classes, structs, interfaces, and enums
 

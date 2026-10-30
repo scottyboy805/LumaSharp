@@ -14,6 +14,8 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private int _cancellationCheckCounter;
     private int _unsafeDepth;
     private int _pendingGenericClosers;
+    private int _lockDepth;
+    private int _nextLockLocal;
     private string _namespace = "";
     private readonly List<UsingDirective> _usingDirectives = [];
     private readonly HashSet<string> _usingAliases = new(StringComparer.Ordinal);
@@ -361,14 +363,14 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                 continue;
             }
             ValidateAllowedModifiers(memberModifiers, explicitInterfaceName is null
-                ? ["public", "private", "protected", "internal", "static", "virtual", "override", "extern", "unsafe", "ref"]
+                ? ["public", "private", "protected", "internal", "static", "virtual", "override", "extern", "unsafe", "ref", "async"]
                 : ["unsafe"], memberStart.Location, "explicit interface method");
             Take(); var parameters = ParseParameters(); Expect(")");
             var hasTypeParameters = methodTypeParameters.Count > 0;
             var isMutating = Eat("mut");
             if (kind == "interface" && isMutating)
                 diagnostics.Add("LS0824", DiagnosticSeverity.Error, "Interface methods cannot be declared mut; the implementing method may declare mut.", memberStart.Location);
-            if (kind == "interface" && memberModifiers.Count > 0)
+            if (kind == "interface" && memberModifiers.Any(modifier => modifier != "async"))
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Interface methods cannot declare accessibility or implementation modifiers.", memberStart.Location);
             var methodConstraints = ReadGenericConstraints(methodTypeParameters);
             BlockStatement? body = null;
@@ -378,9 +380,11 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             else { Error(Current, "Expected a method body, expression body, or ';'."); SkipMember(); }
             if (kind == "interface" && body is not null)
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Interface methods cannot have a body.", memberStart.Location);
+            if (memberModifiers.Contains("async") && kind != "interface" && (body is null || memberModifiers.Contains("extern")))
+                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "An async method must have a body and cannot be extern.", memberStart.Location);
             _unsafeDepth = previousMemberUnsafeDepth;
             if (!IsIdentifier(memberName)) Error(memberName, "Expected a non-keyword method name (use @ to escape a keyword).");
-            members.Add(new MethodDeclaration(name.Text.TrimStart('@'), memberName.Text.TrimStart('@'), returnType, parameters, body, memberModifiers.Contains("static"), memberModifiers.Contains("public"), isMutating, hasTypeParameters, memberStart.Location, unsafeMember, memberModifiers.Contains("extern"), IsVirtual: memberModifiers.Contains("virtual"), IsOverride: memberModifiers.Contains("override"), Accessibility: GetMemberAccessibility(memberModifiers), ExplicitInterfaceName: explicitInterfaceName, TypeParameters: methodTypeParameters, GenericConstraints: methodConstraints, ReturnsByRef: memberModifiers.Contains("ref")));
+            members.Add(new MethodDeclaration(name.Text.TrimStart('@'), memberName.Text.TrimStart('@'), returnType, parameters, body, memberModifiers.Contains("static"), memberModifiers.Contains("public"), isMutating, hasTypeParameters, memberStart.Location, unsafeMember, memberModifiers.Contains("extern"), IsVirtual: memberModifiers.Contains("virtual"), IsOverride: memberModifiers.Contains("override"), Accessibility: GetMemberAccessibility(memberModifiers), ExplicitInterfaceName: explicitInterfaceName, TypeParameters: methodTypeParameters, GenericConstraints: methodConstraints, ReturnsByRef: memberModifiers.Contains("ref"), IsAsync: memberModifiers.Contains("async")));
         }
         Expect("}"); _unsafeDepth = previousUnsafeDepth; types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null, IsRefStruct: modifiers.Contains("ref"))); return true;
     }
@@ -789,7 +793,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private List<string> ReadModifiers()
     {
         var result = new List<string>();
-        while (Current.Text is "public" or "private" or "protected" or "internal" or "static" or "virtual" or "override" or "extern" or "unsafe" or "readonly" or "const" or "ref") result.Add(Take().Text);
+        while (Current.Text is "public" or "private" or "protected" or "internal" or "static" or "virtual" or "override" or "extern" or "unsafe" or "readonly" or "const" or "ref" or "async") result.Add(Take().Text);
         return result;
     }
     private static string GetMemberAccessibility(IReadOnlyList<string> modifiers)
@@ -1090,6 +1094,30 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         }
         if (Is("{")) return ParseBlock();
         if (Eat(";")) return new EmptyStatement(at);
+        if (Eat("lock"))
+        {
+            Expect("(");
+            var gate = ParseExpression();
+            Expect(")");
+            _lockDepth++;
+            var lockedBody = ParseStatement();
+            _lockDepth--;
+
+            var gateName = "__hidden_lock_gate_" + _nextLockLocal++;
+            var gateReference = new NameExpression(gateName, at);
+            var monitorType = new NameExpression("System.Threading.Monitor", at);
+            var enter = new ExpressionStatement(new CallExpression(
+                new MemberAccessExpression(monitorType, "Enter", at), [gateReference], at), at);
+            var exit = new ExpressionStatement(new CallExpression(
+                new MemberAccessExpression(monitorType, "Exit", at), [gateReference], at), at);
+            var protectedBody = lockedBody as BlockStatement ?? new BlockStatement([lockedBody], lockedBody.Location);
+            var guarded = new TryStatement(protectedBody, [], new BlockStatement([exit], at), at);
+            return new BlockStatement([
+                new VariableStatement(gateName, false, "System.Object", gate, at, IsLockGate: true),
+                enter,
+                guarded
+            ], at);
+        }
         if (Eat("return")) { var returnsByRef = Eat("ref"); var expr = Is(";") ? null : ParseExpression(); Expect(";"); return new ReturnStatement(expr, at, returnsByRef); }
         if (Eat("throw")) { var expr = Is(";") ? null : ParseExpression(); Expect(";"); return new ThrowStatement(expr, at); }
         if (Eat("try")) return ParseTry(at);
@@ -1591,6 +1619,12 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private Expression ParseUnary()
     {
         var at = Current.Location;
+        if (Eat("await"))
+        {
+            if (_lockDepth > 0)
+                diagnostics.Add("LS0105", DiagnosticSeverity.Error, "An await expression cannot appear inside a lock statement.", at);
+            return new AwaitExpression(ParseUnary(), at);
+        }
         if (LooksLikeLambda()) return ParseLambdaExpression();
         if (LooksLikeCast())
         {

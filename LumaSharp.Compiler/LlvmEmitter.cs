@@ -206,6 +206,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         if (intrinsicFamilies.Contains("environment")) EmitNativeEnvironmentRuntime();
         if (intrinsicFamilies.Contains("clock")) EmitNativeStopWatchRuntime();
         if (intrinsicFamilies.Contains("threading")) EmitNativeThreadRuntime();
+        if (intrinsicFamilies.Contains("monitor")) EmitNativeMonitorRuntime();
+        if (intrinsicFamilies.Contains("exception")) EmitPreserveExceptionRuntime();
         if (intrinsicFamilies.Contains("stacktrace")) EmitNativeStackTraceRuntime();
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
@@ -1258,7 +1260,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         var linkage = IsRuntimeIntrinsicType(method.Owner) || stripUnusedExecutableCode ? "internal " : "";
         string? frameNameSymbol = null;
         var frameNameLength = 0;
-        if (HasStackTraceSupport())
+        if (HasStackTraceSupport() && !d.IsCompilerGenerated && !d.Name.StartsWith('$') && !d.Name.StartsWith("__", StringComparison.Ordinal) &&
+            !(method.Owner.Namespace == "System.Threading.Tasks" && d.Name.StartsWith("hidden_", StringComparison.Ordinal)))
         {
             var functionName = FunctionName(method, compilation.Methods);
             var readableName = QualifiedTypeName(method.Owner) + "." + d.Name + "(" + string.Join(", ", d.Parameters.Select(parameter => parameter.TypeName)) + ")";
@@ -3678,7 +3681,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     ReleaseAllOwnedStrings(); ReleaseAllOwnedArrays(); ReleaseAllOwnedClasses(); ReleaseAllOwnedAggregates();
                     ReleaseAllScopes();
                     MarkClassConstructorCompleted();
-                    Emit(method.Declaration.ReturnType == "void" ? "ret void" : method.Declaration.ReturnsByRef ? "ret ptr null" : $"ret {LlvmType(method.Declaration.ReturnType)} 0");
+                    Emit(method.Declaration.ReturnType == "void" ? "ret void" : method.Declaration.ReturnsByRef ? "ret ptr null" : $"ret {LlvmType(method.Declaration.ReturnType)} {DefaultStorageValue(method.Declaration.ReturnType)}");
                 }
             }
             var output = _ir.ToString();

@@ -37,4 +37,15 @@ public virtual class Exception : Object
 
 		return result;
 	}
+
+	internal void hidden_AppendAsyncStackTrace(string parentTrace) mut
+	{
+		if (parentTrace.Length == 0)
+			return;
+
+		if (stackTrace == null || stackTrace.Length == 0)
+			stackTrace = parentTrace;
+		else
+			stackTrace += "\n--- End of stack trace from previous location ---\n" + parentTrace;
+	}
 }

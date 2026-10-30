@@ -6,7 +6,7 @@ public sealed record UsingDirective(string Target, string? Alias, SourceLocation
 public sealed record TypeDeclaration(string Namespace, string Kind, string Name, IReadOnlyList<MemberDeclaration> Members, SourceLocation Location, bool HasTypeParameters = false, bool HasBaseList = false, IReadOnlyList<UsingDirective>? Usings = null, string? EnumUnderlyingType = null, IReadOnlyList<string>? BaseTypes = null, bool IsVirtual = false, bool IsStatic = false, string Accessibility = "internal", IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, string? DelegateReturnType = null, IReadOnlyList<ParameterDeclaration>? DelegateParameters = null, string? ContainingTypeName = null, bool IsRefStruct = false);
 public sealed record GenericConstraintDeclaration(string TypeParameter, IReadOnlyList<string> Constraints, SourceLocation Location);
 public abstract record MemberDeclaration(SourceLocation Location);
-public sealed record MethodDeclaration(string ContainingType, string Name, string ReturnType, IReadOnlyList<ParameterDeclaration> Parameters, BlockStatement? Body, bool IsStatic, bool IsPublic, bool IsMutating, bool HasTypeParameters, SourceLocation Location, bool IsUnsafe = false, bool IsExtern = false, bool IsOperator = false, string? Operator = null, bool IsVirtual = false, bool IsOverride = false, string Accessibility = "public", string? PropertyName = null, string? ExplicitInterfaceName = null, IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, bool ReturnsByRef = false) : MemberDeclaration(Location)
+public sealed record MethodDeclaration(string ContainingType, string Name, string ReturnType, IReadOnlyList<ParameterDeclaration> Parameters, BlockStatement? Body, bool IsStatic, bool IsPublic, bool IsMutating, bool HasTypeParameters, SourceLocation Location, bool IsUnsafe = false, bool IsExtern = false, bool IsOperator = false, string? Operator = null, bool IsVirtual = false, bool IsOverride = false, string Accessibility = "public", string? PropertyName = null, string? ExplicitInterfaceName = null, IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, bool ReturnsByRef = false, bool IsAsync = false, bool IsCompilerGenerated = false) : MemberDeclaration(Location)
 {
     public bool IsConversionOperator => IsOperator && Operator is "implicit" or "explicit";
 }
@@ -31,7 +31,7 @@ public sealed record ParameterDeclaration(string TypeName, string Name, SourceLo
 public abstract record Statement(SourceLocation Location);
 public sealed record BlockStatement(IReadOnlyList<Statement> Statements, SourceLocation At) : Statement(At);
 public sealed record ReturnStatement(Expression? Value, SourceLocation At, bool ReturnsByRef = false) : Statement(At);
-public sealed record VariableStatement(string Name, bool Mutable, string? TypeName, Expression? Initializer, SourceLocation At, bool IsConstant = false, bool IsRefLocal = false) : Statement(At);
+public sealed record VariableStatement(string Name, bool Mutable, string? TypeName, Expression? Initializer, SourceLocation At, bool IsConstant = false, bool IsRefLocal = false, bool IsLockGate = false) : Statement(At);
 public sealed record VariableDeclarationStatement(IReadOnlyList<VariableStatement> Variables, SourceLocation At) : Statement(At);
 public sealed record MultiAssignmentStatement(IReadOnlyList<Expression> Targets, IReadOnlyList<Expression> Values, SourceLocation At) : Statement(At);
 public sealed record ExpressionStatement(Expression Value, SourceLocation At) : Statement(At);
@@ -87,3 +87,4 @@ public sealed record DefaultValueExpression(string? TypeName, SourceLocation At,
 public sealed record SizeOfExpression(string TypeName, SourceLocation At) : Expression(At);
 public sealed record UnsupportedExpression(string Description, SourceLocation At) : Expression(At);
 public sealed record NullAssertionExpression(Expression Operand, SourceLocation At) : Expression(At);
+public sealed record AwaitExpression(Expression Operand, SourceLocation At) : Expression(At);

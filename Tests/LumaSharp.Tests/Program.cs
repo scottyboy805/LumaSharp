@@ -377,6 +377,68 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void AsyncAwaitTasksMonitorsAndCriticalAbortCompileTogether()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var fixturePath = RuntimeSourcePath("Tests/fixtures/AsyncAwait.ls");
+        var result = LumaCompiler.Compile(runtimeSources.Append((fixturePath, File.ReadAllText(fixturePath))),
+            new CompilationOptions(UnsafeEnabled: true, TargetTriple: "x86_64-pc-windows-msvc"));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("define internal void @luma_monitor_enter", result.LlvmIr);
+        Assert.Contains("define internal void @luma_throw_preserve", result.LlvmIr);
+        Assert.DoesNotContain("luma_stack_name_luma_Program_hidden_async_body", result.LlvmIr, StringComparison.Ordinal);
+
+        var objectPath = Path.Combine(Path.GetTempPath(), "lumasharp-async-" + Guid.NewGuid().ToString("N") + ".obj");
+        try
+        {
+            var emitted = LlvmToolchain.VerifyAndEmitObject(result.LlvmIr!, objectPath, "x86_64-pc-windows-msvc", optimize: false);
+            Assert.True(emitted.Succeeded, emitted.Error);
+        }
+        finally
+        {
+            if (File.Exists(objectPath)) File.Delete(objectPath);
+        }
+    }
+
+    [Fact]
+    public void AwaitAndLockRejectInvalidContexts()
+    {
+        var awaitOutsideAsync = Compile("class Program { public static int32 Main() { int32 value = await Main(); return value; } }");
+        Assert.False(awaitOutsideAsync.Succeeded);
+        Assert.Contains(awaitOutsideAsync.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+
+        var awaitInsideLock = Compile("class Gate { } class Program { public static int32 Main() { lock (new Gate()) { int32 value = await Main(); } return 0; } }");
+        Assert.False(awaitInsideLock.Succeeded);
+        Assert.Contains(awaitInsideLock.Diagnostics, diagnostic => diagnostic.Code == "LS0105" && diagnostic.Message.Contains("inside a lock", StringComparison.Ordinal));
+
+        var valueTypeLock = Compile("class Program { public static int32 Main() { lock (1) { } return 0; } }");
+        Assert.False(valueTypeLock.Succeeded);
+        Assert.Contains(valueTypeLock.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+
+        var nullableLock = Compile("class Program { public static int32 Main() { string? gate = null; lock (gate) { } return 0; } }");
+        Assert.False(nullableLock.Succeeded);
+        Assert.Contains(nullableLock.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+
+        var awaitNonTask = Compile("class Program { public static async int32 Invalid() { return await 1; } public static int32 Main() { return 0; } }");
+        Assert.False(awaitNonTask.Succeeded);
+
+        var asyncByRef = Compile("class Program { public static async int32 Invalid(ref int32 value) { return value; } public static int32 Main() { return 0; } }");
+        Assert.False(asyncByRef.Succeeded);
+        Assert.Contains(asyncByRef.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+
+        var explicitTaskReturn = Compile("class Program { public static async System.Threading.Tasks.Task<int32> Invalid() { return null!; } public static int32 Main() { return 0; } }");
+        Assert.False(explicitTaskReturn.Succeeded);
+        Assert.Contains(explicitTaskReturn.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+
+        var mutatingStruct = Compile("struct Counter { public int32 value; public async int32 Increment() mut { value++; return value; } } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(mutatingStruct.Succeeded);
+        Assert.Contains(mutatingStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+    }
+
+    [Fact]
     public void StopWatchAndTimeSpanSupportElapsedStateTransitions()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

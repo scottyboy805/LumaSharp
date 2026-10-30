@@ -46,6 +46,7 @@
 31. [Exceptions](#31-exceptions)
 32. [Runtime Bootstrapping and Compiler-Known Types (Informative)](#32-runtime-bootstrapping-and-compiler-known-types-informative)
 33. [Native Interop at Run Time](#33-native-interop-at-run-time)
+34. [Tasks, Thread Pools and Synchronization](#34-tasks-thread-pools-and-synchronization)
 
 **Appendices**
 
@@ -82,7 +83,7 @@ The language is designed around six principles:
 | Part | Chapters | Content |
 |---|---|---|
 | **Part I: Language** | 1–24 | Syntax and semantics of every language feature |
-| **Part II: Runtime** | 25–33 | Program lifecycle, memory management, type representation, execution semantics, exceptions, native interop, the runtime interface |
+| **Part II: Runtime** | 25–34 | Program lifecycle, memory management, type representation, execution semantics, exceptions, native interop, threading, and the runtime interface |
 | **Appendices** | A–F | Grammar, keywords, precedence, decision log, runtime interface reference, a complete example |
 
 Chapters in Part I describe what programs *mean*; where behaviour at run time needs more precision than fits in the language chapter, the language chapter states the observable rule and Part II states how a conforming runtime provides it.
@@ -222,7 +223,7 @@ virtual void while
 
 **Contextual keywords** (keywords only in a specific position): `get`, `set`, `field`, `value`, `when`, `and`, `or`, `not`, `where`. A loop label is an identifier followed by `:` at the start of a loop statement (§6.7).
 
-**Reserved for future versions** (an identifier with this spelling is a compile-time error, LS0104): `async`, `await`, `lock`. The attribute syntax `[ ... ]` before a declaration is likewise reserved. `[P-23]`
+`async` is a method modifier, `await` is an expression operator, and `lock` is a statement keyword (§6.13, §7.10, Chapter 34). The attribute syntax `[ ... ]` before a declaration remains reserved. `[P-23]`
 
 Features that will **never** be part of the language (`event`, `record`, `partial`, `params`, `sealed`, `abstract`, `goto`, `fixed`, `stackalloc`, `dynamic`, LINQ query syntax, and similar) are not keywords; those spellings are ordinary identifiers.
 
@@ -785,6 +786,7 @@ Operands are evaluated **left to right**. Arguments are evaluated left to right 
 | `e.Name`, `e?.Name` | Member access; null-conditional access (§13.5). On a pointer `p.Name` dereferences automatically (§19.3) |
 | `e[i]`, `e[i, j]`, `e?[i]` | Element/indexer access |
 | `e(args)` | Method or delegate invocation |
+| `await e` | Wait for a `Task` or `Task<T>` and produce its result (§7.10) |
 | `e!` | Null assertion (§13.4) |
 | `e++`, `e--` | Post-increment/-decrement |
 | `new T(args)`, `new(args)` | Heap allocation of class `T`; shorthand infers `T` (§5.14) |
@@ -1060,7 +1062,7 @@ Members of a nullable type **cannot** be accessed unless the compiler can prove 
 ```
 statement = block | local_declaration | multi_assign | expression_statement
           | if | switch | labeled_loop | while | do_while | for | for_in
-          | break | continue | return | throw | try
+          | break | continue | return | throw | try | lock
           | unsafe_statement | checked_statement | unchecked_statement | ";" ;
 ```
 
@@ -1349,6 +1351,21 @@ unsafe unchecked { /* wrapping arithmetic, bounds checks may be omitted */ }
 - A non-`void` method whose end is reachable is an error (LS0630: "not all code paths return a value").
 - Code after an unconditional `return`, `throw`, `break`, or `continue` produces warning LS3001 *(required)*.
 
+## 6.13 `lock`
+
+`lock (expression) statement` evaluates `expression` once and requires a non-null reference type. It enters the monitor associated with that exact object, executes `statement`, then exits the monitor on every normal or exceptional path. Value types, nullable references, and `null` are compile-time errors (LS0105).
+
+Locks are reentrant for the owning thread. `await` is prohibited anywhere inside the lexical body of a `lock` statement (LS0105), because awaiting blocks while holding the monitor and can deadlock other work. The compiler lowers the construct with `System.Threading.Monitor.Enter` and a `finally`-equivalent `Exit`; user code does not write the cleanup.
+
+```lumasharp
+lock (gate)
+{
+    sharedCount++;
+}
+```
+
+The synchronization object is evaluated once even if the statement body assigns to the variable used by the expression. Monitor identity is object identity; two distinct objects never share a lock.
+
 ---
 
 # 7. Methods and Parameters
@@ -1359,7 +1376,7 @@ unsafe unchecked { /* wrapping arithmetic, bounds checks may be omitted */ }
 method = { modifier } return_type identifier [ type_params ] "(" [ parameters ] ")"
          [ "mut" ] [ constraints ] ( block | "=>" expr ";" | ";" ) ;
 modifier = "public" | "private" | "protected" | "internal" | "static" | "virtual"
-         | "override" | "extern" | "unsafe" ;   (* "protected internal" and "private protected" are
+         | "override" | "extern" | "unsafe" | "async" ;   (* "protected internal" and "private protected" are
                                                     two-keyword combinations *)
 ```
 
@@ -1486,8 +1503,8 @@ in int32 r                             // read-only reference parameter
 ### 7.2.6 Restrictions on `ref`, `in`, `out`
 
 - `ref`/`in`/`out` parameters cannot be captured by lambdas (error LS0730).
-- There are no `ref` locals, `ref` returns, or `ref` fields in this version. A `ref`/`in`/`out` parameter can only be used within the method.
-- `ref`/`out` are not allowed on iterator/async methods (not in this version).
+- Ref locals and ref returns are supported under the lifetime rules of §14.7.1; ref fields remain unsupported. A `ref`/`in`/`out` parameter can only be used within the method.
+- `ref`/`in`/`out` and `scope` parameters are not allowed on async methods (§7.10, §34.1). Iterator methods remain unsupported.
 - `out` and `ref` arguments MUST be variables: locals, parameters, fields, array elements, or dereferenced pointers (not properties or `let` locals).
 
 ## 7.3 Optional and Named Arguments `[P-24]`
@@ -1571,6 +1588,33 @@ Methods return by value. A returned reference type transfers its ownership to th
 ## 7.9 Extension of the Receiver: `this`
 
 Instance methods have an implicit parameter `this`. In class methods `this` is a reference of the enclosing class type (non-null). In struct methods `this` is an alias to the struct storage (like a `ref` parameter). Whether `this` may be assigned through is determined by `mut` (§8.5).
+
+## 7.10 Async Methods and `await`
+
+An `async` method declares the type of its completed result. Its callable signature returns `System.Threading.Tasks.Task` when the declared result is `void`, or `System.Threading.Tasks.Task<T>` for a declared result `T`. The source declaration MUST NOT write `Task` or `Task<T>` as the return type: the task wrapper is implicit.
+
+```lumasharp
+public static async int32 LoadCount()
+{
+    int32 first = await ReadFirst();
+    return first + await ReadSecond();
+}
+
+public static async void Save()
+{
+    await Flush();
+}
+
+Task<int32> pending = LoadCount();
+int32 count = await LoadCount();
+await Save();
+```
+
+`await` is permitted only in an `async` method and only on `Task` or `Task<T>`. Awaiting `Task` produces no value; awaiting `Task<T>` produces its `T`. A task value may be stored, passed, or returned like any other reference. An async method starts its body on a pool worker; awaiting a task blocks the current thread while polling for completion, and then continues on that same thread. It does not capture a synchronization context or schedule a continuation. `ThreadPool` sizing and worker lifetime are managed by the runtime.
+
+Async interface methods may declare `async` and use the same source result type; their implementation returns the corresponding task. Implementations MUST match the transformed task signature. An async method cannot have `ref`, `in`, `out`, or `scope` parameters, a by-reference return, or a mutating struct receiver (LS0105). Async lambdas, iterators, cancellation, custom schedulers, and synchronization contexts are not supported. `await` inside `lock` is an error.
+
+If a task faults, awaiting it throws its stored exception with the original throw trace followed by the logical async caller frames. Compiler-generated helper frames MUST NOT appear in user-visible stack traces. `Task.Wait()` waits without rethrowing; `Task<T>.Result` and `await` rethrow the stored exception.
 
 ---
 
@@ -3094,10 +3138,10 @@ Reference-count updates performed by generated code MUST be **correct under conc
 
 This guarantee does **not** make user objects thread-safe. In particular:
 
-- Concurrent unsynchronised reads/writes of the **same variable or field** (a data race on a reference-typed storage location itself) are not protected and are **undefined behaviour in unsafe contexts / unspecified in safe code** until synchronisation primitives are specified in a later version.
+- Concurrent unsynchronised reads/writes of the **same variable or field** (a data race on a reference-typed storage location itself) are not protected and are **undefined behaviour in unsafe contexts / unspecified in safe code**. `lock`/monitors provide acquire/release ordering for code using the same object monitor (§6.13, Chapter 34).
 - Finalizers run on the thread that performs the final release.
 
-Synchronization primitives beyond `Thread` are not part of this version.
+The supported synchronization primitive is the object monitor exposed by `lock` and `System.Threading.Monitor` (Chapter 34). A general atomic API, condition variables, reader-writer locks, and semaphores are not part of this version.
 
 ## 14.10 Examples of Complete Lifetimes
 
@@ -3929,6 +3973,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 |---|---|
 | LS0001 | Unexpected token / syntax error |
 | LS0104 | Reserved-for-future keyword used as identifier (§2.4) |
+| LS0105 | Invalid async/await or lock usage (§6.13, §7.10, Chapter 34) |
 | LS0201 | Local/parameter name conflicts with enclosing scope, or an initializer refers to a variable declared by the same statement (§4.2.4, §4.4) |
 | LS0210 | Multiple assignment count mismatch (§4.6.3) |
 | LS0212 | More initializers than identifiers in a multiple declaration (§4.2.4) |
@@ -4041,7 +4086,8 @@ These features are **not planned** and are not reserved as keywords. A program u
 
 | Feature | Notes |
 |---|---|
-| `async` / `await`, threading primitives, `lock`, atomics, memory model | `async`, `await`, `lock` are reserved words. Reference counting is thread-safe (§27.8) |
+| Async lambdas, task cancellation, custom schedulers, synchronization contexts | Async methods, `Task`/`Task<T>`, `await`, thread-pool scheduling, and `lock` are specified in §7.10 and Chapter 34. |
+| Public atomic APIs and a complete cross-thread memory model | Runtime reference counting and compiler synchronization primitives are thread-safe (§27.8, §34); a general atomic API remains deferred. |
 | Attributes | The syntax `[ … ]` before a declaration is reserved |
 | Reflection, `typeof`, `GetType` | Runtime type information beyond `is`/`as`/casts is not exposed |
 | Multicast delegates | Delegates are single-target (§17) |
@@ -4262,9 +4308,9 @@ The compiler may elide, merge, or reorder retains and releases (borrowing, move 
 
 ## 27.8 Thread Safety of Reference Counting
 
-Reference-count updates MUST be **correct under concurrent access**: if several threads hold separate strong references to one object and copy or release them concurrently, the count stays consistent and the object is destroyed **exactly once**, after the last release, on the thread that performs it. A runtime for a program that can never create threads (this version has no thread-creation facility) MAY use non-atomic operations as long as behaviour is identical; once threads exist all operations MUST be atomic as specified in §27.4.
+Reference-count updates MUST be **correct under concurrent access**: if several threads hold separate strong references to one object and copy or release them concurrently, the count stays consistent and the object is destroyed **exactly once**, after the last release, on the thread that performs it. Since this version supports native threads and a thread pool, all reference-count operations MUST be atomic as specified in §27.4.
 
-This does **not** make user data race-free: concurrent unsynchronised access to the *same* reference-typed variable or field is a data race (UB in unsafe code, unspecified in safe code) until synchronisation primitives are specified.
+This does **not** make user data race-free: concurrent unsynchronised access to the *same* reference-typed variable or field is a data race (UB in unsafe code, unspecified in safe code). Safe code can synchronize such access by using the same object monitor (§6.13, Chapter 34).
 
 ## 27.9 Weak References
 
@@ -4566,7 +4612,7 @@ Property accessors, indexers and overloaded operators are ordinary method calls 
 
 ## 29.10 Scope-Exit Cleanup
 
-Scope-exit actions (scoped-object destruction, local releases) are emitted for every exit path of a block (§14.6). On the exceptional path they run during the cleanup phase of unwinding (§31.3). There is no other deferred-execution mechanism in the language.
+Scope-exit actions (scoped-object destruction, local releases) are emitted for every exit path of a block (§14.6). On the exceptional path they run during the cleanup phase of unwinding (§31.3). Async task execution is a separate explicit mechanism (§7.10, Chapter 34); it does not change lexical cleanup rules.
 
 ---
 
@@ -4720,7 +4766,9 @@ Each intrinsic is registered with a name, source-level signature, and lowering d
 
 The current implementation uses short names for memory (`__memalloc`, `__memcpy`), arrays (`__arrlen`, `__arrdim`), dynamic libraries (`__libopen`), files (`__fileopen`, `__fileexists`), environment information, timing, threads (`__threadstart`, `__threadjoin`, `__threadsleep`), weak references, and stack traces. These names are runtime implementation details and are not a general source-level API.
 
-The current `System.Threading.Thread` runtime runs `ThreadStart` and `ThreadStart<T>` callbacks on native threads. `Join(timeout)` bounds the wait and returns whether the worker finished; it does not terminate a worker when the timeout expires. A successful join releases its native thread resources. If the `Thread` object is destroyed without a successful join, its finalizer waits for the worker and releases those resources. `Abort()` forcefully terminates the worker, releases its native resources, and blocks until it exits. Because it can interrupt execution at an arbitrary point, it may bypass scope cleanup, finalizers, and reference-count releases; callers SHOULD use `Join()` first and reserve `Abort()` for workers that do not stop normally.
+The current `System.Threading.Thread` runtime runs `ThreadStart` and `ThreadStart<T>` callbacks on native threads. `Join(timeout)` bounds the wait and returns whether the worker finished; it does not terminate a worker when the timeout expires. A successful join releases its native thread resources. If the `Thread` object is destroyed without a successful join, its finalizer waits for the worker and releases those resources. `Abort()` blocks until the worker exits. Before forceful termination it waits for tracked runtime critical regions to end, including held monitors and callback cleanup. It may interrupt user code outside those regions and bypass ordinary scope cleanup, finalizers, and reference-count releases; callers SHOULD use `Join()` first and reserve `Abort()` for workers that do not stop normally.
+
+`System.Threading.Monitor` provides reentrant object-identity locks used by the `lock` statement. Async methods use `System.Threading.Tasks.Task` and `Task<T>` and an internal thread pool that grows when queued work has no idle worker and shrinks workers after an idle interval. Pool policy is runtime-managed; applications do not configure or own the pool.
 
 Intrinsic parameters that accept `string` receive the LumaSharp UTF-16 string representation. A platform lowering performs any required conversion to a native encoding. The current POSIX conversion path reuses per-thread scratch storage for short strings and uses temporary heap storage for longer values; returned scratch storage is valid only for the duration of the synchronous intrinsic call. This conversion does not apply to user-declared extern methods.
 
@@ -4744,7 +4792,7 @@ The symbol is the method's own name, unmangled (§21.1). It is resolved by the p
 
 ## 33.4 Threads and State
 
-Native calls execute on the calling thread with its stack. Native code must not call back into LumaSharp code in this version.
+Native calls execute on the calling thread with its stack. Native code must not call back into LumaSharp code in this version. Async work uses LumaSharp-managed pool threads and does not introduce native callbacks.
 
 ## 33.5 Exceptions and Native Frames `[P-17]`
 
@@ -4753,6 +4801,46 @@ LumaSharp exceptions MUST NOT propagate through native frames. A runtime that ca
 ## 33.6 Safety
 
 Because the compiler cannot verify native code, extern calls are made only from `unsafe` contexts (§21.1). Native code may violate any invariant of this document (for example by freeing memory the runtime owns); the consequences are undefined.
+
+---
+
+# 34. Tasks, Thread Pools and Synchronization
+
+This chapter specifies the runtime model for async methods (§7.10), task completion, the worker pool, object monitors, and the observable safety boundary for `Thread.Abort()`.
+
+## 34.1 Async Method Calls
+
+An async method has a source result type `T` or `void`, and its callable result is `Task<T>` or `Task`, respectively. Calling it creates and returns an incomplete task, captures the logical caller trace, and queues the method body to the runtime-managed thread pool. The body begins on a worker thread. Arguments and an instance receiver are retained for as long as required by the queued invocation.
+
+The compiler may synthesize private helper methods and closure data to execute the body. Such artifacts are implementation details, are inaccessible from source, and MUST NOT appear in user-visible stack traces. A compiler MUST preserve the source method name and caller chain as logical frames, including when a task faults. The runtime retains a fault exception on the task until it is released; awaiting or reading `Task<T>.Result` throws that exception while preserving its original throw-site trace and appending the logical async call chain.
+
+## 34.2 Task Completion and `await`
+
+`Task.IsCompleted` becomes true exactly once after either normal completion or fault publication. `Task.Exception` is null on success and contains the exception on fault. Completion publication and reads MUST be synchronized so a thread observing completion also observes the task result or exception.
+
+`Task.Wait()` blocks until completion and does not rethrow a fault. `Task<T>.Result` blocks until completion, then returns the result or throws the stored fault. The `await` operator has the same blocking and result behavior as `Result`, except awaiting the non-generic `Task` produces no value. This version uses polling with a short sleep, or an equivalent bounded-wait mechanism; it does not suspend and later resume a continuation. The code following an await therefore runs on the same thread that called the async method containing that await.
+
+Awaiting does not imply that the task started on a separate thread from every caller: a source method invoked from an async body still returns a task that is independently scheduled on the pool. Await is forbidden in a `lock` body. No synchronization context is captured or restored.
+
+## 34.3 Runtime-Managed Thread Pool
+
+`System.Threading.Tasks.ThreadPool` is an implementation service, not an application configuration surface. The runtime MUST queue each accepted task once and execute it to completion or fault. It SHOULD reuse idle workers, create workers when queued work cannot be serviced promptly, compensate for workers blocked in task waits to avoid nested-await starvation, limit ordinary queue-driven growth, and retire idle workers after an implementation-defined interval. It MAY temporarily grow beyond its ordinary worker limit to compensate for blocked waits, subject to platform resource limits; failure to create a needed worker MUST be reported to the scheduling caller. The ordinary worker limit, polling interval, idle timeout, and scheduling fairness are implementation-defined. The compiler and runtime select pool size without user configuration.
+
+Pool workers are background work: process exit is not required to wait for queued or running work. Programs that require work to finish before exit MUST wait on the relevant task. Unhandled exceptions from task bodies are captured by their task and are not treated as unhandled exceptions on the worker thread.
+
+## 34.4 Monitors and `lock`
+
+`System.Threading.Monitor.Enter` and `Exit` synchronize on object identity. A monitor has one owning thread and a recursion count. Enter blocks until the calling thread owns the monitor; repeated entry by that owner increments the count. Exit by a non-owner throws `SynchronizationLockException`; a successful exit decrements the count and releases ownership when it reaches zero.
+
+Monitor enter has acquire semantics and the final matching exit has release semantics for accesses protected by that monitor. Unsynchronized concurrent access to the same mutable storage remains a data race with unspecified results. A runtime MUST release a monitor when a protected statement exits exceptionally. The source `lock` statement guarantees this release through compiler-generated cleanup.
+
+Await inside `lock` is a compile-time error. This rule follows C# monitor behavior and prevents the thread from blocking in await while retaining a monitor needed by other work.
+
+## 34.5 Safe Boundary for `Thread.Abort()`
+
+`Abort()` is synchronous and blocking. It first requests termination, then waits for runtime-tracked critical regions to be left. Tracked regions include held monitors and the runtime's worker/callback teardown protocol. Once the target is outside those regions, the runtime may terminate it forcefully and MUST wait until the native thread has fully exited before returning. Resources owned by the `Thread` wrapper are released once, even if worker completion races with abort.
+
+The runtime cannot identify every user-defined invariant or cleanup region. Abort MAY interrupt ordinary user code outside the tracked regions and may bypass `finally` blocks, scoped-object destruction, finalizers, and reference-count releases. It is therefore a last resort. Callers SHOULD use `Join()` first and use `Abort()` only when terminating an unresponsive worker is required. Programs MUST NOT assume that arbitrary user state remains consistent after abort.
 
 ---
 
@@ -4772,7 +4860,7 @@ type_decl          = class_decl | struct_decl | interface_decl | enum_decl | del
 access             = "public" | "private" | "protected" | "internal"
                    | "protected" "internal" | "private" "protected" ;
 modifier           = access | "virtual" | "override" | "static" | "extern" | "unsafe"
-                   | "readonly" | "const" ;      (* applicability depends on the member; see Part I *)
+                   | "readonly" | "const" | "async" ; (* applicability depends on the member; see Part I *)
 
 class_decl         = { modifier } "class" identifier [ type_params ] [ base_list ]
                      { constraint_clause } "{" { class_member } "}" ;
@@ -4823,7 +4911,7 @@ operator_decl      = { modifier } type "operator" overloadable_op
 overloadable_op    = "+" | "-" | "!" | "~" | "++" | "--" | "*" | "/" | "%" | "&" | "|" | "^"
                    | "<<" | ">>" | "==" | "<" | ">" | "<=" | ">=" ;
 
-interface_method   = return_type identifier [ type_params ] "(" [ parameters ] ")" ";" ;
+interface_method   = [ "async" ] return_type identifier [ type_params ] "(" [ parameters ] ")" ";" ;
                    (* "mut" is not permitted on interface members (§10.1) *)
 interface_property = type identifier "{" ( "get" ";" | "set" ";" ) { "get" ";" | "set" ";" } "}" ;
 interface_indexer  = type "this" "[" parameters "]" "{" ( "get" ";" | "set" ";" ) { "get" ";" | "set" ";" } "}" ;
@@ -4854,8 +4942,9 @@ statement          = block | local_decl | multi_assign | expression_statement
                    | "break" [ identifier ] ";" | "continue" [ identifier ] ";"
                    | "return" [ expression ] ";" | "throw" [ expression ] ";"
                    | try_stmt
-                   | "unsafe" block | "unsafe" "unchecked" block
+                   | lock_stmt | "unsafe" block | "unsafe" "unchecked" block
                    | "checked" block | "unchecked" block | ";" ;
+lock_stmt          = "lock" "(" expression ")" statement ;
 
 local_decl         = local_decl_core ";" ;
 local_decl_core    = ( type | "var" | "let" [ type ] ) identifier { "," identifier }
@@ -4910,7 +4999,7 @@ relational         = shift { ( "<" | ">" | "<=" | ">=" ) shift }
 shift              = additive { ( "<<" | ">>" ) additive } ;
 additive           = multiplicative { ( "+" | "-" ) multiplicative } ;
 multiplicative     = unary { ( "*" | "/" | "%" ) unary } ;
-unary              = ( "+" | "-" | "!" | "~" | "++" | "--" | "&" | "*" ) unary
+unary              = ( "+" | "-" | "!" | "~" | "++" | "--" | "&" | "*" | "await" ) unary
                    | "(" type ")" unary          (* cast; disambiguation as in C# *)
                    | postfix ;
 postfix            = primary { "." identifier [ type_args ]      (* also auto-dereferences pointers *)
@@ -4950,12 +5039,12 @@ Disambiguation notes (informative):
 |---|---|
 | Types | `bool char int uint int8 int16 int32 int64 uint8 uint16 uint32 uint64 float double object string void` |
 | Declarations | `class struct interface enum delegate namespace using const let var extern operator` |
-| Modifiers | `public private protected internal static virtual override readonly mut unsafe` |
+| Modifiers | `public private protected internal static virtual override readonly mut unsafe async` |
 | Parameters | `ref in out scope` |
-| Control flow | `if else switch case default while do for in break continue return throw try catch finally` |
-| Expressions | `new scope this base null true false is as sizeof default checked unchecked` |
+| Control flow | `if else switch case default while do for in break continue return throw try catch finally lock` |
+| Expressions | `new scope this base null true false is as sizeof default checked unchecked await` |
 | Contextual | `get set field value when and or not where` |
-| Reserved for future versions | `async await lock` |
+| Reserved for future versions | *none of `async`, `await`, or `lock`; attribute syntax `[ ... ]` remains reserved* |
 
 `when`, `and`, `or`, `not`, `where`, `get`, `set`, `field`, `value` are keywords only in the positions described in the text and are otherwise ordinary identifiers. `const` and `readonly` change meaning with context (field or local); `scope` may modify allocations and by-value parameters. There are no keywords for the excluded features of §24.1.
 
@@ -4968,7 +5057,7 @@ From **highest** to **lowest** precedence. Binary operators are left-associative
 | # | Category | Operators |
 |---|---|---|
 | 1 | Primary | `x.y`  `x?.y`  `x[i]`  `x?[i]`  `f(x)`  `x!`  `x++`  `x--`  `new`  `scope`  `default`  `sizeof`  `checked()`  `unchecked()` |
-| 2 | Unary (right-assoc.) | `+x`  `-x`  `!x`  `~x`  `++x`  `--x`  `&x`  `*x`  `(T)x` |
+| 2 | Unary (right-assoc.) | `+x`  `-x`  `!x`  `~x`  `++x`  `--x`  `&x`  `*x`  `await x`  `(T)x` |
 | 3 | Multiplicative | `*`  `/`  `%` |
 | 4 | Additive | `+`  `-` |
 | 5 | Shift | `<<`  `>>` |
@@ -5014,7 +5103,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | P-20 | Array members | `Length` (total), `Rank`, `GetLength(int32)`; recommended row-major contiguous layout for multi-dimensional arrays |
 | P-21 | Cycle warning | Graph algorithm in §14.8 (nullable fields suppress; derived classes expanded) |
 | P-22 | Reference ABI | Header, type-descriptor and string/array layouts and the runtime function set of Appendix E; compiler-known types of §1.7 and their members |
-| P-23 | Reserved words | `async`, `await`, `lock`, and `[ … ]` attribute syntax reserved |
+| P-23 | Reserved words | `async`, `await`, and `lock` are active syntax (§6.13, §7.10, Chapter 34); `[ … ]` attribute syntax remains reserved |
 | P-24 | Overloads/named/optional | C#-like resolution; named after positional; defaults inserted at the call site |
 | P-25 | C# fallback | Silent areas follow C# unless excluded in §24 |
 | P-26 | Release timing | As-if rule for early release; finalizers derived→base; fields released in reverse declaration order; exceptions from finalizers are fatal |
@@ -5024,6 +5113,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | P-30 | Exception handling | Two-phase model: search first, then cleanup; unhandled exceptions terminate without cleanup; `catch (...)`; no filters |
 | P-31 | `readonly` fields | Assignable in initializer and in constructors (`static this()` for static); get-only auto-properties likewise |
 | P-32 | `const` types | `bool`, `char`, integers, `float`, `double`, enums, `string` |
+| P-33 | Async execution | Async methods return implicit tasks, are queued to a runtime-managed pool, and use blocking same-thread polling at `await`; locks are reentrant monitors and cannot span `await` |
 
 ## D.3 Rules taken directly from your instructions
 

@@ -76,6 +76,9 @@ internal static class CompilerIntrinsics
         Add("__threadabort", "void", "threading", "int");
         Add("__threadsleep", "void", "threading", "int32");
         Add("__threadcurrent", "System.Threading.Thread", "threading");
+        Add("__monitorenter", "void", "monitor", "System.Object");
+        Add("__monitorexit", "bool", "monitor", "System.Object");
+        Add("__throwpreserve", "void", "exception", "System.Exception");
         Add("__stacktrace", "string", "stacktrace", "int32");
         Add("__stackframes", "int32", "stacktrace", "int32");
         Add("__weakcreate", "int", "weak", "System.Object");
@@ -134,6 +137,9 @@ internal static class CompilerIntrinsics
         "__threadabort" => "luma_thread_abort",
         "__threadsleep" => "luma_thread_sleep",
         "__threadcurrent" => "luma_thread_current",
+        "__monitorenter" => "luma_monitor_enter",
+        "__monitorexit" => "luma_monitor_exit",
+        "__throwpreserve" => "luma_throw_preserve",
         "__stacktrace" => "luma_stacktrace_capture",
         "__stackframes" => "luma_stacktrace_frame_count",
         "__weakcreate" => "luma_weak_create",

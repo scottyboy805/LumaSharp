@@ -54,6 +54,8 @@ public static class LumaCompiler
                 units.Add(new Parser(tokens, diagnostics, options.UnsafeEnabled || isRuntimeSource, cancellationToken).ParseCompilationUnit());
             }
             cancellationToken.ThrowIfCancellationRequested();
+            units = AsyncMethodLowerer.Lower(units, diagnostics).ToList();
+            if (FinalDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error)) return new(FinalDiagnostics(), null);
             var analysis = new SemanticAnalyzer(options, diagnostics, runtimeSourcePaths, cancellationToken).Analyze(units);
             if (!options.StaticLibrary && analysis.EntryPoint is null)
                 diagnostics.Add("LS2201", DiagnosticSeverity.Error, "Executable compilation requires exactly one public static Main with a supported signature.");

@@ -524,7 +524,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         _genericTypeInstantiations.AddRange(genericExpansion.Instantiations);
         var sourceTypes = genericExpansion.ConcreteTypes.ToArray();
         foreach (var type in sourceTypes)
-            foreach (var method in type.Members.OfType<MethodDeclaration>().Where(method => method.Name.StartsWith("__", StringComparison.Ordinal)))
+            foreach (var method in type.Members.OfType<MethodDeclaration>().Where(method => !method.IsCompilerGenerated && method.Name.StartsWith("__", StringComparison.Ordinal)))
                 diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
                     "Method names beginning with '__' are reserved for compiler intrinsics and cannot be declared.", method.Location);
         var sourceObject = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Object" && IsRuntimeLibraryDeclaration(type));
@@ -8853,7 +8853,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 var initializer = variables[index].Initializer;
                 if (initializer is null) continue;
                 if (ContainsDeclaredName(initializer, names)) diagnostics.Add("LS0201", DiagnosticSeverity.Error, "An initializer cannot refer to a variable declared by the same statement.", initializer.Location);
-                initializerTypes[index] = AnalyzeExpression(initializer, context, variables[index].TypeName);
+                initializerTypes[index] = AnalyzeExpression(initializer, context,
+                    variables[index].IsLockGate ? null : variables[index].TypeName);
+                if (variables[index].IsLockGate && initializerTypes[index] is { } lockType &&
+                    (GetClassReferenceTypeForAnalysis(lockType) is null || IsNullableType(lockType)))
+                    diagnostics.Add("LS0105", DiagnosticSeverity.Error, "A lock expression must have a non-nullable reference type.", initializer.Location);
                 if (variables[index].IsConstant && !IsConstantExpression(initializer, context))
                     diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "A const initializer must be a constant expression composed of literals, earlier const locals, and constant operators.", initializer.Location);
             }
@@ -8877,7 +8881,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (variable.IsConstant && type is not ("bool" or "char" or "int" or "uint" or "int8" or "uint8" or "int16" or "uint16" or "int32" or "uint32" or "int64" or "uint64" or "float" or "double" or "string"))
                 diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Type '{type}' is not permitted for a local constant.", variable.Location);
             var initializerType = initializerTypes[index];
-            if (variable.TypeName is not null && initializerType is not null && type != initializerType && !CanConvertInContext(initializerType, type, variable.Initializer, context))
+            if (!variable.IsLockGate && variable.TypeName is not null && initializerType is not null && type != initializerType && !CanConvertInContext(initializerType, type, variable.Initializer, context))
                 AddReferenceConversionDiagnostic(initializerType, type, variable.Initializer, context, variable.Location);
             if (type == "void") diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "A local cannot have type void.", variable.Location);
             if (initializerType is null && TryParseManagedArrayType(type, out _, out _)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Managed array '{type}' must be initialized before it is read.", variable.Location);

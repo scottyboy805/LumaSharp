@@ -8,7 +8,6 @@ internal sealed record Token(TokenKind Kind, string Text, SourceLocation Locatio
 
 internal sealed class Lexer(string file, string source, DiagnosticBag diagnostics, CancellationToken cancellationToken = default)
 {
-    private static readonly HashSet<string> ReservedFuture = ["async", "await", "lock"];
     private static readonly string[] Operators = [">>=", "<<=", "??=", "...", "?.", "?[", "??", "=>", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", ">>"];
     private int _index, _line = 1, _column = 1;
     private int _cancellationCheckCounter;
@@ -65,8 +64,7 @@ internal sealed class Lexer(string file, string source, DiagnosticBag diagnostic
             if (status != System.Buffers.OperationStatus.Done || !(_index == identifierStart ? IsIdentifierStartRune(rune) : IsIdentifierPartRune(rune))) break;
             for (var i = 0; i < consumed; i++) Advance();
         }
-        var text = source[start.._index]; var bare = escaped ? text[1..] : text;
-        if (!escaped && ReservedFuture.Contains(bare)) diagnostics.Add("LS0104", DiagnosticSeverity.Error, $"'{bare}' is reserved for a future language version.", location);
+        var text = source[start.._index];
         return new(TokenKind.Identifier, text, location);
     }
     private Token ScanNumber()

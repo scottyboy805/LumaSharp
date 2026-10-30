@@ -26,10 +26,12 @@ The language and compiler are still under active development. Some features desc
 - [12. Arrays, strings, and spans](#12-arrays-strings-and-spans)
 - [13. Collections](#13-collections)
 - [14. Exceptions](#14-exceptions)
-- [15. Unsafe code and native pointers](#15-unsafe-code-and-native-pointers)
-- [16. Runtime library](#16-runtime-library)
-- [17. Current boundaries](#17-current-boundaries)
-- [18. Further reading](#18-further-reading)
+- [15. Threads](#15-threads)
+- [16. Async methods, tasks, and locks](#16-async-methods-tasks-and-locks)
+- [17. Unsafe code and native pointers](#17-unsafe-code-and-native-pointers)
+- [18. Runtime library](#18-runtime-library)
+- [19. Current boundaries](#19-current-boundaries)
+- [20. Further reading](#20-further-reading)
 
 ## 1. Start here
 
@@ -1008,9 +1010,69 @@ public class Worker
 
 `Join()` waits until the callback finishes. `Join(millisecondsTimeout)` returns `false` if the wait expires; the worker keeps running. If the timeout expires, call `Abort()` to forcefully terminate the worker and wait until it has exited. A successful join releases the native thread resources. If the thread is not joined explicitly, its finalizer waits for the worker and releases those resources. `Thread.Sleep(millisecondsTimeout)` pauses the current thread. `Thread.CurrentThread` returns the same thread instance each time it is read on a given thread, and `IsCurrentThread` identifies that instance.
 
-`Abort()` is a last resort. It can interrupt the worker while it is updating shared data or running cleanup, so use `Join()` first whenever the worker can finish normally.
+`Abort()` first waits for tracked runtime critical regions, including held monitors and thread callback cleanup, then forcefully ends the worker and blocks until it has exited. It can still interrupt ordinary user code and skip `finally` blocks or object cleanup outside those tracked regions. Use `Join()` first whenever the worker can finish normally.
 
-## 16. Unsafe code and native pointers
+## 16. Async methods, tasks, and locks
+
+An `async` method names the value it will eventually produce. LumaSharp wraps that result in a task automatically: `async void` returns `Task`, while `async T` returns `Task<T>`. Do not write `Task` as the source return type.
+
+```lumasharp
+using System.Threading.Tasks;
+
+public static class Calculations
+{
+    public static async int32 AddOneAsync(int32 value)
+    {
+        return value + 1;
+    }
+
+    public static async int32 DoubleAfterAddAsync(int32 value)
+    {
+        int32 updated = await AddOneAsync(value);
+        return updated * 2;
+    }
+
+    public static int32 Main()
+    {
+        Task<int32> pending = DoubleAfterAddAsync(20);
+        int32 result = pending.Result; // waits and returns 42
+        return result == 42 ? 0 : 1;
+    }
+}
+```
+
+Inside an async method, `await` returns the task's result directly:
+
+```lumasharp
+public static async int32 ReadValueAsync()
+{
+    return await AddOneAsync(41);
+}
+```
+
+Calling an async method creates a task and queues its body to a runtime-managed worker pool. `await` polls for completion while blocking the current thread; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing a task fault; `Task<T>.Result` and `await` rethrow it with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
+
+Use `lock` to protect shared state. The lock expression is evaluated once, and the monitor is always released when the body exits, including when it throws:
+
+```lumasharp
+public static class SharedCounter
+{
+    private static object gate = new object();
+    private static int32 value = 0;
+
+    public static void Increment()
+    {
+        lock (gate)
+        {
+            value++;
+        }
+    }
+}
+```
+
+Locks are reentrant and synchronize on object identity, as with C# monitors. `await` is not allowed inside a `lock` body. Async methods also cannot use `ref`, `in`, `out`, or `scope` parameters, return by reference, or mutate a struct receiver. Async lambdas, cancellation, custom schedulers, and synchronization contexts are not implemented yet.
+
+## 17. Unsafe code and native pointers
 
 Unsafe code is opt-in at build time with `--unsafe` and must also appear in an unsafe context. It provides pointer types (`T*`), address-of (`&`), dereference (`*`), pointer arithmetic, `sizeof`, inline arrays, and native `extern` calls.
 Generic types may use their type parameter as a pointer's element type, as in `T*`, inside an unsafe context. The compiler resolves that pointer when it specializes the generic type.
@@ -1078,7 +1140,7 @@ public static unsafe class NativeLibraryExample
 }
 ```
 
-## 17. Runtime library
+## 18. Runtime library
 
 The compiler package includes the LumaSharp runtime sources and locates them beside its installation. In a source checkout it also searches source-tree ancestors for `LumaSharp.Library`. Projects can override discovery with `runtimeLibraryPath` in JSON or `--runtime-library` on the command line. The current library contains core types such as `Object`, `Array`, `Exception`, primitive keyword backing types, `String`, `Span<T>`, `ReadOnlySpan<T>`, `Weak<T>`, and the collections described above.
 
@@ -1113,7 +1175,7 @@ The IO surface is intentionally small: asynchronous methods, timeouts, `Dispose`
 
 Some low-level runtime operations use compiler-reserved names beginning with `__`. They let the runtime reach platform services such as memory allocation, file APIs, and timing without declaring those operations as application-facing `extern` methods. These names are for runtime source files only; ordinary programs should use public runtime classes such as `NativeMemory`, `NativeLibrary`, `File`, and `Environment`.
 
-## 18. Current boundaries
+## 19. Current boundaries
 
 LumaSharp implements a broad language subset, but this guide is not a promise of complete C# compatibility. Keep these current limits in mind:
 
@@ -1123,12 +1185,12 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - `List<T>` does not currently participate in the generic enumerable protocol. Some collection APIs, including dictionary enumeration and custom comparers, are absent.
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
-- IO is synchronous and minimal. Async, timeouts, and broad .NET `File`/`Directory` APIs are not present.
-- Full C# features such as async/await, LINQ, reflection, attributes, and the complete .NET base class library are not included.
+- IO is synchronous and minimal; timeouts and broad .NET `File`/`Directory` APIs are not present.
+- Async lambdas, cancellation, custom schedulers, synchronization contexts, LINQ, reflection, attributes, and the complete .NET base class library are not included.
 
 When behavior matters for a particular edge case, consult the tests and the specifications. The test suite reflects the compiler's executable behavior; the specifications also describe intended rules that may not yet be implemented.
 
-## 19. Further reading
+## 20. Further reading
 
 - [Quick Reference](Overview.md) — compact syntax lookup.
 - [Language and Runtime Specification](../Specification/LumaSharp_LanguageSpecification.md) — detailed normative language and runtime rules.
