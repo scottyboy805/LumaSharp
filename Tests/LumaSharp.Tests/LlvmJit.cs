@@ -47,6 +47,7 @@ internal static unsafe class LlvmJit
     private static readonly AllocateFunction AllocateCallback = Allocate;
     private static readonly FreeFunction FreeCallback = Release;
     private static readonly CopyFunction CopyCallback = Copy;
+    private static readonly CopyFunction MoveCallback = Move;
     private static readonly WindowsWriteFunction WindowsWriteCallback = CaptureWindowsWrite;
     private static readonly PosixWriteFunction PosixWriteCallback = CapturePosixWrite;
     private static readonly WindowsGetCommandLineFunction WindowsGetCommandLineCallback = GetSimulatedWindowsCommandLine;
@@ -210,6 +211,7 @@ internal static unsafe class LlvmJit
         AddSymbol("malloc", Marshal.GetFunctionPointerForDelegate(AllocateCallback));
         AddSymbol("free", Marshal.GetFunctionPointerForDelegate(FreeCallback));
         AddSymbol("memcpy", Marshal.GetFunctionPointerForDelegate(CopyCallback));
+        AddSymbol("memmove", Marshal.GetFunctionPointerForDelegate(MoveCallback));
         AddSymbol("_write", Marshal.GetFunctionPointerForDelegate(WindowsWriteCallback));
         AddSymbol("write", Marshal.GetFunctionPointerForDelegate(PosixWriteCallback));
         if (OperatingSystem.IsWindows())
@@ -373,6 +375,19 @@ internal static unsafe class LlvmJit
             Buffer.MemoryCopy(source.ToPointer(), destination.ToPointer(), length, length);
         }
         catch (Exception ex) { SetInteropError($"memcpy callback failed: {ex.Message}"); }
+        return destination;
+    }
+
+    private static IntPtr Move(IntPtr destination, IntPtr source, UIntPtr size)
+    {
+        try
+        {
+            var length = checked((int)size.ToUInt64());
+            var buffer = new byte[length];
+            Marshal.Copy(source, buffer, 0, length);
+            Marshal.Copy(buffer, 0, destination, length);
+        }
+        catch (Exception ex) { SetInteropError($"memmove callback failed: {ex.Message}"); }
         return destination;
     }
 

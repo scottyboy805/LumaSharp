@@ -997,6 +997,51 @@ Pointers do not retain or release objects. The programmer must keep the referenc
 
 Static `extern` methods bind to C ABI symbols at link time. LumaSharp does not marshal managed objects, strings, arrays, or delegates for extern calls; pass C-compatible values and pointers only. The current runtime's OS file and console operations are compiler-provided native calls, so users can work with `System.IO` without shipping a separate C source shim.
 
+`System.Interop.NativeMemory` provides raw, untracked native allocation and byte operations. Use it only when you need storage outside normal LumaSharp ownership:
+
+```lumasharp
+using System.Interop;
+
+public static unsafe class NativeBufferExample
+{
+    public static int32 Main()
+    {
+        int32* values = (int32*)NativeMemory.Allocate(sizeof(int32) * 2);
+        if (values == null)
+            return 1;
+
+        values[0] = 12;
+        NativeMemory.Copy(values + 1, values, sizeof(int32));
+        bool copied = values[1] == 12;
+        NativeMemory.Free(values);
+        return copied ? 0 : 1;
+    }
+}
+```
+
+`Copy` requires non-overlapping memory; use `Move` when the source and destination may overlap. A negative byte count throws `ArgumentOutOfRangeException`. Allocation returns null on failure. The caller must ensure pointers and byte counts describe valid memory, and must free each allocation exactly once. Native memory is not released automatically.
+
+`System.Interop.NativeLibrary` loads a library by path, looks up exported symbols, and can unload explicitly. Its finalizer performs a best-effort unload. Symbol addresses are raw `void*` values: they become invalid after unload, and this language version cannot invoke a function pointer directly. Paths are strings and are converted to the platform representation by the runtime; no C source shim is needed.
+
+```lumasharp
+using System.Interop;
+
+public static unsafe class NativeLibraryExample
+{
+    public static int32 Main()
+    {
+        NativeLibrary library = new NativeLibrary("example-native-library");
+        if (!library.IsLoaded)
+            return 1;
+
+        void* entry = library.GetProcAddress("example_entry");
+        bool found = entry != null;
+        library.Unload();
+        return found ? 0 : 1;
+    }
+}
+```
+
 ## 16. Runtime library
 
 The compiler package includes the LumaSharp runtime sources and locates them beside its installation. In a source checkout it also searches source-tree ancestors for `LumaSharp.Library`. Projects can override discovery with `runtimeLibraryPath` in JSON or `--runtime-library` on the command line. The current library contains core types such as `Object`, `Array`, `Exception`, primitive keyword backing types, `String`, `Span<T>`, `ReadOnlySpan<T>`, `Weak<T>`, and the collections described above.
@@ -1039,7 +1084,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - Generic method inference and generic constrained operations have edge cases that are still being completed.
 - `List<T>` does not currently participate in the generic enumerable protocol. Some collection APIs, including dictionary enumeration and custom comparers, are absent.
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
-- Native interop supports static C ABI calls with compatible low-level types; dynamic library loading and managed callbacks are not part of the current surface.
+- Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
 - IO is synchronous and minimal. Async, timeouts, and broad .NET `File`/`Directory` APIs are not present.
 - Full C# features such as async/await, LINQ, reflection, attributes, and the complete .NET base class library are not included.
 

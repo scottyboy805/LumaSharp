@@ -201,6 +201,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         if (EntryPointHasStringArguments() || HasStringSupport()) EmitUtf8ArgumentRuntime();
         var nativeFileSystemMethods = compilation.Methods.Where(IsNativeFileSystemShim).ToArray();
         if (nativeFileSystemMethods.Length > 0) EmitNativeFileSystemRuntime();
+        var nativeInteropMethods = compilation.Methods.Where(IsNativeInteropShim).ToArray();
+        if (nativeInteropMethods.Length > 0) EmitNativeInteropRuntime();
         var nativeEnvironmentMethods = compilation.Methods.Where(IsNativeEnvironmentShim).ToArray();
         if (nativeEnvironmentMethods.Length > 0) EmitNativeEnvironmentRuntime();
         var nativeStopWatchMethods = compilation.Methods.Where(IsNativeStopWatchShim).ToArray();
@@ -210,7 +212,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsNativeFileSystemShim(method) && !IsNativeEnvironmentShim(method) && !IsNativeStopWatchShim(method) && !IsNativeStackTraceShim(method)) EmitExternDeclaration(method);
+            if (!IsNativeFileSystemShim(method) && !IsNativeInteropShim(method) && !IsNativeEnvironmentShim(method) && !IsNativeStopWatchShim(method) && !IsNativeStackTraceShim(method)) EmitExternDeclaration(method);
         }
         foreach (var method in compilation.Methods)
         {

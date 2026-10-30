@@ -109,7 +109,9 @@ public static class LumaBuild
             var finalOutput = Path.Combine(outputDirectory, request.OutputName + extension);
             temporaryOutput = Path.Combine(intermediateDirectory, request.OutputName + "." + Guid.NewGuid().ToString("N") + ".tmp" + extension);
             var needsWindowsShell32 = compilation.LlvmIr!.Contains("@CommandLineToArgvW", StringComparison.Ordinal);
-            var link = await LinkAsync(objectPath, temporaryOutput, request.Options.StaticLibrary, target, needsWindowsShell32, cancellationToken).ConfigureAwait(false);
+            var needsLinuxDl = target.Contains("linux", StringComparison.OrdinalIgnoreCase) &&
+                compilation.LlvmIr.Contains("@dlopen(", StringComparison.Ordinal);
+            var link = await LinkAsync(objectPath, temporaryOutput, request.Options.StaticLibrary, target, needsWindowsShell32, needsLinuxDl, cancellationToken).ConfigureAwait(false);
             if (link is not null) return Failure("LMC2002", link, diagnostics);
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -155,7 +157,7 @@ public static class LumaBuild
     }
 
     private static async Task<string?> LinkAsync(string objectPath, string temporaryOutput, bool staticLibrary, string target,
-        bool needsWindowsShell32, CancellationToken cancellationToken)
+        bool needsWindowsShell32, bool needsLinuxDl, CancellationToken cancellationToken)
     {
         var tool = staticLibrary
             ? OperatingSystem.IsWindows()
@@ -208,6 +210,7 @@ public static class LumaBuild
                 if (!string.Equals(target, host, StringComparison.Ordinal)) { clangArguments.Add("--target"); clangArguments.Add(target); }
                 clangArguments.Add(objectPath); clangArguments.Add("-o"); clangArguments.Add(temporaryOutput);
                 if (needsWindowsShell32) clangArguments.Add("-lshell32");
+                if (needsLinuxDl) clangArguments.Add("-ldl");
                 arguments = clangArguments;
             }
         }

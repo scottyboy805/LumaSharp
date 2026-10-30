@@ -170,7 +170,7 @@ The language itself needs a small, fixed set of types to exist in the standard l
 
 Other library interfaces mentioned in this document, such as `IHashable`, `IEquality<T>` and `IComparable<T>`, are **ordinary library types**, not compiler-known. The compiler never refers to them by name.
 
-> The manual/unmanaged allocation facility (the planned `NativeMemory`) is **not** part of this version (§24).
+> Manual unmanaged allocation is available through `System.Interop.NativeMemory` (§19.7). Other excluded features are listed in §24.
 
 ---
 
@@ -3732,9 +3732,17 @@ unsafe unchecked int32 Sum(int32[] values)
 
 ## 19.7 Unmanaged Memory
 
-Manual allocation of untracked memory is **not available in this version** (a runtime facility such as a `NativeMemory` class is planned for a future version). In this version pointers refer to existing storage: locals, fields, array elements, inline arrays, objects (§19.5), or addresses returned by native code through `extern` functions (§21). Memory obtained from native code is owned by that code; the runtime neither tracks nor frees it.
+`System.Interop.NativeMemory` provides allocation and byte operations for untracked native memory. `Allocate(int)` returns a pointer or null if allocation fails. `Free(void*)` releases a pointer returned by a compatible native allocator. `Copy(destination, source, byteCount)` copies non-overlapping bytes; `Move(destination, source, byteCount)` supports overlapping ranges. Both return `destination`. A negative byte count throws `ArgumentOutOfRangeException`; callers remain responsible for pointer validity, buffer size, allocator pairing, and avoiding use after free. Freeing null is a no-op. Native allocations are not reference-counted or automatically released.
 
-## 19.8 Managed References in Unmanaged Storage
+Each operation has pointer parameters or a pointer result and therefore requires an unsafe context (§19.1). These methods are implemented by the runtime over the target C allocator and LLVM memory intrinsics; no C source file is required.
+
+## 19.8 Dynamic Native Libraries
+
+`System.Interop.NativeLibrary` loads a library from a path in its constructor. `GetProcAddress(string)` returns an opaque `void*` for a named native export, or null when the library is not loaded or the symbol cannot be found. The returned pointer must only be called through a compatible native function declaration; this version does not provide function-pointer syntax or signature validation. Calling `Unload()` releases the library and clears the stored handle on success. Its finalizer performs a best-effort unload if explicit unload was not successful. A symbol pointer becomes invalid when its library is unloaded.
+
+The runtime uses the target operating system's loader (`LoadLibraryW`/`GetProcAddress` on Windows and `dlopen`/`dlsym` on POSIX systems), converts LumaSharp UTF-16 paths and symbol names as required, and does not marshal function arguments or results. Compiler-managed Linux executable links include `libdl` when this runtime surface is present; external linkers consuming a static LumaSharp library MUST link `libdl` on platforms that require it. Loader failures leave the instance unloaded; this initial API does not expose operating-system error details. Pointer access requires unsafe context.
+
+## 19.9 Managed References in Unmanaged Storage
 
 Storing managed references in raw memory is not supported. Doing so through pointer casts is UB because it bypasses reference counting.
 
@@ -3807,7 +3815,7 @@ Semantics:
 - Extern methods MUST be `static`, MUST have no body, MUST NOT be generic.
 - **Calling an extern method requires an unsafe context** (the compiler cannot verify native code). The declaration itself requires no `unsafe` unless it uses pointer types.
 - Struct layout for interop: a struct whose fields are all unmanaged is laid out **sequentially in declaration order** with the platform C alignment and padding rules. Other layouts are implementation-defined.
-- Strings: a UTF-8 `string`'s internal buffer is NUL-terminated and may be shared with C APIs by the library/runtime (a language-level `string` → pointer facility is outside this version).
+- Strings are not passed directly through `extern` signatures. `string.Ptr` exposes the runtime's UTF-16 code-unit storage; platform OS shims convert it to the representation required by their APIs. This does not constitute automatic marshalling for user-declared `extern` calls.
 
 ```lumasharp
 unsafe void Hello()
@@ -3822,7 +3830,7 @@ unsafe void Hello()
 
 ## 21.2 What this Version Defers
 
-Dynamic library loading, explicit calling conventions, symbol aliasing, function pointers, callbacks into LumaSharp from native code, and layout control are future work (§24).
+Explicit calling conventions, symbol aliasing, function pointers, callbacks into LumaSharp from native code, and layout control are future work (§24). Dynamic library loading is provided by `System.Interop.NativeLibrary` (§19.8); it does not add function-pointer invocation or automatic marshalling.
 
 ---
 
@@ -4045,8 +4053,7 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Nested namespace blocks, `using static`, global usings | |
 | Generic variance (`in`/`out`), generic virtual methods, static abstract interface members | §12.6 |
 | Exception filters (`when` on `catch`) | `when` is only used in `switch` guards |
-| Function pointers, unmanaged callbacks, explicit calling conventions, struct layout control, dynamic library loading | §21.2 |
-| Manual unmanaged memory allocation (`NativeMemory`) | §19.7 |
+| Function pointers, unmanaged callbacks, explicit calling conventions, struct layout control | §21.2 |
 | Local functions, object initializers, `init` accessors, interpolated and raw string literals | |
 | A preprocessor, and with it in-source diagnostic suppression | |
 | The standard library beyond the compiler-known types (§1.7) | Defined separately |
@@ -4715,13 +4722,13 @@ A call to a `static extern` method (§21) compiles to a **direct call** of the n
 
 ## 33.2 Symbol Resolution
 
-The symbol is the method's own name, unmangled (§21.1). It is resolved by the platform linker when the program is linked; an unresolved symbol is a **link-time error** reported by the toolchain (this version has no dynamic library loading).
+The symbol is the method's own name, unmangled (§21.1). It is resolved by the platform linker when the program is linked; an unresolved symbol is a **link-time error** reported by the toolchain. `System.Interop.NativeLibrary` also supports explicit runtime library loading and export lookup (§19.8).
 
 ## 33.3 Data Passing
 
 - Pointers are passed as raw addresses. The runtime does not track them and does not keep the pointee alive (§19.2).
-- Reference-typed values (classes, strings, arrays, delegates) are not passed to native code in this version (§21.1). For strings, the NUL-terminated UTF-8 buffer (§28.10.6) may be handed to C by library code that obtains a pointer to it; the pointer is valid only while the string is alive.
-- Memory returned by native code is owned by that code; the runtime never frees it.
+- Reference-typed values (classes, strings, arrays, delegates) are not passed directly to native code in this version (§21.1). Library OS shims may accept the UTF-16 `string.Ptr` and perform platform-specific conversion; user-declared extern calls receive no automatic string marshalling.
+- Memory returned by native code is owned by that code unless the caller explicitly adopts the matching native deallocation contract. `NativeMemory` allocation is always manually freed by its caller (§19.7).
 
 ## 33.4 Threads and State
 
@@ -5028,7 +5035,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | Collection initializers | `{ … }`, `new { … }`, `scope { … }`; `let`/`var` need the expanded form; inline arrays take only `{ … }` (§15.3, §15.9) |
 | Inline arrays | Struct elements allowed, classes not; pointer elements in unsafe; unsafe required (§15.9) |
 | Empty string | Literal `""` is immutable literal data; it is not the default of `string` (§16.2.1, §28.10.2) |
-| `NativeMemory` | Omitted (§19.7) |
+| `NativeMemory` | `Allocate`, `Free`, `Copy`, and `Move` for untracked unmanaged memory (§19.7) |
 | Entry point | Executables only; static libraries have none (§22.1) |
 | Static initialization | Lazy on first access; per generic instantiation; entry-type failure crashes before `Main` (§22.2) |
 | Excluded features | `event, weak/unowned, GC, partial, record, params, sealed, abstract, goto, fixed, stackalloc, dynamic, tuple syntax/deconstruction, linq` are not language features (§24.1); tuple-like types may be library-defined |
