@@ -1741,6 +1741,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         try
         {
             var definition = GenericTypeSpecializer.ResolveDefinition(definitionName, context, _genericDefinitions);
+            if (definition is null &&
+                _genericTypeInstantiations.FirstOrDefault(instance => GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(context)) is { } enclosingType)
+                definition = GenericTypeSpecializer.ResolveDefinition(definitionName, enclosingType.Definition, _genericDefinitions);
             if (definition is null) return null;
             var requestedArguments = arguments.Select(argument => NormalizeEnumType(argument, context)).ToArray();
             foreach (var instance in _genericTypeInstantiations)
@@ -9313,7 +9316,16 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (importedQualified.Length > 0) return importedQualified;
             return [];
         }
-        var nested = _types.Where(type => type.Name == requestedType && type.Namespace == GetQualifiedTypeName(contextType)).ToArray();
+        var enclosingTypeNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            GetQualifiedTypeName(contextType)
+        };
+        if (contextType.ContainingTypeName is { Length: > 0 } containingTypeName)
+            enclosingTypeNames.Add(containingTypeName);
+        var genericEnclosingType = _genericTypeInstantiations.FirstOrDefault(instance => GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(contextType));
+        if (genericEnclosingType is not null)
+            enclosingTypeNames.Add(GetQualifiedTypeName(genericEnclosingType.Definition));
+        var nested = _types.Where(type => type.Name == requestedType && enclosingTypeNames.Contains(type.Namespace)).ToArray();
         if (nested.Length > 0) return nested;
         var inNamespace = _types.Where(type => type.Name == requestedType && type.Namespace == contextType.Namespace).ToArray();
         if (inNamespace.Length > 0) return inNamespace;
@@ -11277,6 +11289,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         while (visited.Add(GetQualifiedTypeName(current)))
         {
             if (GetQualifiedTypeName(current) == containingTypeName) return true;
+            if (_genericTypeInstantiations.FirstOrDefault(instance => GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(current)) is { } genericInstance &&
+                GetQualifiedTypeName(genericInstance.Definition) == containingTypeName) return true;
             if (current.ContainingTypeName is not { } parentName) return false;
             if (parentName == containingTypeName) return true;
             var parent = _types.FirstOrDefault(candidate => GetQualifiedTypeName(candidate) == parentName);

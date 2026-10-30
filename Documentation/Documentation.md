@@ -893,13 +893,22 @@ public class Example
 
 | Type | Common operations |
 |---|---|
-| `List<T>` | `Count`, `Capacity`, indexer, `Add`, `Insert`, `Remove`, `RemoveAt`, `Contains`, `IndexOf`, `Clear`, `ToArray`. |
-| `Stack<T>` | `Push`, `Pop`, `Peek`, `Clear`. |
-| `Queue<T>` | `Enqueue`, `Dequeue`, `Peek`, `Clear`. |
+| `List<T>` | `Count`, `Capacity`, indexer, `Add`, `Insert`, `Remove`, `RemoveAt`, `Contains`, `IndexOf`, `Clear`, `ToArray`; iterates in list order. |
+| `Stack<T>` | `Push`, `Pop`, `Peek`, `Clear`; iterates from the top of the stack down. |
+| `Queue<T>` | `Enqueue`, `Dequeue`, `Peek`, `Clear`; iterates from the head of the queue. |
 | `Dictionary<TKey, TValue>` | Indexer, `Add`, `TryAdd`, `ContainsKey`, `TryGetValue`, `Remove`, `Clear`. |
-| `HashSet<T>` | `Add`, `Contains`, `Remove`, `Clear`. |
+| `HashSet<T>` | `Add`, `Contains`, `Remove`, `Clear`; iteration order is unspecified. |
 
-These are an early runtime surface, not a complete copy of .NET collections. The dictionary accepts value-type and enum keys; hash behavior can use `System.IHashable.Hash`, and custom equality is expressed by the root `System.IEquality<T>` interface. Dictionary enumeration and broader comparer APIs are not yet available. `List<T>`'s enumerable protocol integration is currently disabled; use indexed loops for it. Other collection iteration support depends on the concrete type and compiler path.
+These are an early runtime surface, not a complete copy of .NET collections. `List<T>`, `Stack<T>`, `Queue<T>`, and `HashSet<T>` implement `IEnumerable<T>` and can be used in a `for-in` loop. The compiler calls `Iterate()` once, then uses the returned iterator's `Next()` and `Current` members. For example:
+
+```lumasharp
+int32 total = 0;
+for (let number in numbers)
+    total += number;
+
+```
+
+Dictionary keys can be value types and enums; hash behavior can use `System.IHashable.Hash`, and custom equality is expressed by the root `System.IEquality<T>` interface. Dictionary enumeration and broader comparer APIs are not yet available. Hash-set iteration order is unspecified. Collection mutation during iteration has collection-defined behaviour.
 
 The contiguous array-backed collections expose an unsafe `Ptr` to their backing storage. It is a low-level view: for a collection with a ring buffer or hash table, it does not imply that the logical contents form a packed sequence.
 

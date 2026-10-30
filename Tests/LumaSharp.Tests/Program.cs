@@ -429,6 +429,13 @@ public sealed class CompilerTests
                     int32* firstItem = list.Ptr;
                     int32 pointerValue = *firstItem;
                     int32[] copiedValues = list.ToArray();
+                    int32 listTotal = 0;
+                    for (let item in list)
+                        listTotal += item;
+                    List<int32> emptyList = new List<int32>();
+                    int32 emptyListCount = 0;
+                    for (let item in emptyList)
+                        emptyListCount++;
                     int32 total = 0;
                     for (let item in new TestValues())
                         total += item;
@@ -468,7 +475,7 @@ public sealed class CompilerTests
                         copiedValues.Length == 3 && copiedValues[1] == 15 && inserted &&
                         stack.Pop() == 2 && stack.Pop() == 1 &&
                         queue.Dequeue() == 3 && queue.Dequeue() == 4 &&
-                        total == 3 && stackTotal == 3 && queueTotal == 7 &&
+                        listTotal == 45 && emptyListCount == 0 && total == 3 && stackTotal == 3 && queueTotal == 7 &&
                         found && value == "seven" && map.ContainsKey(new TestKey(11)) &&
                         map.Remove(new TestKey(11)) && added && !duplicate &&
                         setCount == 1 && set.Contains(new TestKey(9)) ? 0 : 1;

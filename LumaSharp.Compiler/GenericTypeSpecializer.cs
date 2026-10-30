@@ -88,6 +88,9 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                 foreach (var use in EnumerateGenericUses(typeText))
                 {
                 var definition = ResolveDefinition(use.Name, current, definitions);
+                var currentInstantiation = _instantiations.FirstOrDefault(instance => ReferenceEquals(instance.Specialized, current));
+                if (definition is null && currentInstantiation is not null)
+                    definition = ResolveDefinition(use.Name, currentInstantiation.Definition, definitions);
                 if (definition is null) continue;
                 var parameters = definition.TypeParameters!;
                 var key = MakeKey(definition, use.Arguments);
@@ -98,7 +101,6 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                     continue;
                 }
 
-                var currentInstantiation = _instantiations.FirstOrDefault(instance => ReferenceEquals(instance.Specialized, current));
                 if (currentInstantiation is not null &&
                     QualifiedName(currentInstantiation.Definition) == QualifiedName(definition) &&
                     IsExpansiveRecursiveInstantiation(currentInstantiation.Arguments, use.Arguments))

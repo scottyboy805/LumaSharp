@@ -2,8 +2,7 @@ using System;
 
 namespace System.Collections;
 
-// TODO: Re-enable IEnumerable<T> when nested generic iterator allocation is supported.
-public class List<T> where T : default
+public class List<T> : IEnumerable<T> where T : default
 {
 	private T[] items;
 	private int32 count;
@@ -162,6 +161,11 @@ public class List<T> where T : default
 		return IndexOf(item) >= 0;
 	}
 
+	public IIterator<T> Iterate()
+	{
+		return new Iterator<T>(this);
+	}
+
 	public bool Remove(T item) mut
 	{
 		int32 index = IndexOf(item);
@@ -200,6 +204,29 @@ public class List<T> where T : default
 			}
 		}
 		items = replacement;
+	}
+
+	private class Iterator<TItem> : IIterator<TItem> where TItem : default
+	{
+		private List<TItem> list;
+		private int32 index;
+
+		public this(List<TItem> source)
+		{
+			list = source;
+			index = -1;
+		}
+
+		public bool Next() mut
+		{
+			index++;
+			return index < list.Count;
+		}
+
+		public TItem Current
+		{
+			get => list[index];
+		}
 	}
 
 }
