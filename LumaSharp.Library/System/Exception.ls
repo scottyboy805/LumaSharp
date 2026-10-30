@@ -18,4 +18,23 @@ public virtual class Exception : Object
 		this.Message = message;
 		this.InnerException = innerException;
 	}
+
+	public override string ToString()
+	{
+		string result = base.ToString();
+		if (Message.Length > 0)
+			result += ": " + Message;
+
+		Exception? innerException = InnerException;
+		if (innerException != null)
+		{
+			result += "\n ---> " + innerException.ToString();
+			result += "\n   --- End of inner exception stack trace ---";
+		}
+
+		if (StackTrace != null)
+			result += "\n" + StackTrace;
+
+		return result;
+	}
 }

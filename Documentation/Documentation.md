@@ -952,6 +952,8 @@ public class Example
 
 Exceptions expose a nullable `StackTrace` string. The runtime captures it at each explicit `throw value` site; a bare `throw;` preserves the trace from the original throw. To capture the current call stack directly, use `System.Diagnostics.StackTrace`. Its optional `skipFrames` argument skips caller frames, which is useful when a helper captures a trace on behalf of its caller:
 
+`Exception.ToString()` formats the runtime exception type and message, followed by any inner exception and captured stack trace. An empty message omits the colon and message text.
+
 ```lumasharp
 using System;
 using System.Diagnostics;

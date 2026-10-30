@@ -5424,6 +5424,22 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void ExceptionToStringFormatsTypeMessageInnerExceptionAndStackTrace()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = "class Program { public static void Raise(System.Exception error) { throw error; } public static int32 Main() { System.Exception inner = new System.Exception(\"inner\"); System.Exception outer = new System.Exception(\"outer\", inner); string expected = \"System.Exception: outer\\n ---> System.Exception: inner\\n   --- End of inner exception stack trace ---\"; if (outer.ToString() != expected) return 1; if (new System.Exception().ToString() != \"System.Exception\") return 2; try { Raise(outer); } catch (System.Exception error) { return error.ToString() == expected + \"\\nat Program.Raise(System.Exception)\\nat Program.Main()\\n\" ? 0 : 3; } return 4; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("exception-to-string-test.ls", source)));
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void ExceptionsPropagateAcrossCallsAndDispatchDerivedTypesInOrder()
     {
         const string source = "virtual class BaseFailure : Exception { } class ChildFailure : BaseFailure { } class Program { public static void Raise() { throw new ChildFailure(); } public static int32 Main() { int32 result = 9; try { Raise(); } catch (ChildFailure error) { result = error == null ? 1 : 42; } catch (BaseFailure) { result = 2; } return result == 42 ? 0 : 1; } }";
