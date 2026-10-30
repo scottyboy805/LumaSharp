@@ -187,6 +187,73 @@ public sealed class BuildApiTests
         }, values[6]);
     }
 
+    [Fact]
+    public async Task RuntimeStopWatchTracksAKnownNativeDelay()
+    {
+        using var workspace = new TemporaryWorkspace(AppContext.BaseDirectory);
+        var delayDeclaration = OperatingSystem.IsWindows()
+            ? "public static extern void Sleep(uint32 milliseconds);"
+            : "public static extern int32 usleep(uint32 microseconds);";
+        var delayCall = OperatingSystem.IsWindows()
+            ? "NativeDelay.Sleep(400);"
+            : "NativeDelay.usleep(400000);";
+        var program = workspace.Write("Program.ls", $$"""
+            using System;
+            using System.Diagnostics;
+
+            internal static unsafe class NativeDelay
+            {
+                {{delayDeclaration}}
+            }
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    StopWatch watch = StopWatch.StartNew();
+                    unsafe
+                    {
+                        {{delayCall}}
+                    }
+                    watch.Stop();
+                    Console.WriteLine(watch.Elapsed.Ticks.ToString());
+                    return 0;
+                }
+            }
+            """);
+        var output = Path.Combine(workspace.Root, "bin");
+        var intermediate = Path.Combine(workspace.Root, "obj");
+
+        var build = await LumaBuild.BuildAsync(new CompilerBuildRequest(
+            [program],
+            new CompilationOptions(UnsafeEnabled: true),
+            output,
+            intermediate,
+            "StopWatchAccuracy",
+            FindRuntimeRoot()));
+
+        Assert.True(build.Succeeded, string.Join(Environment.NewLine, build.Diagnostics));
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo(build.OutputPaths.Single())
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            }
+        };
+        process.Start();
+        var stderr = process.StandardError.ReadToEndAsync();
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        Assert.Equal(0, process.ExitCode);
+        Assert.Empty(await stderr);
+        Assert.True(long.TryParse((await stdout).Trim(), out var elapsedTicks));
+        Assert.InRange(elapsedTicks, 3_500_000, 6_000_000);
+    }
+
     private static string FindRuntimeRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
