@@ -1001,13 +1001,12 @@ public class Worker
         thread.Start<int32>(PrintValue, 42);
         if (!thread.Join(5000))
             thread.Abort();
-        thread.Close();
         return 0;
     }
 }
 ```
 
-`Join()` waits until the callback finishes. `Join(millisecondsTimeout)` returns `false` if the wait expires; the worker keeps running. If the timeout expires, call `Abort()` to forcefully terminate the worker and wait until it has exited. `Thread.Sleep(millisecondsTimeout)` pauses the current thread. `Thread.CurrentThread` returns the same thread instance each time it is read on a given thread, and `IsCurrentThread` identifies that instance. Call `Close()` after a worker has finished to release its native handle; `Close()` waits for completion if needed.
+`Join()` waits until the callback finishes. `Join(millisecondsTimeout)` returns `false` if the wait expires; the worker keeps running. If the timeout expires, call `Abort()` to forcefully terminate the worker and wait until it has exited. A successful join releases the native thread resources. If the thread is not joined explicitly, its finalizer waits for the worker and releases those resources. `Thread.Sleep(millisecondsTimeout)` pauses the current thread. `Thread.CurrentThread` returns the same thread instance each time it is read on a given thread, and `IsCurrentThread` identifies that instance.
 
 `Abort()` is a last resort. It can interrupt the worker while it is updating shared data or running cleanup, so use `Join()` first whenever the worker can finish normally.
 

@@ -46,6 +46,12 @@ public unsafe class Thread
 		}
 	}
 
+	~this()
+	{
+		if (handle != 0)
+			__threadclose(handle);
+	}
+
 	public void Start(ThreadStart callback) mut
 	{
 		if (isCurrentThread)
@@ -78,12 +84,12 @@ public unsafe class Thread
 		hasStarted = true;
 	}
 
-	public bool Join()
+	public bool Join() mut
 	{
 		return Join(-1);
 	}
 
-	public bool Join(int32 millisecondsTimeout)
+	public bool Join(int32 millisecondsTimeout) mut
 	{
 		if (millisecondsTimeout < -1)
 			throw new ArgumentOutOfRangeException();
@@ -97,7 +103,14 @@ public unsafe class Thread
 		if (handle == 0)
 			return true;
 
-		return __threadjoin(handle, millisecondsTimeout);
+		bool completed = __threadjoin(handle, millisecondsTimeout);
+		if (completed)
+		{
+			__threadclose(handle);
+			handle = 0;
+		}
+
+		return completed;
 	}
 
 	public void Abort() mut
@@ -112,18 +125,6 @@ public unsafe class Thread
 			return;
 
 		__threadabort(handle);
-		handle = 0;
-	}
-
-	public void Close() mut
-	{
-		if (isCurrentThread || handle == 0)
-			return;
-
-		if (CurrentThread == this)
-			throw new InvalidOperationException();
-
-		__threadclose(handle);
 		handle = 0;
 	}
 
