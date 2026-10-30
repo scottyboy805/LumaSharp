@@ -3,7 +3,7 @@ using System.Text;
 
 namespace LumaSharp.Compiler;
 
-internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, CancellationToken cancellationToken = default)
+internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool stripUnusedExecutableCode, CancellationToken cancellationToken = default)
 {
     private readonly StringBuilder _output = new();
     private readonly IReadOnlyDictionary<TryStatement, string> _exceptionCatchTableNames = BuildExceptionCatchTableNames(compilation);
@@ -188,7 +188,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
             EmitExceptionCatchTables();
         }
         foreach (var field in compilation.StaticFields)
-            _output.AppendLine($"@{field.GlobalName} = {(field.Declaration.IsReadOnly && !field.RequiresInitialization ? "constant" : "global")} {LlvmType(field.Declaration.TypeName)} {field.InitialValue}");
+            _output.AppendLine($"@{field.GlobalName} = {(stripUnusedExecutableCode ? "internal " : "")}{(field.Declaration.IsReadOnly && !field.RequiresInitialization ? "constant" : "global")} {LlvmType(field.Declaration.TypeName)} {field.InitialValue}");
         foreach (var typeName in _typeInitializationFunctions.Keys.Order(StringComparer.Ordinal))
         {
             var safeType = Safe(typeName);
@@ -1257,7 +1257,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, Cance
         var parameters = d.Parameters.Select((p, i) => $"{LlvmParameterType(p)} %arg{i}");
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
-        var linkage = IsRuntimeIntrinsicType(method.Owner) ? "internal " : "";
+        var linkage = IsRuntimeIntrinsicType(method.Owner) || stripUnusedExecutableCode ? "internal " : "";
         string? frameNameSymbol = null;
         var frameNameLength = 0;
         if (HasStackTraceSupport())

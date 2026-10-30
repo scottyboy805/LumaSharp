@@ -82,6 +82,8 @@ The CLI emits a native executable by default. Common options are:
 
 Run `luma --help` (or `dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- --help`) for the complete option list.
 
+With `--optimize`, executable builds allow LLVM to discard LumaSharp methods and static fields that are unreachable from the entry point. Static-library builds keep their public definitions so downstream programs can use them. This reduces executable packaging size; parsing and semantic analysis still process the full runtime source library.
+
 ### Use a project file
 
 A JSON project describes output settings. The CLI discovers `.ls` files recursively below the JSON file's directory. The compiler locates the shipped runtime library automatically, so a project does not need its own copy. A project can select a different runtime source directory with `runtimeLibraryPath`:

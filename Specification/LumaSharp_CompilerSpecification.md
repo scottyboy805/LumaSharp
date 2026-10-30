@@ -162,7 +162,7 @@ The following JSON illustrates the initial project settings contract. All fields
 | `runtimeLibraryPath` | Path string | Omitted. Selects a runtime source directory explicitly; otherwise the compiler searches source ancestors and its installation directory. |
 | `targetTriple` | `"host"` or an LLVM target triple | `"host"`. Selects the host target or an explicitly named target. |
 | `unsafe` | Boolean | `false`. If false, source using unsafe constructs is rejected as required by the Language Specification (including LS1901). It does not change the meaning of valid safe code. |
-| `optimize` | Boolean | `false`. Enables additional LLVM optimisation when true; optimisation MUST preserve language semantics. |
+| `optimize` | Boolean | `false`. Enables LLVM optimisation when true; optimisation MUST preserve language semantics. For optimized executable builds, LumaSharp method bodies and static fields are internalized so LLVM can remove definitions proven unreachable. Static-library builds retain their external API surface. |
 | `logLevel` | `"quiet"`, `"normal"`, `"verbose"`, or `"debug"` | `"normal"`. Controls informational build logging, not whether required diagnostics are reported. |
 | `warningsAsErrors` | Boolean | `false`. Treats warnings as errors for the current build. |
 | `disabledWarnings` | Array of diagnostic-code strings | Empty. Disables listed warnings, subject to the Language Specification's diagnostic rules. |
@@ -288,7 +288,7 @@ The implementation architecture is open, but the compiler MUST implement all sem
 4. **Binding and semantic analysis:** perform name lookup, accessibility checks, type inference, conversions, overload resolution, generic constraint checking, nullability and definite-assignment analysis, `mut` validation, control-flow checks, scope/lifetime/escape analysis, and all other checks required by the Language Specification.
 5. **Lowering:** transform language constructs into implementation-level forms while preserving evaluation order, checked arithmetic, exceptions, reference counting, scope unwinding, virtual/interface dispatch, and all other observable language behaviour.
 6. **LLVM IR generation:** generate LLVM IR for the selected target and implement the required runtime calls and object/type representations.
-7. **IR verification and optimisation:** verify generated LLVM IR before emission. If `optimize` is enabled, run compatible LLVM optimisation passes without changing observable behaviour. Verification or pass failures are build failures.
+7. **IR verification and optimisation:** verify generated LLVM IR before emission. If `optimize` is enabled, run compatible LLVM optimisation passes without changing observable behaviour. For executable output, compilation-local LumaSharp functions and static fields MUST be eligible for dead-code elimination; static-library output MUST retain externally visible LumaSharp definitions. Verification or pass failures are build failures.
 8. **Native emission and linking:** use LLVM's target support to emit native object code for the selected target, then invoke a compatible linker (such as LLVM's linker toolchain or a supported system linker) to produce the requested native executable or static library artifact.
 9. **Publication:** publish the final artifact only after all required stages succeed.
 

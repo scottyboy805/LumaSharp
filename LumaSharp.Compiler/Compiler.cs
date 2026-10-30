@@ -60,7 +60,7 @@ public static class LumaCompiler
             if (FinalDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error)) return new(FinalDiagnostics(), null);
 
             cancellationToken.ThrowIfCancellationRequested();
-            try { return new(FinalDiagnostics(), new LlvmEmitter(analysis, cancellationToken).Emit()); }
+            try { return new(FinalDiagnostics(), new LlvmEmitter(analysis, !options.StaticLibrary && options.Optimize, cancellationToken).Emit()); }
             catch (NotSupportedException ex) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, ex.Message); return new(FinalDiagnostics(), null); }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }

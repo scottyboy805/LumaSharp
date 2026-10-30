@@ -199,6 +199,28 @@ public sealed class CompilerTests
         }
     }
 
+    [Fact]
+    public void OptimizedExecutablesInternalizeMethodsAndFieldsForLlvmDeadCodeStripping()
+    {
+        const string source = "class LibraryBits { public static int32 usedField = 7; public static int32 Used() { return 42; } public static int32 Unused() { return 99; } } class Program { public static int32 Main() { return LibraryBits.Used() == 42 ? 0 : 1; } }";
+
+        var optimizedExecutable = Compile(source, new CompilationOptions(Optimize: true));
+        Assert.True(optimizedExecutable.Succeeded, string.Join(Environment.NewLine, optimizedExecutable.Diagnostics));
+        Assert.Contains("define internal i32 @luma_LibraryBits_Used_0()", optimizedExecutable.LlvmIr);
+        Assert.Contains("define internal i32 @luma_LibraryBits_Unused_0()", optimizedExecutable.LlvmIr);
+        Assert.Contains("@luma_global_LibraryBits_usedField = internal global i32 7", optimizedExecutable.LlvmIr);
+        Assert.Contains("define i32 @main()", optimizedExecutable.LlvmIr);
+
+        var unoptimizedExecutable = Compile(source);
+        Assert.True(unoptimizedExecutable.Succeeded, string.Join(Environment.NewLine, unoptimizedExecutable.Diagnostics));
+        Assert.Contains("define i32 @luma_LibraryBits_Unused_0()", unoptimizedExecutable.LlvmIr);
+
+        var optimizedStaticLibrary = Compile(source, new CompilationOptions(StaticLibrary: true, Optimize: true));
+        Assert.True(optimizedStaticLibrary.Succeeded, string.Join(Environment.NewLine, optimizedStaticLibrary.Diagnostics));
+        Assert.Contains("define i32 @luma_LibraryBits_Unused_0()", optimizedStaticLibrary.LlvmIr);
+        Assert.Contains("@luma_global_LibraryBits_usedField = global i32 7", optimizedStaticLibrary.LlvmIr);
+    }
+
     [Theory]
     [InlineData("x86_64-pc-windows-msvc")]
     [InlineData("i686-pc-windows-msvc")]
