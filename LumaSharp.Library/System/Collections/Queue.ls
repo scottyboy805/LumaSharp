@@ -136,7 +136,7 @@ public class Queue<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
-			if (queue is null)
+			if (queue == null)
 				return false;
 			index++;
 			return index < queue.Count;
@@ -146,7 +146,7 @@ public class Queue<T> : IEnumerable<T> where T : default
 		{
 			get
 			{
-				if (queue is null)
+				if (queue == null)
 					return default(TItem);
 				return queue.GetAt(index);
 			}

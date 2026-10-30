@@ -249,7 +249,7 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
-			if (set is null)
+			if (set == null)
 				return false;
 			index++;
 			while (index < set.Capacity && !set.IsOccupied(index))
@@ -261,7 +261,7 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		{
 			get
 			{
-				if (set is null)
+				if (set == null)
 					return default(TItem);
 				return set.GetAt(index);
 			}

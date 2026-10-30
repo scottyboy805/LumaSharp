@@ -6437,8 +6437,8 @@ public sealed class CompilerTests
             "Iterator<T> nullIterator = Iterator<T>(default(List<T>?)); if (nullIterator.Next()) return false; T nullCurrent = nullIterator.Current; return true; } " +
             "public struct Iterator<TItem> : IIterator<TItem> where TItem : default { List<TItem>? list; int32 index; " +
             "public this(List<TItem>? source) { list = source; index = -1; } " +
-            "public bool Next() mut { if (list is null) return false; index++; return index < list.count; } " +
-            "public TItem Current { get { if (list is null) return default(TItem); return list.items[index]; } } } } " +
+            "public bool Next() mut { if (list == null) return false; index++; return index < list.count; } " +
+            "public TItem Current { get { if (list == null) return default(TItem); return list.items[index]; } } } } " +
             "class Program { public static int32 Main() { List<int32> values = new List<int32>(); if (!values.DefaultIteratorIsSafe()) return 2; values.Add(12); values.Add(13); " +
             "int32 concrete = 0; for (let value in values) concrete += value; " +
             "IEnumerable<int32> enumerable = values; int32 throughInterface = 0; for (let value in enumerable) throughInterface += value; " +

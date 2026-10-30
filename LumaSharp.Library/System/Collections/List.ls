@@ -224,7 +224,7 @@ public class List<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
-			if (list is null)
+			if (list == null)
 				return false;
 			index++;
 			return index < list.Count;
@@ -234,7 +234,7 @@ public class List<T> : IEnumerable<T> where T : default
 		{
 			get
 			{
-				if (list is null)
+				if (list == null)
 					return default(TItem);
 				return list[index];
 			}

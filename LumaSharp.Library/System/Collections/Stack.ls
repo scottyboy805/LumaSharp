@@ -129,12 +129,12 @@ public class Stack<T> : IEnumerable<T> where T : default
 		public this(Stack<TItem>? source)
 		{
 			stack = source;
-			index = source is null ? 0 : source.Count;
+			index = source == null ? 0 : source.Count;
 		}
 
 		public bool Next() mut
 		{
-			if (stack is null)
+			if (stack == null)
 				return false;
 			index--;
 			return index >= 0;
@@ -144,7 +144,7 @@ public class Stack<T> : IEnumerable<T> where T : default
 		{
 			get
 			{
-				if (stack is null)
+				if (stack == null)
 					return default(TItem);
 				return stack.GetAt(index);
 			}
