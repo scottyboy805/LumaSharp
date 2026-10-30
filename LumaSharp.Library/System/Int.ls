@@ -1,7 +1,17 @@
 namespace System;
 
-public struct Int : ValueType
+public struct Int : ValueType, IHashable, IEquality<int>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(int other)
+	{
+		return this == other;
+	}
+
 	public const int MinValue = 0;
 	public const int MaxValue = 0;
 	public static int Parse(string? text) { if (Int64.TryParse(text, out int64 value) && value >= MinValue && value <= MaxValue) return (int)value; throw new FormatException("Invalid native signed integer."); }

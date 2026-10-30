@@ -647,6 +647,112 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void PrimitiveHashCodesAndEqualityWorkWithCollections()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("primitive-hash-test.ls", """
+            using System;
+            using System.Collections;
+
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    bool boolean = true;
+                    char character = 'A';
+                    int8 signed8 = -7;
+                    uint8 unsigned8 = 250;
+                    int16 signed16 = -1234;
+                    uint16 unsigned16 = 54321;
+                    int32 signed32 = -123456;
+                    uint32 unsigned32 = UInt32.MaxValue;
+                    int64 signed64 = -4294967296L;
+                    uint64 unsigned64 = 4294967296ul;
+                    int nativeSigned = 42;
+                    uint nativeUnsigned = (uint)4294967296ul;
+
+                    if (HashCode.Calculate(boolean) != 1 ||
+                        HashCode.Calculate(character) != 65 ||
+                        HashCode.Calculate(signed8) != -7 ||
+                        HashCode.Calculate(unsigned8) != 250 ||
+                        HashCode.Calculate(signed16) != -1234 ||
+                        HashCode.Calculate(unsigned16) != 54321 ||
+                        HashCode.Calculate(signed32) != -123456 ||
+                        HashCode.Calculate(unsigned32) != -1 ||
+                        HashCode.Calculate(signed64) != -1 ||
+                        HashCode.Calculate(unsigned64) != 1 ||
+                        HashCode.Calculate(nativeSigned) != 42 ||
+                        HashCode.Calculate(nativeUnsigned) != 1)
+                        return 1;
+
+                    float positiveZero = 0.0f;
+                    float negativeZero = -0.0f;
+                    float firstNaN = Float.NaN;
+                    float secondNaN = Float.NaN;
+                    double firstDoubleNaN = Double.NaN;
+                    double secondDoubleNaN = Double.NaN;
+                    if (HashCode.Calculate(positiveZero) != HashCode.Calculate(negativeZero) ||
+                        HashCode.Calculate(firstNaN) != HashCode.Calculate(secondNaN) ||
+                        HashCode.Calculate(firstDoubleNaN) != HashCode.Calculate(secondDoubleNaN))
+                        return 2;
+
+                    if (HashCode.Combine(1) != 1 ||
+                        HashCode.Combine(1, 2) != 33 ||
+                        HashCode.Combine(1, 2, 3) != 1026 ||
+                        HashCode.Combine(HashCode.Calculate(boolean), HashCode.Calculate(character), HashCode.Calculate((int32)7)) != 2983)
+                        return 3;
+
+                    Dictionary<int32, string?> dictionary = new Dictionary<int32, string?>();
+                    dictionary.Add(42, "answer");
+                    if (!dictionary.ContainsKey(42) || dictionary[42] != "answer")
+                        return 4;
+
+                    HashSet<int32> integers = new HashSet<int32>();
+                    if (!integers.Add(42) || integers.Add(42) || !integers.Contains(42))
+                        return 5;
+
+                    HashSet<bool> booleans = new HashSet<bool>();
+                    if (!booleans.Add(boolean) || booleans.Add(true)) return 6;
+                    HashSet<char> characters = new HashSet<char>();
+                    if (!characters.Add(character) || characters.Add('A')) return 7;
+                    HashSet<int8> signedBytes = new HashSet<int8>();
+                    if (!signedBytes.Add(signed8) || signedBytes.Add((int8)-7)) return 8;
+                    HashSet<uint8> unsignedBytes = new HashSet<uint8>();
+                    if (!unsignedBytes.Add(unsigned8) || unsignedBytes.Add((uint8)250)) return 9;
+                    HashSet<int16> signedShorts = new HashSet<int16>();
+                    if (!signedShorts.Add(signed16) || signedShorts.Add((int16)-1234)) return 10;
+                    HashSet<uint16> unsignedShorts = new HashSet<uint16>();
+                    if (!unsignedShorts.Add(unsigned16) || unsignedShorts.Add((uint16)54321)) return 11;
+                    HashSet<uint32> unsignedIntegers = new HashSet<uint32>();
+                    if (!unsignedIntegers.Add(unsigned32) || unsignedIntegers.Add(UInt32.MaxValue)) return 12;
+                    HashSet<int64> signedLongs = new HashSet<int64>();
+                    if (!signedLongs.Add(signed64) || signedLongs.Add(-4294967296L)) return 13;
+                    HashSet<uint64> unsignedLongs = new HashSet<uint64>();
+                    if (!unsignedLongs.Add(unsigned64) || unsignedLongs.Add(4294967296ul)) return 14;
+                    HashSet<int> nativeSignedIntegers = new HashSet<int>();
+                    if (!nativeSignedIntegers.Add(nativeSigned) || nativeSignedIntegers.Add(42)) return 15;
+                    HashSet<uint> nativeUnsignedIntegers = new HashSet<uint>();
+                    if (!nativeUnsignedIntegers.Add(nativeUnsigned) || nativeUnsignedIntegers.Add((uint)4294967296ul)) return 16;
+
+                    HashSet<float> floatingValues = new HashSet<float>();
+                    if (!floatingValues.Add(firstNaN) || floatingValues.Add(secondNaN) || !floatingValues.Contains(secondNaN))
+                        return 17;
+                    HashSet<double> doubleValues = new HashSet<double>();
+                    if (!doubleValues.Add(firstDoubleNaN) || doubleValues.Add(secondDoubleNaN) || !doubleValues.Contains(secondDoubleNaN))
+                        return 18;
+
+                    return 0;
+                }
+            }
+            """)), new CompilationOptions(UnsafeEnabled: true));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
     public void CollectionsNamespaceTypesBuildAndRunWithMovedIterationContracts()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

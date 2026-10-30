@@ -1,7 +1,19 @@
 namespace System;
 
-public struct Float : ValueType
+public struct Float : ValueType, IHashable, IEquality<float>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(float other)
+	{
+		if (IsNaN(this))
+			return IsNaN(other);
+		return this == other;
+	}
+
 	public const float MinValue = -3.40282347e38f; public const float MaxValue = 3.40282347e38f;
 	public const float Epsilon = 1.40129846e-45f;
 	public static float NaN { get => 0.0f / 0.0f; }

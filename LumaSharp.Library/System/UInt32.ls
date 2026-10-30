@@ -1,7 +1,17 @@
 namespace System;
 
-public struct UInt32 : ValueType
+public struct UInt32 : ValueType, IHashable, IEquality<uint32>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(uint32 other)
+	{
+		return this == other;
+	}
+
 	public const uint32 MinValue = 0;
 	public const uint32 MaxValue = 4294967295u;
 	public static uint32 Parse(string? text)

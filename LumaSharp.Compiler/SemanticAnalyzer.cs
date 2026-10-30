@@ -65,6 +65,7 @@ internal sealed record CompilationAnalysis(
     IReadOnlyList<InterfaceMethodSlot> InterfaceMethodSlots,
     IReadOnlyDictionary<string, IReadOnlyList<MethodSymbol?>> InterfaceDispatchTables,
     IReadOnlySet<(string FromType, string ToType)> InterfaceConversions,
+    IReadOnlySet<string> BoxedValueTypeInterfaceTypes,
     IReadOnlyDictionary<DefaultValueExpression, string> DefaultTypes,
     IReadOnlyDictionary<MemberAccessExpression, ConstantFieldBinding> ConstantFields,
     IReadOnlyDictionary<NameExpression, ConstantFieldBinding> UnqualifiedConstantFields,
@@ -90,6 +91,7 @@ internal sealed record CompilationAnalysis(
     IReadOnlyDictionary<string, string> EnumUnderlyingTypes,
     IReadOnlyDictionary<CastExpression, string> CastTypes,
     IReadOnlyDictionary<BinaryExpression, string> TypeOperatorTargets,
+    IReadOnlyDictionary<BinaryExpression, string> TypePatternVariableTypes,
     IReadOnlyDictionary<SwitchLabel, string> SwitchTypePatterns,
     IReadOnlyDictionary<SizeOfExpression, string> SizeOfTypes,
     IReadOnlyDictionary<CallExpression, BoundCallArguments> CallArguments,
@@ -300,6 +302,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<string, TypeDeclaration> _delegateTypes = new(StringComparer.Ordinal);
     private IReadOnlyList<InterfaceMethodSlot> _interfaceMethodSlots = [];
     private IReadOnlySet<(string FromType, string ToType)> _interfaceConversions = new HashSet<(string, string)>();
+    private readonly HashSet<string> _boxedValueTypeInterfaceTypes = new(StringComparer.Ordinal);
     private IReadOnlyDictionary<string, IReadOnlyList<MethodSymbol?>> _interfaceDispatchTables =
         new Dictionary<string, IReadOnlyList<MethodSymbol?>>(StringComparer.Ordinal);
     private readonly Dictionary<MemberAccessExpression, StructFieldBinding> _boundStructFields = new(ReferenceEqualityComparer.Instance);
@@ -312,6 +315,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<Expression, MethodSymbol> _operatorTargets = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<(string SourceType, string TargetType), MethodSymbol> _userConversionOperators = [];
     private readonly Dictionary<BinaryExpression, string> _typeOperatorTargets = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<BinaryExpression, string> _typePatternVariableTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<ConditionalExpression, string> _conditionalExpressionTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<SwitchLabel, string> _switchTypePatterns = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<SwitchStatement> _exhaustiveSwitches = new(ReferenceEqualityComparer.Instance);
@@ -953,7 +957,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var multiAssignmentAccessorAssignments = new Dictionary<MultiAssignmentStatement, IReadOnlyDictionary<int, BinaryExpression>>(ReferenceEqualityComparer.Instance);
         foreach (var (statement, assignments) in _multiAssignmentAccessorAssignments)
             multiAssignmentAccessorAssignments.Add(statement, assignments);
-        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
+        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _boxedValueTypeInterfaceTypes, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _typePatternVariableTypes, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
 
     private bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
@@ -1435,6 +1439,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private bool IsSupportedType(string type, TypeDeclaration? contextType = null, IReadOnlyCollection<string>? methodTypeParameters = null) =>
         SupportedTypes.Contains(type) || _enumUnderlyingTypes.ContainsKey(type) || _structTypes.ContainsKey(type) || _classTypes.ContainsKey(type) || _interfaceTypes.ContainsKey(type) || _delegateTypes.ContainsKey(type) || IsPointerType(type) && IsAllowedPointerType(type, contextType, methodTypeParameters) ||
         IsNullableClassType(type) || IsNullableDelegateType(type) || IsNullableStringType(type) || IsNullableArrayType(type) || IsNullableValueType(type) ||
+        contextType?.TypeParameters?.Contains(type, StringComparer.Ordinal) == true || methodTypeParameters?.Contains(type, StringComparer.Ordinal) == true ||
         TryParseManagedArrayType(type, out var arrayElementType, out var rank) && rank <= 3 && IsManagedArrayElementType(arrayElementType) ||
         TryParseInlineArrayType(type, out var elementType, out var count) && count > 0 && IsInlineArrayElementType(elementType);
     private bool IsManagedArrayElementType(string type) => NumericTypes.Contains(type) || type is "bool" or "string" or "string?" || _enumUnderlyingTypes.ContainsKey(type) ||
@@ -1712,6 +1717,23 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (!IsNullableTypeName(type)) return false;
         var underlying = NullableUnderlyingType(type);
         return underlying is not ("void" or "string") && (NumericTypes.Contains(underlying) || underlying == "bool" || _enumUnderlyingTypes.ContainsKey(underlying) || _structTypes.ContainsKey(underlying));
+    }
+    private void RecordBoxedValueTypeInterfaceType(string type)
+    {
+        var valueType = IsNullableValueType(type) ? NullableUnderlyingType(type) : type;
+        if (NullableUnderlyingType(valueType) is "System.Object" or "object")
+        {
+            _boxedValueTypeInterfaceTypes.UnionWith(["bool", "char", "int8", "uint8", "int16", "uint16", "int32", "uint32",
+                "int64", "uint64", "int", "uint", "float", "double"]);
+            _boxedValueTypeInterfaceTypes.UnionWith(_structTypes.Keys);
+            _boxedValueTypeInterfaceTypes.UnionWith(_enumUnderlyingTypes.Keys);
+            return;
+        }
+        var normalizedValueType = NormalizeBuiltinTypeQualifier(valueType);
+        if (PrimitiveKeywordAlias(normalizedValueType) is { } alias)
+            _boxedValueTypeInterfaceTypes.Add(alias);
+        else if (_structTypes.ContainsKey(valueType) || _enumUnderlyingTypes.ContainsKey(valueType))
+            _boxedValueTypeInterfaceTypes.Add(valueType);
     }
     private bool IsNullableValuePayloadType(string type) => NumericTypes.Contains(type) || type == "bool" || _enumUnderlyingTypes.ContainsKey(type) || _structTypes.ContainsKey(type);
     private bool IsBoxableScalarOrEnum(string type) => NumericTypes.Contains(type) || type == "bool" || _enumUnderlyingTypes.ContainsKey(type);
@@ -2384,8 +2406,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var className in _classTypes.Keys)
             foreach (var interfaceName in GetImplementedInterfaceNames(className)) conversions.Add((className, interfaceName));
         foreach (var structure in _structTypes.Values)
+        {
             foreach (var interfaceName in GetStructImplementedInterfaceNames(structure.Declaration))
                 conversions.Add((GetQualifiedTypeName(structure.Declaration), interfaceName));
+            if (PrimitiveKeywordAlias(GetQualifiedTypeName(structure.Declaration)) is { } primitiveAlias)
+                foreach (var interfaceName in GetStructImplementedInterfaceNames(structure.Declaration))
+                    conversions.Add((primitiveAlias, interfaceName));
+        }
         foreach (var (interfaceName, interfaceType) in _interfaceTypes)
         {
             // Interfaces are reference types and therefore always have the implicit
@@ -2590,6 +2617,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (constraint == "default")
             return NumericTypes.Contains(argumentType) || argumentType == "bool" || _enumUnderlyingTypes.ContainsKey(argumentType) ||
                 _structTypes.ContainsKey(argumentType) || TryParseInlineArrayType(argumentType, out _, out _) || IsNullableType(argumentType);
+        if (_interfaceTypes.ContainsKey(constraint) && _interfaceConversions.Contains((argumentType, constraint))) return true;
         if (argumentType.EndsWith("?", StringComparison.Ordinal)) return false;
         var isValueType = NumericTypes.Contains(argumentType) || argumentType == "bool" || _enumUnderlyingTypes.ContainsKey(argumentType) ||
             _structTypes.ContainsKey(argumentType) || TryParseInlineArrayType(argumentType, out _, out _);
@@ -8798,7 +8826,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     }
                     structReceiverType = NullableUnderlyingType(structReceiverType);
                 }
-                var computedProperty = TryGetComputedProperty(structReceiverType, access.Member);
+                var normalizedBuiltinReceiverType = NormalizeBuiltinTypeQualifier(structReceiverType);
+                var memberReceiverType = IsStructType(normalizedBuiltinReceiverType)
+                    ? normalizedBuiltinReceiverType
+                    : structReceiverType;
+                var computedProperty = TryGetComputedProperty(memberReceiverType, access.Member);
                 if (computedProperty is not null)
                 {
                     if (computedProperty.Declaration.IsStatic)
@@ -8808,11 +8840,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     }
                     return BindComputedPropertyRead(access, computedProperty, context);
                 }
-                if (IsStructType(structReceiverType) && TryGetStructField(structReceiverType, access.Member, out var resolvedStructField))
+                if (IsStructType(memberReceiverType) && TryGetStructField(memberReceiverType, access.Member, out var resolvedStructField))
                 {
                     if (!IsAccessibilityAvailable(GetFieldAccessibility(resolvedStructField.Declaration), resolvedStructField.Owner, context.Method.Owner))
-                        diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Struct field '{structReceiverType}.{access.Member}' is not accessible from this type.", access.Location);
-                    var binding = new StructFieldBinding(structReceiverType, resolvedStructField.TypeName, resolvedStructField.Index,
+                        diagnostics.Add("LMC3012", DiagnosticSeverity.Error, $"Struct field '{memberReceiverType}.{access.Member}' is not accessible from this type.", access.Location);
+                    var binding = new StructFieldBinding(memberReceiverType, resolvedStructField.TypeName, resolvedStructField.Index,
                         resolvedStructField.Declaration.IsReadOnly, pointerReceiver);
                     _boundStructFields[access] = binding;
                     return binding.TypeName;
@@ -8841,7 +8873,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     }
                     return binding.TypeName;
                 }
-                if (IsStructType(structReceiverType)) diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Struct '{structReceiverType}' has no field named '{access.Member}'.", access.Location);
+                if (IsStructType(memberReceiverType)) diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Struct '{memberReceiverType}' has no field named '{access.Member}'.", access.Location);
                 else if (IsClassType(structReceiverType)) diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Class '{structReceiverType}' has no field named '{access.Member}'.", access.Location);
                 else if (structReceiverType != "?") diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Instance and value member access is not yet supported for this value type.", access.Location);
                 return "?";
@@ -12055,8 +12087,16 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 return provenUpcast ? targetType : targetType + "?";
             }
 
-            if (left != "null" && GetClassReferenceTypeForAnalysis(left) is null)
-                diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Runtime type tests for '{left}' require class reference runtime type information.", binary.Left.Location);
+            if (left != "null" && GetClassReferenceTypeForAnalysis(left) is null && !IsBoxableValueType(left))
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Runtime type tests for '{left}' require a class reference or a boxable value.", binary.Left.Location);
+            if (targetMatches[0].Kind == "interface")
+            {
+                if (left is "System.Object" or "object")
+                    RecordBoxedValueTypeInterfaceType(left);
+                else if (!IsNullableValueType(left) && IsBoxableValueType(left) &&
+                    _interfaceConversions.Contains((left, targetType)) && binary.PatternVariableName is not null)
+                    _typePatternVariableTypes[binary] = left;
+            }
             _typeOperatorTargets[binary] = targetType;
             ValidateTypePatternVariable(binary, op, context);
             if (left == "null")
@@ -12641,11 +12681,19 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (IsStringType(from) &&
             (to is "System.Object" or "object" || IsNullableClassType(to) && NullableUnderlyingType(to) == "System.Object"))
             return !IsNullableStringType(from) || IsNullableClassType(to);
-        if (IsStructType(from) && IsInterfaceType(NullableUnderlyingType(to)) &&
-            _interfaceConversions.Contains((from, NullableUnderlyingType(to)))) return true;
+        if (IsBoxableValueType(from) && IsInterfaceType(NullableUnderlyingType(to)) &&
+            _interfaceConversions.Contains((from, NullableUnderlyingType(to))))
+        {
+            RecordBoxedValueTypeInterfaceType(from);
+            return true;
+        }
         if (IsNullableValueType(from) && IsNullableClassType(to) && IsInterfaceType(NullableUnderlyingType(to)) &&
-            IsStructType(NullableUnderlyingType(from)) &&
-            _interfaceConversions.Contains((NullableUnderlyingType(from), NullableUnderlyingType(to)))) return true;
+            IsBoxableValueType(NullableUnderlyingType(from)) &&
+            _interfaceConversions.Contains((NullableUnderlyingType(from), NullableUnderlyingType(to))))
+        {
+            RecordBoxedValueTypeInterfaceType(NullableUnderlyingType(from));
+            return true;
+        }
         if ((to is "System.Object" or "object") || IsNullableClassType(to) && NullableUnderlyingType(to) == "System.Object")
         {
             var boxedType = IsNullableValueType(from) ? NullableUnderlyingType(from) : from;
@@ -12819,7 +12867,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (condition is not BinaryExpression { Operator: "is", PatternVariableName: { } name } typePattern ||
             !_typeOperatorTargets.TryGetValue(typePattern, out var targetType) || context.Exists(name)) return [];
         var captureScope = allowCapture ? typePattern.PatternCaptureScope : null;
-        context.Declare(name, targetType, mutable: false, typePattern.Location, blockOwner: captureScope);
+        var patternVariableType = _typePatternVariableTypes.GetValueOrDefault(typePattern) ?? targetType;
+        context.Declare(name, patternVariableType, mutable: false, typePattern.Location, blockOwner: captureScope);
         if (captureScope is null) return [];
         context.EnterCaptureBlock(captureScope, isMethodScope: false);
         return [captureScope];

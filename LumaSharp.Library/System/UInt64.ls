@@ -1,7 +1,17 @@
 namespace System;
 
-public struct UInt64 : ValueType
+public struct UInt64 : ValueType, IHashable, IEquality<uint64>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(uint64 other)
+	{
+		return this == other;
+	}
+
 	public const uint64 MinValue = 0; public const uint64 MaxValue = 18446744073709551615ul;
 	public static uint64 Parse(string? text) { if (TryParse(text, out uint64 result)) return result; throw new FormatException("Invalid unsigned 64-bit integer."); }
 	public static bool TryParse(string? text, out uint64 result)

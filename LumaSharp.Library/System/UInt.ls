@@ -1,7 +1,17 @@
 namespace System;
 
-public struct UInt : ValueType
+public struct UInt : ValueType, IHashable, IEquality<uint>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(uint other)
+	{
+		return this == other;
+	}
+
 	public const uint MinValue = 0;
 	public const uint MaxValue = 0;
 	public static uint Parse(string? text) { if (UInt64.TryParse(text, out uint64 value) && value <= MaxValue) return (uint)value; throw new FormatException("Invalid native unsigned integer."); }

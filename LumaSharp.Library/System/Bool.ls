@@ -1,7 +1,17 @@
 namespace System;
 
-public struct Bool : ValueType
+public struct Bool : ValueType, IHashable, IEquality<bool>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(bool other)
+	{
+		return this == other;
+	}
+
 	public const string TrueString = "True";
 	public const string FalseString = "False";
 	public static bool Parse(string value)

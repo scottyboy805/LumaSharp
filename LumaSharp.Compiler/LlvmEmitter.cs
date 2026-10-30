@@ -31,6 +31,24 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         "System.Double" => "double",
         _ => null
     };
+    private static string? PrimitiveStructTypeName(string typeName) => typeName switch
+    {
+        "bool" => "System.Bool",
+        "char" => "System.Char",
+        "int8" => "System.Int8",
+        "uint8" => "System.UInt8",
+        "int16" => "System.Int16",
+        "uint16" => "System.UInt16",
+        "int32" => "System.Int32",
+        "uint32" => "System.UInt32",
+        "int64" => "System.Int64",
+        "uint64" => "System.UInt64",
+        "int" => "System.Int",
+        "uint" => "System.UInt",
+        "float" => "System.Float",
+        "double" => "System.Double",
+        _ => null
+    };
     private static string TypeInitializationFunctionName(string typeName) => "luma_type_init_" + Safe(typeName);
     private static string TypeInitializationFailureMessage(string typeName) => $"The type initializer for '{typeName}' threw an exception.";
     private static string TypeInitializationCircularMessage(string typeName) => $"circular static initialization of {typeName}";
@@ -1253,7 +1271,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private void EmitMethod(MethodSymbol method)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.StringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.GenericSpanEmptyAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
+        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.TypePatternVariableTypes, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.StringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.GenericSpanEmptyAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
         var parameters = d.Parameters.Select((p, i) => $"{LlvmParameterType(p)} %arg{i}");
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
@@ -3153,16 +3171,25 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 _output.AppendLine($"@luma_struct_vtable_{safe} = private constant [{virtualMethods.Count} x ptr] [{string.Join(", ", entries)}]");
                 boxVtablePointer = $"ptr getelementptr inbounds ([{virtualMethods.Count} x ptr], ptr @luma_struct_vtable_{safe}, i32 0, i32 0)";
             }
-            var interfaceEntries = compilation.InterfaceDispatchTables.GetValueOrDefault(type) ?? [];
+            var primitiveStructType = PrimitiveStructTypeName(type);
+            var interfaceLookupType = primitiveStructType ?? type;
+            var interfaceEntries = compilation.InterfaceDispatchTables.GetValueOrDefault(type) ??
+                compilation.InterfaceDispatchTables.GetValueOrDefault(interfaceLookupType) ?? [];
             var interfaceTablePointer = "ptr null";
-            if (compilation.StructTypes.ContainsKey(type) && compilation.InterfaceMethodSlots.Count > 0)
+            var needsValueTypeDispatch = compilation.BoxedValueTypeInterfaceTypes.Contains(type);
+            if ((compilation.StructTypes.ContainsKey(type) && PrimitiveKeywordAlias(type) is null || primitiveStructType is not null) &&
+                needsValueTypeDispatch &&
+                compilation.InterfaceMethodSlots.Count > 0)
             {
                 var entries = compilation.InterfaceMethodSlots.Select(slot =>
                     slot.Index < interfaceEntries.Count && interfaceEntries[slot.Index]?.Declaration.Body is not null
-                        ? $"ptr @{StructInterfaceThunkName(type, slot.Index)}"
+                        ? primitiveStructType is null
+                            ? $"ptr @{StructInterfaceThunkName(type, slot.Index)}"
+                            : $"ptr @{PrimitiveInterfaceThunkName(type, slot.Index)}"
                         : "ptr null");
-                _output.AppendLine($"@luma_struct_itable_{safe} = private constant [{compilation.InterfaceMethodSlots.Count} x ptr] [{string.Join(", ", entries)}]");
-                interfaceTablePointer = $"ptr getelementptr inbounds ([{compilation.InterfaceMethodSlots.Count} x ptr], ptr @luma_struct_itable_{safe}, i32 0, i32 0)";
+                var tableName = primitiveStructType is null ? $"luma_struct_itable_{safe}" : $"luma_primitive_itable_{safe}";
+                _output.AppendLine($"@{tableName} = private constant [{compilation.InterfaceMethodSlots.Count} x ptr] [{string.Join(", ", entries)}]");
+                interfaceTablePointer = $"ptr getelementptr inbounds ([{compilation.InterfaceMethodSlots.Count} x ptr], ptr @{tableName}, i32 0, i32 0)";
             }
             var implementedInterfaces = compilation.InterfaceConversions.Where(conversion => conversion.FromType == type &&
                     compilation.InterfaceTypes.ContainsKey(conversion.ToType))
@@ -3240,11 +3267,13 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private static string StructToStringThunkName(string type) => $"luma_struct_tostring_{Safe(type)}";
 
     private static string StructInterfaceThunkName(string type, int slot) => $"luma_struct_iface_{Safe(type)}_{slot}";
+    private static string PrimitiveInterfaceThunkName(string type, int slot) => $"luma_primitive_iface_{Safe(type)}_{slot}";
 
     private void EmitStructInterfaceThunks()
     {
-        foreach (var type in compilation.StructTypes.Keys.Order(StringComparer.Ordinal))
+        foreach (var type in compilation.StructTypes.Keys.Where(compilation.BoxedValueTypeInterfaceTypes.Contains).Order(StringComparer.Ordinal))
         {
+            if (PrimitiveKeywordAlias(type) is not null) continue;
             if (!compilation.InterfaceDispatchTables.TryGetValue(type, out var entries)) continue;
             foreach (var slot in compilation.InterfaceMethodSlots)
             {
@@ -3273,6 +3302,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 _output.AppendLine("}");
             }
         }
+        EmitPrimitiveInterfaceThunks();
         foreach (var type in compilation.StructTypes.Keys.Order(StringComparer.Ordinal))
         {
             var implementation = compilation.Methods.FirstOrDefault(method => method.IsStructInstanceMethod &&
@@ -3286,6 +3316,76 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             _output.AppendLine($"  %result = call ptr @{FunctionName(implementation, compilation.Methods)}(ptr %payload)");
             _output.AppendLine("  ret ptr %result");
             _output.AppendLine("}");
+        }
+    }
+
+    private void EmitPrimitiveInterfaceThunks()
+    {
+        foreach (var type in BoxableTypeNames())
+        {
+            if (!compilation.BoxedValueTypeInterfaceTypes.Contains(type)) continue;
+            var primitiveStructType = PrimitiveStructTypeName(type);
+            if (primitiveStructType is null ||
+                !compilation.InterfaceDispatchTables.TryGetValue(primitiveStructType, out var entries))
+                continue;
+
+            foreach (var slot in compilation.InterfaceMethodSlots)
+            {
+                if (slot.Index >= entries.Count || entries[slot.Index] is not { Declaration.Body: not null } implementation)
+                    continue;
+
+                var arguments = implementation.Declaration.Parameters.Select((parameter, index) =>
+                    $"{LlvmParameterType(parameter)} %arg{index}").ToArray();
+                var signatureArguments = string.Join(", ", new[] { "ptr %box" }.Concat(arguments));
+                var callArguments = string.Join(", ", arguments.Select((_, index) =>
+                    $"{LlvmParameterType(implementation.Declaration.Parameters[index])} %arg{index}"));
+                var resultType = LlvmType(implementation.Declaration.ReturnType);
+                var llvmValueType = LlvmType(type);
+
+                _output.AppendLine($"define internal {resultType} @{PrimitiveInterfaceThunkName(type, slot.Index)}({signatureArguments}) {{");
+                _output.AppendLine("entry:");
+                _output.AppendLine("  %payload.address = getelementptr %luma.box, ptr %box, i32 0, i32 4");
+                _output.AppendLine("  %encoded = load i64, ptr %payload.address");
+                var value = "%encoded";
+                if (type == "bool")
+                {
+                    _output.AppendLine("  %decoded = trunc i64 %encoded to i1");
+                    value = "%decoded";
+                }
+                else if (type == "float")
+                {
+                    _output.AppendLine("  %bits = trunc i64 %encoded to i32");
+                    _output.AppendLine("  %decoded = bitcast i32 %bits to float");
+                    value = "%decoded";
+                }
+                else if (type == "double")
+                {
+                    _output.AppendLine("  %decoded = bitcast i64 %encoded to double");
+                    value = "%decoded";
+                }
+                else if (llvmValueType != "i64")
+                {
+                    _output.AppendLine($"  %decoded = trunc i64 %encoded to {llvmValueType}");
+                    value = "%decoded";
+                }
+                _output.AppendLine($"  %receiver = alloca {llvmValueType}");
+                _output.AppendLine($"  store {llvmValueType} {value}, ptr %receiver");
+                var callArgumentsWithReceiver = callArguments.Length == 0
+                    ? "ptr %receiver"
+                    : $"ptr %receiver, {callArguments}";
+                var call = $"call {resultType} @{FunctionName(implementation, compilation.Methods)}({callArgumentsWithReceiver})";
+                if (implementation.Declaration.ReturnType == "void")
+                {
+                    _output.AppendLine($"  {call}");
+                    _output.AppendLine("  ret void");
+                }
+                else
+                {
+                    _output.AppendLine($"  %result = {call}");
+                    _output.AppendLine($"  ret {resultType} %result");
+                }
+                _output.AppendLine("}");
+            }
         }
     }
 
@@ -3482,6 +3582,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         int nativePointerSize,
         IReadOnlyDictionary<CastExpression, string> castTypes,
         IReadOnlyDictionary<BinaryExpression, string> typeOperatorTargets,
+        IReadOnlyDictionary<BinaryExpression, string> typePatternVariableTypes,
         IReadOnlyDictionary<ConditionalExpression, string> conditionalExpressionTypes,
         IReadOnlyDictionary<SwitchLabel, string> switchTypePatterns,
         IReadOnlyDictionary<SizeOfExpression, string> sizeOfTypes,
@@ -5490,7 +5591,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var states = new List<(BinaryExpression Pattern, TypePatternBindingState State)>();
             foreach (var pattern in patterns)
             {
-                var patternType = typeOperatorTargets[pattern];
+                var patternType = typePatternVariableTypes.GetValueOrDefault(pattern) ?? typeOperatorTargets[pattern];
                 var storageType = IsBoxableValueType(patternType) ? LlvmType(patternType) : "ptr";
                 var address = NewTemp(); Emit($"{address} = alloca {storageType}");
                 var sourceAddress = NewTemp(); Emit($"{sourceAddress} = alloca ptr");
@@ -5537,6 +5638,18 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         private void CaptureTypePatternOperand(TypePatternBindingState state, (string Value, string Type) operand)
         {
             state.SourceType = operand.Type;
+            if (interfaceTypes.ContainsKey(state.Type) && IsBoxableValueType(operand.Type))
+            {
+                var boxed = EmitBoxValue(operand.Value, operand.Type);
+                _ownedClassValues.Remove((boxed, "System.Object"));
+                state.SourceType = "System.Object";
+                state.RetainedClassType = "System.Object";
+                Emit($"store ptr {boxed}, ptr {state.SourceAddress}");
+                Emit($"store i1 true, ptr {state.RetainedFlagAddress}");
+                Emit($"store ptr {boxed}, ptr {state.Address}");
+                state.Initialized = true;
+                return;
+            }
             if (IsManagedArrayType(operand.Type))
             {
                 Emit($"store ptr {operand.Value}, ptr {state.SourceAddress}");
@@ -5693,7 +5806,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var states = new List<(BinaryExpression Pattern, TypePatternBindingState State)>();
             foreach (var pattern in patterns)
             {
-                var patternType = typeOperatorTargets[pattern];
+                var patternType = typePatternVariableTypes.GetValueOrDefault(pattern) ?? typeOperatorTargets[pattern];
                 var storageType = IsBoxableValueType(patternType) ? LlvmType(patternType) : "ptr";
                 var address = NewTemp(); Emit($"{address} = alloca {storageType}");
                 var sourceAddress = NewTemp(); Emit($"{sourceAddress} = alloca ptr");
@@ -5767,7 +5880,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             {
                 foreach (var pattern in patternNodes)
                 {
-                    var patternType = typeOperatorTargets[pattern];
+                    var patternType = typePatternVariableTypes.GetValueOrDefault(pattern) ?? typeOperatorTargets[pattern];
                     var storageType = IsBoxableValueType(patternType) ? LlvmType(patternType) : "ptr";
                     var address = NewTemp(); Emit($"{address} = alloca {storageType}");
                     var sourceAddress = NewTemp(); Emit($"{sourceAddress} = alloca ptr");
@@ -6579,9 +6692,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             if (!typeOperatorTargets.TryGetValue(expression, out var targetType))
                 throw new InvalidOperationException("A validated type test is missing its target binding.");
             var operand = suppliedOperand ?? EmitExpression(expression.Left);
-            if (expression.PatternVariableName is not null && _activeTypePatternBindings.TryGetValue(expression, out var patternBinding))
+            _activeTypePatternBindings.TryGetValue(expression, out var patternBinding);
+            if (expression.PatternVariableName is not null && patternBinding is not null)
                 CaptureTypePatternOperand(patternBinding, operand);
             string result;
+            string? temporaryBox = null;
             if (targetType == "null")
             {
                 if (operand.Type == "null") result = "1";
@@ -6666,8 +6781,26 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 var classType = GetClassReferenceType(targetType) ?? throw new NotSupportedException("The bound type-test target is not a reference type.");
                 result = NewTemp();
                 if (operand.Type == "null") Emit($"{result} = icmp ne ptr null, null");
+                else if (interfaceTypes.ContainsKey(classType) && IsBoxableValueType(operand.Type))
+                    result = interfaceConversions.Contains((operand.Type, classType)) ? "true" : "false";
                 else if (interfaceTypes.ContainsKey(classType))
-                    Emit($"{result} = call i1 @luma_class_implements(ptr {operand.Value}, ptr @luma_interfacedesc_{Safe(classType)})");
+                {
+                    var interfaceValue = operand.Value;
+                    if (!IsRuntimeObjectReference(operand.Type) && IsBoxableValueType(operand.Type))
+                    {
+                        if (patternBinding is not null)
+                        {
+                            interfaceValue = NewTemp();
+                            Emit($"{interfaceValue} = load ptr, ptr {patternBinding.SourceAddress}");
+                        }
+                        else
+                        {
+                            interfaceValue = EmitBoxValue(operand.Value, operand.Type);
+                            temporaryBox = interfaceValue;
+                        }
+                    }
+                    Emit($"{result} = call i1 @luma_class_implements(ptr {interfaceValue}, ptr @luma_interfacedesc_{Safe(classType)})");
+                }
                 else if (IsManagedArrayType(operand.Type) && classType == "System.Object")
                     Emit($"{result} = call i1 @luma_class_is_instance(ptr {operand.Value}, ptr {ClassDescriptorPointer(classType)})");
                 else Emit($"{result} = call i1 @luma_class_is_instance(ptr {operand.Value}, ptr {ClassDescriptorPointer(classType)})");
@@ -6679,6 +6812,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             if (IsManagedArrayType(operand.Type)) ReleaseOwnedArray(operand);
             else if (IsStringType(operand.Type)) ReleaseOwnedString(operand);
             else ReleaseOwnedClass(operand);
+            if (temporaryBox is not null) ReleaseOwnedClass((temporaryBox, "System.Object"));
             return (result, "bool");
         }
 
@@ -7503,7 +7637,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             {
                 foreach (var pattern in patternNodes)
                 {
-                    var patternType = typeOperatorTargets[pattern];
+                    var patternType = typePatternVariableTypes.GetValueOrDefault(pattern) ?? typeOperatorTargets[pattern];
                     var storageType = IsBoxableValueType(patternType) ? LlvmType(patternType) : "ptr";
                     var address = NewTemp(); Emit($"{address} = alloca {storageType}");
                     var sourceAddress = NewTemp(); Emit($"{sourceAddress} = alloca ptr");

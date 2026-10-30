@@ -249,21 +249,23 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 		public bool Next() mut
 		{
-			if (set == null)
+			HashSet<TItem>? source = set;
+			if (source == null)
 				return false;
 			index++;
-			while (index < set.Capacity && !set.IsOccupied(index))
+			while (index < source.Capacity && !source.IsOccupied(index))
 				index++;
-			return index < set.Capacity;
+			return index < source.Capacity;
 		}
 
 		public TItem Current
 		{
 			get
 			{
-				if (set == null)
+			HashSet<TItem>? source = set;
+			if (source == null)
 					return default(TItem);
-				return set.GetAt(index);
+			return source.GetAt(index);
 			}
 		}
 	}

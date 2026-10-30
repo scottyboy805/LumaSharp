@@ -1,7 +1,19 @@
 namespace System;
 
-public struct Double : ValueType
+public struct Double : ValueType, IHashable, IEquality<double>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(double other)
+	{
+		if (IsNaN(this))
+			return IsNaN(other);
+		return this == other;
+	}
+
 	public const double MinValue = -1.7976931348623157e308; public const double MaxValue = 1.7976931348623157e308;
 	public const double Epsilon = 4.9406564584124654e-324;
 	public static double NaN { get => 0.0 / 0.0; }

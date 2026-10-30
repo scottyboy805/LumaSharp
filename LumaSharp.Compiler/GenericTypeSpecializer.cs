@@ -1745,7 +1745,13 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         },
         UnaryExpression unary => unary with { Operand = RewriteExpression(unary.Operand, substitutions) },
         CastExpression cast => cast with { TypeName = RewriteTypeName(cast.TypeName, substitutions), Operand = RewriteExpression(cast.Operand, substitutions) },
-        BinaryExpression binary => binary with { Left = RewriteExpression(binary.Left, substitutions), Right = RewriteExpression(binary.Right, substitutions) },
+        BinaryExpression binary => binary with
+        {
+            Left = RewriteExpression(binary.Left, substitutions),
+            Right = binary.Operator is "is" or "is not" or "as" && binary.Right is NameExpression typeName
+                ? typeName with { Name = RewriteTypeName(typeName.Name, substitutions) }
+                : RewriteExpression(binary.Right, substitutions)
+        },
         ConditionalExpression conditional => conditional with { Condition = RewriteExpression(conditional.Condition, substitutions), WhenTrue = RewriteExpression(conditional.WhenTrue, substitutions), WhenFalse = RewriteExpression(conditional.WhenFalse, substitutions) },
         MemberAccessExpression access => access with { Receiver = RewriteExpression(access.Receiver, substitutions) },
         IndexExpression index => index with { Receiver = RewriteExpression(index.Receiver, substitutions), Indices = index.Indices.Select(item => RewriteExpression(item, substitutions)).ToArray() },

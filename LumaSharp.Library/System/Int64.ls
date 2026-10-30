@@ -1,7 +1,17 @@
 namespace System;
 
-public struct Int64 : ValueType
+public struct Int64 : ValueType, IHashable, IEquality<int64>
 {
+	public int32 Hash
+	{
+		get => HashCode.Calculate(this);
+	}
+
+	public bool Equals(int64 other)
+	{
+		return this == other;
+	}
+
 	public const int64 MinValue = -9223372036854775807L - 1; public const int64 MaxValue = 9223372036854775807L;
 	public static int64 Parse(string? text) { if (TryParse(text, out int64 result)) return result; throw new FormatException("Invalid 64-bit integer."); }
 	public static bool TryParse(string? text, out int64 result)
