@@ -2,15 +2,9 @@ namespace LumaSharp.Compiler;
 
 internal sealed partial class LlvmEmitter
 {
-    private static bool IsNativeInteropShim(MethodSymbol method) =>
-        method.Declaration.IsExtern &&
-        method.Owner.Namespace == "System.Interop" &&
-        method.Owner.Name is "NativeMemoryRuntime" or "NativeLibraryRuntime" &&
-        method.Declaration.Name.StartsWith("luma_interop_", StringComparison.Ordinal);
-
     private void EmitNativeInteropRuntime()
     {
-        if (!compilation.Methods.Any(IsNativeFileSystemShim))
+        if (!compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "filesystem"))
             EmitUtf16ToUtf8Shim();
 
         EmitNativeMemoryRuntime();
@@ -98,7 +92,7 @@ internal sealed partial class LlvmEmitter
             _output.AppendLine("  br i1 %name.failed, label %failure, label %lookup");
             _output.AppendLine("lookup:");
             _output.AppendLine("  %address = call ptr @GetProcAddress(ptr %handle, ptr %utf8.name)");
-            _output.AppendLine("  call void @free(ptr %utf8.name)");
+            _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.name)");
             _output.AppendLine("  ret ptr %address");
             _output.AppendLine("failure:");
             _output.AppendLine("  ret ptr null");
@@ -130,7 +124,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %name.failed, label %failure, label %lookup");
         _output.AppendLine("lookup:");
         _output.AppendLine("  %address = call ptr @dlsym(ptr %handle, ptr %utf8.name)");
-        _output.AppendLine("  call void @free(ptr %utf8.name)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.name)");
         _output.AppendLine("  ret ptr %address");
         _output.AppendLine("failure:");
         _output.AppendLine("  ret ptr null");
@@ -158,7 +152,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %path.failed, label %failure, label %load");
         _output.AppendLine("load:");
         _output.AppendLine("  %handle = call ptr @dlopen(ptr %utf8.path, i32 2)");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret ptr %handle");
         _output.AppendLine("failure:");
         _output.AppendLine("  ret ptr null");

@@ -2,12 +2,6 @@ namespace LumaSharp.Compiler;
 
 internal sealed partial class LlvmEmitter
 {
-	private static bool IsNativeStopWatchShim(MethodSymbol method) =>
-		method.Declaration.IsExtern &&
-		method.Owner.Namespace == "System.Diagnostics" &&
-		method.Owner.Name == "NativeStopWatch" &&
-		method.Declaration.Name is "luma_diag_timestamp" or "luma_diag_frequency";
-
 	private void EmitNativeStopWatchRuntime()
 	{
 		var targetTriple = compilation.TargetTriple == "host"

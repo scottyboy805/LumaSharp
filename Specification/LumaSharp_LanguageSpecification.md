@@ -4712,6 +4712,16 @@ The types of §1.7 are defined by the runtime/standard library. Their *layouts* 
 - `Delegate`: layout of §28.13;
 - `object`: the header of §27.2.
 
+## 32.5 Runtime-Only Compiler Intrinsics
+
+The compiler may reserve identifiers beginning with `__` for operations needed by the selected runtime library. Such calls are valid only in source files that the build has identified as part of that runtime library. Source MUST NOT declare a method whose name begins with `__`, and application source MUST NOT call a reserved intrinsic directly. The compiler reports an error if source attempts either use. This restriction does not change the `static extern` rules in Chapter 33; application interop continues to use explicitly declared extern methods.
+
+Each intrinsic is registered with a name, source-level signature, and lowering description. The registry is the single binding point for new intrinsic operations, so adding an intrinsic does not change the meaning of existing names. A call must match the registered signature, including `out` arguments where required. The compiler may lower an intrinsic to inline LLVM, a platform API, or an internal runtime shim.
+
+The current implementation uses short names for memory (`__memalloc`, `__memcpy`), arrays (`__arrlen`, `__arrdim`), dynamic libraries (`__libopen`), files (`__fileopen`, `__fileexists`), environment information, timing, weak references, and stack traces. These names are runtime implementation details and are not a general source-level API.
+
+Intrinsic parameters that accept `string` receive the LumaSharp UTF-16 string representation. A platform lowering performs any required conversion to a native encoding. The current POSIX conversion path reuses per-thread scratch storage for short strings and uses temporary heap storage for longer values; returned scratch storage is valid only for the duration of the synchronous intrinsic call. This conversion does not apply to user-declared extern methods.
+
 ---
 
 # 33. Native Interop at Run Time

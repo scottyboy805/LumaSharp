@@ -2,12 +2,6 @@ namespace LumaSharp.Compiler;
 
 internal sealed partial class LlvmEmitter
 {
-	private static bool IsNativeEnvironmentShim(MethodSymbol method) =>
-		method.Declaration.IsExtern &&
-		method.Owner.Namespace == "System" &&
-		method.Owner.Name == "Environment" &&
-		method.Declaration.Name.StartsWith("luma_env_", StringComparison.Ordinal);
-
 	private void EmitNativeEnvironmentRuntime()
 	{
 		var targetTriple = compilation.TargetTriple == "host"

@@ -2,12 +2,6 @@ namespace LumaSharp.Compiler;
 
 internal sealed partial class LlvmEmitter
 {
-    private static bool IsNativeFileSystemShim(MethodSymbol method) =>
-        method.Declaration.IsExtern &&
-        method.Owner.Namespace == "System.IO" &&
-        method.Owner.Name == "NativeFileSystem" &&
-        method.Declaration.Name.StartsWith("luma_fs_", StringComparison.Ordinal);
-
     private void EmitNativeFileSystemRuntime()
     {
         if (UsesWindowsCommandLineApi()) EmitWindowsFileSystemRuntime();
@@ -88,13 +82,13 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %failed, label %failure, label %success");
         _output.AppendLine("success:");
         _output.AppendLine("  store ptr %file, ptr %handle");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i32 0");
         _output.AppendLine("invalid:");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i32 -1");
         _output.AppendLine("failure:");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i32 -1");
         _output.AppendLine("}");
         _output.AppendLine($"define internal i32 @luma_fs_read(ptr %handle, ptr %buffer, i32 %count, ptr %bytesRead) {{");
@@ -165,10 +159,10 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %missing, label %no, label %yes");
         _output.AppendLine("yes:");
         _output.AppendLine("  %closed = call i32 @closedir(ptr %directory)");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i1 true");
         _output.AppendLine("no:");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i1 false");
         _output.AppendLine("}");
         _output.AppendLine("define internal i1 @luma_fs_file_exists(ptr %path) {");
@@ -183,10 +177,10 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  %directory = call i1 @luma_fs_directory_exists(ptr %path)");
         _output.AppendLine("  %is.file = xor i1 %directory, true");
         _output.AppendLine("  %result = and i1 %exists, %is.file");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i1 %result");
         _output.AppendLine("no:");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i1 false");
         _output.AppendLine("}");
         _output.AppendLine("define internal i32 @luma_fs_create_directory(ptr %path) {");
@@ -197,7 +191,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %conversion.failed, label %error, label %create");
         _output.AppendLine("create:");
         _output.AppendLine("  %native.result = call i32 @mkdir(ptr %utf8.path, i32 511)");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i32 %native.result");
         _output.AppendLine("error:");
         _output.AppendLine("  ret i32 -1");
@@ -222,12 +216,12 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %must.fail, label %error, label %move");
         _output.AppendLine("move:");
         _output.AppendLine("  %result = call i32 @rename(ptr %utf8.source, ptr %utf8.destination)");
-        _output.AppendLine("  call void @free(ptr %utf8.source)");
-        _output.AppendLine("  call void @free(ptr %utf8.destination)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.source)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.destination)");
         _output.AppendLine("  ret i32 %result");
         _output.AppendLine("error:");
-        _output.AppendLine("  call void @free(ptr %utf8.source)");
-        _output.AppendLine("  call void @free(ptr %utf8.destination)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.source)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.destination)");
         _output.AppendLine("  ret i32 -1");
         _output.AppendLine("}");
         _output.AppendLine("define internal i32 @luma_fs_copy(ptr %source, ptr %destination, i1 %overwrite) {");
@@ -276,8 +270,8 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("finish:");
         _output.AppendLine("  %destination.close = call i32 @fclose(ptr %destination.file)");
         _output.AppendLine("  %source.close = call i32 @fclose(ptr %source.file)");
-        _output.AppendLine("  call void @free(ptr %utf8.source)");
-        _output.AppendLine("  call void @free(ptr %utf8.destination)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.source)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.destination)");
         _output.AppendLine("  %failed = icmp ne i32 %destination.close, 0");
         _output.AppendLine("  %status = select i1 %failed, i32 -1, i32 0");
         _output.AppendLine("  ret i32 %status");
@@ -288,8 +282,8 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  %failed.source.close = call i32 @fclose(ptr %source.file)");
         _output.AppendLine("  br label %error");
         _output.AppendLine("error:");
-        _output.AppendLine("  call void @free(ptr %utf8.source)");
-        _output.AppendLine("  call void @free(ptr %utf8.destination)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.source)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.destination)");
         _output.AppendLine("  ret i32 -1");
         _output.AppendLine("}");
         _output.AppendLine("define internal ptr @luma_fs_current_directory() {");
@@ -320,6 +314,8 @@ internal sealed partial class LlvmEmitter
     private void EmitUtf16ToUtf8Shim()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
+        _output.AppendLine("@luma_utf8_scratch = internal thread_local global [4 x [12288 x i8]] zeroinitializer");
+        _output.AppendLine("@luma_utf8_scratch_index = internal thread_local global i32 0");
         _output.AppendLine("define internal ptr @luma_utf16_to_utf8(ptr %source, i32 %unit.count, ptr %byte.count.out) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  %measure = icmp slt i32 %unit.count, 0");
@@ -339,13 +335,30 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  %length = phi i32 [ %unit.count, %entry ], [ %measure.index, %measure.finish ]");
         _output.AppendLine("  %capacity = mul i32 %length, 3");
         _output.AppendLine("  %allocation = add i32 %capacity, 1");
+        _output.AppendLine("  %fits.scratch = icmp ule i32 %allocation, 12288");
+        _output.AppendLine("  br i1 %fits.scratch, label %scratch.allocate, label %heap.allocate");
+        _output.AppendLine("scratch.allocate:");
+        _output.AppendLine("  %slot.address = getelementptr i32, ptr @luma_utf8_scratch_index, i32 0");
+        _output.AppendLine("  %slot.current = load i32, ptr %slot.address, align 4");
+        _output.AppendLine("  %slot = and i32 %slot.current, 3");
+        _output.AppendLine("  %slot.next.raw = add i32 %slot, 1");
+        _output.AppendLine("  %slot.next = and i32 %slot.next.raw, 3");
+        _output.AppendLine("  store i32 %slot.next, ptr %slot.address, align 4");
+        _output.AppendLine("  %scratch.buffer = getelementptr [4 x [12288 x i8]], ptr @luma_utf8_scratch, i32 0, i32 %slot, i32 0");
+        _output.AppendLine("  br label %buffer.ready");
+        _output.AppendLine("heap.allocate:");
         _output.AppendLine($"  %allocation.native = {(sizeType == "i64" ? "zext i32 %allocation to i64" : "add i32 %allocation, 0")}");
-        _output.AppendLine($"  %buffer = call ptr @malloc({sizeType} %allocation.native)");
-        _output.AppendLine("  %failed = icmp eq ptr %buffer, null");
-        _output.AppendLine("  br i1 %failed, label %oom, label %encode.loop");
+        _output.AppendLine($"  %heap.buffer = call ptr @malloc({sizeType} %allocation.native)");
+        _output.AppendLine("  %failed = icmp eq ptr %heap.buffer, null");
+        _output.AppendLine("  br i1 %failed, label %oom, label %buffer.ready.heap");
+        _output.AppendLine("buffer.ready.heap:");
+        _output.AppendLine("  br label %buffer.ready");
+        _output.AppendLine("buffer.ready:");
+        _output.AppendLine("  %buffer = phi ptr [ %scratch.buffer, %scratch.allocate ], [ %heap.buffer, %buffer.ready.heap ]");
+        _output.AppendLine("  br label %encode.loop");
         _output.AppendLine("encode.loop:");
-        _output.AppendLine("  %index = phi i32 [ 0, %allocate ], [ %next.index, %encode.next ]");
-        _output.AppendLine("  %output.index = phi i32 [ 0, %allocate ], [ %next.output.index, %encode.next ]");
+        _output.AppendLine("  %index = phi i32 [ 0, %buffer.ready ], [ %next.index, %encode.next ]");
+        _output.AppendLine("  %output.index = phi i32 [ 0, %buffer.ready ], [ %next.output.index, %encode.next ]");
         _output.AppendLine("  %done = icmp eq i32 %index, %length");
         _output.AppendLine("  br i1 %done, label %finish, label %encode.body");
         _output.AppendLine("encode.body:");
@@ -429,6 +442,22 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("oom:");
         _output.AppendLine("  store i32 -1, ptr %byte.count.out");
         _output.AppendLine("  ret ptr null");
+        _output.AppendLine("}");
+        _output.AppendLine("define internal void @luma_utf8_release(ptr %buffer) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %scratch.start = ptrtoint ptr @luma_utf8_scratch to i64");
+        _output.AppendLine("  %scratch.end.ptr = getelementptr [4 x [12288 x i8]], ptr @luma_utf8_scratch, i32 1");
+        _output.AppendLine("  %scratch.end = ptrtoint ptr %scratch.end.ptr to i64");
+        _output.AppendLine("  %buffer.value = ptrtoint ptr %buffer to i64");
+        _output.AppendLine("  %after.start = icmp uge i64 %buffer.value, %scratch.start");
+        _output.AppendLine("  %before.end = icmp ult i64 %buffer.value, %scratch.end");
+        _output.AppendLine("  %is.scratch = and i1 %after.start, %before.end");
+        _output.AppendLine("  br i1 %is.scratch, label %done, label %release");
+        _output.AppendLine("release:");
+        _output.AppendLine("  call void @free(ptr %buffer)");
+        _output.AppendLine("  br label %done");
+        _output.AppendLine("done:");
+        _output.AppendLine("  ret void");
         _output.AppendLine("}");
     }
 
@@ -515,7 +544,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine($"  call {sizeType} @write(i32 1, ptr %newline, {sizeType} 1)");
         _output.AppendLine("  br label %free.buffer");
         _output.AppendLine("free.buffer:");
-        _output.AppendLine("  call void @free(ptr %utf8)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8)");
         _output.AppendLine("  br label %done");
         _output.AppendLine("done:");
         _output.AppendLine("  ret void");
@@ -562,7 +591,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  call i32 @WriteFile(ptr %handle, ptr %redirected.newline.ptr, i32 2, ptr %redirected.newline.written.address, ptr null)");
         _output.AppendLine("  br label %redirected.free");
         _output.AppendLine("redirected.free:");
-        _output.AppendLine("  call void @free(ptr %utf8)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8)");
         _output.AppendLine("  br label %done");
         _output.AppendLine("done:");
         _output.AppendLine("  ret void");
@@ -823,7 +852,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  br i1 %conversion.failed, label %error, label %change");
         _output.AppendLine("change:");
         _output.AppendLine($"  %result = call i32 @{api}(ptr %utf8.path)");
-        _output.AppendLine("  call void @free(ptr %utf8.path)");
+        _output.AppendLine("  call void @luma_utf8_release(ptr %utf8.path)");
         _output.AppendLine("  ret i32 %result");
         _output.AppendLine("error:");
         _output.AppendLine("  ret i32 -1");

@@ -1077,6 +1077,8 @@ The synchronous `System.IO` layer includes `Stream`, `MemoryStream`, `FileStream
 
 The IO surface is intentionally small: asynchronous methods, timeouts, `Dispose`, recursive directory deletion, file enumeration, and full canonical path normalization are not implemented.
 
+Some low-level runtime operations use compiler-reserved names beginning with `__`. They let the runtime reach platform services such as memory allocation, file APIs, and timing without declaring those operations as application-facing `extern` methods. These names are for runtime source files only; ordinary programs should use public runtime classes such as `NativeMemory`, `NativeLibrary`, `File`, and `Environment`.
+
 ## 17. Current boundaries
 
 LumaSharp implements a broad language subset, but this guide is not a promise of complete C# compatibility. Keep these current limits in mind:

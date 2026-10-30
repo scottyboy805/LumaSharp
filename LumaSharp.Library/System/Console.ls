@@ -31,10 +31,10 @@ public static unsafe class Console
 	{
 		if (value == null)
 		{
-			IO.NativeFileSystem.luma_fs_console_write(null, 0, appendNewLine);
+			__conwrite(value, 0, appendNewLine);
 			return;
 		}
 
-		IO.NativeFileSystem.luma_fs_console_write(value.Ptr, value.Length, appendNewLine);
+		__conwrite(value, value.Length, appendNewLine);
 	}
 }

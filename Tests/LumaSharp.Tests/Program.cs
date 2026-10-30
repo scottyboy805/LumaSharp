@@ -143,6 +143,17 @@ public sealed class CompilerTests
             "class Program { public static int32 Main() { int32[] values = new int32[1]; System.Array array = values; object root = array; try { throw new System.Exception(\"runtime\"); } catch (System.Exception error) { return array.Length == 1 && error.Message == \"runtime\" ? 0 : 1; } } }")));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("define internal i32 @luma_intrinsic_arrlen", result.LlvmIr);
+    }
+
+    [Fact]
+    public void CompilerIntrinsicNamesAreReservedForRuntimeSources()
+    {
+        var result = Compile("class Program { public static int32 Main() { return __arrlen(null); } }");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&
+            diagnostic.Message.Contains("reserved for runtime library", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -160,6 +171,7 @@ public sealed class CompilerTests
         Assert.Contains("@llvm.memcpy.p0.p0.i64", result.LlvmIr);
         Assert.Contains("@llvm.memmove.p0.p0.i64", result.LlvmIr);
         Assert.Contains("@llvm.memset.p0.i64", result.LlvmIr);
+        Assert.Contains("@luma_utf8_scratch = internal thread_local global", result.LlvmIr);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);

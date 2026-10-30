@@ -6,7 +6,7 @@ public unsafe class NativeLibrary
 
 	public this(string path)
 	{
-		handle = (int)NativeLibraryRuntime.luma_interop_library_load(path.Ptr);
+		handle = (int)__libopen(path);
 	}
 
 	public bool IsLoaded
@@ -19,7 +19,7 @@ public unsafe class NativeLibrary
 		if (handle == 0)
 			return null;
 
-		return NativeLibraryRuntime.luma_interop_library_get_proc_address((void*)handle, name.Ptr);
+		return __libsym((void*)handle, name);
 	}
 
 	public bool Unload() mut
@@ -27,7 +27,7 @@ public unsafe class NativeLibrary
 		if (handle == 0)
 			return true;
 
-		bool unloaded = NativeLibraryRuntime.luma_interop_library_unload((void*)handle);
+		bool unloaded = __libclose((void*)handle);
 		if (unloaded)
 			handle = 0;
 
@@ -38,11 +38,4 @@ public unsafe class NativeLibrary
 	{
 		Unload();
 	}
-}
-
-internal static unsafe class NativeLibraryRuntime
-{
-	public static extern void* luma_interop_library_load(char* path);
-	public static extern void* luma_interop_library_get_proc_address(void* handle, char* name);
-	public static extern bool luma_interop_library_unload(void* handle);
 }

@@ -4,12 +4,12 @@ public unsafe class Directory
 {
 	public static string GetCurrentDirectory()
 	{
-		return NativeFileSystem.luma_fs_current_directory();
+		return __curdir();
 	}
 
 	public static string GetTempPath()
 	{
-		string path = NativeFileSystem.luma_fs_temporary_directory();
+		string path = __tempdir();
 		if (path.Length == 0)
 			return path;
 		char last = path[path.Length - 1];
@@ -20,7 +20,7 @@ public unsafe class Directory
 
 	public static bool Exists(string path)
 	{
-		return NativeFileSystem.luma_fs_directory_exists(path.Ptr);
+		return __direxists(path);
 	}
 
 	public static void CreateDirectory(string path)
@@ -28,7 +28,7 @@ public unsafe class Directory
 		if (Exists(path))
 			return;
 
-		if (NativeFileSystem.luma_fs_create_directory(path.Ptr) != 0)
+		if (__dircreate(path) != 0)
 			throw new IOException("Unable to create the directory.");
 	}
 
@@ -45,13 +45,13 @@ public unsafe class Directory
 		if (recursive)
 			throw new System.NotSupportedException("Recursive directory deletion is not implemented yet.");
 
-		if (NativeFileSystem.luma_fs_delete_directory(path.Ptr) != 0)
+		if (__dirdelete(path) != 0)
 			throw new IOException("Unable to delete the directory.");
 	}
 
 	public static void Move(string source, string destination)
 	{
-		if (NativeFileSystem.luma_fs_move(source.Ptr, destination.Ptr, false) != 0)
+		if (__filemove(source, destination, false) != 0)
 			throw new IOException("Unable to move the directory.");
 	}
 }

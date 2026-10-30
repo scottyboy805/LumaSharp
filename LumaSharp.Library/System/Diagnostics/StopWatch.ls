@@ -13,7 +13,7 @@ public class StopWatch
 	{
 		unsafe
 		{
-			timestampFrequency = NativeStopWatch.luma_diag_frequency();
+			timestampFrequency = __frequency();
 		}
 		elapsedTimestampTicks = 0;
 		startTimestamp = 0;
@@ -35,7 +35,7 @@ public class StopWatch
 				int64 timestamp;
 				unsafe
 				{
-					timestamp = NativeStopWatch.luma_diag_timestamp();
+					timestamp = __timestamp();
 				}
 				timestampTicks += timestamp - startTimestamp;
 			}
@@ -60,7 +60,7 @@ public class StopWatch
 
 		unsafe
 		{
-			startTimestamp = NativeStopWatch.luma_diag_timestamp();
+			startTimestamp = __timestamp();
 		}
 		isRunning = true;
 	}
@@ -73,7 +73,7 @@ public class StopWatch
 		int64 timestamp;
 		unsafe
 		{
-			timestamp = NativeStopWatch.luma_diag_timestamp();
+			timestamp = __timestamp();
 		}
 		elapsedTimestampTicks += timestamp - startTimestamp;
 		isRunning = false;
@@ -91,14 +91,8 @@ public class StopWatch
 		elapsedTimestampTicks = 0;
 		unsafe
 		{
-			startTimestamp = NativeStopWatch.luma_diag_timestamp();
+			startTimestamp = __timestamp();
 		}
 		isRunning = true;
 	}
-}
-
-internal static unsafe class NativeStopWatch
-{
-	public static extern int64 luma_diag_timestamp();
-	public static extern int64 luma_diag_frequency();
 }

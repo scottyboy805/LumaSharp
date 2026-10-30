@@ -199,20 +199,17 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         }
         EmitTypeInitializationFunctions();
         if (EntryPointHasStringArguments() || HasStringSupport()) EmitUtf8ArgumentRuntime();
-        var nativeFileSystemMethods = compilation.Methods.Where(IsNativeFileSystemShim).ToArray();
-        if (nativeFileSystemMethods.Length > 0) EmitNativeFileSystemRuntime();
-        var nativeInteropMethods = compilation.Methods.Where(IsNativeInteropShim).ToArray();
-        if (nativeInteropMethods.Length > 0) EmitNativeInteropRuntime();
-        var nativeEnvironmentMethods = compilation.Methods.Where(IsNativeEnvironmentShim).ToArray();
-        if (nativeEnvironmentMethods.Length > 0) EmitNativeEnvironmentRuntime();
-        var nativeStopWatchMethods = compilation.Methods.Where(IsNativeStopWatchShim).ToArray();
-        if (nativeStopWatchMethods.Length > 0) EmitNativeStopWatchRuntime();
-        var nativeStackTraceMethods = compilation.Methods.Where(IsNativeStackTraceShim).ToArray();
-        if (nativeStackTraceMethods.Length > 0) EmitNativeStackTraceRuntime();
+        var intrinsicFamilies = compilation.CallTargets.Values.Where(method => method.Intrinsic is not null)
+            .Select(method => method.Intrinsic!.Family).ToHashSet(StringComparer.Ordinal);
+        if (intrinsicFamilies.Contains("filesystem")) EmitNativeFileSystemRuntime();
+        if (intrinsicFamilies.Contains("interop") || intrinsicFamilies.Contains("memory")) EmitNativeInteropRuntime();
+        if (intrinsicFamilies.Contains("environment")) EmitNativeEnvironmentRuntime();
+        if (intrinsicFamilies.Contains("clock")) EmitNativeStopWatchRuntime();
+        if (intrinsicFamilies.Contains("stacktrace")) EmitNativeStackTraceRuntime();
         foreach (var method in compilation.Methods.Where(method => method.Declaration.IsExtern))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!IsNativeFileSystemShim(method) && !IsNativeInteropShim(method) && !IsNativeEnvironmentShim(method) && !IsNativeStopWatchShim(method) && !IsNativeStackTraceShim(method)) EmitExternDeclaration(method);
+            EmitExternDeclaration(method);
         }
         foreach (var method in compilation.Methods)
         {
@@ -1351,6 +1348,41 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     }
     private void EmitManagedArrayRuntime()
     {
+        _output.AppendLine("define internal i32 @luma_intrinsic_arrlen(ptr %array) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %length.address = getelementptr %luma.array, ptr %array, i32 0, i32 5");
+        _output.AppendLine("  %length = load i32, ptr %length.address, align 4");
+        _output.AppendLine("  ret i32 %length");
+        _output.AppendLine("}");
+        _output.AppendLine("define internal i32 @luma_intrinsic_arrrank(ptr %array) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %rank.address = getelementptr %luma.array, ptr %array, i32 0, i32 2");
+        _output.AppendLine("  %rank = load i32, ptr %rank.address, align 4");
+        _output.AppendLine("  ret i32 %rank");
+        _output.AppendLine("}");
+        _output.AppendLine("define internal i32 @luma_intrinsic_arrdim(ptr %array, i32 %dimension) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %rank = call i32 @luma_intrinsic_arrrank(ptr %array)");
+        _output.AppendLine("  %negative = icmp slt i32 %dimension, 0");
+        _output.AppendLine("  %too.large = icmp sge i32 %dimension, %rank");
+        _output.AppendLine("  %invalid = or i1 %negative, %too.large");
+        _output.AppendLine("  br i1 %invalid, label %failure, label %read");
+        _output.AppendLine("read:");
+        _output.AppendLine("  %dimension.address = getelementptr %luma.array, ptr %array, i32 0, i32 6, i32 %dimension");
+        _output.AppendLine("  %length = load i32, ptr %dimension.address, align 4");
+        _output.AppendLine("  ret i32 %length");
+        _output.AppendLine("failure:");
+        _output.AppendLine("  call void @luma_throw_bounds()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("}");
+        _output.AppendLine("define internal ptr @luma_intrinsic_arrptr(ptr %array) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %length = call i32 @luma_intrinsic_arrlen(ptr %array)");
+        _output.AppendLine("  %empty = icmp eq i32 %length, 0");
+        _output.AppendLine("  %data.address = getelementptr %luma.array, ptr %array, i32 0, i32 7");
+        _output.AppendLine("  %data = select i1 %empty, ptr null, ptr %data.address");
+        _output.AppendLine("  ret ptr %data");
+        _output.AppendLine("}");
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         var objectSize = compilation.NativePointerSize == 8 ? 48 : 36;
         var hasStringSupport = HasStringSupport();
@@ -7710,6 +7742,27 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             }
             return (result, resultType);
         }
+        private string EmitIntrinsicStringDataPointer(string value, string type)
+        {
+            var source = value;
+            string? isNull = null;
+            if (IsNullableStringType(type))
+            {
+                isNull = NewTemp();
+                Emit($"{isNull} = icmp eq ptr {value}, null");
+                source = NewTemp();
+                Emit($"{source} = select i1 {isNull}, ptr @luma_string_empty, ptr {value}");
+            }
+            var dataAddress = NewTemp();
+            Emit($"{dataAddress} = getelementptr %luma.string, ptr {source}, i32 0, i32 9");
+            var data = NewTemp();
+            Emit($"{data} = load ptr, ptr {dataAddress}");
+            if (isNull is null) return data;
+            var nullableData = NewTemp();
+            Emit($"{nullableData} = select i1 {isNull}, ptr null, ptr {data}");
+            return nullableData;
+        }
+
         private (string Value, string Type) EmitCall(CallExpression expression, string? instanceReceiverOverride = null,
             bool classConstructorCompletes = true, bool checkPendingException = true, bool releaseOwnedArguments = true,
             IReadOnlyList<(string Value, string Type)>? sourceArgumentOverrides = null, MethodSymbol? explicitTarget = null)
@@ -7886,13 +7939,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             {
                 var value = v!.Value;
                 if (value.IsAddress) return $"ptr {value.Value}";
+                var argumentValue = value.Value;
+                if (target.Intrinsic is not null && IsStringType(value.Type))
+                    argumentValue = EmitIntrinsicStringDataPointer(argumentValue, value.Type);
                 var llvmType = LlvmType(value.Type);
                 var attribute = target.Declaration.IsExtern ? AbiAttribute(target.Declaration.Parameters[index].TypeName, enumTypes) : "";
-                return attribute.Length == 0 ? $"{llvmType} {value.Value}" : $"{llvmType} {attribute.Trim()} {value.Value}";
+                return attribute.Length == 0 ? $"{llvmType} {argumentValue}" : $"{llvmType} {attribute.Trim()} {argumentValue}";
             });
             var allArguments = instanceReceiverAddress is null ? llvmCallArguments : new[] { $"ptr {instanceReceiverAddress}" }.Concat(llvmCallArguments);
             if (target.IsClassConstructor) allArguments = allArguments.Append($"i1 {(classConstructorCompletes ? "true" : "false")}");
-            if (target.Declaration.IsStatic) EnsureTypeInitialized(QualifiedTypeName(target.Owner));
+            if (target.Declaration.IsStatic && target.Intrinsic is null) EnsureTypeInitialized(QualifiedTypeName(target.Owner));
             string call;
             if (virtualCallSlots.TryGetValue(expression, out var virtualSlot) && instanceReceiverAddress is not null)
             {
@@ -7915,27 +7971,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 var function = NewTemp(); Emit($"{function} = load ptr, ptr {entryAddress}");
                 call = $"call {returnAttribute}{llvmResultType} {function}({string.Join(", ", allArguments)})";
             }
-            else if (IsWeakRuntimeHelper(target))
+            else if (target.Intrinsic is { } compilerIntrinsic)
             {
-                var intrinsic = target.Declaration.Name switch
-                {
-                    "CreateControlRuntime" => "luma_weak_create",
-                    "IsAliveRuntime" => "luma_weak_is_alive",
-                    "GetTargetRuntime" => "luma_weak_get_target",
-                    "ReleaseControlRuntime" => "luma_weak_release",
-                    _ => throw new NotSupportedException($"Unknown weak-reference runtime helper '{target.Declaration.Name}'.")
-                };
-                call = $"call {LlvmType(resultType)} @{intrinsic}({string.Join(", ", allArguments)})";
-            }
-            else if (IsNativeStackTraceShim(target))
-            {
-                var intrinsic = target.Declaration.Name switch
-                {
-                    "CaptureRuntime" => "luma_stacktrace_capture",
-                    "FrameCountRuntime" => "luma_stacktrace_frame_count",
-                    _ => throw new NotSupportedException($"Unknown stack trace runtime helper '{target.Declaration.Name}'.")
-                };
-                call = $"call {LlvmType(resultType)} @{intrinsic}({string.Join(", ", llvmCallArguments)})";
+                call = $"call {LlvmType(resultType)} @{compilerIntrinsic.Lowering}({string.Join(", ", llvmCallArguments)})";
             }
             else call = $"call {returnAttribute}{llvmResultType} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
             Emit(result is null ? call : $"{result} = {call}");
@@ -8729,10 +8767,6 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         }
         private string ClassDescriptorPointer(string type) => delegateTypes.ContainsKey(type)
             ? $"@luma_classdesc_delegate_{Safe(type)}" : $"@luma_classdesc_{Safe(type)}";
-        private static bool IsWeakRuntimeHelper(MethodSymbol method) => method.Owner.Namespace == "System" &&
-            method.Owner.Name.StartsWith("Weak", StringComparison.Ordinal) &&
-            method.Declaration.Name is "CreateControlRuntime" or "IsAliveRuntime" or "GetTargetRuntime" or "ReleaseControlRuntime";
-
         private static bool IsStringType(string type) => type is "string" or "string?" or "System.String" or "System.String?";
         private static bool IsNullableStringType(string type) => type == "string?";
         private bool IsDelegateType(string type) => delegateTypes.ContainsKey(type.EndsWith("?", StringComparison.Ordinal) ? type[..^1] : type);

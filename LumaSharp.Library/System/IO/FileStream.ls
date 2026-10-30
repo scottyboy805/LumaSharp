@@ -28,7 +28,7 @@ public unsafe class FileStream : Stream
 			throw new System.ArgumentOutOfRangeException();
 
 		void* openedHandle = null;
-		if (NativeFileSystem.luma_fs_open(path.Ptr, nativeMode, &openedHandle) != 0)
+		if (__fileopen(path, nativeMode, out openedHandle) != 0)
 			throw new IOException("Unable to open the file.");
 		handle = (int)openedHandle;
 
@@ -40,7 +40,7 @@ public unsafe class FileStream : Stream
 	~this()
 	{
 		if (isOpen)
-			NativeFileSystem.luma_fs_close((void*)handle);
+			__fileclose((void*)handle);
 	}
 
 	public override bool CanRead
@@ -65,11 +65,11 @@ public unsafe class FileStream : Stream
 			EnsureOpen();
 			int32 initialPosition = Position;
 			int32 endPosition = 0;
-			int32 end = NativeFileSystem.luma_fs_seek((void*)handle, 0, (int32)SeekOrigin.End, &endPosition);
+			int32 end = __fileseek((void*)handle, 0, (int32)SeekOrigin.End, out endPosition);
 			if (end != 0)
 				throw new IOException("Unable to get the file length.");
 			int32 length = endPosition;
-			if (NativeFileSystem.luma_fs_seek((void*)handle, initialPosition, (int32)SeekOrigin.Begin, &endPosition) != 0)
+			if (__fileseek((void*)handle, initialPosition, (int32)SeekOrigin.Begin, out endPosition) != 0)
 				throw new IOException("Unable to restore the file position.");
 			return length;
 		}
@@ -81,7 +81,7 @@ public unsafe class FileStream : Stream
 		{
 			EnsureOpen();
 			int32 current = 0;
-			if (NativeFileSystem.luma_fs_seek((void*)handle, 0, (int32)SeekOrigin.Current, &current) != 0)
+			if (__fileseek((void*)handle, 0, (int32)SeekOrigin.Current, out current) != 0)
 				throw new IOException("Unable to get the file position.");
 			return current;
 		}
@@ -91,7 +91,7 @@ public unsafe class FileStream : Stream
 			if (value < 0)
 				throw new System.ArgumentOutOfRangeException();
 			int32 position = 0;
-			if (NativeFileSystem.luma_fs_seek((void*)handle, value, (int32)SeekOrigin.Begin, &position) != 0)
+			if (__fileseek((void*)handle, value, (int32)SeekOrigin.Begin, out position) != 0)
 				throw new IOException("Unable to set the file position.");
 		}
 	}
@@ -106,7 +106,7 @@ public unsafe class FileStream : Stream
 			return 0;
 		int32 bytesRead = 0;
 		uint8* start = (uint8*)buffer.Ptr + offset;
-		if (NativeFileSystem.luma_fs_read((void*)handle, start, count, &bytesRead) != 0)
+		if (__fileread((void*)handle, start, count, out bytesRead) != 0)
 			throw new IOException("Unable to read from the file.");
 		return bytesRead;
 	}
@@ -121,7 +121,7 @@ public unsafe class FileStream : Stream
 			return;
 		int32 bytesWritten = 0;
 		uint8* start = (uint8*)buffer.Ptr + offset;
-		if (NativeFileSystem.luma_fs_write((void*)handle, start, count, &bytesWritten) != 0 || bytesWritten != count)
+		if (__filewrite((void*)handle, start, count, out bytesWritten) != 0 || bytesWritten != count)
 			throw new IOException("Unable to write to the file.");
 	}
 
@@ -129,7 +129,7 @@ public unsafe class FileStream : Stream
 	{
 		EnsureOpen();
 		int32 position = 0;
-		if (NativeFileSystem.luma_fs_seek((void*)handle, offset, (int32)origin, &position) != 0)
+		if (__fileseek((void*)handle, offset, (int32)origin, out position) != 0)
 			throw new System.ArgumentOutOfRangeException();
 		return position;
 	}
@@ -141,14 +141,14 @@ public unsafe class FileStream : Stream
 			throw new System.NotSupportedException("This stream does not support changing its length.");
 		if (value < 0)
 			throw new System.ArgumentOutOfRangeException();
-		if (NativeFileSystem.luma_fs_set_length((void*)handle, value) != 0)
+		if (__filesetlen((void*)handle, value) != 0)
 			throw new IOException("Unable to change the file length.");
 	}
 
 	public override void Flush() mut
 	{
 		EnsureOpen();
-		if (NativeFileSystem.luma_fs_flush((void*)handle) != 0)
+		if (__fileflush((void*)handle) != 0)
 			throw new IOException("Unable to flush the file.");
 	}
 
@@ -159,7 +159,7 @@ public unsafe class FileStream : Stream
 		isOpen = false;
 		canRead = false;
 		canWrite = false;
-		if (NativeFileSystem.luma_fs_close((void*)handle) != 0)
+		if (__fileclose((void*)handle) != 0)
 			throw new IOException("Unable to close the file.");
 		handle = 0;
 	}

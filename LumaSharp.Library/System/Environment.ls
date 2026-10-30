@@ -6,7 +6,7 @@ public static unsafe class Environment
 	{
 		get
 		{
-			return luma_env_executable_path();
+			return __execpath();
 		}
 	}
 
@@ -14,7 +14,7 @@ public static unsafe class Environment
 	{
 		get
 		{
-			return luma_env_executable_directory();
+			return __execdir();
 		}
 	}
 
@@ -22,7 +22,7 @@ public static unsafe class Environment
 	{
 		get
 		{
-			return luma_env_executable_name();
+			return __execname();
 		}
 	}
 
@@ -30,7 +30,7 @@ public static unsafe class Environment
 	{
 		get
 		{
-			int32 count = luma_env_processor_count();
+			int32 count = __processors();
 			return count > 0 ? count : 1;
 		}
 	}
@@ -39,7 +39,7 @@ public static unsafe class Environment
 	{
 		get
 		{
-			return luma_env_is_little_endian();
+			return __endianness();
 		}
 	}
 
@@ -47,7 +47,7 @@ public static unsafe class Environment
 	{
 		get
 		{
-			return (Platform)luma_env_platform();
+			return (Platform)__platform();
 		}
 	}
 
@@ -55,17 +55,10 @@ public static unsafe class Environment
 	{
 		get
 		{
-			return (Architecture)luma_env_architecture();
+			return (Architecture)__architecture();
 		}
 	}
 
-	private static extern string luma_env_executable_path();
-	private static extern string luma_env_executable_directory();
-	private static extern string luma_env_executable_name();
-	private static extern int32 luma_env_processor_count();
-	private static extern bool luma_env_is_little_endian();
-	private static extern int32 luma_env_platform();
-	private static extern int32 luma_env_architecture();
 }
 
 public enum Platform : int32

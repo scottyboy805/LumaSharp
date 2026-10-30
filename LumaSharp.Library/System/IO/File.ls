@@ -53,13 +53,13 @@ public unsafe class File
 
 	public static bool Exists(string path)
 	{
-		return NativeFileSystem.luma_fs_file_exists(path.Ptr);
+		return __fileexists(path);
 	}
 
 	public static void Delete(string path)
 	{
-		if (NativeFileSystem.luma_fs_file_exists(path.Ptr))
-			if (NativeFileSystem.luma_fs_delete_file(path.Ptr) != 0)
+		if (__fileexists(path))
+			if (__filedelete(path) != 0)
 				throw new IOException("Unable to delete the file.");
 	}
 
@@ -70,7 +70,7 @@ public unsafe class File
 
 	public static void Copy(string source, string destination, bool overwrite)
 	{
-		if (NativeFileSystem.luma_fs_copy(source.Ptr, destination.Ptr, overwrite) != 0)
+		if (__filecopy(source, destination, overwrite) != 0)
 			throw new IOException("Unable to copy the file.");
 	}
 
@@ -81,7 +81,7 @@ public unsafe class File
 
 	public static void Move(string source, string destination, bool overwrite)
 	{
-		if (NativeFileSystem.luma_fs_move(source.Ptr, destination.Ptr, overwrite) != 0)
+		if (__filemove(source, destination, overwrite) != 0)
 			throw new IOException("Unable to move the file.");
 	}
 }

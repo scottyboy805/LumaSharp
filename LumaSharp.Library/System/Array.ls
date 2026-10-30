@@ -2,11 +2,10 @@ namespace System;
 
 public virtual class Array : Object
 {
-	// These signatures are compiler intrinsics over managed array descriptors.
-	public int32 Length { get => 0; }
-	public int32 Rank { get => 0; }
-	public int32 GetLength(int32 dimension) { return 0; }
-	public unsafe void* Ptr { get => null; }
+	public int32 Length { get => __arrlen(this); }
+	public int32 Rank { get => __arrrank(this); }
+	public int32 GetLength(int32 dimension) { return __arrdim(this, dimension); }
+	public unsafe void* Ptr { get => __arrptr(this); }
 
 	// The compiler binds these helpers for implicit one-dimensional array conversions.
 	internal static unsafe Span<T> ToSpan<T>(T[] source)

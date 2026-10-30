@@ -7,7 +7,7 @@ public static unsafe class NativeMemory
 		if (byteCount < 0)
 			throw new System.ArgumentOutOfRangeException();
 
-		return NativeMemoryRuntime.luma_interop_memory_allocate(byteCount);
+		return __memalloc(byteCount);
 	}
 
 	public static void* AllocateZeroed(int byteCount)
@@ -15,12 +15,12 @@ public static unsafe class NativeMemory
 		if (byteCount < 0)
 			throw new System.ArgumentOutOfRangeException();
 
-		return NativeMemoryRuntime.luma_interop_memory_allocate_zeroed(byteCount);
+		return __memalloczero(byteCount);
 	}
 
 	public static void Free(void* memory)
 	{
-		NativeMemoryRuntime.luma_interop_memory_free(memory);
+		__memfree(memory);
 	}
 
 	public static void* Copy(void* destination, void* source, int byteCount)
@@ -28,7 +28,7 @@ public static unsafe class NativeMemory
 		if (byteCount < 0)
 			throw new System.ArgumentOutOfRangeException();
 
-		return NativeMemoryRuntime.luma_interop_memory_copy(destination, source, byteCount);
+		return __memcpy(destination, source, byteCount);
 	}
 
 	public static void* Move(void* destination, void* source, int byteCount)
@@ -36,7 +36,7 @@ public static unsafe class NativeMemory
 		if (byteCount < 0)
 			throw new System.ArgumentOutOfRangeException();
 
-		return NativeMemoryRuntime.luma_interop_memory_move(destination, source, byteCount);
+		return __memmove(destination, source, byteCount);
 	}
 
 	public static void* Zero(void* memory, int byteCount)
@@ -44,16 +44,6 @@ public static unsafe class NativeMemory
 		if (byteCount < 0)
 			throw new System.ArgumentOutOfRangeException();
 
-		return NativeMemoryRuntime.luma_interop_memory_zero(memory, byteCount);
+		return __memzero(memory, byteCount);
 	}
-}
-
-internal static unsafe class NativeMemoryRuntime
-{
-	public static extern void* luma_interop_memory_allocate(int byteCount);
-	public static extern void* luma_interop_memory_allocate_zeroed(int byteCount);
-	public static extern void luma_interop_memory_free(void* memory);
-	public static extern void* luma_interop_memory_copy(void* destination, void* source, int byteCount);
-	public static extern void* luma_interop_memory_move(void* destination, void* source, int byteCount);
-	public static extern void* luma_interop_memory_zero(void* memory, int byteCount);
 }

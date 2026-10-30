@@ -2,12 +2,6 @@ namespace LumaSharp.Compiler;
 
 internal sealed partial class LlvmEmitter
 {
-    private static bool IsNativeStackTraceShim(MethodSymbol method) =>
-        method.Declaration.IsExtern &&
-        method.Owner.Namespace == "System.Diagnostics" &&
-        method.Owner.Name == "StackTrace" &&
-        method.Declaration.Name is "CaptureRuntime" or "FrameCountRuntime";
-
     private void EmitNativeStackTraceRuntime()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";

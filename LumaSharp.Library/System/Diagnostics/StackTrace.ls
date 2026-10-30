@@ -9,8 +9,8 @@ public unsafe class StackTrace
 
 	public this()
 	{
-		stackTrace = CaptureRuntime(1);
-		frameCount = FrameCountRuntime(1);
+		stackTrace = __stacktrace(1);
+		frameCount = __stackframes(1);
 	}
 
 	public int32 FrameCount
@@ -23,6 +23,4 @@ public unsafe class StackTrace
 		return stackTrace;
 	}
 
-	private static extern string CaptureRuntime(int32 framesToSkip);
-	private static extern int32 FrameCountRuntime(int32 framesToSkip);
 }

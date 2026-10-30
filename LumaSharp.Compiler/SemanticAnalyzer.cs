@@ -4,7 +4,7 @@ namespace LumaSharp.Compiler;
 
 internal sealed record MethodSymbol(TypeDeclaration Owner, MethodDeclaration Declaration, bool IsStructConstructor = false, bool IsClassConstructor = false, bool IsClassFinalizer = false,
     ConstructorDeclaration? SourceConstructor = null, bool IsBuiltinObjectToString = false, bool IsGenericMethodSpecialization = false,
-    bool IsTypeInitializer = false, MethodDeclaration? GenericTemplate = null)
+    bool IsTypeInitializer = false, MethodDeclaration? GenericTemplate = null, CompilerIntrinsic? Intrinsic = null)
 {
     public string QualifiedName => (string.IsNullOrEmpty(Owner.Namespace) ? Owner.Name : Owner.Namespace + "." + Owner.Name) + "." + Declaration.Name;
     public bool IsStructInstanceMethod => Owner.Kind == "struct" && !Declaration.IsStatic && !IsStructConstructor;
@@ -523,6 +523,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         _genericDefinitions = genericExpansion.GenericDefinitions;
         _genericTypeInstantiations.AddRange(genericExpansion.Instantiations);
         var sourceTypes = genericExpansion.ConcreteTypes.ToArray();
+        foreach (var type in sourceTypes)
+            foreach (var method in type.Members.OfType<MethodDeclaration>().Where(method => method.Name.StartsWith("__", StringComparison.Ordinal)))
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    "Method names beginning with '__' are reserved for compiler intrinsics and cannot be declared.", method.Location);
         var sourceObject = sourceTypes.FirstOrDefault(type => GetQualifiedTypeName(type) == "System.Object" && IsRuntimeLibraryDeclaration(type));
         foreach (var declaration in sourceTypes.Where(type => GetQualifiedTypeName(type) == "System.Object" && !IsRuntimeLibraryDeclaration(type)))
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "'System.Object' is a predefined root type and cannot be declared in source.", declaration.Location);
@@ -909,14 +913,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             {
                 if (declaration.Body is not null) diagnostics.Add("LS2101", DiagnosticSeverity.Error, "Extern methods must not have a body.", declaration.Location);
                 if (declaration.HasTypeParameters) diagnostics.Add("LS2101", DiagnosticSeverity.Error, "Extern methods cannot be generic.", declaration.Location);
-                var isFileSystemStringResult = method.Owner.Namespace == "System.IO" && method.Owner.Name == "NativeFileSystem" &&
-                    declaration.Name is "luma_fs_current_directory" or "luma_fs_temporary_directory" && declaration.ReturnType == "string";
-                var isEnvironmentStringResult = method.Owner.Namespace == "System" && method.Owner.Name == "Environment" &&
-                    declaration.Name is "luma_env_executable_path" or "luma_env_executable_directory" or "luma_env_executable_name" && declaration.ReturnType == "string";
-                var isStackTraceStringResult = method.Owner.Namespace == "System.Diagnostics" && method.Owner.Name == "StackTrace" &&
-                    declaration.Name == "CaptureRuntime" && declaration.ReturnType == "string";
-                if (!isFileSystemStringResult && !isEnvironmentStringResult && !isStackTraceStringResult)
-                    ValidateExternType(declaration.ReturnType, allowVoid: true, declaration.Location);
+                ValidateExternType(declaration.ReturnType, allowVoid: true, declaration.Location);
                 foreach (var parameter in declaration.Parameters)
                 {
                     ValidateExternType(parameter.TypeName, allowVoid: false, parameter.Location);
@@ -7641,6 +7638,56 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 var isBaseCall = call.Target is MemberAccessExpression { Receiver: BaseExpression };
                 var isNullConditionalCall = call.Target is MemberAccessExpression { IsNullConditional: true };
                 MethodSymbol[]? candidates;
+                if (call.Target is NameExpression intrinsicCall && intrinsicCall.Name.StartsWith("__", StringComparison.Ordinal))
+                {
+                    if (!runtimeSourcePaths.Contains(Path.GetFullPath(call.Location.File)))
+                    {
+                        diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                            "Compiler intrinsic names beginning with '__' are reserved for runtime library source files.", call.Location);
+                        return "?";
+                    }
+                    if (!CompilerIntrinsics.TryGet(intrinsicCall.Name, out var intrinsic))
+                    {
+                        diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Unknown compiler intrinsic '{intrinsicCall.Name}'.", call.Location);
+                        return "?";
+                    }
+                    var intrinsicMethod = CompilerIntrinsics.CreateMethod(intrinsic, call.Location);
+                    if (call.Arguments.Count != intrinsicMethod.Declaration.Parameters.Count)
+                    {
+                        diagnostics.Add("LS0751", DiagnosticSeverity.Error,
+                            $"Intrinsic '{intrinsicCall.Name}' expects {intrinsicMethod.Declaration.Parameters.Count} argument(s).", call.Location);
+                        return "?";
+                    }
+                    var argumentsValid = true;
+                    for (var index = 0; index < call.Arguments.Count; index++)
+                    {
+                        var parameter = intrinsicMethod.Declaration.Parameters[index];
+                        var argument = call.Arguments[index];
+                        var argumentType = argument is InlineOutVariableExpression { TypeName: null }
+                            ? parameter.TypeName
+                            : argument is InlineOutVariableExpression inline
+                                ? NormalizeEnumType(inline.TypeName!, context.Method.Owner)
+                                : AnalyzeExpression(argument, context);
+                        var mode = call.ArgumentModes is not null && index < call.ArgumentModes.Count ? call.ArgumentModes[index] ?? "" : "";
+                        if (parameter.PassingMode == "out")
+                        {
+                            if (mode != "out" || argumentType != parameter.TypeName || !IsMutableVariableArgument(argument, context)) argumentsValid = false;
+                        }
+                        else if (mode is "ref" or "out" || !CanConvertInContext(argumentType, parameter.TypeName, argument, context))
+                        {
+                            argumentsValid = false;
+                        }
+                    }
+                    if (!argumentsValid)
+                    {
+                        diagnostics.Add("LS0751", DiagnosticSeverity.Error, $"Arguments do not match intrinsic '{intrinsicCall.Name}'.", call.Location);
+                        return "?";
+                    }
+                    _callTargets[call] = intrinsicMethod;
+                    _callArguments[call] = new(Enumerable.Range(0, call.Arguments.Count).ToArray(),
+                        Enumerable.Repeat<Expression?>(null, call.Arguments.Count).ToArray());
+                    return intrinsic.ReturnType;
+                }
                 if (call.Target is NameExpression unqualifiedCall && context.Lookup(unqualifiedCall.Name) is null &&
                     (context.Method.IsStructConstructor || context.Method.IsStructInstanceMethod || context.Method.IsClassConstructor || context.Method.IsClassInstanceMethod || context.Method.IsClassFinalizer))
                 {
