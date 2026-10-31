@@ -4226,6 +4226,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             Emit($"store i32 1, ptr {count}");
             var flags = NewTemp(); Emit($"{flags} = getelementptr {llvmClassType}, ptr {instance}, i32 0, i32 2");
             Emit($"store i32 0, ptr {flags}");
+            var weakControl = NewTemp(); Emit($"{weakControl} = getelementptr {llvmClassType}, ptr {instance}, i32 0, i32 3");
+            Emit($"store ptr null, ptr {weakControl}");
             foreach (var field in exceptionClass.Fields)
             {
                 var address = NewTemp(); Emit($"{address} = getelementptr {llvmClassType}, ptr {instance}, i32 0, i32 {field.Index + 4}");
@@ -8948,25 +8950,21 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var targetClassType = GetClassReferenceType(toType);
             if (sourceClassType is not null && targetClassType is not null)
             {
+                if (!toType.EndsWith("?", StringComparison.Ordinal) &&
+                    (fromType == "null" || fromType.EndsWith("?", StringComparison.Ordinal)))
+                {
+                    var isNull = NewTemp(); Emit($"{isNull} = icmp eq ptr {value}, null");
+                    TrapIf(isNull, "luma_throw_null");
+                }
                 var staticallyAssignable = sourceClassType == targetClassType || IsClassAssignable(sourceClassType, targetClassType) ||
                     interfaceConversions.Contains((sourceClassType, targetClassType));
                 if (staticallyAssignable)
                 {
-                    if (fromType.EndsWith("?", StringComparison.Ordinal) && !toType.EndsWith("?", StringComparison.Ordinal))
-                    {
-                        var isNull = NewTemp(); Emit($"{isNull} = icmp eq ptr {value}, null");
-                        TrapIf(isNull, "luma_throw_null");
-                    }
                     return value;
                 }
                 if (interfaceTypes.ContainsKey(targetClassType))
                 {
                     var isNullableTarget = toType.EndsWith("?", StringComparison.Ordinal);
-                    if (fromType.EndsWith("?", StringComparison.Ordinal) && !isNullableTarget)
-                    {
-                        var isNull = NewTemp(); Emit($"{isNull} = icmp eq ptr {value}, null");
-                        TrapIf(isNull, "luma_throw_null");
-                    }
                     var matches = NewTemp();
                     Emit($"{matches} = call i1 @luma_class_implements(ptr {value}, ptr @luma_interfacedesc_{Safe(targetClassType)})");
                     var notMatches = NewTemp(); Emit($"{notMatches} = xor i1 {matches}, true");
@@ -8983,11 +8981,6 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 if (classTypes.ContainsKey(targetClassType) || delegateTypes.ContainsKey(targetClassType))
                 {
                     var isNullableTarget = toType.EndsWith("?", StringComparison.Ordinal);
-                    if (fromType.EndsWith("?", StringComparison.Ordinal) && !isNullableTarget)
-                    {
-                        var isNull = NewTemp(); Emit($"{isNull} = icmp eq ptr {value}, null");
-                        TrapIf(isNull, "luma_throw_null");
-                    }
                     var matches = NewTemp();
                     Emit($"{matches} = call i1 @luma_class_is_instance(ptr {value}, ptr {ClassDescriptorPointer(targetClassType)})");
                     var notMatches = NewTemp(); Emit($"{notMatches} = xor i1 {matches}, true");
