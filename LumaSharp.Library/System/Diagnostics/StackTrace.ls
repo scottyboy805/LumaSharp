@@ -9,8 +9,10 @@ public unsafe class StackTrace
 
 	public this()
 	{
-		stackTrace = __stacktrace(1);
-		frameCount = __stackframes(1);
+		// Runtime constructors are omitted from the live method frame chain,
+		// so no caller frame needs to be skipped here.
+		stackTrace = __stacktrace(0);
+		frameCount = __stackframes(0);
 	}
 
 	public this(int32 skipFrames)
