@@ -183,13 +183,7 @@ public class List<T> : IEnumerable<T> where T : default
 	public T[] ToArray()
 	{
 		T[] result = new T[count];
-		for (int32 index = 0; index < count; index++)
-		{
-			unsafe unchecked
-			{
-				result[index] = items[index];
-			}
-		}
+		Array.Copy(items, 0, result, 0, count);
 		return result;
 	}
 
