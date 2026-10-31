@@ -84,7 +84,15 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		Initialize(8);
+		for (int32 index = 0; index < states.Length; index++)
+			unsafe unchecked
+			{
+				items[index] = default(T);
+				hashes[index] = 0;
+				states[index] = 0;
+			}
+		count = 0;
+		used = 0;
 	}
 
 	public bool IsOccupied(int32 index)

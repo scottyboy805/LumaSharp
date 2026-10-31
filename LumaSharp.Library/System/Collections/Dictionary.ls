@@ -156,7 +156,16 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 
 	public void Clear() mut
 	{
-		Initialize(8);
+		for (int32 index = 0; index < states.Length; index++)
+			unsafe unchecked
+			{
+				keys[index] = default(TKey);
+				values[index] = default(TValue);
+				hashes[index] = 0;
+				states[index] = 0;
+			}
+		count = 0;
+		used = 0;
 	}
 
 	private void Initialize(int32 capacity) mut

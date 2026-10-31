@@ -801,6 +801,33 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void CollectionsAcceptReferenceTypeArgumentsAndExposeReferenceIterators()
+    {
+        const string source = "using System.Collections; public class Entry { public int32 Value; public this(int32 value) { Value = value; } } public class Program { public static int32 Main() { Entry? first = new Entry(1); Entry? second = new Entry(2); List<Entry?> list = new List<Entry?>(); list.Add(first); list.Add(second); IEnumerable<Entry?> sequence = list; IIterator<Entry?> iterator = sequence.Iterate(); if (!iterator.Next() || iterator.Current != first || !iterator.Next() || iterator.Current != second || iterator.Next()) return 1; Stack<Entry?> stack = new Stack<Entry?>(); stack.Push(first); stack.Push(second); if (stack.Peek() != second || stack.Pop() != second || stack.Pop() != first) return 2; Queue<Entry?> queue = new Queue<Entry?>(); queue.Enqueue(first); queue.Enqueue(second); if (queue.Peek() != first || queue.Dequeue() != first || queue.Dequeue() != second) return 3; HashSet<Entry?> set = new HashSet<Entry?>(); if (!set.Add(first) || set.Add(first) || !set.Contains(first) || !set.Remove(first) || set.Remove(first)) return 4; Dictionary<Entry?, Entry?> dictionary = new Dictionary<Entry?, Entry?>(); if (!dictionary.TryAdd(first, second) || dictionary.TryAdd(first, first) || !dictionary.ContainsKey(first)) return 5; Entry? found = null; if (!dictionary.TryGetValue(first, out found) || found != second) return 6; dictionary[first] = first; if (dictionary[first] != first || !dictionary.Remove(first) || dictionary.Remove(first)) return 7; return 0; } }";
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("reference-collections-test.ls", source)), new CompilationOptions(UnsafeEnabled: true));
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void LoopLocalStorageDoesNotConsumeStackOnEveryIteration()
+    {
+        const string source = "class Program { private static bool TryCopy(int32 input, out int32 output) { output = input; return true; } public static int32 Main() { int32 checksum = 0; for (int32 index = 0; index < 100000; index++) { int32 value; if (TryCopy(index, out value)) checksum = (checksum + value) % 997; } return checksum >= 0 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void PrimitiveHashCodesAndEqualityWorkWithCollections()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

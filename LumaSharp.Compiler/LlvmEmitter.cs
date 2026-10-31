@@ -3799,6 +3799,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         CancellationToken cancellationToken)
     {
         private readonly StringBuilder _ir = new();
+        private readonly List<string> _entryAllocas = [];
         private readonly List<Dictionary<string, Local>> _scopes = [new(StringComparer.Ordinal)];
         private readonly List<List<string>> _scopeStringPointers = [[]];
         private readonly List<List<string>> _scopeArrayPointers = [[]];
@@ -3846,7 +3847,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         private string NewTemp() => $"%t{_temp++}";
         private string NewLabel(string stem) => $"{stem}.{_label++}";
         private void Label(string label) { _block = label; _terminated = false; _ir.AppendLine($"{label}:"); }
-        private void Emit(string instruction) { if (!_terminated) _ir.AppendLine($"  {instruction}"); }
+        private void Emit(string instruction)
+        {
+            if (_terminated) return;
+            if (instruction.Contains(" = alloca ", StringComparison.Ordinal))
+            {
+                _entryAllocas.Add(instruction);
+                return;
+            }
+            _ir.AppendLine($"  {instruction}");
+        }
         private void Branch(string label) { Emit($"br label %{label}"); _terminated = true; }
 
         private sealed record ExceptionRegion(TryStatement Statement, string Node, string PreviousNode, string DispatchLabel, int OuterScopeDepth);
@@ -3981,6 +3991,13 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 }
             }
             var output = _ir.ToString();
+            if (_entryAllocas.Count > 0)
+            {
+                var entryHeader = output.IndexOf("entry:", StringComparison.Ordinal);
+                var entryEnd = output.IndexOf('\n', entryHeader) + 1;
+                var allocas = string.Concat(_entryAllocas.Select(allocation => $"  {allocation}{Environment.NewLine}"));
+                output = output.Insert(entryEnd, allocas);
+            }
             if (frameNameSymbol is null) return output;
             var framedOutput = new StringBuilder();
             foreach (var line in output.Split('\n'))
