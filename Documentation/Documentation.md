@@ -130,6 +130,23 @@ public class Greeter
 
 If a file has no namespace declaration, its types are in the global namespace. Different files can declare types in the same namespace. Identifiers are case-sensitive.
 
+Extensions add statically bound methods and computed properties to an existing class, struct, or interface. Their receiver is passed as a scoped, implicit first parameter, and existing members are available through `this` or unqualified names:
+
+```lumasharp
+public class Counter
+{
+    public int32 Value;
+}
+
+public extension Counter
+{
+    int32 Val => 3;
+    int32 AddToValue(int32 amount) => this.Value + amount;
+}
+```
+
+The target type must exist. Existing type members take precedence over extension members, and extension members do not change the target's layout or virtual dispatch. See [§7.9.1 of the language specification](../Specification/LumaSharp_LanguageSpecification.md#791-extension-declarations) for declaration rules and current generic-type limitations.
+
 Use `//` for a line comment and `/* ... */` for a block comment. String literals use double quotes; character literals use single quotes. Escape sequences such as `\n`, `\t`, and `\\` are available. Verbatim strings begin with `@`, as in `@"C:\data\notes.txt"`.
 
 Access modifiers are `public`, `private`, `protected`, `internal`, `protected internal`, and `private protected`. A top-level type with no modifier is internal; members with no modifier are private.

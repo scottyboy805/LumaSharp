@@ -18,6 +18,62 @@ public sealed class CompilerTests
         throw new FileNotFoundException($"Could not locate runtime source '{relativePath}'.");
     }
 
+    [Fact]
+    public void ExtensionMethodsLowerToStaticHelpersWithAnImplicitReceiver()
+    {
+        const string source = "class Counter { public int32 Value; public int32 Existing() { return Value; } } extension Counter { public int32 Val => Value + 1; public int32 Alias { get => Value; set { Value = value; } } public int32 Read() => Value; public int32 Add(int32 amount) { return this.Existing() + amount; } } class Program { public static int32 Main() { Counter counter = new Counter(); counter.Alias = 4; Counter? missing = null; int32? missingRead = missing?.Read(); int32? missingValue = missing?.Val; return counter.Val == 5 && counter.Read() == 4 && counter.Add(5) == 9 && missingRead == null && missingValue == null ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("Extension_0", result.LlvmIr);
+        Assert.Contains("define i32 @luma__Extension_0_Add_2(ptr %arg0, i32 %arg1)", result.LlvmIr);
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+
+        var missingTarget = Compile("extension Missing { public int32 Read() => 1; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(missingTarget.Succeeded);
+        Assert.Contains(missingTarget.Diagnostics, diagnostic => diagnostic.Code == "LS0200");
+
+        var invalidMember = Compile("class Value { } extension Value { public int32 field; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(invalidMember.Succeeded);
+        Assert.Contains(invalidMember.Diagnostics, diagnostic => diagnostic.Code == "LMC3000");
+
+        var invalidModifier = Compile("static extension Counter { public int32 Read() => 1; } class Counter { } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(invalidModifier.Succeeded);
+        Assert.Contains(invalidModifier.Diagnostics, diagnostic => diagnostic.Code == "LS0001");
+
+        var escapedReceiver = Compile("class Counter { } extension Counter { public Counter Escape() => this; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(escapedReceiver.Succeeded);
+        Assert.Contains(escapedReceiver.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        var extensionMethodGroup = Compile("delegate int32 Reader(); class Counter { } extension Counter { public int32 Read() => 1; } class Program { public static int32 Main() { Counter counter = new Counter(); Reader reader = counter.Read; return reader(); } }");
+        Assert.False(extensionMethodGroup.Succeeded);
+        Assert.Contains(extensionMethodGroup.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("method groups", StringComparison.Ordinal));
+
+        var memberPrecedence = Compile("class Counter { public int32 Value; public int32 Read() => 2; } extension Counter { public int32 Value => 9; public int32 Read() => 8; } class Program { public static int32 Main() { Counter counter = new Counter(); counter.Value = 4; return counter.Value == 4 && counter.Read() == 2 ? 0 : 1; } }");
+        Assert.True(memberPrecedence.Succeeded, string.Join(Environment.NewLine, memberPrecedence.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(memberPrecedence.LlvmIr!).ExitCode);
+
+        var acrossFiles = LumaCompiler.Compile([
+            ("Models.ls", "namespace Models; public virtual class Base { public int32 Read() => 1; } public class Child : Base { }"),
+            ("Extensions.ls", "using Target = Models.Base; namespace Helpers; public extension Target { public int32 Extra() => Read() + 10; }"),
+            ("App.ls", "using Models; using Helpers; class Program { public static int32 Main() { Child child = new Child(); return child.Extra() == 11 ? 0 : 1; } }")
+        ]);
+        Assert.True(acrossFiles.Succeeded, string.Join(Environment.NewLine, acrossFiles.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(acrossFiles.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
+    public void ExtensionsSupportStructAndInterfaceReceivers()
+    {
+        const string source = "interface IValue { int32 Get(); } class Counter : IValue { public int32 Value; public int32 Get() { return Value; } } struct Point : IValue { public int32 X; public int32 Get() { return X; } } extension IValue { public int32 Double() => Get() * 2; public int32 Doubled => Get() * 2; } extension Point { public int32 Add(int32 value) => X + value; public int32 Offset { get => X; set { if (value < 0) return; X = value; } } } class Program { public static int32 Main() { Counter counter = new Counter(); counter.Value = 21; IValue view = counter; Point point = Point(); point.X = 7; point.Offset = 8; return view.Double() == 42 && counter.Doubled == 42 && point.Double() == 16 && point.Add(5) == 13 && point.X == 8 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+
+        var readonlyReceiver = Compile("struct Point { public int32 X; } extension Point { public int32 Value { get => X; set { X = value; } } } class Program { public static int32 Main() { let point = Point(); point.Value = 1; return 0; } }");
+        Assert.False(readonlyReceiver.Succeeded);
+        Assert.Contains(readonlyReceiver.Diagnostics, diagnostic => diagnostic.Code == "LS0823");
+    }
+
     [Theory]
     [InlineData("private class Program { public static int32 Main() { return 0; } }")]
     [InlineData("protected class Program { public static int32 Main() { return 0; } }")]

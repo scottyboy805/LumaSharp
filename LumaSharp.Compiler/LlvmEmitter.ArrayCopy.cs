@@ -178,12 +178,12 @@ internal sealed partial class LlvmEmitter
         {
             _output.AppendLine($"  %element.end = getelementptr {elementLlvmType}, ptr null, i32 1");
             _output.AppendLine($"  %element.size = ptrtoint ptr %element.end to {sizeType}");
-            _output.AppendLine($"  %length.native = zext i32 %length to {sizeType}");
+            _output.AppendLine($"  %length.native = {(sizeType == "i64" ? "zext i32 %length to i64" : "add i32 %length, 0")}");
             _output.AppendLine($"  %byte.count = mul {sizeType} %length.native, %element.size");
-            _output.AppendLine($"  %source.index.native = zext i32 %source.index to {sizeType}");
+            _output.AppendLine($"  %source.index.native = {(sizeType == "i64" ? "zext i32 %source.index to i64" : "add i32 %source.index, 0")}");
             _output.AppendLine($"  %source.offset = mul {sizeType} %source.index.native, %element.size");
             _output.AppendLine($"  %source.start = getelementptr i8, ptr %source.data, {sizeType} %source.offset");
-            _output.AppendLine($"  %destination.index.native = zext i32 %destination.index to {sizeType}");
+            _output.AppendLine($"  %destination.index.native = {(sizeType == "i64" ? "zext i32 %destination.index to i64" : "add i32 %destination.index, 0")}");
             _output.AppendLine($"  %destination.offset = mul {sizeType} %destination.index.native, %element.size");
             _output.AppendLine($"  %destination.start = getelementptr i8, ptr %destination.data, {sizeType} %destination.offset");
             _output.AppendLine($"  call void @llvm.memmove.p0.p0.i{intrinsicBits}(ptr %destination.start, ptr %source.start, {sizeType} %byte.count, i1 false)");
@@ -269,9 +269,9 @@ internal sealed partial class LlvmEmitter
         {
             _output.AppendLine($"  %element.end = getelementptr {elementLlvmType}, ptr null, i32 1");
             _output.AppendLine($"  %element.size = ptrtoint ptr %element.end to {sizeType}");
-            _output.AppendLine($"  %length.native = zext i32 %length to {sizeType}");
+            _output.AppendLine($"  %length.native = {(sizeType == "i64" ? "zext i32 %length to i64" : "add i32 %length, 0")}");
             _output.AppendLine($"  %byte.count = mul {sizeType} %length.native, %element.size");
-            _output.AppendLine($"  %index.native = zext i32 %index to {sizeType}");
+            _output.AppendLine($"  %index.native = {(sizeType == "i64" ? "zext i32 %index to i64" : "add i32 %index, 0")}");
             _output.AppendLine($"  %byte.offset = mul {sizeType} %index.native, %element.size");
             _output.AppendLine($"  %start = getelementptr i8, ptr %data, {sizeType} %byte.offset");
             _output.AppendLine($"  call void @llvm.memset.p0.i{intrinsicBits}(ptr %start, i8 0, {sizeType} %byte.count, i1 false)");

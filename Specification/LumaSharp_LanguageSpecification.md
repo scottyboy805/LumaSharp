@@ -1592,6 +1592,38 @@ Methods return by value. A returned reference type transfers its ownership to th
 
 Instance methods have an implicit parameter `this`. In class methods `this` is a reference of the enclosing class type (non-null). In struct methods `this` is an alias to the struct storage (like a `ref` parameter). Whether `this` may be assigned through is determined by `mut` (§8.5).
 
+### 7.9.1 Extension declarations
+
+An extension declaration adds statically bound methods and computed properties to an existing class, struct, or interface without changing that type's instance layout or virtual dispatch table.
+
+```lumasharp
+public extension Counter
+{
+    int32 Val => 3;
+
+    int32 AddToValue(int32 amount) => this.Read() + amount;
+
+    int32 ReadImplicitly() => Read();
+}
+```
+
+The declaration form is:
+
+```text
+extension_decl = [ access ] "extension" type_name "{" { extension_member } "}" ;
+extension_member = instance_method | computed_property ;
+```
+
+- One visibility value may precede `extension`: `public`, `private`, `protected`, `internal`, `protected internal`, or `private protected`. With no value, the extension is `internal`.
+- `extension` is contextual to this declaration form and remains usable as an ordinary identifier elsewhere.
+- The target must resolve to an existing class, struct, or interface. Qualified names and file `using` aliases are valid. An unresolved or ambiguous target is an error.
+- Extension methods use the ordinary method body and parameter syntax, but cannot declare `static`, `virtual`, `override`, `extern`, operators, mutating receivers, async bodies, or ref returns. Extension properties must be computed properties; fields, indexers, and nested types are not allowed.
+- The receiver is implicit in source and is passed as the first, scoped parameter of a generated static helper method. `this` names that borrowed receiver; it cannot be returned or retained beyond the call. A target's existing accessible members may be used with `this.Member` or by their unqualified name; unqualified member references are shorthand for access through the receiver.
+- A real member declared on the receiver type takes precedence over an extension member with the same name. Extension members are statically bound and never participate in virtual or interface dispatch slots. An extension declared for an interface can be called through a value of that interface type.
+- Extension property getters and setters lower to static helper methods with the same hidden receiver parameter. A struct property setter passes the receiver by reference and requires a mutable struct location. Existing member storage and object layout are unchanged.
+- Null-conditional extension calls and property reads skip the helper call when the nullable receiver is null, with the ordinary nullable result type rules.
+- Extension method groups cannot yet be converted to delegates. Generic extension methods and constructed or open generic extension targets are also unsupported; these forms produce diagnostics.
+
 ## 7.10 Async Methods and `await`
 
 An `async` method declares the type of its completed result. Its callable signature returns `System.Threading.Task` when the declared result is `void`, or `System.Threading.Task<T>` for a declared result `T`. The source declaration MUST NOT write `Task` or `Task<T>` as the return type: the task wrapper is implicit.

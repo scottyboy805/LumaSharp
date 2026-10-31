@@ -36,7 +36,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     public CompilationUnit ParseCompilationUnit()
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var at = Current.Location; var types = new List<TypeDeclaration>();
+        var at = Current.Location; var types = new List<TypeDeclaration>(); var extensions = new List<ExtensionDeclaration>();
         var sawNamespace = false;
         var sawTypeDeclaration = false;
         while (Current.Kind != TokenKind.End)
@@ -80,10 +80,87 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                 Error(Current, "Expected ';' or '{' after namespace name."); SynchronizeTop(); continue;
             }
             var before = _position;
+            if (TryParseExtension(extensions)) { sawTypeDeclaration = true; continue; }
             if (TryParseType(types)) { sawTypeDeclaration = true; continue; }
             if (_position == before) { Error(Current, $"Unexpected token '{Current.Text}' in compilation unit."); SynchronizeTop(); }
         }
-        return new(types, at, _usingDirectives.ToArray(), _namespace);
+        return new(types, at, _usingDirectives.ToArray(), _namespace, extensions);
+    }
+
+    private bool TryParseExtension(List<ExtensionDeclaration> extensions)
+    {
+        var startPosition = _position;
+        var modifiers = ReadModifiers();
+        if (!Is("extension")) { _position = startPosition; return false; }
+        var declarationLocation = Current.Location;
+        var invalidModifiers = modifiers.Where(modifier => modifier is not ("public" or "private" or "protected" or "internal")).ToArray();
+        foreach (var invalid in invalidModifiers)
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, $"Modifier '{invalid}' is not valid on an extension declaration; only visibility modifiers are allowed.", declarationLocation);
+        var accessModifiers = modifiers.Where(modifier => modifier is "public" or "private" or "protected" or "internal").ToArray();
+        var validAccessPair = accessModifiers.Length == 2 &&
+            (accessModifiers.Contains("protected", StringComparer.Ordinal) && accessModifiers.Contains("internal", StringComparer.Ordinal) ||
+             accessModifiers.Contains("private", StringComparer.Ordinal) && accessModifiers.Contains("protected", StringComparer.Ordinal));
+        if (modifiers.GroupBy(modifier => modifier, StringComparer.Ordinal).Any(group => group.Count() > 1) ||
+            accessModifiers.Length > 1 && !validAccessPair)
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, "An extension declaration may have at most one visibility modifier.", declarationLocation);
+        var accessibility = validAccessPair
+            ? accessModifiers.Contains("protected", StringComparer.Ordinal) && accessModifiers.Contains("internal", StringComparer.Ordinal) ? "protected internal" : "private protected"
+            : accessModifiers.FirstOrDefault() ?? "internal";
+
+        Take();
+        var targetType = ParseTypeName(validateUnsafe: false);
+        if (targetType is null)
+        {
+            Error(Current, "Expected a class, struct, or interface type after 'extension'.");
+            SynchronizeTop();
+            return true;
+        }
+        if (!Is("{"))
+        {
+            Error(Current, "Expected '{' after the extension target type.");
+            SynchronizeTop();
+            return true;
+        }
+        var bodyStart = _position;
+        var depth = 0;
+        var bodyEnd = -1;
+        for (var index = bodyStart; index < tokens.Count; index++)
+        {
+            if (tokens[index].Text == "{") depth++;
+            else if (tokens[index].Text == "}" && --depth == 0) { bodyEnd = index; break; }
+        }
+        if (bodyEnd < 0)
+        {
+            Error(Current, "Expected '}' to close the extension declaration.");
+            _position = tokens.Count - 1;
+            return true;
+        }
+        var helperTokens = new List<Token>
+        {
+            new(TokenKind.Identifier, "class", declarationLocation),
+            new(TokenKind.Identifier, "__LumaExtensionBody", declarationLocation)
+        };
+        helperTokens.AddRange(tokens.Skip(bodyStart).Take(bodyEnd - bodyStart + 1));
+        helperTokens.Add(new(TokenKind.End, "", tokens[bodyEnd].Location));
+        var helperParser = new Parser(helperTokens, diagnostics, unsafeEnabled, cancellationToken) { _namespace = _namespace };
+        helperParser._usingDirectives.AddRange(_usingDirectives);
+        helperParser._usingAliases.UnionWith(_usingAliases);
+        var parsed = new List<TypeDeclaration>();
+        _ = helperParser.TryParseType(parsed);
+        _position = bodyEnd + 1;
+        if (parsed.Count != 1) return true;
+        var helper = parsed[0];
+        foreach (var member in helper.Members)
+        {
+            if (member is not (MethodDeclaration or ComputedPropertyDeclaration))
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Extensions may declare methods and computed properties only.", member.Location);
+            if (member is MethodDeclaration method && (method.IsStatic || method.IsVirtual || method.IsOverride || method.IsExtern || method.IsOperator || method.ReturnsByRef || method.IsMutating || method.IsAsync))
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Extension methods cannot be static, virtual, override, extern, operators, mutating, async, or ref returns.", method.Location);
+            if (member is ComputedPropertyDeclaration property && (property.IsStatic || property.IsVirtual || property.IsOverride || property.UsesBackingField))
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Extension properties must be computed instance properties without backing fields.", property.Location);
+        }
+        extensions.Add(new(_namespace, targetType, helper.Members, accessibility, declarationLocation, _usingDirectives.ToArray()));
+        return true;
     }
     private void ParseTypes(List<TypeDeclaration> types, bool untilClose)
     {

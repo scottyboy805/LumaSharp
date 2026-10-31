@@ -1,8 +1,10 @@
 namespace LumaSharp.Compiler;
 
 public sealed record CompilationUnit(IReadOnlyList<TypeDeclaration> Types, SourceLocation Location,
-    IReadOnlyList<UsingDirective>? Usings = null, string Namespace = "");
+    IReadOnlyList<UsingDirective>? Usings = null, string Namespace = "", IReadOnlyList<ExtensionDeclaration>? Extensions = null);
 public sealed record UsingDirective(string Target, string? Alias, SourceLocation Location);
+public sealed record ExtensionDeclaration(string Namespace, string TargetType, IReadOnlyList<MemberDeclaration> Members,
+    string Accessibility, SourceLocation Location, IReadOnlyList<UsingDirective>? Usings = null);
 public sealed record TypeDeclaration(string Namespace, string Kind, string Name, IReadOnlyList<MemberDeclaration> Members, SourceLocation Location, bool HasTypeParameters = false, bool HasBaseList = false, IReadOnlyList<UsingDirective>? Usings = null, string? EnumUnderlyingType = null, IReadOnlyList<string>? BaseTypes = null, bool IsVirtual = false, bool IsStatic = false, string Accessibility = "internal", IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, string? DelegateReturnType = null, IReadOnlyList<ParameterDeclaration>? DelegateParameters = null, string? ContainingTypeName = null, bool IsRefStruct = false);
 public sealed record GenericConstraintDeclaration(string TypeParameter, IReadOnlyList<string> Constraints, SourceLocation Location);
 public abstract record MemberDeclaration(SourceLocation Location);

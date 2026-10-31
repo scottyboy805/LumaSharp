@@ -4,7 +4,8 @@ namespace LumaSharp.Compiler;
 
 internal sealed record MethodSymbol(TypeDeclaration Owner, MethodDeclaration Declaration, bool IsStructConstructor = false, bool IsClassConstructor = false, bool IsClassFinalizer = false,
     ConstructorDeclaration? SourceConstructor = null, bool IsBuiltinObjectToString = false, bool IsGenericMethodSpecialization = false,
-    bool IsTypeInitializer = false, MethodDeclaration? GenericTemplate = null, CompilerIntrinsic? Intrinsic = null)
+    bool IsTypeInitializer = false, MethodDeclaration? GenericTemplate = null, CompilerIntrinsic? Intrinsic = null,
+    bool IsExtensionMethod = false, string? ExtensionReceiverType = null, bool ExtensionReceiverByRef = false)
 {
     public string QualifiedName => (string.IsNullOrEmpty(Owner.Namespace) ? Owner.Name : Owner.Namespace + "." + Owner.Name) + "." + Declaration.Name;
     public bool IsStructInstanceMethod => Owner.Kind == "struct" && !Declaration.IsStatic && !IsStructConstructor;
@@ -223,6 +224,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly HashSet<string> _failedGenericMethodSpecializations = new(StringComparer.Ordinal);
     private IReadOnlyList<TypeDeclaration> _types = [];
     private IReadOnlyList<TypeDeclaration> _genericDefinitions = [];
+    private readonly Dictionary<string, string> _extensionHelperTargets = new(StringComparer.Ordinal);
     private readonly List<GenericTypeInstantiation> _genericTypeInstantiations = [];
     private GenericTypeSpecializer? _genericTypeSpecializer;
     private readonly HashSet<(string TypeName, string ContextName)> _genericTypeResolutionsInProgress = [];
@@ -519,7 +521,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var structFieldDeclarations = new List<(TypeDeclaration Owner, FieldDeclaration Declaration)>();
         var classFieldDeclarations = new List<(TypeDeclaration Owner, FieldDeclaration Declaration)>();
         var staticConstructors = new Dictionary<TypeDeclaration, ConstructorDeclaration>(ReferenceEqualityComparer.Instance);
-        var parsedSourceTypes = units.SelectMany(u => u.Types).ToArray();
+        var declaredSourceTypes = units.SelectMany(u => u.Types).ToArray();
+        var loweredExtensions = ExtensionLowerer.Lower(units, declaredSourceTypes, diagnostics);
+        foreach (var mapping in loweredExtensions.Targets) _extensionHelperTargets[mapping.Key] = mapping.Value;
+        var parsedSourceTypes = declaredSourceTypes.Concat(loweredExtensions.Helpers).ToArray();
         _genericTypeSpecializer = new GenericTypeSpecializer(diagnostics, _nativePointerSize, cancellationToken);
         var genericExpansion = _genericTypeSpecializer.Expand(parsedSourceTypes);
         _genericDefinitions = genericExpansion.GenericDefinitions;
@@ -1873,7 +1878,16 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
              candidate.IsStructInstanceMethod && NormalizeEnumType(receiverType, context.Method.Owner) == GetQualifiedTypeName(candidate.Owner))).ToList();
         if (expression.Member == "ToString" && instanceCandidates.Count == 0 && receiverClassChain.Contains("System.Object"))
             instanceCandidates.Add(VirtualDispatchLayout.ObjectToString);
-        if (instanceCandidates.Count == 0) return false;
+        if (instanceCandidates.Count == 0)
+        {
+            if (GetExtensionMethods(receiverBaseType, expression.Member, context.Method.Owner).Length > 0)
+            {
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    "Extension methods cannot be converted to delegates as method groups yet.", expression.Location);
+                return true;
+            }
+            return false;
+        }
         if (expression.IsNullConditional)
         {
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "A null-conditional method group cannot be converted to a delegate.", expression.Location);
@@ -2922,6 +2936,66 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         }
         return visible.ToArray();
     }
+
+    private MethodSymbol[] GetExtensionMethods(string receiverType, string methodName, TypeDeclaration accessingType)
+    {
+        var normalizedReceiver = NormalizeBuiltinTypeQualifier(receiverType);
+        var methods = _methods.Where(method => method.Declaration.IsStatic && method.Declaration.Name == methodName &&
+                _extensionHelperTargets.TryGetValue(GetQualifiedTypeName(method.Owner), out var targetType) &&
+                IsExtensionReceiverApplicable(targetType, normalizedReceiver) && method.Declaration.Parameters.Count > 0 &&
+                IsMethodAccessible(method, accessingType))
+            .Select(method => method with
+            {
+                Declaration = method.Declaration with { Parameters = method.Declaration.Parameters.Skip(1).ToArray() },
+                IsExtensionMethod = true,
+                ExtensionReceiverType = method.Declaration.Parameters[0].TypeName,
+                ExtensionReceiverByRef = method.Declaration.Parameters[0].PassingMode == "ref"
+            })
+            .ToArray();
+        if (IsStructType(normalizedReceiver) && methods.Any(method => method.ExtensionReceiverType is { } target && IsInterfaceType(target)))
+            RecordBoxedValueTypeInterfaceType(normalizedReceiver);
+        return methods;
+    }
+
+    private ComputedPropertySymbol? GetExtensionProperty(string receiverType, string propertyName)
+    {
+        var normalizedReceiver = NormalizeBuiltinTypeQualifier(receiverType);
+        foreach (var helper in _types.Where(type => _extensionHelperTargets.TryGetValue(GetQualifiedTypeName(type), out var target) &&
+                     IsExtensionReceiverApplicable(target, normalizedReceiver)))
+        {
+            if (!_extensionHelperTargets.TryGetValue(GetQualifiedTypeName(helper), out var declaredTarget)) continue;
+            var accessors = _methods.Where(method => method.Owner == helper && method.Declaration.PropertyName == propertyName).ToArray();
+            if (accessors.Length == 0) continue;
+            var getterMethod = accessors.FirstOrDefault(method => method.Declaration.Name == "$property_get_" + propertyName);
+            var setterMethod = accessors.FirstOrDefault(method => method.Declaration.Name == "$property_set_" + propertyName);
+            var propertyType = getterMethod?.Declaration.ReturnType ?? setterMethod?.Declaration.ReturnType;
+            if (propertyType is null) continue;
+            var owner = _types.FirstOrDefault(type => GetQualifiedTypeName(type) == declaredTarget);
+            if (owner is null) continue;
+            propertyType = NormalizeEnumType(propertyType, helper);
+            MethodSymbol AsExtensionAccessor(MethodSymbol method) => method with
+            {
+                Declaration = method.Declaration with { Parameters = method.Declaration.Parameters.Skip(1).ToArray() },
+                IsExtensionMethod = true,
+                ExtensionReceiverType = method.Declaration.Parameters[0].TypeName,
+                ExtensionReceiverByRef = method.Declaration.Parameters[0].PassingMode == "ref"
+            };
+            var getter = getterMethod is null ? null : AsExtensionAccessor(getterMethod);
+            var setter = setterMethod is null ? null : AsExtensionAccessor(setterMethod);
+            if (IsStructType(normalizedReceiver) && new[] { getter, setter }.Where(method => method is not null)
+                    .Any(method => method!.ExtensionReceiverType is { } target && IsInterfaceType(target)))
+                RecordBoxedValueTypeInterfaceType(normalizedReceiver);
+            var accessibility = getterMethod?.Declaration.Accessibility ?? setterMethod!.Declaration.Accessibility;
+            var declaration = new ComputedPropertyDeclaration(propertyType, propertyName, null, null, false, false, false,
+                accessors[0].Declaration.Location, accessibility);
+            return new(owner, declaration, propertyType, getter, setter);
+        }
+        return null;
+    }
+
+    private bool IsExtensionReceiverApplicable(string targetType, string receiverType) =>
+        targetType == receiverType || IsClassType(targetType) && IsClassType(receiverType) && IsBaseClassOf(targetType, receiverType) ||
+        _interfaceConversions.Contains((receiverType, targetType));
 
     private MethodSymbol? FindInheritedMethod(MethodSymbol method)
     {
@@ -7805,6 +7879,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                                 GetQualifiedTypeName(candidate.Owner) == "System.String" &&
                                 candidate.Declaration.Name == instanceCall.Member)
                             .ToArray();
+                        if (candidates.Length == 0) candidates = GetExtensionMethods(instanceReceiverType, instanceCall.Member, context.Method.Owner);
                         if (candidates.Length == 0)
                         {
                             diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"String has no instance method named '{instanceCall.Member}'.", instanceCall.Location);
@@ -7829,6 +7904,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                             ? instanceReceiverType
                             : NormalizeBuiltinTypeQualifier(instanceReceiverType);
                         candidates = _methods.Concat(_genericMethodDefinitions).Where(candidate => candidate.IsStructInstanceMethod && GetQualifiedTypeName(candidate.Owner) == normalizedStructType && candidate.Declaration.Name == instanceCall.Member).ToArray();
+                        if (candidates.Length == 0) candidates = GetExtensionMethods(normalizedStructType, instanceCall.Member, context.Method.Owner);
                         if (candidates.Length == 0)
                         {
                             if (instanceCall.Member == "ToString" && call.Arguments.Count == 0 && !HasCustomStructToString(normalizedStructType))
@@ -7862,6 +7938,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         }
                         if (candidates.Length == 0)
                         {
+                            candidates = GetExtensionMethods(classTypeName, instanceCall.Member, context.Method.Owner);
+                            if (candidates.Length > 0) { virtualReceiverType = null; interfaceReceiverType = null; }
+                        }
+                        if (candidates.Length == 0)
+                        {
                             if (instanceCall.Member == "ToString" && call.Arguments.Count == 0 &&
                                 (_classTypes.ContainsKey(classTypeName) || _interfaceTypes.ContainsKey(classTypeName)))
                             {
@@ -7879,6 +7960,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         candidates = GetInterfaceInstanceMethods(instanceReceiverType, instanceCall.Member);
                         if (candidates.Length == 0)
                         {
+                            candidates = GetExtensionMethods(instanceReceiverType, instanceCall.Member, context.Method.Owner);
+                            if (candidates.Length > 0) interfaceReceiverType = null;
+                        }
+                        if (candidates.Length == 0)
+                        {
                             if (instanceCall.Member == "ToString" && call.Arguments.Count == 0)
                             {
                                 _classToStringCalls[call] = new(instanceReceiverType);
@@ -7893,6 +7979,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         instanceReceiver = instanceCall.Receiver;
                         virtualReceiverType = instanceReceiverType;
                         candidates = GetClassInstanceMethods(instanceReceiverType, instanceCall.Member).Where(candidate => IsMethodAccessible(candidate, context.Method.Owner)).ToArray();
+                        if (candidates.Length == 0)
+                        {
+                            candidates = GetExtensionMethods(instanceReceiverType, instanceCall.Member, context.Method.Owner);
+                            if (candidates.Length > 0) virtualReceiverType = null;
+                        }
                         if (candidates.Length == 0)
                         {
                             if (instanceCall.Member == "ToString" && call.Arguments.Count == 0)
@@ -8856,7 +8947,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 var memberReceiverType = IsStructType(normalizedBuiltinReceiverType)
                     ? normalizedBuiltinReceiverType
                     : structReceiverType;
-                var computedProperty = TryGetComputedProperty(memberReceiverType, access.Member);
+                var hasInstanceField = IsStructType(memberReceiverType) && TryGetStructField(memberReceiverType, access.Member, out _) ||
+                    IsClassType(memberReceiverType) && TryGetClassField(memberReceiverType, access.Member, out _);
+                var computedProperty = TryGetComputedProperty(memberReceiverType, access.Member) ??
+                    (hasInstanceField ? null : GetExtensionProperty(memberReceiverType, access.Member));
                 if (computedProperty is not null)
                 {
                     if (computedProperty.Declaration.IsStatic)
@@ -9403,7 +9497,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var target = new MemberAccessExpression(access.Receiver, property.Getter.Declaration.Name, access.Location,
             access.IsNullConditional, access.IsUnsafeContext);
         var getterCall = new CallExpression(target, [], access.Location, IsUnsafeContext: access.IsUnsafeContext);
-        var resultType = AnalyzeExpression(getterCall, context);
+        var resultType = property.Getter.IsExtensionMethod
+            ? property.TypeName
+            : AnalyzeExpression(getterCall, context);
+        if (property.Getter.IsExtensionMethod)
+        {
+            _callTargets[getterCall] = property.Getter;
+            _callArguments[getterCall] = new([], []);
+        }
         _propertyGetterCalls[access] = getterCall;
         return resultType;
     }
@@ -9428,6 +9529,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             diagnostics.Add("LS0701", DiagnosticSeverity.Error, "A scope-bound reference cannot escape through a property assignment.", assignment.Right.Location);
 
         var mutationReceiver = receiver ?? new ThisExpression(assignment.Location);
+        if (setter.IsExtensionMethod && setter.ExtensionReceiverByRef && property.Owner.Kind == "struct" &&
+            !IsMutableStructLocation(mutationReceiver, context))
+            diagnostics.Add("LS0823", DiagnosticSeverity.Error, "An extension property set accessor requires a mutable struct receiver.", assignment.Location);
         if (setter.IsStructInstanceMethod && setter.Declaration.IsMutating && !IsMutableStructLocation(mutationReceiver, context))
         {
             if (context.Method.IsStructInstanceMethod && !context.Method.Declaration.IsMutating && HasThisRoot(mutationReceiver))

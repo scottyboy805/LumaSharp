@@ -1313,6 +1313,16 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private string LlvmParameterType(ParameterDeclaration parameter) => parameter.PassingMode is "ref" or "out" ? "ptr" : LlvmType(parameter.TypeName);
     private static string FunctionName(MethodSymbol method, IReadOnlyList<MethodSymbol> allMethods)
     {
+        if (method.IsExtensionMethod)
+        {
+            var emittedMethod = allMethods.FirstOrDefault(candidate => candidate.QualifiedName == method.QualifiedName &&
+                candidate.Declaration.Parameters.Count == method.Declaration.Parameters.Count + 1 &&
+                candidate.Declaration.Parameters[0].TypeName == method.ExtensionReceiverType &&
+                (candidate.Declaration.Parameters[0].PassingMode == "ref") == method.ExtensionReceiverByRef &&
+                candidate.Declaration.Parameters.Skip(1).Select(parameter => parameter.TypeName)
+                    .SequenceEqual(method.Declaration.Parameters.Select(parameter => parameter.TypeName), StringComparer.Ordinal));
+            if (emittedMethod is not null) return FunctionName(emittedMethod, allMethods);
+        }
         if (method.Declaration.IsExtern) return Safe(method.Declaration.Name);
         var qualifiedTypeName = string.IsNullOrEmpty(method.Owner.Namespace) ? method.Owner.Name : method.Owner.Namespace + "." + method.Owner.Name;
         var collisions = allMethods.Count(candidate => candidate.QualifiedName[..^(candidate.Declaration.Name.Length + 1)] == qualifiedTypeName && candidate.Declaration.Name == method.Declaration.Name && candidate.Declaration.Parameters.Count == method.Declaration.Parameters.Count);
@@ -8170,6 +8180,24 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 if (!callTargets.TryGetValue(expression, out target!)) throw new NotSupportedException("No bound target was recorded for this static call.");
                 if (!callArguments.TryGetValue(expression, out binding!)) throw new NotSupportedException("No bound argument mapping was recorded for this static call.");
             }
+            (string Value, string Type)? extensionReceiver = null;
+            if (target.IsExtensionMethod)
+            {
+                if (expression.Target is not MemberAccessExpression extensionTarget || target.ExtensionReceiverType is null)
+                    throw new InvalidOperationException("A bound extension call must have an instance receiver and hidden receiver type.");
+                if (target.ExtensionReceiverByRef)
+                {
+                    var (_, receiverAddress) = ResolveAssignmentTarget(extensionTarget.Receiver);
+                    extensionReceiver = (receiverAddress, target.ExtensionReceiverType);
+                }
+                else if (instanceReceiverOverride is not null)
+                    extensionReceiver = (instanceReceiverOverride, target.ExtensionReceiverType);
+                else
+                {
+                    var receiver = EmitExpression(extensionTarget.Receiver);
+                    extensionReceiver = (CastValue(receiver.Value, receiver.Type, target.ExtensionReceiverType), target.ExtensionReceiverType);
+                }
+            }
             string? instanceReceiverAddress = instanceReceiverOverride;
             (string Value, string Type)? ownedInstanceReceiver = null;
             if (target.IsStructInstanceMethod)
@@ -8220,6 +8248,13 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var ownedArrayArguments = new List<(string Value, string Type)>();
             var ownedClassArguments = new List<(string Value, string Type)>();
             var ownedAggregateArguments = new List<(string Value, string Type)>();
+            if (extensionReceiver is { } hiddenReceiver && !target.ExtensionReceiverByRef && instanceReceiverOverride is null)
+            {
+                if (IsStringType(hiddenReceiver.Type)) ownedStringArguments.Add(hiddenReceiver);
+                if (SemanticAnalyzer.TryParseManagedArrayType(hiddenReceiver.Type, out _, out _)) ownedArrayArguments.Add(hiddenReceiver);
+                if (GetClassReferenceType(hiddenReceiver.Type) is not null) ownedClassArguments.Add(hiddenReceiver);
+                if (IsManagedAggregateType(hiddenReceiver.Type)) ownedAggregateArguments.Add(hiddenReceiver);
+            }
             var variadicValues = new Dictionary<int, List<(string Value, string Type)>>();
             for (var sourceIndex = 0; sourceIndex < expression.Arguments.Count; sourceIndex++)
             {
@@ -8340,6 +8375,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 var attribute = target.Declaration.IsExtern ? AbiAttribute(target.Declaration.Parameters[index].TypeName, enumTypes) : "";
                 return attribute.Length == 0 ? $"{llvmType} {argumentValue}" : $"{llvmType} {attribute.Trim()} {argumentValue}";
             }).ToArray();
+            if (extensionReceiver is { } extensionArgument)
+                llvmCallArguments = new[] { target.ExtensionReceiverByRef ? $"ptr {extensionArgument.Value}" : $"{LlvmType(extensionArgument.Type)} {extensionArgument.Value}" }.Concat(llvmCallArguments).ToArray();
             var allArguments = instanceReceiverAddress is null ? llvmCallArguments : new[] { $"ptr {instanceReceiverAddress}" }.Concat(llvmCallArguments);
             if (target.IsClassConstructor) allArguments = allArguments.Append($"i1 {(classConstructorCompletes ? "true" : "false")}");
             if (target.Declaration.IsStatic && target.Intrinsic is null) EnsureTypeInitialized(QualifiedTypeName(target.Owner));
