@@ -6345,7 +6345,7 @@ public sealed class CompilerTests
     {
         var result = Compile("delegate int32 Unary(int32 value); class Program { public static int32 Twice(int32 value) { return value * 2; } public static int32 Main() { Unary operation = Twice; return operation(value: 21); } }");
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("%delegate.Unary = type { ptr, i32, i32, ptr, ptr }", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("%delegate.Unary = type { ptr, i32, i32, ptr, ptr, ptr }", result.LlvmIr!, StringComparison.Ordinal);
         Assert.Contains("store ptr @luma_Program_Twice_1", result.LlvmIr!, StringComparison.Ordinal);
         Assert.Contains("call i32 %t", result.LlvmIr!, StringComparison.Ordinal);
         Assert.Equal(42, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
