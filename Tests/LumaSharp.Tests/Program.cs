@@ -4172,7 +4172,7 @@ public sealed class CompilerTests
 
         const string readonlyInterfaceEscapeSource = "interface INode { void Escape(); } class Node : INode { public static Node? Last; public void Escape() { Node.Last = this; } } class Program { public static int32 Use(scope INode node) { node.Escape(); return 0; } public static int32 Main() { Node node = new Node(); return Use(node); } }";
         var readonlyInterfaceEscape = Compile(readonlyInterfaceEscapeSource);
-        Assert.Contains(readonlyInterfaceEscape.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+        Assert.Contains(readonlyInterfaceEscape.Diagnostics, diagnostic => diagnostic.Code == "LS0702");
 
         const string safeReadonlyInterfaceSource = "interface INode { int32 Read(); } class Node : INode { public int32 Read() { return 42; } } class Program { public static int32 Use(scope INode node) { return node.Read(); } public static int32 Main() { Node node = new Node(); return Use(node) == 42 ? 0 : 1; } }";
         var safeReadonlyInterface = Compile(safeReadonlyInterfaceSource);
@@ -6712,7 +6712,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void ScopeBoundLambdasMayBePassedDirectlyToReadonlyDelegateParameters()
+    public void ScopeBoundLambdasMayBePassedToScopeDelegateParameters()
     {
         const string source = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static int32 Invoke(scope Getter getter) { return getter(); } public static int32 Main() { Sample sample = scope Sample(); return Invoke(() => sample.Read()) == 42 ? 0 : 1; } }";
         var result = Compile(source);
@@ -8183,7 +8183,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void ReadonlyParametersMayBeBorrowedByNonEscapingLambdas()
+    public void ScopeParametersMayBeBorrowedByNonEscapingLambdas()
     {
         const string source = "delegate int32 Getter(); class Sample { public int32 Read() { return 42; } } class Program { public static int32 Invoke(scope Getter getter) { return getter(); } public static int32 CaptureLocally(scope Sample sample) { Getter getter = () => sample.Read(); return getter(); } public static int32 CaptureValueLocally(scope int32 value) { Getter getter = () => value; return getter(); } public static int32 PassDirectly(scope Sample sample) { return Invoke(() => sample.Read()); } public static int32 Main() { Sample sample = new Sample(); if (CaptureLocally(sample) != 42) return 1; if (CaptureValueLocally(43) != 43) return 2; if (PassDirectly(sample) != 42) return 3; return 0; } }";
         var result = Compile(source);
@@ -8200,7 +8200,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void ReadonlyDelegateParametersCannotEscapeThroughHeapContainers()
+    public void ScopeDelegateParametersCannotEscapeThroughHeapContainers()
     {
         const string source = "delegate int32 Getter(); class Holder { public Getter? Callback; public void Store(scope Getter callback) mut { Callback = callback; } } class Program { public static int32 Main() { return 0; } }";
         var result = Compile(source);

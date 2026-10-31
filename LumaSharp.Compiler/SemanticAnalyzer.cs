@@ -3963,7 +3963,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         {
             context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly,
                 parameter.Location, scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? context.ScopeDepth : null,
-                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
+                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly,
+                isScopedParameter: parameter.IsScoped);
             if (IsNullableType(parameter.TypeName)) context.SetNullState(parameter.Name, NullState.MaybeNull);
         }
         if (method.IsClassConstructor) BindConstructorInitializer(method, context);
@@ -4102,8 +4103,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var constructorContext = new MethodContext(constructor);
             foreach (var parameter in constructor.Declaration.Parameters)
                 constructorContext.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly,
-                    parameter.Location, scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? constructorContext.ScopeDepth : null,
-                    isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
+                parameter.Location, scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? constructorContext.ScopeDepth : null,
+                    isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly,
+                    isScopedParameter: parameter.IsScoped);
 
             void Report(SourceLocation location, string message) =>
                 diagnostics.Add("LS0812", DiagnosticSeverity.Error, message, location);
@@ -4325,7 +4327,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var parameter in method.Declaration.Parameters)
             context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly, parameter.Location,
                 scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? context.ScopeDepth : null,
-                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
+                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly,
+                isScopedParameter: parameter.IsScoped);
         void CheckExpression(Expression expression)
         {
             switch (expression)
@@ -4428,7 +4431,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var parameter in method.Declaration.Parameters)
             context.Declare(parameter.Name, parameter.TypeName, parameter.PassingMode != "in" && !parameter.IsReadOnly, parameter.Location,
                 scopeBoundDepth: parameter.IsScoped && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) ? context.ScopeDepth : null,
-                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly);
+                isReadOnlyReference: parameter.PassingMode == "in" && (IsScopeBoundReferenceType(parameter.TypeName) || IsManagedReferenceValue(parameter.TypeName)) || parameter.IsReadOnly,
+                isScopedParameter: parameter.IsScoped);
         bool ExpressionContainsCapture(Expression expression) => expression switch
         {
             LambdaExpression lambda => LambdaBodyReferencesThis(lambda) || LambdaReferencesImplicitInstanceMember(lambda, context),
@@ -6872,12 +6876,15 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 continue;
             }
 
+            if (target is NameExpression scopedLocalName && IsScopedParameterExpression(value, context))
+                context.SetScopedParameter(scopedLocalName.Name);
+
             var scopedAssignments = _scopeBoundMultiAssignmentTargets.GetValueOrDefault(assignment);
             var readOnlyAssignments = _readOnlyMultiAssignmentTargets.GetValueOrDefault(assignment);
             var isFirstScopedLocalAssignment = local.ScopeBoundDepth is null && local.Declaration is { } localDeclaration &&
                 (localDeclaration.Initializer is null || localDeclaration.Initializer is LiteralExpression { Value: "null" }) &&
                 assignedScopeDepth is { } localValueDepth && local.ScopeDepth >= localValueDepth &&
-                IsScopeBoundReferenceType(local.Type);
+                (IsScopeBoundReferenceType(local.Type) || IsManagedReferenceValue(local.Type));
             var mayAssignScopedLocal = isFirstScopedLocalAssignment || scopedAssignments?.Contains(index) == true;
             if (isFirstScopedLocalAssignment && assignedScopeDepth is { } assignedLocalDepth && local.Declaration is { } assignedLocalDeclaration)
             {
@@ -6885,7 +6892,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     _scopeBoundMultiAssignmentTargets[assignment] = scopedAssignments = [];
                 scopedAssignments.Add(index);
                 _scopeBoundVariables.Add(assignedLocalDeclaration);
-                context.SetScopeBound(assignedLocalDeclaration.Name, assignedLocalDepth, GetScopeBoundOrder(value, context));
+                context.SetScopeBound(assignedLocalDeclaration.Name, Math.Max(assignedLocalDepth, local.ScopeDepth), GetScopeBoundOrder(value, context));
             }
             var isFirstReadOnlyLocalAssignment = !local.IsReadOnlyReference && local.ScopeBoundDepth is null && local.Declaration is { } readOnlyDeclaration &&
                 (readOnlyDeclaration.Initializer is null || readOnlyDeclaration.Initializer is LiteralExpression { Value: "null" }) &&
@@ -8541,7 +8548,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 }
                 var capturedNames = FindCapturedLambdaVariables(lambda, context);
                 var scopeBoundCaptures = capturedNames.Where(name => context.Lookup(name) is { } local &&
-                    (local.ScopeBoundDepth is not null || local.IsReadOnlyReference)).ToArray();
+                    (local.ScopeBoundDepth is not null || local.IsReadOnlyReference || local.IsScopedParameter)).ToArray();
                 var unsupportedCapture = false;
                 foreach (var capturedName in capturedNames)
                 {
@@ -8569,7 +8576,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     .Select(name =>
                     {
                         var local = context.Lookup(name)!;
-                        return local.ScopeBoundDepth ?? (local.IsReadOnlyReference ? local.ScopeDepth : (int?)null);
+                        return local.ScopeBoundDepth ?? (local.IsReadOnlyReference || local.IsScopedParameter ? local.ScopeDepth : (int?)null);
                     })
                     .Where(depth => depth is not null)
                     .Select(depth => depth!.Value)
@@ -8946,14 +8953,18 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (initializerType is null && (type == "string" || IsClassReferenceType(type) && !IsNullableClassType(type) || IsDelegateType(type))) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable reference local '{type}' must be initialized.", variable.Location);
             _variableTypes[variable] = type;
             var scopeBoundDepth = variable.Initializer is null ? null : GetScopeBoundDepth(variable.Initializer, context);
+            if (scopeBoundDepth is { } initializedScopeDepth)
+                scopeBoundDepth = Math.Max(initializedScopeDepth, context.ScopeDepth);
             var scopeBoundOrder = variable.Initializer is null ? null : GetScopeBoundOrder(variable.Initializer, context);
             var isReadOnlyReference = variable.Initializer is not null && IsReadOnlyReferenceExpression(variable.Initializer, context);
+            var isScopedParameterAlias = variable.Initializer is not null && IsScopedParameterExpression(variable.Initializer, context);
             if (scopeBoundDepth is not null || isReadOnlyReference) _scopeBoundVariables.Add(variable);
             context.Declare(variable.Name, type, variable.Mutable, variable.Location, variable.IsConstant, scopeBoundDepth, isReadOnlyReference,
                 forHeaderOwner: context.ForInitializerOwner,
                 blockOwner: context.ForInitializerOwner is null ? context.CurrentCaptureBlock : null,
                 scopeBoundOrder: scopeBoundOrder,
-                declaration: variable);
+                declaration: variable,
+                isScopedParameter: isScopedParameterAlias);
             if (IsNullableType(type)) context.SetNullState(variable.Name, initializerType is null ? NullState.Null : GetNullState(variable.Initializer!, initializerType, context));
         }
     }
@@ -9062,6 +9073,17 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         OverflowContextExpression overflow => IsReadOnlyReferenceExpression(overflow.Value, context),
         ConditionalExpression conditional => IsReadOnlyReferenceExpression(conditional.WhenTrue, context) || IsReadOnlyReferenceExpression(conditional.WhenFalse, context),
         BinaryExpression { Operator: "??" } coalesce => IsReadOnlyReferenceExpression(coalesce.Left, context) || IsReadOnlyReferenceExpression(coalesce.Right, context),
+        _ => false
+    };
+
+    private bool IsScopedParameterExpression(Expression expression, MethodContext context) => expression switch
+    {
+        NameExpression name => context.Lookup(name.Name)?.IsScopedParameter == true,
+        NullAssertionExpression assertion => IsScopedParameterExpression(assertion.Operand, context),
+        CastExpression cast => IsScopedParameterExpression(cast.Operand, context),
+        OverflowContextExpression overflow => IsScopedParameterExpression(overflow.Value, context),
+        ConditionalExpression conditional => IsScopedParameterExpression(conditional.WhenTrue, context) || IsScopedParameterExpression(conditional.WhenFalse, context),
+        BinaryExpression { Operator: "??" } coalesce => IsScopedParameterExpression(coalesce.Left, context) || IsScopedParameterExpression(coalesce.Right, context),
         _ => false
     };
 
@@ -12292,17 +12314,19 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var assignedScopeDepth = GetScopeBoundDepth(binary.Right, context);
             var assignedBorrowedDepth = GetScopeBoundOrBorrowedDepth(binary.Right, context);
             var assignedReadOnlyReference = IsReadOnlyReferenceExpression(binary.Right, context);
+            if (binary.Left is NameExpression scopedLocalName && assignmentLocal is not null && IsScopedParameterExpression(binary.Right, context))
+                context.SetScopedParameter(scopedLocalName.Name);
             var isFirstScopedLocalAssignment = assignmentLocal is { ScopeBoundDepth: null, Declaration: { } localDeclaration } &&
                 (localDeclaration.Initializer is null || localDeclaration.Initializer is LiteralExpression { Value: "null" }) &&
                 assignedScopeDepth is { } localValueDepth && assignmentLocal.ScopeDepth >= localValueDepth &&
-                IsScopeBoundReferenceType(targetType);
+                (IsScopeBoundReferenceType(targetType) || IsManagedReferenceValue(targetType));
             var mayAssignScopedLocal = isFirstScopedLocalAssignment || _scopeBoundLocalAssignments.Contains(binary);
             if (isFirstScopedLocalAssignment && assignmentLocal is not null && assignedScopeDepth is { } assignedLocalDepth &&
                 assignmentLocal.Declaration is { } assignedLocalDeclaration)
             {
                 _scopeBoundLocalAssignments.Add(binary);
                 _scopeBoundVariables.Add(assignedLocalDeclaration);
-                context.SetScopeBound(assignedLocalDeclaration.Name, assignedLocalDepth, GetScopeBoundOrder(binary.Right, context));
+                context.SetScopeBound(assignedLocalDeclaration.Name, Math.Max(assignedLocalDepth, assignmentLocal.ScopeDepth), GetScopeBoundOrder(binary.Right, context));
             }
             var isFirstReadOnlyLocalAssignment = assignmentLocal is { IsReadOnlyReference: false, ScopeBoundDepth: null, Declaration: { } readOnlyDeclaration } &&
                 (readOnlyDeclaration.Initializer is null || readOnlyDeclaration.Initializer is LiteralExpression { Value: "null" }) &&
@@ -13236,10 +13260,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         public bool Exists(string name) => _scopes.Any(s => s.ContainsKey(name));
         public void Declare(string name, string type, bool mutable, SourceLocation location, bool isConstant = false, int? scopeBoundDepth = null,
             bool isReadOnlyReference = false, ForStatement? forHeaderOwner = null, BlockStatement? blockOwner = null,
-            ForInStatement? forInOwner = null, int? scopeBoundOrder = null, VariableStatement? declaration = null)
+            ForInStatement? forInOwner = null, int? scopeBoundOrder = null, VariableStatement? declaration = null,
+            bool isScopedParameter = false)
         {
             if (!_scopes[^1].TryAdd(name, new(type, mutable, isConstant, _scopes.Count, scopeBoundDepth, isReadOnlyReference,
-                    forHeaderOwner, blockOwner, forInOwner, scopeBoundOrder, declaration))) return;
+                    forHeaderOwner, blockOwner, forInOwner, scopeBoundOrder, declaration, isScopedParameter))) return;
             if (!type.EndsWith("?", StringComparison.Ordinal)) return;
             _nullStates[name] = NullState.MaybeNull;
             _nullStateScopes[^1].Add(name);
@@ -13259,6 +13284,15 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (_scopes[index].TryGetValue(name, out var local))
                 {
                     _scopes[index][name] = local with { IsReadOnlyReference = true };
+                    return;
+                }
+        }
+        public void SetScopedParameter(string name)
+        {
+            for (var index = _scopes.Count - 1; index >= 0; index--)
+                if (_scopes[index].TryGetValue(name, out var local))
+                {
+                    _scopes[index][name] = local with { IsScopedParameter = true };
                     return;
                 }
         }
@@ -13296,7 +13330,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         }
         public sealed record Local(string Type, bool Mutable, bool IsConstant = false, int ScopeDepth = 0, int? ScopeBoundDepth = null,
             bool IsReadOnlyReference = false, ForStatement? ForHeaderOwner = null, BlockStatement? BlockOwner = null,
-            ForInStatement? ForInOwner = null, int? ScopeBoundOrder = null, VariableStatement? Declaration = null)
+            ForInStatement? ForInOwner = null, int? ScopeBoundOrder = null, VariableStatement? Declaration = null,
+            bool IsScopedParameter = false)
         {
             public bool IsForHeader => ForHeaderOwner is not null;
         }
