@@ -59,7 +59,9 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 	{
 		get
 		{
-			int32 index = Find(key, GetHashCode(key));
+			if (!(key is System.Object))
+				throw new System.ArgumentNullException();
+			int32 index = Find(key, key.Hash);
 			if (index < 0)
 				throw new KeyNotFoundException();
 			TValue value;
@@ -71,7 +73,9 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 		}
 		set
 		{
-			int32 hash = GetHashCode(key);
+			if (!(key is System.Object))
+				throw new System.ArgumentNullException();
+			int32 hash = key.Hash;
 			int32 index = Find(key, hash);
 			if (index >= 0)
 			{
@@ -93,7 +97,9 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 
 	public void Add(TKey key, TValue value) mut
 	{
-		int32 hash = GetHashCode(key);
+		if (!(key is System.Object))
+			throw new System.ArgumentNullException();
+		int32 hash = key.Hash;
 		int32 index = Find(key, hash);
 		if (index >= 0)
 			throw new System.ArgumentException("An element with the same key already exists.");
@@ -108,7 +114,9 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 
 	public bool TryAdd(TKey key, TValue value) mut
 	{
-		int32 hash = GetHashCode(key);
+		if (!(key is System.Object))
+			throw new System.ArgumentNullException();
+		int32 hash = key.Hash;
 		int32 index = Find(key, hash);
 		if (index >= 0)
 			return false;
@@ -124,12 +132,16 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 
 	public bool ContainsKey(TKey key)
 	{
-		return Find(key, GetHashCode(key)) >= 0;
+		if (!(key is System.Object))
+			throw new System.ArgumentNullException();
+		return Find(key, key.Hash) >= 0;
 	}
 
 	public bool TryGetValue(TKey key, out TValue value)
 	{
-		int32 index = Find(key, GetHashCode(key));
+		if (!(key is System.Object))
+			throw new System.ArgumentNullException();
+		int32 index = Find(key, key.Hash);
 		if (index >= 0)
 		{
 			unsafe unchecked
@@ -144,7 +156,9 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 
 	public bool Remove(TKey key) mut
 	{
-		int32 index = Find(key, GetHashCode(key));
+		if (!(key is System.Object))
+			throw new System.ArgumentNullException();
+		int32 index = Find(key, key.Hash);
 		if (index < 0)
 			return false;
 		unsafe unchecked
@@ -160,8 +174,8 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 
 	public void Clear() mut
 	{
-		Array.ClearReferences(keys, 0, keys.Length);
-		Array.ClearReferences(values, 0, values.Length);
+		Array.Clear(keys);
+		Array.Clear(values);
 		Array.Clear(hashes);
 		Array.Clear(states);
 		count = 0;
@@ -184,20 +198,6 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 		while (capacity * 3 / 4 < requested)
 			capacity *= 2;
 		return capacity;
-	}
-
-	private int32 GetHashCode(TKey key)
-	{
-		if (key is System.IHashable hashable)
-			return hashable.Hash;
-		throw new System.ArgumentNullException();
-	}
-
-	private bool KeysEqual(TKey left, TKey right)
-	{
-		if (left is System.IEquality<TKey> equality)
-			return equality.Equals(right);
-		throw new System.ArgumentNullException();
 	}
 
 	private int32 Find(TKey key, int32 hash)
@@ -224,7 +224,7 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 				{
 					TKey existingKey;
 					unsafe unchecked { existingKey = keys[index]; }
-					if (KeysEqual(existingKey, key))
+					if (existingKey is System.Object && existingKey.Equals(key))
 						return index;
 				}
 			}

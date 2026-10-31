@@ -60,7 +60,6 @@ internal sealed partial class LlvmEmitter
         }
         EmitArrayCopyDispatcher(arrayTypes);
         EmitArrayClearDispatcher(arrayTypes);
-        EmitArrayClearReferencesDispatcher(arrayTypes);
     }
 
     private void EmitArrayCopyDispatcher(IReadOnlyList<(string ArrayType, string ElementType)> arrayTypes)
@@ -116,39 +115,6 @@ internal sealed partial class LlvmEmitter
                 _output.AppendLine($"  br i1 %matches.{index}, label %clear.{index}, label %{next}");
                 _output.AppendLine($"clear.{index}:");
                 _output.AppendLine($"  call void @{ArrayCopyHelperName(arrayTypes[index].ArrayType, clear: true)}(ptr %array, i32 %index, i32 %length)");
-                _output.AppendLine("  ret void");
-            }
-            _output.AppendLine("invalid:");
-            _output.AppendLine("  call void @luma_throw_bounds()");
-            _output.AppendLine("  unreachable");
-        }
-        _output.AppendLine("}");
-    }
-
-    private void EmitArrayClearReferencesDispatcher(IReadOnlyList<(string ArrayType, string ElementType)> arrayTypes)
-    {
-        _output.AppendLine("define internal void @luma_intrinsic_arrayclearrefs(ptr %array, i32 %index, i32 %length) {");
-        _output.AppendLine("entry:");
-        _output.AppendLine("  %type.address = getelementptr %luma.array, ptr %array, i32 0, i32 0");
-        _output.AppendLine("  %type = load ptr, ptr %type.address");
-        if (arrayTypes.Count == 0)
-        {
-            _output.AppendLine("  call void @luma_throw_bounds()");
-            _output.AppendLine("  unreachable");
-        }
-        else
-        {
-            _output.AppendLine("  br label %check.0");
-            for (var index = 0; index < arrayTypes.Count; index++)
-            {
-                var (arrayType, elementType) = arrayTypes[index];
-                var next = index + 1 == arrayTypes.Count ? "invalid" : $"check.{index + 1}";
-                _output.AppendLine(index == 0 ? "check.0:" : $"check.{index}:");
-                _output.AppendLine($"  %matches.{index} = icmp eq ptr %type, {ArrayDescriptorPointer(arrayType)}");
-                _output.AppendLine($"  br i1 %matches.{index}, label %clear.{index}, label %{next}");
-                _output.AppendLine($"clear.{index}:");
-                if (TryGetArrayReferenceOperations(elementType, out _, out _, out _))
-                    _output.AppendLine($"  call void @{ArrayCopyHelperName(arrayType, clear: true)}(ptr %array, i32 %index, i32 %length)");
                 _output.AppendLine("  ret void");
             }
             _output.AppendLine("invalid:");

@@ -1277,6 +1277,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
         var linkage = IsRuntimeIntrinsicType(method.Owner) || stripUnusedExecutableCode ? "internal " : "";
+        var isListType = method.Owner.Namespace == "System.Collections" &&
+            method.Owner.Name.StartsWith("List", StringComparison.Ordinal);
+        var inlineAttribute = isListType &&
+            (d.PropertyName is not null || d.Name is "Add" or "Insert" or "RemoveAt" or "IndexOf" or "Contains" or "Remove" or "Clear" or "ToArray")
+                ? " alwaysinline" : "";
         string? frameNameSymbol = null;
         var frameNameLength = 0;
         if (HasStackTraceSupport() && !d.IsCompilerGenerated && !d.Name.StartsWith('$') && !d.Name.StartsWith("__", StringComparison.Ordinal) &&
@@ -1288,7 +1293,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             frameNameLength = Encoding.UTF8.GetByteCount(readableName);
             EmitUtf8CConstant(frameNameSymbol, readableName);
         }
-        _output.AppendLine($"define {linkage}{LlvmReturnType(d)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", functionParameters)}) {{");
+        _output.AppendLine($"define {linkage}{LlvmReturnType(d)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", functionParameters)}){inlineAttribute} {{");
         var body = emitter.Emit(d.Body!, frameNameSymbol, frameNameLength); _output.Append(body); _output.AppendLine("}");
     }
     private void EmitExternDeclaration(MethodSymbol method)
@@ -7057,6 +7062,10 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 if (operand.Type == "null") Emit($"{result} = icmp ne ptr null, null");
                 else if (interfaceTypes.ContainsKey(classType) && IsBoxableValueType(operand.Type))
                     result = interfaceConversions.Contains((operand.Type, classType)) ? "true" : "false";
+                else if (classType == "System.Object" && IsBoxableScalarOrEnum(operand.Type))
+                    result = "true";
+                else if (classType == "System.Object" && structTypes.ContainsKey(operand.Type))
+                    result = "true";
                 else if (interfaceTypes.ContainsKey(classType))
                 {
                     var interfaceValue = operand.Value;

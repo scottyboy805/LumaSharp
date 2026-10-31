@@ -5800,6 +5800,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             diagnostics.Add("LS1303", DiagnosticSeverity.Error, "A for-in collection must be non-nullable; check the value before iterating.", loop.Collection.Location);
             return;
         }
+        if (TryGetListElementType(sourceType, context.Method.Owner, out var listElementType))
+        {
+            LowerListForIn(loop, sourceType, listElementType, context);
+            return;
+        }
         var isManagedArray = TryParseManagedArrayType(sourceType, out var elementType, out var arrayRank) && arrayRank <= 3;
         if (isManagedArray)
             _managedArrayForInElementTypes[loop] = elementType;
@@ -5896,6 +5901,52 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         normalExitStates.AddRange(iterationExitStates.Select(context.FilterVisibleNullStates));
         var loopFlow = CreateLoopExitFlow(context, loop.Label, loopBreakStates);
         MergeLoopExitStates(context, loopFlow, MergeNullStatePaths(normalExitStates), hasNormalExit: true);
+    }
+
+    private bool TryGetListElementType(string sourceType, TypeDeclaration context, out string elementType)
+    {
+        var definition = GenericTypeSpecializer.ResolveDefinition("System.Collections.List", context, _genericDefinitions);
+        if (definition is not null && TryGetExactGenericTypeArguments(sourceType, definition, context, out var arguments) && arguments.Count == 1)
+        {
+            elementType = NormalizeEnumType(arguments[0], context);
+            return true;
+        }
+        elementType = "";
+        return false;
+    }
+
+    private void LowerListForIn(ForInStatement loop, string sourceType, string elementType, MethodContext context)
+    {
+        var loopType = loop.TypeName is null ? elementType : NormalizeEnumType(loop.TypeName, context.Method.Owner);
+        if (loop.TypeName is not null)
+        {
+            ValidateDeclaredType(loopType, "Local", loop.Location, context.Method.Owner);
+            if (!CanConvert(elementType, loopType, null))
+                diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Cannot convert List element '{elementType}' to loop variable type '{loopType}'.", loop.Location);
+        }
+        var collectionName = "__ls_forin_list_" + _forInIteratorCounter++;
+        while (context.Exists(collectionName)) collectionName = "__ls_forin_list_" + _forInIteratorCounter++;
+        var indexName = "__ls_forin_index_" + _forInIteratorCounter++;
+        while (context.Exists(indexName)) indexName = "__ls_forin_index_" + _forInIteratorCounter++;
+        var at = loop.Location;
+        var collection = new VariableStatement(collectionName, false, sourceType, loop.Collection, at);
+        var index = new VariableStatement(indexName, true, "int32", new LiteralExpression("0", at), at);
+        var initializer = new VariableDeclarationStatement([collection, index], at);
+        var condition = new BinaryExpression(
+            new NameExpression(indexName, at), "<",
+            new MemberAccessExpression(new NameExpression(collectionName, at), "Count", at), at);
+        var increment = new BinaryExpression(
+            new NameExpression(indexName, at), "=",
+            new BinaryExpression(new NameExpression(indexName, at), "+", new LiteralExpression("1", at), at), at);
+        var item = new IndexExpression(new NameExpression(collectionName, at), [new NameExpression(indexName, at)], at);
+        var iterationVariable = new VariableStatement(loop.Name, loop.Mutable, loopType, item, at);
+        var bodyStatements = loop.Body is BlockStatement bodyBlock
+            ? new[] { iterationVariable }.Concat(bodyBlock.Statements).ToArray()
+            : [iterationVariable, loop.Body];
+        var body = new BlockStatement(bodyStatements, loop.Body.Location);
+        var lowered = new ForStatement(initializer, condition, [increment], body, at, loop.Label);
+        _loweredForInLoops[loop] = lowered;
+        AnalyzeStatement(lowered, context);
     }
 
     private static IReadOnlyDictionary<string, NullState> RemoveLoopVariableNullState(

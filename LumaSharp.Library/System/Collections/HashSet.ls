@@ -54,7 +54,9 @@ public class HashSet<T> : IEnumerable<T> where T : default, System.IHashable, Sy
 
 	public bool Add(T item) mut
 	{
-		int32 hash = GetHashCode(item);
+		if (!(item is System.Object))
+			throw new System.ArgumentNullException();
+		int32 hash = item.Hash;
 		int32 index = Find(item, hash);
 		if (index >= 0)
 			return false;
@@ -70,12 +72,16 @@ public class HashSet<T> : IEnumerable<T> where T : default, System.IHashable, Sy
 
 	public bool Contains(T item)
 	{
-		return Find(item, GetHashCode(item)) >= 0;
+		if (!(item is System.Object))
+			throw new System.ArgumentNullException();
+		return Find(item, item.Hash) >= 0;
 	}
 
 	public bool Remove(T item) mut
 	{
-		int32 index = Find(item, GetHashCode(item));
+		if (!(item is System.Object))
+			throw new System.ArgumentNullException();
+		int32 index = Find(item, item.Hash);
 		if (index < 0)
 			return false;
 		unsafe unchecked
@@ -90,7 +96,7 @@ public class HashSet<T> : IEnumerable<T> where T : default, System.IHashable, Sy
 
 	public void Clear() mut
 	{
-		Array.ClearReferences(items, 0, items.Length);
+		Array.Clear(items);
 		Array.Clear(hashes);
 		Array.Clear(states);
 		count = 0;
@@ -131,20 +137,6 @@ public class HashSet<T> : IEnumerable<T> where T : default, System.IHashable, Sy
 		return Iterator<T>(this);
 	}
 
-	private int32 GetHashCode(T item)
-	{
-		if (item is System.IHashable hashable)
-			return hashable.Hash;
-		throw new System.ArgumentNullException();
-	}
-
-	private bool ItemsEqual(T left, T right)
-	{
-		if (left is System.IEquality<T> equality)
-			return equality.Equals(right);
-		throw new System.ArgumentNullException();
-	}
-
 	private int32 Find(T item, int32 hash)
 	{
 		int32 slot = hash & 0x7FFFFFFF;
@@ -169,7 +161,7 @@ public class HashSet<T> : IEnumerable<T> where T : default, System.IHashable, Sy
 				{
 					T current;
 					unsafe unchecked { current = items[index]; }
-					if (ItemsEqual(current, item))
+					if (current is System.Object && current.Equals(item))
 						return index;
 				}
 			}

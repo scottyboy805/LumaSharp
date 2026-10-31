@@ -118,7 +118,7 @@ public sealed class CollectionApiBenchmarkTests(ITestOutputHelper output)
                 var result = ratio > 1.05 ? "Luma faster" : ratio < 0.95 ? "C# faster" : "close";
                 output.WriteLine($"{item.Name,-31} C# {csharpMedian,9:F3} ms [{csharp.Min():F3}–{csharp.Max():F3}]  Luma {lumaMedian,9:F3} ms [{luma.Min():F3}–{luma.Max():F3}]  C#/Luma {ratio,5:F2}x  {result}");
             }
-            output.WriteLine("Five measured Release samples after one warmup. Each timer excludes collection setup; Clear cases time one Clear on a prefilled collection. Search APIs use hit-at-end and absent-key cases. Matching checksums are required for every sample.");
+            output.WriteLine("Five measured Release samples after one warmup. C# uses Release JIT; Luma is built with Optimize=true (LLVM O2). Each timer excludes collection setup; Clear cases time one Clear on a prefilled collection. Search APIs use hit-at-end and absent-key cases. Matching checksums are required for every sample.");
             output.WriteLine("List.ToArray has a separate full-array stress benchmark. Luma-only Ptr, GetAt, and hash-table Capacity have no direct BCL counterpart and are not reported here.");
         }
         finally

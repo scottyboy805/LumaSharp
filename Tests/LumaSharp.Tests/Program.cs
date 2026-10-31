@@ -1020,6 +1020,16 @@ public sealed class CompilerTests
                     int32 listTotal = 0;
                     for (let item in list)
                         listTotal += item;
+                    List<TestKey?> referenceList = new List<TestKey?>();
+                    referenceList.Add(new TestKey(1));
+                    referenceList.Add(new TestKey(3));
+                    referenceList.Insert(1, new TestKey(2));
+                    bool referenceInsertValid = referenceList.Count == 3 && referenceList[0]!.value == 1 &&
+                        referenceList[1]!.value == 2 && referenceList[2]!.value == 3 &&
+                        referenceList.IndexOf(new TestKey(2)) == 1 && referenceList.Contains(new TestKey(2));
+                    referenceList.RemoveAt(1);
+                    bool referenceRemoveValid = referenceList.Count == 2 && referenceList[0]!.value == 1 &&
+                        referenceList[1]!.value == 3;
                     IEnumerable<int32> listEnumerable = list;
                     int32 listInterfaceTotal = 0;
                     for (let item in listEnumerable)
@@ -1064,6 +1074,7 @@ public sealed class CompilerTests
                         setCount++;
 
                     bool valid = list.Count == 3 && list[1] == 15 && contains && foundIndex == 2 && pointerValue == 10 &&
+                        referenceInsertValid && referenceRemoveValid &&
                         copiedValues.Length == 3 && copiedValues[1] == 15 && inserted &&
                         stack.Pop() == 2 && stack.Pop() == 1 &&
                         queue.Dequeue() == 3 && queue.Dequeue() == 4 &&

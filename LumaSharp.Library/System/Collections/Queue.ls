@@ -85,7 +85,7 @@ public class Queue<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		Array.ClearReferences(items, 0, items.Length);
+		Array.Clear(items);
 		head = 0;
 		count = 0;
 	}

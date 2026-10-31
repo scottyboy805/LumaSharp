@@ -76,7 +76,7 @@ public class Stack<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		Array.ClearReferences(items, 0, count);
+		Array.Clear(items, 0, count);
 		count = 0;
 	}
 

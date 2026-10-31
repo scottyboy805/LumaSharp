@@ -60,21 +60,13 @@ public class List<T> : IEnumerable<T> where T : default, System.IEquality<T>
 		{
 			if (index < 0 || index >= count)
 				throw new System.ArgumentOutOfRangeException();
-			T item;
-			unsafe unchecked
-			{
-				item = items[index];
-			}
-			return item;
+			return items[index];
 		}
 		set
 		{
 			if (index < 0 || index >= count)
 				throw new System.ArgumentOutOfRangeException();
-			unsafe unchecked
-			{
-				items[index] = value;
-			}
+			items[index] = value;
 		}
 	}
 
@@ -82,10 +74,7 @@ public class List<T> : IEnumerable<T> where T : default, System.IEquality<T>
 	{
 		if (count == items.Length)
 			EnsureCapacity(count + 1);
-		unsafe unchecked
-		{
-			items[count] = item;
-		}
+		items[count] = item;
 		count++;
 	}
 
@@ -95,10 +84,7 @@ public class List<T> : IEnumerable<T> where T : default, System.IEquality<T>
 			throw new System.ArgumentOutOfRangeException();
 		EnsureCapacity(count + 1);
 		Array.Copy(items, index, items, index + 1, count - index);
-		unsafe unchecked
-		{
-			items[index] = item;
-		}
+		items[index] = item;
 		count++;
 	}
 
@@ -108,50 +94,22 @@ public class List<T> : IEnumerable<T> where T : default, System.IEquality<T>
 			throw new System.ArgumentOutOfRangeException();
 		Array.Copy(items, index + 1, items, index, count - index - 1);
 		count--;
-		unsafe unchecked
-		{
-			items[count] = default(T);
-		}
+		items[count] = default(T);
 	}
 
 	public void Clear() mut
 	{
-		Array.ClearReferences(items, 0, count);
+		Array.Clear(items, 0, count);
 		count = 0;
 	}
 
 	public int32 IndexOf(T item)
 	{
-		int32 index = 0;
-		while (index + 3 < count)
+		for (int32 index = 0; index < count; index++)
 		{
-			T first;
-			T second;
-			T third;
-			T fourth;
-			unsafe unchecked
-			{
-				first = items[index];
-				second = items[index + 1];
-				third = items[index + 2];
-				fourth = items[index + 3];
-			}
-			if (first is System.IEquality<T> firstEquality && firstEquality.Equals(item))
+			T current = items[index];
+			if (current is System.Object && current.Equals(item))
 				return index;
-			if (second is System.IEquality<T> secondEquality && secondEquality.Equals(item))
-				return index + 1;
-			if (third is System.IEquality<T> thirdEquality && thirdEquality.Equals(item))
-				return index + 2;
-			if (fourth is System.IEquality<T> fourthEquality && fourthEquality.Equals(item))
-				return index + 3;
-			index += 4;
-		}
-		while (index < count)
-		{
-			T current;
-			unsafe unchecked { current = items[index]; }
-			if (current is System.IEquality<T> equality && equality.Equals(item)) return index;
-			index++;
 		}
 		return -1;
 	}
