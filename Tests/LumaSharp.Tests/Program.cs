@@ -2167,7 +2167,7 @@ public sealed class CompilerTests
         var defaultValue = Compile("class Program { public static int32 Main() { return 0; } public static int32 Sum(int32... values = default) { return 0; } }");
         Assert.Contains(defaultValue.Diagnostics, diagnostic => diagnostic.Code == "LMC3010" && diagnostic.Message.Contains("cannot have a default", StringComparison.Ordinal));
 
-        var externVariadic = Compile("unsafe class Program { public static int32 Main() { return 0; } public static extern int32 Sum(int32... values); }");
+        var externVariadic = Compile("unsafe class Program { public static int32 Main() { return 0; } public static extern int32 Sum(int32... values); }", new CompilationOptions(UnsafeEnabled: true));
         Assert.Contains(externVariadic.Diagnostics, diagnostic => diagnostic.Code == "LS2101" && diagnostic.Message.Contains("Variadic", StringComparison.Ordinal));
     }
 
