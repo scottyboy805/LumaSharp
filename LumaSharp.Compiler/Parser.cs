@@ -234,8 +234,6 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                     continue;
                 }
                 ValidateAllowedModifiers(memberModifiers, ["public", "private", "protected", "internal", "static", "unsafe"], memberStart.Location, "conversion operator");
-                if (!memberModifiers.Contains("static"))
-                    diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A conversion operator must be static.", memberStart.Location);
                 Expect("(");
                 var conversionParameters = ParseParameters();
                 Expect(")");
@@ -332,8 +330,6 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (memberName.Text == "operator")
             {
                 ValidateAllowedModifiers(memberModifiers, ["public", "private", "protected", "internal", "static", "unsafe"], memberStart.Location, "operator");
-                if (!memberModifiers.Contains("static"))
-                    diagnostics.Add("LS0001", DiagnosticSeverity.Error, "An overloaded operator must be static.", memberStart.Location);
                 var operatorToken = Take(); Expect("("); var operatorParameters = ParseParameters(); Expect(")");
                 BlockStatement? operatorBody = null;
                 if (Eat("=>")) { var expression = ParseExpression(); Expect(";"); operatorBody = new([new ReturnStatement(expression, expression.Location)], expression.Location); }
