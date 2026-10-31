@@ -6698,7 +6698,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 else
                 {
                     var simple = op[..^1];
-                    var compoundType = simple is "<<" or ">>" ? SemanticAnalyzer.PromoteSmallInteger(targetType) : IsNumericType(targetType) && IsNumericType(assignmentRight.Type) ? SemanticAnalyzer.NumericPromotionType(targetType, assignmentRight.Type) : targetType;
+                    var compoundType = simple is "<<" or ">>" ? SemanticAnalyzer.PromoteSmallInteger(targetType) : IsNumericType(targetType) && IsNumericType(assignmentRight.Type) ? SemanticAnalyzer.NumericPromotionType(targetType, assignmentRight.Type, nativePointerSize) : targetType;
                     var promotedLeft = CastValue(old!, targetType, compoundType);
                     var promotedRight = simple is "<<" or ">>" ? CastValue(CastValue(assignmentRight.Value, assignmentRight.Type, "int32"), "int32", compoundType) : CastValue(assignmentRight.Value, assignmentRight.Type, compoundType, checkedConversion: enumTypes.ContainsKey(targetType) && assignmentRight.Type != targetType && _checkedContext);
                     var operationResult = EmitBinaryOperation(simple, compoundType, promotedLeft, promotedRight, compoundType).Item1;
@@ -6771,7 +6771,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 shiftCount = CastValue(shiftCount, "int32", shiftType);
                 return EmitBinaryOperation(op, shiftType, CastValue(left.Value, left.Type, shiftType), shiftCount, shiftType);
             }
-            var operationType = IsNumericType(left.Type) && IsNumericType(right.Type) ? SemanticAnalyzer.NumericPromotionType(left.Type, right.Type) : type;
+            var operationType = IsNumericType(left.Type) && IsNumericType(right.Type) ? SemanticAnalyzer.NumericPromotionType(left.Type, right.Type, nativePointerSize) : type;
             var convertedLeft = CastValue(left.Value, left.Type, operationType);
             var convertedRight = CastValue(right.Value, right.Type, operationType, checkedConversion: enumTypes.ContainsKey(operationType) && right.Type != operationType && _checkedContext);
             return EmitBinaryOperation(op, operationType, convertedLeft, convertedRight, operationType);
@@ -6844,7 +6844,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 else
                 {
                     var operationType = simpleOperator is "<<" or ">>" ? SemanticAnalyzer.PromoteSmallInteger(oldValue.Type) :
-                        IsNumericType(oldValue.Type) && IsNumericType(right.Type) ? SemanticAnalyzer.NumericPromotionType(oldValue.Type, right.Type) : oldValue.Type;
+                        IsNumericType(oldValue.Type) && IsNumericType(right.Type) ? SemanticAnalyzer.NumericPromotionType(oldValue.Type, right.Type, nativePointerSize) : oldValue.Type;
                     var left = CastValue(oldValue.Value, oldValue.Type, operationType);
                     var convertedRight = simpleOperator is "<<" or ">>"
                         ? CastValue(CastValue(right.Value, right.Type, "int32"), "int32", operationType)
@@ -7335,7 +7335,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var rightUnderlying = IsNullableValueType(right.Type) ? NullableUnderlyingType(right.Type) : right.Type;
             var isShift = expression.Operator is "<<" or ">>";
             var operationType = isShift ? SemanticAnalyzer.PromoteSmallInteger(leftUnderlying) : expression.Operator is "&" or "|" or "^" && leftUnderlying == "bool" && rightUnderlying == "bool"
-                ? "bool" : SemanticAnalyzer.NumericPromotionType(leftUnderlying, rightUnderlying);
+                ? "bool" : SemanticAnalyzer.NumericPromotionType(leftUnderlying, rightUnderlying, nativePointerSize);
             var leftHas = "true"; var rightHas = "true"; var leftValue = left.Value; var rightValue = right.Value;
             if (IsNullableValueType(left.Type))
             {

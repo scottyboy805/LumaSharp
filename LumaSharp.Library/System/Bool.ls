@@ -35,7 +35,9 @@ public struct Bool : IHashable, IEquality<bool>
 		{
 			char actual = value[i];
 			if (actual >= 'a' && actual <= 'z') actual = (char)(actual - 'a' + 'A');
-			if (actual != expected[i]) return false;
+			char expectedCharacter = expected[i];
+			if (expectedCharacter >= 'a' && expectedCharacter <= 'z') expectedCharacter = (char)(expectedCharacter - 'a' + 'A');
+			if (actual != expectedCharacter) return false;
 		}
 		return true;
 	}

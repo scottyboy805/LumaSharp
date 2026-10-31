@@ -1089,6 +1089,8 @@ public sealed class CompilerTests
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
             .Select(path => (path, File.ReadAllText(path)));
         var source = """
+            using System;
+
             public class Program
             {
                 public static int32 Main()
@@ -1096,6 +1098,7 @@ public sealed class CompilerTests
                     int32 top = int32.MaxValue;
                     int32 parsed = int32.Parse("-2147483648");
                     bool parsedBool = bool.Parse("tRuE");
+                    bool parsedFalse = bool.Parse("fAlSe");
                     bool valid = int32.TryParse("2147483647", out int32 maximum);
                     bool invalid = int32.TryParse("2147483648", out int32 ignored);
                     int nativeMin = int.MinValue;
@@ -1124,7 +1127,7 @@ public sealed class CompilerTests
                     string notANumber = Double.NaN.ToString();
                     string positiveInfinity = Float.PositiveInfinity.ToString();
                     string negativeInfinity = Double.NegativeInfinity.ToString();
-                    return top == 2147483647 && parsed == int32.MinValue && parsedBool && valid && maximum == top &&
+                    return top == 2147483647 && parsed == int32.MinValue && parsedBool && !parsedFalse && valid && maximum == top &&
                         !invalid && nativeMin < 0 && nativeMax > 0 && smallMin == -128 && letter == 'A' &&
                         empty.Length == 0 && precise == 125.0 && single == 1.5f && formatted == "42" && variableFormatted == "42" &&
                         yes.ToString() == "True" && no.ToString() == "False" && character.ToString() == "é" &&
@@ -1142,7 +1145,8 @@ public sealed class CompilerTests
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
-        Assert.Equal(0, execution.ExitCode);
+        Assert.True(execution.ExitCode == 0,
+            $"Exit code {execution.ExitCode}. {LlvmJit.CapturedStderr} {execution.InteropError}");
         Assert.Equal(0, execution.OutstandingAllocations);
     }
 

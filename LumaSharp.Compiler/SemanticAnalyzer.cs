@@ -3746,7 +3746,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             (left == right && (left != "string" || binary.Operator is "==" or "!=") || NumericTypes.Contains(left) && NumericTypes.Contains(right)) => "bool",
         BinaryExpression binary when binary.Operator is "&" or "|" or "^" && ConstantExpressionType(binary.Left) == "bool" && ConstantExpressionType(binary.Right) == "bool" => "bool",
         BinaryExpression binary when binary.Operator is "+" or "-" or "*" or "/" or "%" or "&" or "|" or "^" &&
-            ConstantExpressionType(binary.Left) is { } left && ConstantExpressionType(binary.Right) is { } right && NumericTypes.Contains(left) && NumericTypes.Contains(right) => NumericPromotionType(left, right),
+            ConstantExpressionType(binary.Left) is { } left && ConstantExpressionType(binary.Right) is { } right && NumericTypes.Contains(left) && NumericTypes.Contains(right) => NumericPromotionType(left, right, _nativePointerSize),
         BinaryExpression { Operator: "+" } binary when ConstantExpressionType(binary.Left) == "string" && ConstantExpressionType(binary.Right) == "string" => "string",
         BinaryExpression binary when binary.Operator is "<<" or ">>" && ConstantExpressionType(binary.Left) is { } left &&
             ConstantExpressionType(binary.Right) is { } right && IntegerTypes.Contains(left) && IntegerTypes.Contains(right) => PromoteSmallInteger(left),
@@ -11033,7 +11033,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 }
                 if (NumericTypes.Contains(previousUnderlying) && NumericTypes.Contains(actualUnderlying))
                 {
-                    var nullableType = NumericPromotionType(previousUnderlying, actualUnderlying) + "?";
+                    var nullableType = NumericPromotionType(previousUnderlying, actualUnderlying, _nativePointerSize) + "?";
                     if ((nullableType == previous || nullableType == actual) &&
                         CanConvert(previous, nullableType, null) && CanConvert(actual, nullableType, null))
                     {
@@ -11044,7 +11044,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
             if (NumericTypes.Contains(previous) && NumericTypes.Contains(actual))
             {
-                var promotedType = NumericPromotionType(previous, actual);
+                var promotedType = NumericPromotionType(previous, actual, _nativePointerSize);
                 if ((promotedType == previous || promotedType == actual) &&
                     CanConvert(previous, promotedType, null) && CanConvert(actual, promotedType, null))
                 {
@@ -11158,7 +11158,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         }
 
         var nullable = IsNullableValueType(first) || IsNullableValueType(second);
-        var promoted = NumericPromotionType(firstUnderlying, secondUnderlying) + (nullable ? "?" : "");
+        var promoted = NumericPromotionType(firstUnderlying, secondUnderlying, _nativePointerSize) + (nullable ? "?" : "");
         if (CanConvert(first, promoted, firstExpression) && CanConvert(second, promoted, secondExpression))
         {
             commonType = promoted;
@@ -11211,7 +11211,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var bound in lowerBounds.Skip(1))
         {
             var nullable = IsNullableValueType(result) || IsNullableValueType(bound);
-            result = NumericPromotionType(NullableUnderlyingType(result), NullableUnderlyingType(bound)) + (nullable ? "?" : "");
+            result = NumericPromotionType(NullableUnderlyingType(result), NullableUnderlyingType(bound), _nativePointerSize) + (nullable ? "?" : "");
         }
         return result;
     }
@@ -12577,7 +12577,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 (!NumericTypes.Contains(leftUnderlying) || !NumericTypes.Contains(rightUnderlying)))
             { diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Lifted operator '{op}' requires compatible nullable operands, not '{left}' and '{right}'.", binary.Location); return "?"; }
             var promoted = NumericTypes.Contains(leftUnderlying) && NumericTypes.Contains(rightUnderlying)
-                ? NumericPromotionType(leftUnderlying, rightUnderlying) : leftUnderlying;
+                ? NumericPromotionType(leftUnderlying, rightUnderlying, _nativePointerSize) : leftUnderlying;
             if (op is "<" or ">" or "<=" or ">=") return "bool";
             return promoted + "?";
         }
@@ -12668,6 +12668,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         if (!NumericTypes.Contains(left) || !NumericTypes.Contains(right))
         { diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Numeric operands required; found '{left}' and '{right}'.", at); return "int32"; }
+        left = NormalizeNativeIntegerType(left);
+        right = NormalizeNativeIntegerType(right);
         if (left == "double" || right == "double") return "double";
         if (left == "float" || right == "float") return "float";
         if ((left == "uint32" && right is "uint8" or "uint16") || (right == "uint32" && left is "uint8" or "uint16")) return "uint32";
@@ -12690,7 +12692,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     }
     internal static string PromoteSmallInteger(string type) => type is "int8" or "uint8" or "int16" or "uint16" or "char" ? "int32" : type;
     internal static string NumericPromotionType(string left, string right)
+        => NumericPromotionType(left, right, IntPtr.Size);
+
+    internal static string NumericPromotionType(string left, string right, int nativePointerSize)
     {
+        left = NormalizeNativeIntegerType(left, nativePointerSize);
+        right = NormalizeNativeIntegerType(right, nativePointerSize);
         if (left == "double" || right == "double") return "double";
         if (left == "float" || right == "float") return "float";
         if ((left == "uint32" && right is "uint8" or "uint16") || (right == "uint32" && left is "uint8" or "uint16")) return "uint32";
@@ -12700,6 +12707,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (left == "uint32" || right == "uint32") return left == "uint32" && right == "uint32" || left == "uint32" && IsUnsigned(right) || right == "uint32" && IsUnsigned(left) ? "uint32" : "int64";
         return "int32";
     }
+    private string NormalizeNativeIntegerType(string type) => NormalizeNativeIntegerType(type, _nativePointerSize);
+    private static string NormalizeNativeIntegerType(string type, int nativePointerSize) => type switch
+    {
+        "int" => nativePointerSize == 8 ? "int64" : "int32",
+        "uint" => nativePointerSize == 8 ? "uint64" : "uint32",
+        _ => type
+    };
     private static bool IsNonNegativeIntegerConstant(Expression expression) => expression is LiteralExpression l && (ParseInteger(l.Value).Value is { } value && value >= BigInteger.Zero || TryParseCharacter(l.Value, out _));
     private bool CanConvert(string from, string to, Expression? expression)
     {
