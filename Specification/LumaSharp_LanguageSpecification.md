@@ -3424,6 +3424,7 @@ Apart from the empty string (§16.2.1), whether two string literals with identic
 ## 16.5 Concatenation
 
 `+` concatenates strings, producing a new string. If one operand is not a string, it is converted by calling `ToString()` on it (boxing value types if needed); a `null` operand contributes the empty text.
+Boolean values contribute `True` or `False`, matching `System.Bool.TrueString` and `System.Bool.FalseString`.
 
 ```lumasharp
 string a = "x" + "y";        // "xy"

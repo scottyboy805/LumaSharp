@@ -1994,7 +1994,7 @@ public sealed class CompilerTests
     [Fact]
     public void ConcatenatesPrimitiveValuesUsingTheirTextRepresentations()
     {
-        const string source = "class Program { public static int32 Main() { string value = \"n=\" + -42; if (value != \"n=-42\") return 1; value += true; if (value != \"n=-42true\") return 2; value = value + 'λ'; if (value != \"n=-42trueλ\") return 3; value += null; if (value != \"n=-42trueλ\") return 4; string unsigned = \"u=\" + 18446744073709551615UL; if (unsigned != \"u=18446744073709551615\") return 5; int64 minimum = (int64)0 - 9223372036854775807L - 1L; string signed = \"s=\" + minimum; if (signed != \"s=-9223372036854775808\") return 6; return 0; } }";
+        const string source = "class Program { public static int32 Main() { string value = \"n=\" + -42; if (value != \"n=-42\") return 1; value += true; if (value != \"n=-42True\") return 2; value = value + 'λ'; if (value != \"n=-42Trueλ\") return 3; value += null; if (value != \"n=-42Trueλ\") return 4; value += false; if (value != \"n=-42TrueλFalse\") return 7; string unsigned = \"u=\" + 18446744073709551615UL; if (unsigned != \"u=18446744073709551615\") return 5; int64 minimum = (int64)0 - 9223372036854775807L - 1L; string signed = \"s=\" + minimum; if (signed != \"s=-9223372036854775808\") return 6; return 0; } }";
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("@luma_string_from_i64", result.LlvmIr!, StringComparison.Ordinal);
