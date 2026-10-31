@@ -2629,7 +2629,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if (constraint == "default")
             return NumericTypes.Contains(argumentType) || argumentType == "bool" || _enumUnderlyingTypes.ContainsKey(argumentType) ||
                 _structTypes.ContainsKey(argumentType) || TryParseInlineArrayType(argumentType, out _, out _) || IsNullableType(argumentType);
-        if (_interfaceTypes.ContainsKey(constraint) && _interfaceConversions.Contains((argumentType, constraint))) return true;
+        static string StripNullableAnnotations(string type) => type.Replace("?", "", StringComparison.Ordinal);
+        var nonNullableArgumentType = StripNullableAnnotations(argumentType);
+        if (_interfaceConversions.Any(conversion =>
+            StripNullableAnnotations(conversion.FromType) == nonNullableArgumentType &&
+            StripNullableAnnotations(conversion.ToType) == StripNullableAnnotations(constraint))) return true;
         if (argumentType.EndsWith("?", StringComparison.Ordinal)) return false;
         var isValueType = NumericTypes.Contains(argumentType) || argumentType == "bool" || _enumUnderlyingTypes.ContainsKey(argumentType) ||
             _structTypes.ContainsKey(argumentType) || TryParseInlineArrayType(argumentType, out _, out _);

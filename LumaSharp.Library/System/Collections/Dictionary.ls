@@ -1,6 +1,6 @@
 namespace System.Collections;
 
-public class Dictionary<TKey, TValue> where TKey : default where TValue : default
+public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, System.IEquality<TKey> where TValue : default
 {
 	private TKey[] keys;
 	private TValue[] values;
@@ -81,27 +81,44 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 				}
 				return;
 			}
+			int32 insertionIndex = -index - 1;
+			int32 previousCapacity = states.Length;
 			EnsureCapacity(count + 1);
-			InsertNew(key, value, hash);
+			if (states.Length != previousCapacity || insertionIndex >= previousCapacity)
+				InsertNew(key, value, hash);
+			else
+				Store(insertionIndex, key, value, hash);
 		}
 	}
 
 	public void Add(TKey key, TValue value) mut
 	{
 		int32 hash = GetHashCode(key);
-		if (Find(key, hash) >= 0)
+		int32 index = Find(key, hash);
+		if (index >= 0)
 			throw new System.ArgumentException("An element with the same key already exists.");
+		int32 insertionIndex = -index - 1;
+		int32 previousCapacity = states.Length;
 		EnsureCapacity(count + 1);
-		InsertNew(key, value, hash);
+		if (states.Length != previousCapacity || insertionIndex >= previousCapacity)
+			InsertNew(key, value, hash);
+		else
+			Store(insertionIndex, key, value, hash);
 	}
 
 	public bool TryAdd(TKey key, TValue value) mut
 	{
 		int32 hash = GetHashCode(key);
-		if (Find(key, hash) >= 0)
+		int32 index = Find(key, hash);
+		if (index >= 0)
 			return false;
+		int32 insertionIndex = -index - 1;
+		int32 previousCapacity = states.Length;
 		EnsureCapacity(count + 1);
-		InsertNew(key, value, hash);
+		if (states.Length != previousCapacity || insertionIndex >= previousCapacity)
+			InsertNew(key, value, hash);
+		else
+			Store(insertionIndex, key, value, hash);
 		return true;
 	}
 
@@ -120,19 +137,6 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 				value = values[index];
 			}
 			return true;
-		}
-		for (int32 empty = 0; empty < states.Length; empty++)
-		{
-			int32 state;
-			unsafe unchecked
-			{
-				state = states[empty];
-			}
-			if (state == 0)
-			{
-				value = default(TValue);
-				return false;
-			}
 		}
 		value = default(TValue);
 		return false;
@@ -156,14 +160,10 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 
 	public void Clear() mut
 	{
-		for (int32 index = 0; index < states.Length; index++)
-			unsafe unchecked
-			{
-				keys[index] = default(TKey);
-				values[index] = default(TValue);
-				hashes[index] = 0;
-				states[index] = 0;
-			}
+		Array.ClearReferences(keys, 0, keys.Length);
+		Array.ClearReferences(values, 0, values.Length);
+		Array.Clear(hashes);
+		Array.Clear(states);
 		count = 0;
 		used = 0;
 	}
@@ -190,37 +190,46 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 	{
 		if (key is System.IHashable hashable)
 			return hashable.Hash;
-		return 0;
+		throw new System.ArgumentNullException();
 	}
 
 	private bool KeysEqual(TKey left, TKey right)
 	{
 		if (left is System.IEquality<TKey> equality)
 			return equality.Equals(right);
-		return left == right;
+		throw new System.ArgumentNullException();
 	}
 
 	private int32 Find(TKey key, int32 hash)
 	{
 		int32 slot = hash & 0x7FFFFFFF;
+		int32 firstDeleted = -1;
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
-			int32 index = (slot + probe) % states.Length;
+			int32 index = (slot + probe) & (states.Length - 1);
 			int32 state;
-			int32 existingHash;
-			TKey existingKey;
 			unsafe unchecked
 			{
 				state = states[index];
-				existingHash = hashes[index];
-				existingKey = keys[index];
 			}
 			if (state == 0)
-				return -1;
-			if (state == 1 && existingHash == hash && KeysEqual(existingKey, key))
-				return index;
+				return -(firstDeleted >= 0 ? firstDeleted : index) - 1;
+			if (state == 2 && firstDeleted < 0)
+				firstDeleted = index;
+			else if (state == 1)
+			{
+				int32 existingHash;
+				unsafe unchecked { existingHash = hashes[index]; }
+				if (existingHash == hash)
+				{
+					TKey existingKey;
+					unsafe unchecked { existingKey = keys[index]; }
+					if (KeysEqual(existingKey, key))
+						return index;
+				}
+			}
 		}
-		return -1;
+		return firstDeleted >= 0 ? -firstDeleted - 1 : -states.Length - 1;
 	}
 
 	private void InsertNew(TKey key, TValue value, int32 hash) mut
@@ -229,7 +238,7 @@ public class Dictionary<TKey, TValue> where TKey : default where TValue : defaul
 		int32 slot = hash & 0x7FFFFFFF;
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
-			int32 index = (slot + probe) % states.Length;
+			int32 index = (slot + probe) & (states.Length - 1);
 			int32 state;
 			unsafe unchecked
 			{

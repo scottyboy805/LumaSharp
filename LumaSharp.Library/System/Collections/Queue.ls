@@ -42,8 +42,11 @@ public class Queue<T> : IEnumerable<T> where T : default
 
 	public void Enqueue(T item) mut
 	{
-		EnsureCapacity(count + 1);
-		int32 tail = (head + count) % items.Length;
+		if (count == items.Length)
+			EnsureCapacity(count + 1);
+		int32 tail = head + count;
+		if (tail >= items.Length)
+			tail -= items.Length;
 		unsafe unchecked
 		{
 			items[tail] = item;
@@ -61,7 +64,9 @@ public class Queue<T> : IEnumerable<T> where T : default
 			item = items[head];
 			items[head] = default(T);
 		}
-		head = (head + 1) % items.Length;
+		head++;
+		if (head == items.Length)
+			head = 0;
 		count--;
 		return item;
 	}
@@ -80,8 +85,9 @@ public class Queue<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		while (count > 0)
-			Dequeue();
+		Array.ClearReferences(items, 0, items.Length);
+		head = 0;
+		count = 0;
 	}
 
 	public T GetAt(int32 index)
@@ -91,7 +97,10 @@ public class Queue<T> : IEnumerable<T> where T : default
 		T item;
 		unsafe unchecked
 		{
-			item = items[(head + index) % items.Length];
+			int32 itemIndex = head + index;
+			if (itemIndex >= items.Length)
+				itemIndex -= items.Length;
+			item = items[itemIndex];
 		}
 		return item;
 	}
@@ -114,11 +123,11 @@ public class Queue<T> : IEnumerable<T> where T : default
 		if (capacity < minimum)
 			capacity = minimum;
 		T[] replacement = new T[capacity];
-		for (int32 index = 0; index < count; index++)
-			unsafe unchecked
-			{
-				replacement[index] = items[(head + index) % items.Length];
-			}
+		int32 firstLength = count;
+		if (firstLength > items.Length - head)
+			firstLength = items.Length - head;
+		Array.Copy(items, head, replacement, 0, firstLength);
+		Array.Copy(items, 0, replacement, firstLength, count - firstLength);
 		items = replacement;
 		head = 0;
 	}

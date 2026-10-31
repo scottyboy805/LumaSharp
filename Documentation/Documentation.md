@@ -920,6 +920,8 @@ public class Example
 | `Dictionary<TKey, TValue>` | Indexer, `Add`, `TryAdd`, `ContainsKey`, `TryGetValue`, `Remove`, `Clear`. |
 | `HashSet<T>` | `Add`, `Contains`, `Remove`, `Clear`; iteration order is unspecified. |
 
+`List<T>` requires `T` to implement `System.IEquality<T>`, because `IndexOf`, `Contains`, and `Remove` compare values through that contract. `HashSet<T>` and `Dictionary<TKey, TValue>` require keys to implement both `System.IHashable` and `System.IEquality<T>`; their hash and equality operations call those interfaces directly. Collection instantiation reports a generic-constraint error when a type does not implement the required contracts. Primitive aliases and `string` provide these contracts. User-defined key types should return equal hash values for equal values and implement equality consistently; the compiler does not fall back to `==` or a constant hash.
+
 These are an early runtime surface, not a complete copy of .NET collections. `List<T>`, `Stack<T>`, `Queue<T>`, and `HashSet<T>` can be used in a `for-in` loop. When the variable has a concrete collection type, the compiler uses its `Iterate()` method and keeps a returned struct iterator as a value, avoiding an iterator allocation or boxing in the loop. When the variable is typed as `IEnumerable<T>`, iteration goes through the interface implementation instead.
 
 The same pattern can be used by your own types:
@@ -1227,7 +1229,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - The specifications describe some future behavior as well as current behavior. This guide focuses on functionality implemented in the compiler/runtime.
 - There is no garbage collector. Strong reference cycles are not reclaimed automatically; use weak references or break cycles explicitly.
 - Generic method inference and generic constrained operations have edge cases that are still being completed.
-- `List<T>` does not currently participate in the generic enumerable protocol. Some collection APIs, including dictionary enumeration and custom comparers, are absent.
+- Dictionary enumeration and caller-supplied collection comparers are absent. `List<T>` and `HashSet<T>` support the generic enumerable protocol.
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
 - IO is synchronous and minimal; timeouts and broad .NET `File`/`Directory` APIs are not present.

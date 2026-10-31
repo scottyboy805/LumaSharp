@@ -1,6 +1,6 @@
 namespace System.Collections;
 
-public class HashSet<T> : IEnumerable<T> where T : default
+public class HashSet<T> : IEnumerable<T> where T : default, System.IHashable, System.IEquality<T>
 {
 	private T[] items;
 	private int32[] hashes;
@@ -55,10 +55,16 @@ public class HashSet<T> : IEnumerable<T> where T : default
 	public bool Add(T item) mut
 	{
 		int32 hash = GetHashCode(item);
-		if (Find(item, hash) >= 0)
+		int32 index = Find(item, hash);
+		if (index >= 0)
 			return false;
+		int32 insertionIndex = -index - 1;
+		int32 previousCapacity = states.Length;
 		EnsureCapacity(count + 1);
-		InsertNew(item, hash);
+		if (states.Length != previousCapacity || insertionIndex >= previousCapacity)
+			InsertNew(item, hash);
+		else
+			Store(insertionIndex, item, hash);
 		return true;
 	}
 
@@ -84,13 +90,9 @@ public class HashSet<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		for (int32 index = 0; index < states.Length; index++)
-			unsafe unchecked
-			{
-				items[index] = default(T);
-				hashes[index] = 0;
-				states[index] = 0;
-			}
+		Array.ClearReferences(items, 0, items.Length);
+		Array.Clear(hashes);
+		Array.Clear(states);
 		count = 0;
 		used = 0;
 	}
@@ -133,37 +135,46 @@ public class HashSet<T> : IEnumerable<T> where T : default
 	{
 		if (item is System.IHashable hashable)
 			return hashable.Hash;
-		return 0;
+		throw new System.ArgumentNullException();
 	}
 
 	private bool ItemsEqual(T left, T right)
 	{
 		if (left is System.IEquality<T> equality)
 			return equality.Equals(right);
-		return left == right;
+		throw new System.ArgumentNullException();
 	}
 
 	private int32 Find(T item, int32 hash)
 	{
 		int32 slot = hash & 0x7FFFFFFF;
+		int32 firstDeleted = -1;
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
-			int32 index = (slot + probe) % states.Length;
+			int32 index = (slot + probe) & (states.Length - 1);
 			int32 state;
-			T current;
-			int32 currentHash;
 			unsafe unchecked
 			{
 				state = states[index];
-				currentHash = hashes[index];
-				current = items[index];
 			}
 			if (state == 0)
-				return -1;
-			if (state == 1 && currentHash == hash && ItemsEqual(current, item))
-				return index;
+				return -(firstDeleted >= 0 ? firstDeleted : index) - 1;
+			if (state == 2 && firstDeleted < 0)
+				firstDeleted = index;
+			else if (state == 1)
+			{
+				int32 currentHash;
+				unsafe unchecked { currentHash = hashes[index]; }
+				if (currentHash == hash)
+				{
+					T current;
+					unsafe unchecked { current = items[index]; }
+					if (ItemsEqual(current, item))
+						return index;
+				}
+			}
 		}
-		return -1;
+		return firstDeleted >= 0 ? -firstDeleted - 1 : -states.Length - 1;
 	}
 
 	private void InsertNew(T item, int32 hash) mut
@@ -172,7 +183,7 @@ public class HashSet<T> : IEnumerable<T> where T : default
 		int32 slot = hash & 0x7FFFFFFF;
 		for (int32 probe = 0; probe < states.Length; probe++)
 		{
-			int32 index = (slot + probe) % states.Length;
+			int32 index = (slot + probe) & (states.Length - 1);
 			int32 state;
 			unsafe unchecked
 			{

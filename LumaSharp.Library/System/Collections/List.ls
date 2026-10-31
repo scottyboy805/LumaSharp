@@ -2,7 +2,7 @@ using System;
 
 namespace System.Collections;
 
-public class List<T> : IEnumerable<T> where T : default
+public class List<T> : IEnumerable<T> where T : default, System.IEquality<T>
 {
 	private T[] items;
 	private int32 count;
@@ -80,7 +80,8 @@ public class List<T> : IEnumerable<T> where T : default
 
 	public void Add(T item) mut
 	{
-		EnsureCapacity(count + 1);
+		if (count == items.Length)
+			EnsureCapacity(count + 1);
 		unsafe unchecked
 		{
 			items[count] = item;
@@ -93,15 +94,7 @@ public class List<T> : IEnumerable<T> where T : default
 		if (index < 0 || index > count)
 			throw new System.ArgumentOutOfRangeException();
 		EnsureCapacity(count + 1);
-		int32 current = count;
-		while (current > index)
-		{
-			unsafe unchecked
-			{
-				items[current] = items[current - 1];
-			}
-			current--;
-		}
+		Array.Copy(items, index, items, index + 1, count - index);
 		unsafe unchecked
 		{
 			items[index] = item;
@@ -113,15 +106,7 @@ public class List<T> : IEnumerable<T> where T : default
 	{
 		if (index < 0 || index >= count)
 			throw new System.ArgumentOutOfRangeException();
-		int32 current = index;
-		while (current + 1 < count)
-		{
-			unsafe unchecked
-			{
-				items[current] = items[current + 1];
-			}
-			current++;
-		}
+		Array.Copy(items, index + 1, items, index, count - index - 1);
 		count--;
 		unsafe unchecked
 		{
@@ -131,27 +116,42 @@ public class List<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		for (int32 index = 0; index < count; index++)
-		{
-			unsafe unchecked
-			{
-				items[index] = default(T);
-			}
-		}
+		Array.ClearReferences(items, 0, count);
 		count = 0;
 	}
 
 	public int32 IndexOf(T item)
 	{
-		for (int32 index = 0; index < count; index++)
+		int32 index = 0;
+		while (index + 3 < count)
 		{
-			T current;
+			T first;
+			T second;
+			T third;
+			T fourth;
 			unsafe unchecked
 			{
-				current = items[index];
+				first = items[index];
+				second = items[index + 1];
+				third = items[index + 2];
+				fourth = items[index + 3];
 			}
-			if (current == item)
+			if (first is System.IEquality<T> firstEquality && firstEquality.Equals(item))
 				return index;
+			if (second is System.IEquality<T> secondEquality && secondEquality.Equals(item))
+				return index + 1;
+			if (third is System.IEquality<T> thirdEquality && thirdEquality.Equals(item))
+				return index + 2;
+			if (fourth is System.IEquality<T> fourthEquality && fourthEquality.Equals(item))
+				return index + 3;
+			index += 4;
+		}
+		while (index < count)
+		{
+			T current;
+			unsafe unchecked { current = items[index]; }
+			if (current is System.IEquality<T> equality && equality.Equals(item)) return index;
+			index++;
 		}
 		return -1;
 	}
@@ -195,13 +195,7 @@ public class List<T> : IEnumerable<T> where T : default
 		if (capacity < minimum)
 			capacity = minimum;
 		T[] replacement = new T[capacity];
-		for (int32 index = 0; index < count; index++)
-		{
-			unsafe unchecked
-			{
-				replacement[index] = items[index];
-			}
-		}
+		Array.Copy(items, 0, replacement, 0, count);
 		items = replacement;
 	}
 

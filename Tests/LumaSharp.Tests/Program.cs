@@ -803,7 +803,7 @@ public sealed class CompilerTests
     [Fact]
     public void CollectionsAcceptReferenceTypeArgumentsAndExposeReferenceIterators()
     {
-        const string source = "using System.Collections; public class Entry { public int32 Value; public this(int32 value) { Value = value; } } public class Program { public static int32 Main() { Entry? first = new Entry(1); Entry? second = new Entry(2); List<Entry?> list = new List<Entry?>(); list.Add(first); list.Add(second); IEnumerable<Entry?> sequence = list; IIterator<Entry?> iterator = sequence.Iterate(); if (!iterator.Next() || iterator.Current != first || !iterator.Next() || iterator.Current != second || iterator.Next()) return 1; Stack<Entry?> stack = new Stack<Entry?>(); stack.Push(first); stack.Push(second); if (stack.Peek() != second || stack.Pop() != second || stack.Pop() != first) return 2; Queue<Entry?> queue = new Queue<Entry?>(); queue.Enqueue(first); queue.Enqueue(second); if (queue.Peek() != first || queue.Dequeue() != first || queue.Dequeue() != second) return 3; HashSet<Entry?> set = new HashSet<Entry?>(); if (!set.Add(first) || set.Add(first) || !set.Contains(first) || !set.Remove(first) || set.Remove(first)) return 4; Dictionary<Entry?, Entry?> dictionary = new Dictionary<Entry?, Entry?>(); if (!dictionary.TryAdd(first, second) || dictionary.TryAdd(first, first) || !dictionary.ContainsKey(first)) return 5; Entry? found = null; if (!dictionary.TryGetValue(first, out found) || found != second) return 6; dictionary[first] = first; if (dictionary[first] != first || !dictionary.Remove(first) || dictionary.Remove(first)) return 7; return 0; } }";
+        const string source = "using System.Collections; public class Entry : System.IHashable, System.IEquality<Entry?> { public int32 Value; public this(int32 value) { Value = value; } public int32 Hash { get => Value; } public bool Equals(Entry? other) { return other != null && Value == other.Value; } } public class Program { public static int32 Main() { Entry? first = new Entry(1); Entry? second = new Entry(2); List<Entry?> list = new List<Entry?>(); list.Add(first); list.Add(second); IEnumerable<Entry?> sequence = list; IIterator<Entry?> iterator = sequence.Iterate(); if (!iterator.Next() || iterator.Current != first || !iterator.Next() || iterator.Current != second || iterator.Next()) return 1; Stack<Entry?> stack = new Stack<Entry?>(); stack.Push(first); stack.Push(second); if (stack.Peek() != second || stack.Pop() != second || stack.Pop() != first) return 2; Queue<Entry?> queue = new Queue<Entry?>(); queue.Enqueue(first); queue.Enqueue(second); if (queue.Peek() != first || queue.Dequeue() != first || queue.Dequeue() != second) return 3; HashSet<Entry?> set = new HashSet<Entry?>(); if (!set.Add(first) || set.Add(first) || !set.Contains(first) || !set.Remove(first) || set.Remove(first)) return 4; Dictionary<Entry?, Entry?> dictionary = new Dictionary<Entry?, Entry?>(); if (!dictionary.TryAdd(first, second) || dictionary.TryAdd(first, first) || !dictionary.ContainsKey(first)) return 5; Entry? found = null; if (!dictionary.TryGetValue(first, out found) || found != second) return 6; dictionary[first] = first; if (dictionary[first] != first || !dictionary.Remove(first) || dictionary.Remove(first)) return 7; return 0; } }";
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
             .Select(path => (path, File.ReadAllText(path)));
@@ -934,6 +934,19 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void CollectionsRequireExplicitHashAndEqualityContracts()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("collection-constraints-test.ls", "using System.Collections; public struct Key { public int32 Value; } public class Program { public static int32 UseList(List<Key> list) { return list.Count; } public static int32 UseSet(HashSet<Key> set) { return set.Count; } public static int32 UseDictionary(Dictionary<Key, int32> map) { return map.Count; } public static int32 Main() { return 0; } }")));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS1102" && diagnostic.Message.Contains("IEquality", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS1102" && diagnostic.Message.Contains("IHashable", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void CollectionsNamespaceTypesBuildAndRunWithMovedIterationContracts()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
@@ -1050,14 +1063,19 @@ public sealed class CompilerTests
                     for (let item in set)
                         setCount++;
 
-                    return list.Count == 3 && list[1] == 15 && contains && foundIndex == 2 && pointerValue == 10 &&
+                    bool valid = list.Count == 3 && list[1] == 15 && contains && foundIndex == 2 && pointerValue == 10 &&
                         copiedValues.Length == 3 && copiedValues[1] == 15 && inserted &&
                         stack.Pop() == 2 && stack.Pop() == 1 &&
                         queue.Dequeue() == 3 && queue.Dequeue() == 4 &&
                         listTotal == 45 && listInterfaceTotal == 45 && emptyListCount == 0 && total == 3 && stackTotal == 3 && queueTotal == 7 &&
                         found && value == "seven" && map.ContainsKey(new TestKey(11)) &&
                         map.Remove(new TestKey(11)) && added && !duplicate &&
-                        setCount == 1 && set.Contains(new TestKey(9)) ? 0 : 1;
+                        setCount == 1 && set.Contains(new TestKey(9));
+                    if (!valid) return 1;
+                    list.Clear();
+                    set.Clear();
+                    map.Clear();
+                    return list.Count == 0 && set.Count == 0 && map.Count == 0 ? 0 : 2;
                 }
             }
             """)), new CompilationOptions(UnsafeEnabled: true));

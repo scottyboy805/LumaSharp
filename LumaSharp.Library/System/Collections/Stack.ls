@@ -39,7 +39,8 @@ public class Stack<T> : IEnumerable<T> where T : default
 
 	public void Push(T item) mut
 	{
-		EnsureCapacity(count + 1);
+		if (count == items.Length)
+			EnsureCapacity(count + 1);
 		unsafe unchecked
 		{
 			items[count] = item;
@@ -75,11 +76,7 @@ public class Stack<T> : IEnumerable<T> where T : default
 
 	public void Clear() mut
 	{
-		for (int32 index = 0; index < count; index++)
-			unsafe unchecked
-			{
-				items[index] = default(T);
-			}
+		Array.ClearReferences(items, 0, count);
 		count = 0;
 	}
 
@@ -113,11 +110,7 @@ public class Stack<T> : IEnumerable<T> where T : default
 		if (capacity < minimum)
 			capacity = minimum;
 		T[] replacement = new T[capacity];
-		for (int32 index = 0; index < count; index++)
-			unsafe unchecked
-			{
-				replacement[index] = items[index];
-			}
+		Array.Copy(items, 0, replacement, 0, count);
 		items = replacement;
 	}
 

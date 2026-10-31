@@ -2,8 +2,29 @@ using System.Text;
 
 namespace System;
 
-public class String : Object
+public class String : Object, IHashable, IEquality<string?>
 {
+	public int32 Hash
+	{
+		get
+		{
+			int32 hash = 0;
+			for (int32 index = 0; index < Length; index++)
+				unsafe unchecked { hash = hash * 31 + (int32)this[index]; }
+			return hash;
+		}
+	}
+
+	public bool Equals(string? other)
+	{
+		if (other == null || Length != other.Length)
+			return false;
+		for (int32 index = 0; index < Length; index++)
+			if (this[index] != other[index])
+				return false;
+		return true;
+	}
+
 	public static unsafe implicit operator ReadOnlySpan<char>(String value)
 	{
 		if (value.Length == 0)

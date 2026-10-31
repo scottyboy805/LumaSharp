@@ -31,6 +31,12 @@ public virtual class Array : Object
 		ClearInternal(array, index, length);
 	}
 
+	/// <summary>Releases managed references in an array section without writing primitive elements.</summary>
+	internal static void ClearReferences(Array array, int32 index, int32 length)
+	{
+		ClearReferencesInternal(array, index, length);
+	}
+
 	private static void CopyInternal(Array? source, Array? destination)
 	{
 		if (source == null) throw new ArgumentNullException();
@@ -67,6 +73,16 @@ public virtual class Array : Object
 		if (index > array.Length || length > array.Length - index)
 			throw new ArgumentException("The requested array section is outside the array bounds.");
 		__arrayclear(array, index, length);
+	}
+
+	private static void ClearReferencesInternal(Array? array, int32 index, int32 length)
+	{
+		if (array == null) throw new ArgumentNullException();
+		if (index < 0) throw new ArgumentOutOfRangeException();
+		if (length < 0) throw new ArgumentOutOfRangeException();
+		if (index > array.Length || length > array.Length - index)
+			throw new ArgumentException("The requested array section is outside the array bounds.");
+		__arrayclearrefs(array, index, length);
 	}
 
 	// The compiler binds these helpers for implicit one-dimensional array conversions.

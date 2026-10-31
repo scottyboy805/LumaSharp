@@ -1,6 +1,6 @@
 namespace System;
 
-public interface IEquality<T> where T : default
+public interface IEquality<T>
 {
 	bool Equals(T other);
 }
