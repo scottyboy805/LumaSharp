@@ -830,6 +830,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         _interfaceDispatchTables = BuildInterfaceDispatchTables();
         foreach (var type in _types)
             ValidateGenericConstraintAccessibility(type.GenericConstraints, type);
+        // Open generic definitions are not part of _types: the generic specializer
+        // keeps them separately and _types contains only closed expansions. Their
+        // constraints are still source-level type references and must be checked
+        // even when the definition is never instantiated.
+        foreach (var type in _genericDefinitions)
+            ValidateGenericConstraintAccessibility(type.GenericConstraints, type);
         foreach (var method in _genericMethodDefinitions)
             ValidateGenericConstraintAccessibility(method.Declaration.GenericConstraints, method.Owner);
         ValidateGenericTypeConstraints();
@@ -2575,6 +2581,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         foreach (var instance in _genericTypeInstantiations)
         {
+            // Generic expansion rewrites constructed type syntax to generated
+            // concrete names before ordinary declaration validation runs. Check
+            // each original argument here while its source context is preserved.
+            foreach (var argument in instance.Arguments)
+                ValidateTypeAccessibility(argument, instance.RequestContext, instance.Location);
+
             var parameters = instance.Definition.TypeParameters ?? [];
             if (parameters.Count != instance.Arguments.Count) continue;
             var substitutions = parameters.Zip(instance.Arguments).ToDictionary(pair => pair.First, pair => pair.Second, StringComparer.Ordinal);
