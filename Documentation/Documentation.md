@@ -1017,7 +1017,7 @@ public class Worker
 An `async` method names the value it will eventually produce. LumaSharp wraps that result in a task automatically: `async void` returns `Task`, while `async T` returns `Task<T>`. Do not write `Task` as the source return type.
 
 ```lumasharp
-using System.Threading.Tasks;
+using System.Threading;
 
 public static class Calculations
 {
@@ -1047,6 +1047,19 @@ Inside an async method, `await` returns the task's result directly:
 public static async int32 ReadValueAsync()
 {
     return await AddOneAsync(41);
+}
+```
+
+Use `Task.Delay` to get a task that completes after a wait. It accepts milliseconds or a `TimeSpan`; zero returns an already completed task, and `-1` milliseconds represents an infinite delay.
+
+```lumasharp
+using System;
+using System.Threading;
+
+public static async void PauseAsync()
+{
+    await Task.Delay(250);
+    await Task.Delay(TimeSpan(500 * TimeSpan.TicksPerMillisecond));
 }
 ```
 

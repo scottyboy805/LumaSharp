@@ -1,13 +1,13 @@
 using System;
 using System.Diagnostics;
-using System.Threading;
 
-namespace System.Threading.Tasks;
+namespace System.Threading;
 
 public delegate void TaskCallback();
 
 public virtual class Task
 {
+	private const int64 maximumTimeSpanDelayMilliseconds = 4294967294;
 	private readonly object synchronization = new object();
 	private TaskCallback? callback;
 	private Exception? exception;
@@ -68,7 +68,7 @@ public virtual class Task
 		Complete(failure);
 	}
 
-	private void Complete(Exception? error) mut
+	internal void Complete(Exception? error) mut
 	{
 		lock (synchronization)
 		{
@@ -97,6 +97,54 @@ public virtual class Task
 	public void Wait()
 	{
 		WaitForCompletion();
+	}
+
+	public static Task CompletedTask
+	{
+		get => CreateCompletedTask();
+	}
+
+	public static Task Delay(int32 millisecondsDelay)
+	{
+		if (millisecondsDelay < -1)
+			throw new ArgumentOutOfRangeException();
+
+		if (millisecondsDelay == 0)
+			return CompletedTask;
+		if (millisecondsDelay == -1)
+			return CreateInfiniteDelay();
+
+		return TaskDelayScheduler.Schedule((int64)millisecondsDelay);
+	}
+
+	public static Task Delay(TimeSpan delay)
+	{
+		int64 ticks = delay.Ticks;
+		if (ticks < 0 && ticks != -TimeSpan.TicksPerMillisecond)
+			throw new ArgumentOutOfRangeException();
+
+		if (ticks > maximumTimeSpanDelayMilliseconds * TimeSpan.TicksPerMillisecond)
+			throw new ArgumentOutOfRangeException();
+
+		int64 millisecondsDelay = ticks / TimeSpan.TicksPerMillisecond;
+		if (millisecondsDelay == 0)
+			return CompletedTask;
+		if (millisecondsDelay == -1)
+			return CreateInfiniteDelay();
+
+		return TaskDelayScheduler.Schedule(millisecondsDelay);
+	}
+
+	private static Task CreateCompletedTask()
+	{
+		Task task = new Task("");
+		task.Complete(null);
+		return task;
+	}
+
+	private static Task CreateInfiniteDelay()
+	{
+		return new Task(new StackTrace(1).ToString());
 	}
 
 	internal static void GetAwaitedResult(Task task, string awaitFrame)

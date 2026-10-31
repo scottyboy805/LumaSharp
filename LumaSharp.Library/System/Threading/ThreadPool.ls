@@ -1,29 +1,27 @@
 using System;
-using System.Threading;
-
-namespace System.Threading.Tasks;
+namespace System.Threading;
 
 internal class ThreadPoolWorkNode
 {
-	internal Task Item;
-	internal ThreadPoolWorkNode? Next;
+	internal Task item;
+	internal ThreadPoolWorkNode? next;
 
 	public this(Task item)
 	{
-		Item = item;
-		Next = null;
+		this.item = item;
+		next = null;
 	}
 }
 
 internal class ThreadPoolWorker
 {
-	internal Thread Thread;
-	internal ThreadPoolWorker? Next;
+	internal Thread thread;
+	internal ThreadPoolWorker? next;
 
 	public this()
 	{
-		Thread = new Thread();
-		Next = null;
+		thread = new Thread();
+		next = null;
 	}
 }
 
@@ -48,7 +46,7 @@ internal static class ThreadPool
 			if (last == null)
 				first = node;
 			else
-				last!.Next = node;
+				last!.next = node;
 			last = node;
 
 			RemoveCompletedWorkers();
@@ -63,7 +61,7 @@ internal static class ThreadPool
 					if (previousLast == null)
 						first = null;
 					else
-						previousLast!.Next = null;
+						previousLast!.next = null;
 					last = previousLast;
 					throw;
 				}
@@ -93,18 +91,18 @@ internal static class ThreadPool
 	private static void StartWorker()
 	{
 		ThreadPoolWorker worker = new ThreadPoolWorker();
-		worker.Next = workers;
+		worker.next = workers;
 		workers = worker;
 		ThreadStart callback = WorkerLoop;
 		activeWorkers++;
 		try
 		{
-			worker.Thread.Start(callback);
+			worker.thread.Start(callback);
 		}
 		catch (Exception)
 		{
 			activeWorkers--;
-			workers = worker.Next;
+			workers = worker.next;
 			throw;
 		}
 	}
@@ -122,10 +120,10 @@ internal static class ThreadPool
 				if (first != null)
 				{
 					node = first;
-					first = first!.Next;
+					first = first!.next;
 					if (first == null)
 						last = null;
-					node!.Next = null;
+					node!.next = null;
 					if (isIdle)
 					{
 						idleWorkers--;
@@ -151,7 +149,7 @@ internal static class ThreadPool
 
 			if (node != null)
 			{
-				node!.Item.Execute();
+				node!.item.Execute();
 				idleTime = 0;
 			}
 			else
@@ -168,13 +166,13 @@ internal static class ThreadPool
 		ThreadPoolWorker? current = workers;
 		while (current != null)
 		{
-			ThreadPoolWorker? next = current!.Next;
-			if (!current.Thread.IsAlive)
+			ThreadPoolWorker? next = current!.next;
+			if (!current.thread.IsAlive)
 			{
 				if (previous == null)
 					workers = next;
 				else
-					previous!.Next = next;
+					previous!.next = next;
 			}
 			else
 				previous = current;

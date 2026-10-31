@@ -1279,7 +1279,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         string? frameNameSymbol = null;
         var frameNameLength = 0;
         if (HasStackTraceSupport() && !d.IsCompilerGenerated && !d.Name.StartsWith('$') && !d.Name.StartsWith("__", StringComparison.Ordinal) &&
-            !(method.Owner.Namespace == "System.Threading.Tasks" && d.Accessibility != "public"))
+            !(method.Owner.Namespace == "System.Threading" && (method.Owner.Name is "Task" or "ThreadPool") && d.Accessibility != "public"))
         {
             var functionName = FunctionName(method, compilation.Methods);
             var readableName = QualifiedTypeName(method.Owner) + "." + d.Name + "(" + string.Join(", ", d.Parameters.Select(parameter => parameter.TypeName)) + ")";
@@ -4767,7 +4767,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     var remainingUses = group.GroupBy(item => item.Task.Value, StringComparer.Ordinal)
                         .ToDictionary(items => items.Key, items => items.Count(), StringComparer.Ordinal);
                     var waitMethod = methods.FirstOrDefault(candidate =>
-                        candidate.Owner.Name == "Task" && candidate.Owner.Namespace == "System.Threading.Tasks" &&
+                        candidate.Owner.Name == "Task" && candidate.Owner.Namespace == "System.Threading" &&
                         candidate.Declaration.Name == "Wait" && !candidate.Declaration.IsStatic &&
                         candidate.Declaration.Parameters.Count == 0) ??
                         throw new InvalidOperationException("The runtime Task.Wait() method is required to lower a batch await.");

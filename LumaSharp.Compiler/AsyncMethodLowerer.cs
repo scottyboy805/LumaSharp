@@ -93,7 +93,7 @@ internal static class AsyncMethodLowerer
                 new MemberAccessExpression(new NameExpression(taskName, location), "SetCallback", location),
                 [callback], location), location);
             var queueTask = new ExpressionStatement(new CallExpression(
-                new MemberAccessExpression(new NameExpression("System.Threading.Tasks.ThreadPool", location), "QueueTask", location),
+                new MemberAccessExpression(new NameExpression("System.Threading.ThreadPool", location), "QueueTask", location),
                 [new NameExpression(taskName, location)], location), location);
             var wrapper = method with
             {
@@ -109,9 +109,9 @@ internal static class AsyncMethodLowerer
             var location = method.Location;
             if (method.ReturnsByRef)
                 diagnostics.Add("LS0105", DiagnosticSeverity.Error, "An async method cannot return by reference.", location);
-            if (method.ReturnType is "Task" or "System.Threading.Tasks.Task" ||
+            if (method.ReturnType is "Task" or "System.Threading.Task" ||
                 method.ReturnType.StartsWith("Task<", StringComparison.Ordinal) ||
-                method.ReturnType.StartsWith("System.Threading.Tasks.Task<", StringComparison.Ordinal))
+                method.ReturnType.StartsWith("System.Threading.Task<", StringComparison.Ordinal))
                 diagnostics.Add("LS0105", DiagnosticSeverity.Error, "An async method declares its result type directly; Task is added implicitly.", location);
             if (method.Parameters.Any(parameter => parameter.PassingMode.Length > 0 || parameter.IsScoped))
                 diagnostics.Add("LS0105", DiagnosticSeverity.Error, "Async methods cannot have ref, in, out, or scope-bound parameters.", location);
@@ -120,8 +120,8 @@ internal static class AsyncMethodLowerer
         }
 
         static string GetTaskType(MethodDeclaration method) => method.ReturnType == "void"
-            ? "System.Threading.Tasks.Task"
-            : $"System.Threading.Tasks.Task<{method.ReturnType}>";
+            ? "System.Threading.Task"
+            : $"System.Threading.Task<{method.ReturnType}>";
 
         static string QuoteStringLiteral(string value)
         {
@@ -261,7 +261,7 @@ internal static class AsyncMethodLowerer
                 diagnostics.Add("LS0105", DiagnosticSeverity.Error, "The await operator requires a Task or Task<T> operand.", awaited.Location);
 
             return new CallExpression(
-                new MemberAccessExpression(new NameExpression("System.Threading.Tasks.Task", awaited.Location), "GetAwaitedResult", awaited.Location),
+                new MemberAccessExpression(new NameExpression("System.Threading.Task", awaited.Location), "GetAwaitedResult", awaited.Location),
                 [
                     RewriteExpression(awaited.Operand, inAsyncMethod: true),
                     new LiteralExpression(QuoteStringLiteral(appendAwaitObserverFrame ? currentAwaitFrame ?? string.Empty : string.Empty), awaited.Location)
@@ -279,16 +279,16 @@ internal static class AsyncMethodLowerer
             }
             var frame = QuoteStringLiteral(appendAwaitObserverFrame ? currentAwaitFrame ?? string.Empty : string.Empty);
             return new CallExpression(
-                new MemberAccessExpression(new NameExpression("System.Threading.Tasks.Task", result.Location), "GetAwaitedResult", result.Location),
+                new MemberAccessExpression(new NameExpression("System.Threading.Task", result.Location), "GetAwaitedResult", result.Location),
                 [
                     RewriteExpression(result.Batch.Tasks[result.Index], inAsyncMethod: true),
                     new LiteralExpression(frame, result.Location)
                 ], result.Location, IsAwaitResult: true, AwaitBatchGroup: group);
         }
 
-        static bool IsTaskType(string? typeName) => typeName is "Task" or "System.Threading.Tasks.Task" ||
+        static bool IsTaskType(string? typeName) => typeName is "Task" or "System.Threading.Task" ||
             typeName?.StartsWith("Task<", StringComparison.Ordinal) == true ||
-            typeName?.StartsWith("System.Threading.Tasks.Task<", StringComparison.Ordinal) == true;
+            typeName?.StartsWith("System.Threading.Task<", StringComparison.Ordinal) == true;
 
         Expression RewriteLambda(LambdaExpression lambda)
         {

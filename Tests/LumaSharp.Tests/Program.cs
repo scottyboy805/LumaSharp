@@ -404,6 +404,20 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void TaskDelaySupportsMillisecondsTimeSpanAndImmediateCompletion()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var fixturePath = RuntimeSourcePath("Tests/fixtures/TaskDelay.ls");
+        var result = LumaCompiler.Compile(runtimeSources.Append((fixturePath, File.ReadAllText(fixturePath))), new CompilationOptions(UnsafeEnabled: true));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("luma_System_Threading_Task_Delay_1_int32", result.LlvmIr);
+        Assert.Contains("luma_System_Threading_Task_Delay_1_System_TimeSpan", result.LlvmIr);
+    }
+
+    [Fact]
     public void BatchAwaitStartsTasksBeforeWaitingAndOrdinaryAwaitsRemainSequential()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
@@ -492,7 +506,7 @@ public sealed class CompilerTests
         Assert.False(asyncByRef.Succeeded);
         Assert.Contains(asyncByRef.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
 
-        var explicitTaskReturn = Compile("class Program { public static async System.Threading.Tasks.Task<int32> Invalid() { return null!; } public static int32 Main() { return 0; } }");
+        var explicitTaskReturn = Compile("class Program { public static async System.Threading.Task<int32> Invalid() { return null!; } public static int32 Main() { return 0; } }");
         Assert.False(explicitTaskReturn.Succeeded);
         Assert.Contains(explicitTaskReturn.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
 
