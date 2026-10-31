@@ -1349,7 +1349,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var resultType = LlvmReturnType(method.Declaration);
             _output.AppendLine($"define internal {resultType} @{StructDelegateThunkName(binding, compilation.Methods)}({signatureArguments}) {{");
             _output.AppendLine("entry:");
-            _output.AppendLine($"  %payload = getelementptr {boxType}, ptr %box, i32 0, i32 3");
+            _output.AppendLine($"  %payload = getelementptr {boxType}, ptr %box, i32 0, i32 4");
             var allArguments = callArguments.Length == 0 ? "ptr %payload" : $"ptr %payload, {callArguments}";
             var call = $"call {resultType} @{FunctionName(method, compilation.Methods)}({allArguments})";
             if (method.Declaration.ReturnType == "void")

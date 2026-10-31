@@ -3028,6 +3028,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 }
                 var fieldType = NormalizeEnumType(declaration.TypeName, owner);
                 ValidateTypeAccessibility(declaration.TypeName, owner, declaration.Location);
+                if (IsRefStructType(fieldType))
+                    diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{fieldType}' cannot be stored as a class field.", declaration.Location);
                 var inlineArray = TryParseInlineArrayType(fieldType, out _, out _);
                 if (inlineArray) ValidateDeclaredType(fieldType, "Class field", declaration.Location, owner);
                 var supportedStorage = inlineArray || SupportedTypes.Contains(fieldType) && fieldType != "void" || fieldType == "string?" || _enumUnderlyingTypes.ContainsKey(fieldType) || _structTypes.ContainsKey(fieldType) ||
@@ -3329,6 +3331,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         IReadOnlyDictionary<TypeDeclaration, ConstructorDeclaration> staticConstructors)
     {
         ValidateTypeAccessibility(field.TypeName, owner, field.Location);
+        var declaredFieldType = NormalizeEnumType(field.TypeName, owner);
+        if (IsRefStructType(declaredFieldType))
+        {
+            diagnostics.Add("LS0701", DiagnosticSeverity.Error, $"Ref struct '{declaredFieldType}' cannot be stored as a static field.", field.Location);
+            return;
+        }
         if (field.Initializer is not null) BindTypeExpressions(field.Initializer, owner);
         if (field.Initializer is not null && ContainsScopeAllocation(field.Initializer))
             diagnostics.Add("LS0803", DiagnosticSeverity.Error, "A scope allocation requires an enclosing method or block body and cannot appear in a field initializer.", field.Initializer.Location);
@@ -3353,7 +3361,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Static field '{GetQualifiedTypeName(owner)}.{field.Name}' of non-nullable reference type '{field.TypeName}' must be initialized in its declaration or assigned by the static constructor.", field.Location);
             return;
         }
-        var normalizedField = field with { TypeName = NormalizeEnumType(field.TypeName, owner) };
+        var normalizedField = field with { TypeName = declaredFieldType };
         if (!IsSupportedType(normalizedField.TypeName) || normalizedField.TypeName == "void")
         {
             diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Static field type '{normalizedField.TypeName}' is not supported by the current backend.", field.Location);
@@ -12765,7 +12773,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         if ((to is "System.Object" or "object") || IsNullableClassType(to) && NullableUnderlyingType(to) == "System.Object")
         {
             var boxedType = IsNullableValueType(from) ? NullableUnderlyingType(from) : from;
-            if (IsBoxableValueType(boxedType)) return true;
+            if (IsBoxableValueType(boxedType))
+            {
+                // A value boxed as object can still be cast to any interface it
+                // implements later. Emit the boxed value's interface dispatch
+                // table even when the original conversion did not name one.
+                RecordBoxedValueTypeInterfaceType(boxedType);
+                return true;
+            }
         }
         if (from == "null" && IsNullableType(to)) return true;
         if (IsNullableArrayType(to) && from == NullableUnderlyingType(to)) return true;

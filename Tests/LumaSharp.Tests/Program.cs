@@ -94,6 +94,18 @@ public sealed class CompilerTests
         var escapedRefStruct = Compile("ref struct View { public int32 Value; } class Container { public View stored; } class Program { public static int32 Main() { return 0; } }");
         Assert.False(escapedRefStruct.Succeeded);
         Assert.Contains(escapedRefStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        var staticRefStruct = Compile("ref struct View { public int32 Value; } class Container { public static View stored; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(staticRefStruct.Succeeded);
+        Assert.Contains(staticRefStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        var nestedRefStruct = Compile("ref struct View { public int32 Value; } struct Container { public View stored; } class Program { public static int32 Main() { return 0; } }");
+        Assert.False(nestedRefStruct.Succeeded);
+        Assert.Contains(nestedRefStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
+
+        var arrayRefStruct = Compile("ref struct View { public int32 Value; } class Program { public static int32 Main() { View[] values = new View[2]; return 0; } }");
+        Assert.False(arrayRefStruct.Succeeded);
+        Assert.Contains(arrayRefStruct.Diagnostics, diagnostic => diagnostic.Code == "LS0701");
     }
 
     [Theory]
