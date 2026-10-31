@@ -1409,6 +1409,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         _output.AppendLine("  %data = select i1 %empty, ptr null, ptr %data.address");
         _output.AppendLine("  ret ptr %data");
         _output.AppendLine("}");
+        EmitArrayCopyRuntime();
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         var objectSize = compilation.NativePointerSize == 8 ? 48 : 36;
         var hasStringSupport = HasStringSupport();

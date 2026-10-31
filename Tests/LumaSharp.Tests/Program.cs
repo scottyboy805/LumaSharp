@@ -1641,6 +1641,41 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void ArrayCopyAndClearHelpersSupportBaseAndRectangularArrays()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path))).ToArray();
+        const string source = "using System; class Node { public int32 Value; public this(int32 value) { Value = value; } } struct Payload { public Node? Owner; public string? Label; public this(Node? owner, string? label) { Owner = owner; Label = label; } } " +
+            "class Program { public static int32 Main() { " +
+            "int32[] source = { 1, 2, 3, 4 }; int32[] destination = new int32[6]; " +
+            "Array.Copy(source, destination); if (destination[0] != 1 || destination[3] != 4 || destination[4] != 0) return 1; " +
+            "Array.Copy(source, 1, destination, 2, 2); if (destination[2] != 2 || destination[3] != 3) return 2; " +
+            "Array.Copy(destination, 0, destination, 1, 5); if (destination[0] != 1 || destination[1] != 1 || destination[2] != 2 || destination[3] != 2 || destination[4] != 3 || destination[5] != 0) return 3; " +
+            "Array.Copy(source, destination); if (destination[0] != 1 || destination[3] != 4) return 4; " +
+            "Array.Clear(destination, 1, 3); if (destination[1] != 0 || destination[2] != 0 || destination[3] != 0 || destination[4] != 3) return 5; " +
+            "int32[,] matrix = new int32[,] { { 5, 6 }, { 7, 8 } }; int32[,] matrixCopy = new int32[2, 2]; Array.Copy(matrix, matrixCopy); " +
+            "if (matrixCopy[0, 1] != 6 || matrixCopy[1, 0] != 7) return 6; Array.Copy(matrix, 1, matrixCopy, 2, 2); if (matrixCopy[1, 0] != 6 || matrixCopy[1, 1] != 7) return 7; " +
+            "int32[,,] cube = new int32[2, 2, 2]; cube[1, 0, 1] = 19; int32[,,] cubeCopy = new int32[2, 2, 2]; Array.Copy(cube, cubeCopy); if (cubeCopy[1, 0, 1] != 19) return 8; Array.Clear(cubeCopy); if (cubeCopy[1, 0, 1] != 0) return 9; " +
+            "Array sourceBase = matrix; Array destinationBase = matrixCopy; Array.Copy(sourceBase, destinationBase); if (matrixCopy[0, 0] != 5) return 10; " +
+            "Node?[] nodes = new Node?[3]; nodes[0] = new Node(31); nodes[1] = new Node(42); Array.Copy(nodes, 0, nodes, 1, 2); if (nodes[1]!.Value != 31 || nodes[2]!.Value != 42) return 11; Array.Clear(nodes); if (nodes[0] != null || nodes[1] != null || nodes[2] != null) return 12; " +
+            "string[] names = { \"one\", \"two\" }; Array.Clear(names); if (names[0] != \"\" || names[1] != \"\") return 13; " +
+            "string?[] optionalNames = new string?[2]; optionalNames[0] = \"held\" + \" value\"; string?[] optionalCopy = new string?[2]; Array.Copy(optionalNames, optionalCopy); if (optionalCopy[0] != \"held value\") return 14; Array.Clear(optionalCopy); if (optionalCopy[0] != null) return 15; " +
+            "Node owner = new Node(55); Payload[] payloads = new Payload[1]; payloads[0] = Payload(owner, \"payload\"); Payload[] payloadCopies = new Payload[1]; Array.Copy(payloads, payloadCopies); Array.Clear(payloads); if (payloadCopies[0].Owner!.Value != 55 || payloadCopies[0].Label != \"payload\") return 16; Array.Clear(payloadCopies); " +
+            "try { Array.Copy(source, 4, destination, 0, 1); return 17; } catch (ArgumentException) { } " +
+            "try { Array.Copy(source, -1, destination, 0, 1); return 18; } catch (ArgumentOutOfRangeException) { } " +
+            "string[] incompatible = { \"\", \"\", \"\", \"\" }; Array integerBase = source; Array stringBase = incompatible; try { Array.Copy(integerBase, stringBase); return 19; } catch (ArrayTypeMismatchException) { } " +
+            "try { Array.Clear(destination, 5, 2); return 20; } catch (ArgumentException) { } return 0; } }";
+        var result = LumaCompiler.Compile(runtimeSources.Append(("array-copy-test.ls", source)));
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.True(execution.ExitCode == 0, $"Exit code {execution.ExitCode}; stderr: {LlvmJit.CapturedStderr}; interop: {execution.InteropError}");
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void StringArraysRequireInitialValuesAndReleaseOwnedElements()
     {
         const string source = "class Program { public static int32 Main() { string[] values = { \"\", \"\" }; if (values[0] != \"\") return 1; string text = \"value\" + \"!\"; values[0] = text; string[] alias = values; alias[1] = text; string[] initialized = { text, \"fixed\" }; if (values[0] != \"value!\") return 2; if (values[1] != \"value!\") return 3; if (initialized[0] != \"value!\") return 4; if (initialized[1] != \"fixed\") return 5; string[] letters = { \"a\", \"b\" }; string joined = \"\"; for (let letter in letters) joined += letter; if (joined != \"ab\") return 6; return 0; } }";
@@ -7073,7 +7108,7 @@ public sealed class CompilerTests
             "unsafe { Point point = default; Point* pointer = &point; return pointer.x; } } }";
         var disabled = Compile(unsafeOptionRequired);
         Assert.Contains(disabled.Diagnostics, diagnostic => diagnostic.Code == "LS1901" &&
-            diagnostic.Message.Contains("Pointer member access", StringComparison.Ordinal));
+            diagnostic.Message.Contains("Unsafe code is disabled", StringComparison.Ordinal));
     }
 
     [Fact]
