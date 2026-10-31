@@ -19,8 +19,6 @@ public unsafe class StackTrace
 			throw new System.ArgumentOutOfRangeException();
 
 		int32 intrinsicSkipFrames = skipFrames;
-		if (intrinsicSkipFrames < int32.MaxValue)
-			intrinsicSkipFrames++;
 
 		stackTrace = __stacktrace(intrinsicSkipFrames);
 		frameCount = __stackframes(intrinsicSkipFrames);

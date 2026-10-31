@@ -347,15 +347,22 @@ public sealed class CompilerTests
             new CompilationOptions(UnsafeEnabled: true, TargetTriple: targetTriple));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("define internal ptr @luma_thread_entry", result.LlvmIr);
+        var expectedThreadEntry = targetTriple.Contains("windows", StringComparison.Ordinal)
+            ? targetTriple.StartsWith("i686", StringComparison.Ordinal)
+                ? "define internal x86_stdcallcc i32 @luma_thread_entry"
+                : "define internal i32 @luma_thread_entry"
+            : "define internal ptr @luma_thread_entry";
+        Assert.Contains(expectedThreadEntry, result.LlvmIr);
         Assert.Contains("define internal i1 @luma_thread_join", result.LlvmIr);
         Assert.Contains("define internal void @luma_thread_abort", result.LlvmIr);
         Assert.Contains("define internal void @luma_thread_sleep", result.LlvmIr);
-        Assert.Contains("luma_thread_invoke_System_Threading_ThreadStart_int32", result.LlvmIr);
+        Assert.Contains("luma_thread_invoke_System_Threading_ThreadStart__g_", result.LlvmIr);
         Assert.Contains("luma_thread_invoke_System_Threading_ThreadStart", result.LlvmIr);
         if (targetTriple.Contains("windows", StringComparison.Ordinal))
         {
-            Assert.Contains("declare ptr @CreateThread", result.LlvmIr);
+            Assert.Contains(targetTriple.StartsWith("i686", StringComparison.Ordinal)
+                ? "declare x86_stdcallcc ptr @CreateThread"
+                : "declare ptr @CreateThread", result.LlvmIr);
             Assert.Contains("@TerminateThread", result.LlvmIr);
         }
         else
@@ -635,6 +642,8 @@ public sealed class CompilerTests
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("@luma_weak_create", result.LlvmIr!, StringComparison.Ordinal);
         Assert.Contains("@luma_weak_get_target", result.LlvmIr, StringComparison.Ordinal);
+        Assert.Contains("weak.active.retry", result.LlvmIr, StringComparison.Ordinal);
+        Assert.Contains("class.retain.retry", result.LlvmIr, StringComparison.Ordinal);
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
@@ -838,7 +847,7 @@ public sealed class CompilerTests
         var result = LumaCompiler.Compile(runtimeSources.Append(("collections-runtime-test.ls", """
             using System.Collections;
 
-            public class TestKey : System.IEquality<TestKey>, System.IHashable
+            public class TestKey : System.IEquality<TestKey?>, System.IHashable
             {
                 public int32 value;
 
@@ -847,9 +856,9 @@ public sealed class CompilerTests
                     this.value = value;
                 }
 
-                public bool Equals(TestKey other)
+                public bool Equals(TestKey? other)
                 {
-                    return value == other.value;
+                    return other != null && value == other.value;
                 }
 
                 public int32 Hash
@@ -1035,15 +1044,23 @@ public sealed class CompilerTests
                 {
                     string literal = "A🙂Z";
                     string middle = literal.Substring(1, 2);
+                    string prefix = literal.Substring(0, 1);
+                    string suffix = literal.Substring(3, 1);
+                    string empty = literal.Substring(2, 0);
                     char[] characters = new char[3];
                     characters[0] = 'c';
                     characters[1] = 'a';
                     characters[2] = 't';
                     string owned = new string(characters);
+                    char[] supplementaryUnits = new char[2];
+                    supplementaryUnits[0] = '\uD83D';
+                    supplementaryUnits[1] = '\uDE42';
+                    string fromSurrogatePair = new string(supplementaryUnits);
                     string repeated = new string('x', 3);
                     string replaced = owned.Replace('a', 'A');
                     string trimmed = "  cat\t".Trim();
-                    return literal.Length == 4 && middle == "🙂" && owned == "cat" &&
+                    return literal.Length == 4 && middle == "🙂" && prefix == "A" && suffix == "Z" &&
+                        empty.Length == 0 && fromSurrogatePair == "🙂" && owned == "cat" &&
                         replaced == "cAt" && repeated == "xxx" && trimmed == "cat" &&
                         owned.IndexOf("at") == 1 && owned.StartsWith("c") && owned.EndsWith("t") ? 0 : 1;
                 }
@@ -1051,8 +1068,18 @@ public sealed class CompilerTests
             """)));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var verificationObject = Path.Combine(Path.GetTempPath(), "luma-string-slice-" + Guid.NewGuid().ToString("N") + ".obj");
+        try
+        {
+            var verification = LlvmToolchain.VerifyAndEmitObject(result.LlvmIr!, verificationObject, LlvmToolchain.GetHostTargetTriple() ?? "host", optimize: false);
+            Assert.True(verification.Succeeded, verification.Error);
+        }
+        finally
+        {
+            if (File.Exists(verificationObject)) File.Delete(verificationObject);
+        }
         var execution = LlvmJit.RunMain(result.LlvmIr!);
-        Assert.Equal(0, execution.ExitCode);
+        Assert.True(execution.ExitCode == 0, $"Exit code {execution.ExitCode}. {LlvmJit.CapturedStderr}");
     }
 
     [Fact]
@@ -5530,10 +5557,10 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void ReportsReservedFutureKeyword()
+    public void ReportsAwaitOutsideAsyncContext()
     {
         var result = Compile("class Program { public static void Main() { let x = await; } }");
-        Assert.Contains(result.Diagnostics, d => d.Code == "LS0104");
+        Assert.Contains(result.Diagnostics, d => d.Code == "LS0105");
     }
 
     [Fact]
@@ -5784,7 +5811,7 @@ public sealed class CompilerTests
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
             .Select(path => (path, File.ReadAllText(path)));
-        const string source = "using System.Diagnostics; class Program { public static int32 Leaf() { StackTrace trace = new StackTrace(1); if (trace.FrameCount != 2 || trace.ToString() != \"at Program.Middle()\\nat Program.Main()\\n\") return 1; StackTrace empty = new StackTrace(int32.MaxValue); if (empty.FrameCount != 0 || empty.ToString() != \"\") return 2; try { StackTrace invalid = new StackTrace(-1); return 3; } catch (System.ArgumentOutOfRangeException) { } return 0; } public static int32 Middle() { return Leaf(); } public static void RaiseAgain(System.Exception error) { throw error; } public static void ThrowInside(System.Exception error) { throw error; } public static void RethrowFromCaller(System.Exception error) { try { ThrowInside(error); } catch (...) { throw; } } public static int32 Main() { if (Middle() != 0) return 1; System.Exception error = new System.Exception(); try { throw error; } catch (...) { } string? firstTrace = error.StackTrace; try { RaiseAgain(error); } catch (...) { } string? secondTrace = error.StackTrace; try { RethrowFromCaller(error); } catch (...) { } string? rethrowTrace = error.StackTrace; return firstTrace == \"at Program.Main()\\n\" && secondTrace == \"at Program.RaiseAgain(System.Exception)\\nat Program.Main()\\n\" && rethrowTrace == \"at Program.ThrowInside(System.Exception)\\nat Program.RethrowFromCaller(System.Exception)\\nat Program.Main()\\n\" ? 0 : 2; } }";
+        const string source = "using System.Diagnostics; class Program { public static int32 Leaf() { StackTrace trace = new StackTrace(1); if (trace.FrameCount != 2) return 1; if (trace.ToString() != \"at Program.Middle()\\nat Program.Main()\\n\") return 2; StackTrace empty = new StackTrace(int32.MaxValue); if (empty.FrameCount != 0 || empty.ToString() != \"\") return 3; try { StackTrace invalid = new StackTrace(-1); return 4; } catch (System.ArgumentOutOfRangeException) { } return 0; } public static int32 Middle() { return Leaf(); } public static void RaiseAgain(System.Exception error) { throw error; } public static void ThrowInside(System.Exception error) { throw error; } public static void RethrowFromCaller(System.Exception error) { try { ThrowInside(error); } catch (...) { throw; } } public static int32 Main() { int32 leafStatus = Middle(); if (leafStatus != 0) return leafStatus; System.Exception error = new System.Exception(); try { throw error; } catch (...) { } string? firstTrace = error.StackTrace; try { RaiseAgain(error); } catch (...) { } string? secondTrace = error.StackTrace; try { RethrowFromCaller(error); } catch (...) { } string? rethrowTrace = error.StackTrace; return firstTrace == \"at Program.Main()\\n\" && secondTrace == \"at Program.RaiseAgain(System.Exception)\\nat Program.Main()\\n\" && rethrowTrace == \"at Program.ThrowInside(System.Exception)\\nat Program.RethrowFromCaller(System.Exception)\\nat Program.Main()\\n\" ? 0 : 5; } }";
         var result = LumaCompiler.Compile(runtimeSources.Append(("stacktrace-skip-test.ls", source)));
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
 
@@ -7164,7 +7191,7 @@ public sealed class CompilerTests
             """;
         var result = Compile(source);
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        Assert.Contains("[12 x i16] [i16 0, i16 7, i16 8, i16 12, i16 10, i16 13, i16 9, i16 11, i16 92, i16 39, i16 34, i16 65]", result.LlvmIr!);
+        Assert.Contains("[13 x i16] [i16 0, i16 7, i16 8, i16 12, i16 10, i16 13, i16 9, i16 11, i16 92, i16 39, i16 34, i16 65, i16 0]", result.LlvmIr!);
 
         var malformedHex = Compile("class Program { public static int32 Main() { string value = \"\\x\"; return 0; } }");
         Assert.Contains(malformedHex.Diagnostics, diagnostic => diagnostic.Code == "LS0001" && diagnostic.Message.Contains("one to four hexadecimal digits", StringComparison.Ordinal));

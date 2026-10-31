@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\LumaSharp.Compiler\LumaSharp.Compiler.csproj" />
-    <ProjectReference Include="..\..\LumaSharp.Cli\LumaSharp.Cli.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\LumaSharp.Compiler\LumaSharp.Compiler.csproj" SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="..\..\LumaSharp.Cli\LumaSharp.Cli.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 
   <PropertyGroup>

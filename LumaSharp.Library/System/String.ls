@@ -41,19 +41,15 @@ public class String : Object
 
 	public string Substring(int32 startIndex)
 	{
-		return Substring(startIndex, Length - startIndex);
+		return Substring(startIndex, this.Length - startIndex);
 	}
 
 	public string Substring(int32 startIndex, int32 length)
 	{
-		if (startIndex < 0 || startIndex > Length || length < 0 || length > Length - startIndex)
+		if (startIndex < 0 || startIndex > this.Length || length < 0 || length > this.Length - startIndex)
 			throw new ArgumentOutOfRangeException();
 
-		string result = "";
-		for (int32 index = 0; index < length; index++)
-			result += this[startIndex + index].ToString();
-
-		return result;
+		return __strslice(this, startIndex, length);
 	}
 
 	public int32 IndexOf(char value)
@@ -63,10 +59,10 @@ public class String : Object
 
 	public int32 IndexOf(char value, int32 startIndex)
 	{
-		if (startIndex < 0 || startIndex > Length)
+		if (startIndex < 0 || startIndex > this.Length)
 			throw new ArgumentOutOfRangeException();
 
-		for (int32 index = startIndex; index < Length; index++)
+		for (int32 index = startIndex; index < this.Length; index++)
 			if (this[index] == value)
 				return index;
 
@@ -82,12 +78,12 @@ public class String : Object
 	{
 		if (value == null)
 			throw new ArgumentNullException();
-		if (startIndex < 0 || startIndex > Length)
+		if (startIndex < 0 || startIndex > this.Length)
 			throw new ArgumentOutOfRangeException();
 		if (value.Length == 0)
 			return startIndex;
 
-		int32 lastStart = Length - value.Length;
+		int32 lastStart = this.Length - value.Length;
 		for (int32 index = startIndex; index <= lastStart; index++)
 		{
 			bool matches = true;
@@ -113,18 +109,18 @@ public class String : Object
 
 	public bool StartsWith(string? value)
 	{
-		return value != null && value.Length <= Length && IndexOf(value) == 0;
+		return value != null && value.Length <= this.Length && IndexOf(value) == 0;
 	}
 
 	public bool EndsWith(string? value)
 	{
-		return value != null && value.Length <= Length && IndexOf(value, Length - value.Length) == Length - value.Length;
+		return value != null && value.Length <= this.Length && IndexOf(value, this.Length - value.Length) == this.Length - value.Length;
 	}
 
 	public string Replace(char oldValue, char newValue)
 	{
 		string result = "";
-		for (int32 index = 0; index < Length; index++)
+		for (int32 index = 0; index < this.Length; index++)
 		{
 			char current = this[index];
 			result += (current == oldValue ? newValue : current).ToString();
@@ -135,7 +131,7 @@ public class String : Object
 	public string Trim()
 	{
 		int32 start = 0;
-		int32 end = Length;
+		int32 end = this.Length;
 		while (start < end && IsWhitespace(this[start]))
 			start++;
 		while (end > start && IsWhitespace(this[end - 1]))
@@ -145,8 +141,8 @@ public class String : Object
 
 	public char[] ToCharArray()
 	{
-		char[] result = new char[Length];
-		for (int32 index = 0; index < Length; index++)
+		char[] result = new char[this.Length];
+		for (int32 index = 0; index < this.Length; index++)
 			result[index] = this[index];
 		return result;
 	}
@@ -227,10 +223,7 @@ public class String : Object
 		if (startIndex < 0 || startIndex > value.Length || length < 0 || length > value.Length - startIndex)
 			throw new ArgumentOutOfRangeException();
 
-		string result = "";
-		for (int32 index = 0; index < length; index++)
-			result += value[startIndex + index].ToString();
-		return result;
+		unsafe { return __strfromchars(value.Ptr, startIndex, length); }
 	}
 
 	public static string Repeat(char value, int32 repeatCount)

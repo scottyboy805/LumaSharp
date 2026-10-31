@@ -39,7 +39,9 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine("  call void @luma_monitor_table_lock()");
 		_output.AppendLine($"  %raw = ptrtoint ptr %object to {sizeType}");
 		_output.AppendLine($"  %hash = urem {sizeType} %raw, {bucketCount}");
-		_output.AppendLine("  %bucket.index = trunc " + sizeType + " %hash to i32");
+		_output.AppendLine(sizeType == "i64"
+			? "  %bucket.index = trunc i64 %hash to i32"
+			: "  %bucket.index = add i32 %hash, 0");
 		_output.AppendLine($"  %bucket.address = getelementptr [{bucketCount} x ptr], ptr @luma_monitor_buckets, i32 0, i32 %bucket.index");
 		_output.AppendLine("  %first = load ptr, ptr %bucket.address");
 		_output.AppendLine("  br label %lookup");
@@ -166,7 +168,9 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine("unlink.monitor:");
 		_output.AppendLine($"  %raw = ptrtoint ptr %object to {sizeType}");
 		_output.AppendLine($"  %hash = urem {sizeType} %raw, {bucketCount}");
-		_output.AppendLine("  %bucket.index = trunc " + sizeType + " %hash to i32");
+		_output.AppendLine(sizeType == "i64"
+			? "  %bucket.index = trunc i64 %hash to i32"
+			: "  %bucket.index = add i32 %hash, 0");
 		_output.AppendLine($"  %bucket.address = getelementptr [{bucketCount} x ptr], ptr @luma_monitor_buckets, i32 0, i32 %bucket.index");
 		_output.AppendLine("  br label %unlink.lookup");
 		_output.AppendLine("unlink.lookup:");

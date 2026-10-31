@@ -12,7 +12,7 @@ public sealed class CliTests
         var main = workspace.Write("src/Main.ls", "class App { public static int32 Main() { return MathUtil.Add(20, 22); } }");
         var helper = workspace.Write("src/Math.ls", "class MathUtil { public static int32 Add(int32 a, int32 b) { return a + b; } }");
         var result = await Run(workspace.Root, "build", main, helper, "--no-llvm", "--out-dir", "bin", "--intermediate-dir", "obj");
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
         Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "LumaProgram.ll")));
         Assert.Contains("call i32 @luma_MathUtil_Add_2", File.ReadAllText(Path.Combine(workspace.Root, "obj", "LumaProgram.ll")));
     }
@@ -26,7 +26,7 @@ public sealed class CliTests
         workspace.Write("obj/Generated.ls", "invalid generated input");
         var project = workspace.Write("sample.luma.json", """{"schemaVersion":1,"outputDirectory":"bin","intermediateDirectory":"obj"}""");
         var result = await Run(workspace.Root, "build", project, "--no-llvm");
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
         Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "sample.luma.ll")));
     }
 
@@ -40,7 +40,7 @@ public sealed class CliTests
 
         var result = await Run(workspace.Root, "build", project, "--no-llvm");
 
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
         Assert.True(File.Exists(Path.Combine(workspace.Root, "project", "obj", "sample.ll")));
         Assert.Contains("luma_System_Console_WriteLine", File.ReadAllText(Path.Combine(workspace.Root, "project", "obj", "sample.ll")));
     }
@@ -53,7 +53,7 @@ public sealed class CliTests
 
         var result = await Run(workspace.Root, "build", source, "--no-llvm", "--out-dir", "bin", "--intermediate-dir", "obj");
 
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
         Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "Program.ll")));
         Assert.Contains("luma_System_Console_WriteLine", File.ReadAllText(Path.Combine(workspace.Root, "obj", "Program.ll")));
     }
@@ -67,7 +67,7 @@ public sealed class CliTests
 
         var result = await Run(workspace.Root, "build", source, "--runtime-library", Path.GetDirectoryName(runtime)!, "--no-llvm", "--out-dir", "bin", "--intermediate-dir", "obj");
 
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
         Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "Program.ll")));
     }
 
@@ -83,7 +83,7 @@ public sealed class CliTests
 
         var result = await Run(workspace.Root, "build", project, "--out-dir", "custom-bin", "--intermediate-dir", "custom-obj", "--no-llvm");
 
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
         Assert.True(File.Exists(Path.Combine(workspace.Root, "custom-obj", "sample.ll")));
     }
 
@@ -117,13 +117,28 @@ public sealed class CliTests
 
     private static async Task<ProcessResult> Run(string workingDirectory, params string[] arguments)
     {
-        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-        var cli = Path.Combine(root, "src", "LumaSharp.Cli", "bin", "Debug", "net10.0", "LumaSharp.Cli.dll");
+        var cli = FindCliAssembly();
         var start = new ProcessStartInfo("dotnet") { WorkingDirectory = workingDirectory, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
         start.ArgumentList.Add(cli); foreach (var arg in arguments) start.ArgumentList.Add(arg);
         using var process = Process.Start(start)!;
         var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync(); return new(process.ExitCode, await stdout, await stderr);
+    }
+
+    private static string FindCliAssembly()
+    {
+        var adjacent = Path.Combine(AppContext.BaseDirectory, "Luma.dll");
+        if (File.Exists(adjacent)) return adjacent;
+
+        var outputConfiguration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name ?? "Debug";
+        var targetFramework = new DirectoryInfo(AppContext.BaseDirectory).Name;
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "Build", outputConfiguration, targetFramework, "Luma.dll");
+            if (File.Exists(candidate)) return candidate;
+        }
+
+        throw new FileNotFoundException("The CLI project reference did not copy Luma.dll beside the test assembly and no CLI build output was found.", adjacent);
     }
 
     private sealed record ProcessResult(int ExitCode, string StandardOutput, string StandardError);

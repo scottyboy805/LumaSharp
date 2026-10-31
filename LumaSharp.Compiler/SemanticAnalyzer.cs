@@ -179,6 +179,7 @@ internal static class VirtualDispatchLayout
 
 internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
 {
+    private readonly HashSet<Expression> _activeExpressions = new(ReferenceEqualityComparer.Instance);
     private bool UnsafeEnabledAt(SourceLocation location) => options.UnsafeEnabled ||
         runtimeSourcePaths.Contains(Path.GetFullPath(location.File));
 
@@ -4330,10 +4331,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     if (call.Target is not MemberAccessExpression { Receiver: ThisExpression }) CheckExpression(call.Target);
                     for (var index = 0; index < call.Arguments.Count; index++)
                     {
-                        var isReadOnlyParameter = _callTargets.TryGetValue(call, out var target) && _callArguments.TryGetValue(call, out var binding) &&
+                        var isBorrowedParameter = _callTargets.TryGetValue(call, out var target) && _callArguments.TryGetValue(call, out var binding) &&
                             index < binding.ParameterBySource.Count && (target.Declaration.Parameters[binding.ParameterBySource[index]].PassingMode == "in" ||
-                                target.Declaration.Parameters[binding.ParameterBySource[index]].IsReadOnly);
-                        if (isReadOnlyParameter && call.Arguments[index] is ThisExpression) continue;
+                                target.Declaration.Parameters[binding.ParameterBySource[index]].IsReadOnly ||
+                                target.Declaration.Parameters[binding.ParameterBySource[index]].IsScoped);
+                        if (isBorrowedParameter && call.Arguments[index] is ThisExpression) continue;
                         CheckExpression(call.Arguments[index]);
                     }
                     break;
@@ -7070,6 +7072,18 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     }
 
     private string AnalyzeExpression(Expression expression, MethodContext context, string? expectedType = null)
+    {
+        if (!_activeExpressions.Add(expression))
+        {
+            diagnostics.Add("LMC0001", DiagnosticSeverity.Error, "The expression tree contains a cycle and cannot be analyzed.", expression.Location);
+            return "?";
+        }
+
+        try { return AnalyzeExpressionCore(expression, context, expectedType); }
+        finally { _activeExpressions.Remove(expression); }
+    }
+
+    private string AnalyzeExpressionCore(Expression expression, MethodContext context, string? expectedType)
     {
         cancellationToken.ThrowIfCancellationRequested();
         switch (expression)
@@ -11917,9 +11931,54 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return false;
     }
 
+    private string AnalyzeLogicalChain(BinaryExpression root, MethodContext context, string op)
+    {
+        var chain = new List<BinaryExpression>();
+        Expression first = root;
+        while (first is BinaryExpression nested && nested.Operator == op)
+        {
+            chain.Add(nested);
+            first = nested.Left;
+        }
+        chain.Reverse();
+
+        var firstType = AnalyzeExpression(first, context);
+        if (firstType != "bool")
+            diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Operator '{op}' requires bool operands.", first.Location);
+
+        foreach (var node in chain)
+        {
+            var afterLeft = context.CaptureNullStates();
+            RefineNullCondition(node.Left, context, whenTrue: op == "&&");
+            context.Push();
+            var patternScopes = op == "&&" ? DeclarePositiveTypePatternVariables(node.Left, context) : [];
+            var rightType = AnalyzeExpression(node.Right, context);
+            if (rightType != "bool")
+                diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Operator '{op}' requires bool operands.", node.Right.Location);
+            var afterRight = context.CaptureNullStates();
+            if (op == "&&")
+            {
+                node.CapturedPatternNamesInRight = GetPositiveTypePatternNodes(node.Left)
+                    .Select(pattern => pattern.PatternVariableName)
+                    .Where(name => name is not null && GetPatternCaptureEnvironment(node.Left, name) is not null)
+                    .Select(name => name!)
+                    .ToHashSet(StringComparer.Ordinal);
+            }
+            ExitCaptureScopes(context, patternScopes);
+            context.Pop();
+            context.RestoreNullStates(afterLeft);
+            RefineNullCondition(node.Left, context, whenTrue: op == "||");
+            var skippedRight = context.CaptureNullStates();
+            context.RestoreNullStates(MergeNullStates(afterRight, skippedRight));
+        }
+
+        return "bool";
+    }
+
     private string AnalyzeBinary(BinaryExpression binary, MethodContext context)
     {
         var op = binary.Operator;
+        if (op is "&&" or "||") return AnalyzeLogicalChain(binary, context, op);
         var previousPropertyAssignmentProbe = _propertyAssignmentProbe;
         if (op == "=" && binary.Left is (MemberAccessExpression or IndexExpression))
             _propertyAssignmentProbe = binary.Left;
@@ -12088,32 +12147,6 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 ReportConstantTypeTestWarning(binary, op, left, alwaysMatches: false);
             else if (TryGetConstantReferenceTypeTestResult(left, targetType, out var constantMatch))
                 ReportConstantTypeTestWarning(binary, op, left, constantMatch);
-            return "bool";
-        }
-        if (op is "&&" or "||")
-        {
-            if (left != "bool") diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Operator '{op}' requires bool operands.", binary.Left.Location);
-            var afterLeft = context.CaptureNullStates();
-            RefineNullCondition(binary.Left, context, whenTrue: op == "&&");
-            context.Push();
-            var rightPatternCaptureScopes = op == "&&" ? DeclarePositiveTypePatternVariables(binary.Left, context) : [];
-            var rightLogical = AnalyzeExpression(binary.Right, context);
-            if (rightLogical != "bool") diagnostics.Add("LMC3010", DiagnosticSeverity.Error, $"Operator '{op}' requires bool operands.", binary.Right.Location);
-            var afterRight = context.CaptureNullStates();
-            if (op == "&&")
-            {
-                binary.CapturedPatternNamesInRight = GetPositiveTypePatternNodes(binary.Left)
-                    .Select(pattern => pattern.PatternVariableName)
-                    .Where(name => name is not null && GetPatternCaptureEnvironment(binary.Left, name) is not null)
-                    .Select(name => name!)
-                    .ToHashSet(StringComparer.Ordinal);
-            }
-            ExitCaptureScopes(context, rightPatternCaptureScopes);
-            context.Pop();
-            context.RestoreNullStates(afterLeft);
-            RefineNullCondition(binary.Left, context, whenTrue: op == "||");
-            var skippedRight = context.CaptureNullStates();
-            context.RestoreNullStates(MergeNullStates(afterRight, skippedRight));
             return "bool";
         }
         var hasNullStateKey = TryGetNullStateKey(binary.Left, context, out var assignmentFlowKey);
@@ -12844,26 +12877,46 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
     private IReadOnlyList<BlockStatement> DeclarePositiveTypePatternVariables(Expression condition, MethodContext context, bool allowCapture = true)
     {
-        if (condition is BinaryExpression { Operator: "&&" } conjunction)
+        var scopes = new List<BlockStatement>();
+        var pending = new Stack<Expression>();
+        pending.Push(condition);
+        while (pending.TryPop(out var expression))
         {
-            return DeclarePositiveTypePatternVariables(conjunction.Left, context, allowCapture)
-                .Concat(DeclarePositiveTypePatternVariables(conjunction.Right, context, allowCapture)).ToArray();
+            if (expression is BinaryExpression { Operator: "&&" } conjunction)
+            {
+                pending.Push(conjunction.Right);
+                pending.Push(conjunction.Left);
+                continue;
+            }
+            if (expression is not BinaryExpression { Operator: "is", PatternVariableName: { } name } typePattern ||
+                !_typeOperatorTargets.TryGetValue(typePattern, out var targetType) || context.Exists(name))
+                continue;
+            var captureScope = allowCapture ? typePattern.PatternCaptureScope : null;
+            var patternVariableType = _typePatternVariableTypes.GetValueOrDefault(typePattern) ?? targetType;
+            context.Declare(name, patternVariableType, mutable: false, typePattern.Location, blockOwner: captureScope);
+            if (captureScope is null) continue;
+            context.EnterCaptureBlock(captureScope, isMethodScope: false);
+            scopes.Add(captureScope);
         }
-        if (condition is not BinaryExpression { Operator: "is", PatternVariableName: { } name } typePattern ||
-            !_typeOperatorTargets.TryGetValue(typePattern, out var targetType) || context.Exists(name)) return [];
-        var captureScope = allowCapture ? typePattern.PatternCaptureScope : null;
-        var patternVariableType = _typePatternVariableTypes.GetValueOrDefault(typePattern) ?? targetType;
-        context.Declare(name, patternVariableType, mutable: false, typePattern.Location, blockOwner: captureScope);
-        if (captureScope is null) return [];
-        context.EnterCaptureBlock(captureScope, isMethodScope: false);
-        return [captureScope];
+        return scopes;
     }
 
     private static BinaryExpression[] GetPositiveTypePatternNodes(Expression condition)
     {
-        if (condition is BinaryExpression { Operator: "&&" } conjunction)
-            return GetPositiveTypePatternNodes(conjunction.Left).Concat(GetPositiveTypePatternNodes(conjunction.Right)).ToArray();
-        return condition is BinaryExpression { Operator: "is", PatternVariableName: not null } pattern ? [pattern] : [];
+        var patterns = new List<BinaryExpression>();
+        var pending = new Stack<Expression>();
+        pending.Push(condition);
+        while (pending.TryPop(out var expression))
+        {
+            if (expression is BinaryExpression { Operator: "&&" } conjunction)
+            {
+                pending.Push(conjunction.Right);
+                pending.Push(conjunction.Left);
+            }
+            else if (expression is BinaryExpression { Operator: "is", PatternVariableName: not null } pattern)
+                patterns.Add(pattern);
+        }
+        return patterns.ToArray();
     }
 
     private ClosureEnvironmentBinding? GetPatternCaptureEnvironment(Expression condition, string? name)
@@ -12883,40 +12936,46 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
     private void RefineNullCondition(Expression condition, MethodContext context, bool whenTrue)
     {
-        if (condition is UnaryExpression { Operator: "!" } negation)
+        var pending = new Stack<(Expression Condition, bool WhenTrue)>();
+        pending.Push((condition, whenTrue));
+        while (pending.TryPop(out var item))
         {
-            RefineNullCondition(negation.Operand, context, !whenTrue);
-            return;
+            var current = item.Condition;
+            if (current is UnaryExpression { Operator: "!" } negation)
+            {
+                pending.Push((negation.Operand, !item.WhenTrue));
+                continue;
+            }
+            if (current is BinaryExpression { Operator: "&&" } conjunction && item.WhenTrue)
+            {
+                pending.Push((conjunction.Right, true));
+                pending.Push((conjunction.Left, true));
+                continue;
+            }
+            if (current is BinaryExpression { Operator: "||" } disjunction && !item.WhenTrue)
+            {
+                pending.Push((disjunction.Right, false));
+                pending.Push((disjunction.Left, false));
+                continue;
+            }
+            if (current is BinaryExpression typeTest && (typeTest.Operator is "is" or "is not") &&
+                _typeOperatorTargets.TryGetValue(typeTest, out var typeTestTarget) && typeTestTarget != "null" &&
+                TryGetNullStateKey(typeTest.Left, context, out var testedKey))
+            {
+                var testedType = GetNullFlowExpressionType(typeTest.Left, context);
+                var matchedBranch = typeTest.Operator == "is" ? item.WhenTrue : !item.WhenTrue;
+                if (matchedBranch && IsNullableClassType(testedType)) context.SetNullState(testedKey, NullState.NonNull);
+                continue;
+            }
+            if (current is not BinaryExpression { Operator: "==" or "!=" } comparison) continue;
+            Expression? candidate = comparison.Left is not LiteralExpression { Value: "null" } && comparison.Right is LiteralExpression { Value: "null" } ? comparison.Left :
+                comparison.Right is not LiteralExpression { Value: "null" } && comparison.Left is LiteralExpression { Value: "null" } ? comparison.Right : null;
+            if (candidate is null || !TryGetNullStateKey(candidate, context, out var key)) continue;
+            var candidateType = GetNullFlowExpressionType(candidate, context);
+            if (!IsNullableType(candidateType)) continue;
+            var notEqual = comparison.Operator == "!=";
+            context.SetNullState(key, item.WhenTrue == notEqual ? NullState.NonNull : NullState.Null);
         }
-        if (condition is BinaryExpression { Operator: "&&" } conjunction && whenTrue)
-        {
-            RefineNullCondition(conjunction.Left, context, true);
-            RefineNullCondition(conjunction.Right, context, true);
-            return;
-        }
-        if (condition is BinaryExpression { Operator: "||" } disjunction && !whenTrue)
-        {
-            RefineNullCondition(disjunction.Left, context, false);
-            RefineNullCondition(disjunction.Right, context, false);
-            return;
-        }
-        if (condition is BinaryExpression typeTest && (typeTest.Operator is "is" or "is not") &&
-            _typeOperatorTargets.TryGetValue(typeTest, out var typeTestTarget) && typeTestTarget != "null" &&
-            TryGetNullStateKey(typeTest.Left, context, out var testedKey))
-        {
-            var testedType = GetNullFlowExpressionType(typeTest.Left, context);
-            var matchedBranch = typeTest.Operator == "is" ? whenTrue : !whenTrue;
-            if (matchedBranch && IsNullableClassType(testedType)) context.SetNullState(testedKey, NullState.NonNull);
-            return;
-        }
-        if (condition is not BinaryExpression { Operator: "==" or "!=" } comparison) return;
-        Expression? candidate = comparison.Left is not LiteralExpression { Value: "null" } && comparison.Right is LiteralExpression { Value: "null" } ? comparison.Left :
-            comparison.Right is not LiteralExpression { Value: "null" } && comparison.Left is LiteralExpression { Value: "null" } ? comparison.Right : null;
-        if (candidate is null || !TryGetNullStateKey(candidate, context, out var key)) return;
-        var candidateType = GetNullFlowExpressionType(candidate, context);
-        if (!IsNullableType(candidateType)) return;
-        var notEqual = comparison.Operator == "!=";
-        context.SetNullState(key, whenTrue == notEqual ? NullState.NonNull : NullState.Null);
     }
 
     private string GetNullFlowExpressionType(Expression expression, MethodContext context) => expression switch

@@ -221,7 +221,8 @@ internal sealed partial class LlvmEmitter
 		_output.AppendLine($"declare {cc}i32 @WaitForSingleObject(ptr, i32)");
 		_output.AppendLine($"declare {cc}i32 @TerminateThread(ptr, i32)");
 		AppendDeclarationIfMissing($"declare {closeHandleCc}i32 @CloseHandle(ptr)");
-		_output.AppendLine($"declare {cc}void @Sleep(i32)");
+		if (!compilation.Methods.Any(method => method.Declaration.IsExtern && FunctionName(method, compilation.Methods) == "Sleep"))
+			AppendDeclarationIfMissing($"declare {cc}void @Sleep(i32)");
 		_output.AppendLine($"declare {cc}void @ExitThread(i32)");
 		EmitThreadStartFunction(sizeType, true);
 		_output.AppendLine($"define internal i1 @luma_thread_join({sizeType} %handle, i32 %timeout) {{");

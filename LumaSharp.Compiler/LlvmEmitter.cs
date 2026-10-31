@@ -176,6 +176,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         {
             EmitStringLiterals();
             EmitStringRuntime();
+            EmitStringUtf16SliceRuntime();
         }
         if (HasManagedArraySupport())
         {
@@ -206,7 +207,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             EmitExceptionCatchTables();
         }
         foreach (var field in compilation.StaticFields)
-            _output.AppendLine($"@{field.GlobalName} = {(stripUnusedExecutableCode ? "internal " : "")}{(field.Declaration.IsReadOnly && !field.RequiresInitialization ? "constant" : "global")} {LlvmType(field.Declaration.TypeName)} {field.InitialValue}");
+            _output.AppendLine($"@{field.GlobalName} = {(stripUnusedExecutableCode || IsRuntimeIntrinsicType(field.Owner) ? "internal " : "")}{(field.Declaration.IsReadOnly && !field.RequiresInitialization ? "constant" : "global")} {LlvmType(field.Declaration.TypeName)} {field.InitialValue}");
         foreach (var typeName in _typeInitializationFunctions.Keys.Order(StringComparer.Ordinal))
         {
             var safeType = Safe(typeName);
@@ -1321,8 +1322,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         return $"luma_{Safe(qualifiedTypeName)}_{methodName}_{method.Declaration.Parameters.Count}{overloadSignature}";
     }
 
-    private static bool IsRuntimeIntrinsicType(TypeDeclaration type) =>
-        type.Location.File is "<builtin>" or "<LumaSharp runtime>";
+    private static bool IsRuntimeIntrinsicType(TypeDeclaration type)
+    {
+        if (type.Location.File is "<builtin>" or "<LumaSharp runtime>") return true;
+        return type.Location.File.Replace('\\', '/').Contains("/LumaSharp.Library/", StringComparison.OrdinalIgnoreCase);
+    }
     private static string StructDelegateThunkName(DelegateMethodGroupBinding binding, IReadOnlyList<MethodSymbol> allMethods) =>
         $"luma_struct_delegate_{Safe(binding.DelegateType)}_{FunctionName(binding.Method, allMethods)}";
 
@@ -1696,7 +1700,12 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         var stringSize = compilation.NativePointerSize == 8 ? 56 : 36;
         var needsBoxedPrimitiveStringification = HasStringSupport() && compilation.ClassToStringCalls.Count > 0;
-        var needsPrimitiveStringification = compilation.StringifiedPrimitiveTypes.Count > 0 || EntryPointHasStringArguments() || needsBoxedPrimitiveStringification;
+        // Enum ToString is lowered to a UTF-8 string allocation even when no
+        // primitive conversion or boxed-object ToString is otherwise present.
+        // Keep its shared allocation helpers in the module so those calls never
+        // become undeclared LLVM values in small, runtime-free compilations.
+        var needsPrimitiveStringification = compilation.StringifiedPrimitiveTypes.Count > 0 ||
+            compilation.EnumToStringCalls.Count > 0 || HasStringSupport() || EntryPointHasStringArguments() || needsBoxedPrimitiveStringification;
         var needsFloatingStringification = UsesFloatStringConversion() || needsBoxedPrimitiveStringification;
         string SizeCast(string result, string operand) => sizeType == "i64" ? $"  %{result} = zext i32 %{operand} to i64" : $"  %{result} = add i32 %{operand}, 0";
         _output.AppendLine($"declare ptr @malloc({sizeType})");
@@ -2201,6 +2210,181 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 """);
         }
     }
+    private void EmitStringUtf16SliceRuntime()
+    {
+        var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
+        var byteLength = sizeType == "i64"
+            ? "  %byte.capacity.ext = zext i32 %length to i64\n  %byte.capacity = mul i64 %byte.capacity.ext, 4\n  %byte.allocation = add i64 %byte.capacity, 1\n  %unit.count.ext = zext i32 %length to i64\n  %unit.bytes = mul i64 %unit.count.ext, 2\n  %unit.allocation = add i64 %unit.bytes, 2"
+            : "  %too.large = icmp ugt i32 %length, 536870911\n  br i1 %too.large, label %out.of.memory, label %allocation.sizes\nallocation.sizes:\n  %byte.capacity = mul i32 %length, 4\n  %byte.allocation = add i32 %byte.capacity, 1\n  %unit.bytes = mul i32 %length, 2\n  %unit.allocation = add i32 %unit.bytes, 2";
+        _output.AppendLine($$"""
+            define internal ptr @luma_string_from_utf16_slice(ptr %source, i32 %length) {
+            entry:
+              %is.empty = icmp eq i32 %length, 0
+              br i1 %is.empty, label %empty, label %allocate.bytes
+            empty:
+              ret ptr @luma_string_empty
+            allocate.bytes:
+            {{byteLength}}
+              %bytes = call ptr @malloc({{sizeType}} %byte.allocation)
+              %bytes.failed = icmp eq ptr %bytes, null
+              br i1 %bytes.failed, label %out.of.memory, label %allocate.units
+            allocate.units:
+              %units = call ptr @malloc({{sizeType}} %unit.allocation)
+              %units.failed = icmp eq ptr %units, null
+              br i1 %units.failed, label %free.bytes, label %initialize
+            free.bytes:
+              call void @free(ptr %bytes)
+              br label %out.of.memory
+            initialize:
+              %scalar.slot = alloca i32, align 4
+              %advance.slot = alloca i32, align 4
+              br label %loop
+            loop:
+              %index = phi i32 [ 0, %initialize ], [ %next.index, %encode.bytes ]
+              %byte.offset = phi i32 [ 0, %initialize ], [ %next.byte.offset, %encode.bytes ]
+              %ascii = phi i1 [ true, %initialize ], [ %next.ascii, %encode.bytes ]
+              %done = icmp eq i32 %index, %length
+              br i1 %done, label %finish, label %read.unit
+            read.unit:
+              %unit.address = getelementptr i16, ptr %source, i32 %index
+              %unit = load i16, ptr %unit.address, align 2
+              %unit.wide = zext i16 %unit to i32
+              %high.low = icmp uge i32 %unit.wide, 55296
+              %high.high = icmp ule i32 %unit.wide, 56319
+              %is.high = and i1 %high.low, %high.high
+              br i1 %is.high, label %check.pair, label %check.low
+            check.pair:
+              %next.source.index = add i32 %index, 1
+              %has.next = icmp ult i32 %next.source.index, %length
+              br i1 %has.next, label %read.next.unit, label %invalid.high
+            read.next.unit:
+              %next.unit.address = getelementptr i16, ptr %source, i32 %next.source.index
+              %next.unit = load i16, ptr %next.unit.address, align 2
+              %next.wide = zext i16 %next.unit to i32
+              %low.low = icmp uge i32 %next.wide, 56320
+              %low.high = icmp ule i32 %next.wide, 57343
+              %is.low = and i1 %low.low, %low.high
+              br i1 %is.low, label %valid.pair, label %invalid.high
+            valid.pair:
+              %high.payload = sub i32 %unit.wide, 55296
+              %high.shifted = shl i32 %high.payload, 10
+              %low.payload = sub i32 %next.wide, 56320
+              %pair.payload = add i32 %high.shifted, %low.payload
+              %scalar.pair = add i32 %pair.payload, 65536
+              store i32 %scalar.pair, ptr %scalar.slot
+              store i32 2, ptr %advance.slot
+              br label %encode
+            invalid.high:
+              store i32 65533, ptr %scalar.slot
+              store i32 1, ptr %advance.slot
+              br label %encode
+            check.low:
+              %low.start = icmp uge i32 %unit.wide, 56320
+              %low.end = icmp ule i32 %unit.wide, 57343
+              %is.isolated.low = and i1 %low.start, %low.end
+              br i1 %is.isolated.low, label %invalid.low, label %valid.bmp
+            invalid.low:
+              store i32 65533, ptr %scalar.slot
+              store i32 1, ptr %advance.slot
+              br label %encode
+            valid.bmp:
+              store i32 %unit.wide, ptr %scalar.slot
+              store i32 1, ptr %advance.slot
+              br label %encode
+            encode:
+              %scalar = load i32, ptr %scalar.slot
+              %advance = load i32, ptr %advance.slot
+              %supplementary = icmp ugt i32 %scalar, 65535
+              %scalar.offset = sub i32 %scalar, 65536
+              %high.shift = lshr i32 %scalar.offset, 10
+              %high.scalar = add i32 %high.shift, 55296
+              %low.mask = and i32 %scalar.offset, 1023
+              %low.scalar = add i32 %low.mask, 56320
+              %bmp.unit = trunc i32 %scalar to i16
+              %high.unit = trunc i32 %high.scalar to i16
+              %low.unit = trunc i32 %low.scalar to i16
+              %output.first.unit = select i1 %supplementary, i16 %high.unit, i16 %bmp.unit
+              %output.unit.address = getelementptr i16, ptr %units, i32 %index
+              store i16 %output.first.unit, ptr %output.unit.address, align 2
+              %pair.index = add i32 %index, 1
+              %output.low.address = getelementptr i16, ptr %units, i32 %pair.index
+              br i1 %supplementary, label %store.low.unit, label %encode.bytes
+            store.low.unit:
+              store i16 %low.unit, ptr %output.low.address, align 2
+              br label %encode.bytes
+            encode.bytes:
+              %one.byte = icmp ult i32 %scalar, 128
+              %two.bytes = icmp ult i32 %scalar, 2048
+              %three.bytes = icmp ult i32 %scalar, 65536
+              %first.shift.two = lshr i32 %scalar, 6
+              %first.two = or i32 %first.shift.two, 192
+              %first.shift.three = lshr i32 %scalar, 12
+              %first.three = or i32 %first.shift.three, 224
+              %first.shift.four = lshr i32 %scalar, 18
+              %first.four = or i32 %first.shift.four, 240
+              %first.nonascii = select i1 %three.bytes, i32 %first.three, i32 %first.four
+              %first.multibyte = select i1 %two.bytes, i32 %first.two, i32 %first.nonascii
+              %first = select i1 %one.byte, i32 %scalar, i32 %first.multibyte
+              %second.shift = lshr i32 %scalar, 6
+              %second.mask = and i32 %second.shift, 63
+              %second = or i32 %second.mask, 128
+              %third.shift = lshr i32 %scalar, 12
+              %third.mask = and i32 %third.shift, 63
+              %third = or i32 %third.mask, 128
+              %fourth.shift = lshr i32 %scalar, 18
+              %fourth = or i32 %fourth.shift, 128
+              %byte.zero = trunc i32 %first to i8
+              %byte.one = trunc i32 %second to i8
+              %byte.two = trunc i32 %third to i8
+              %byte.three = trunc i32 %fourth to i8
+              %out.zero.address = getelementptr i8, ptr %bytes, i32 %byte.offset
+              store i8 %byte.zero, ptr %out.zero.address
+              %offset.one = add i32 %byte.offset, 1
+              %out.one.address = getelementptr i8, ptr %bytes, i32 %offset.one
+              store i8 %byte.one, ptr %out.one.address
+              %offset.two = add i32 %byte.offset, 2
+              %out.two.address = getelementptr i8, ptr %bytes, i32 %offset.two
+              store i8 %byte.two, ptr %out.two.address
+              %offset.three = add i32 %byte.offset, 3
+              %out.three.address = getelementptr i8, ptr %bytes, i32 %offset.three
+              store i8 %byte.three, ptr %out.three.address
+              %three.count = select i1 %three.bytes, i32 3, i32 4
+              %two.count = select i1 %two.bytes, i32 2, i32 %three.count
+              %byte.count = select i1 %one.byte, i32 1, i32 %two.count
+              %next.byte.offset = add i32 %byte.offset, %byte.count
+              %next.index = add i32 %index, %advance
+              %scalar.ascii = icmp ult i32 %scalar, 128
+              %next.ascii = and i1 %ascii, %scalar.ascii
+              br label %loop
+            finish:
+              %unit.terminator = getelementptr i16, ptr %units, i32 %length
+              store i16 0, ptr %unit.terminator, align 2
+              %byte.terminator = getelementptr i8, ptr %bytes, i32 %byte.offset
+              store i8 0, ptr %byte.terminator
+              %result = call ptr @luma_string_from_utf8(ptr %bytes, i32 %byte.offset, i32 %length, ptr %units, i1 %ascii)
+              call void @free(ptr %units)
+              call void @free(ptr %bytes)
+              ret ptr %result
+            out.of.memory:
+            {{StringRuntimeOutOfMemoryBody("  ")}}
+            }
+            define internal ptr @luma_string_substring(ptr %input, i32 %start, i32 %length) {
+            entry:
+              %units.address = getelementptr %luma.string, ptr %input, i32 0, i32 9
+              %units = load ptr, ptr %units.address
+              %slice = getelementptr i16, ptr %units, i32 %start
+              %result = call ptr @luma_string_from_utf16_slice(ptr %slice, i32 %length)
+              ret ptr %result
+            }
+            define internal ptr @luma_string_from_chars(ptr %input, i32 %start, i32 %length) {
+            entry:
+              %slice = getelementptr i16, ptr %input, i32 %start
+              %result = call ptr @luma_string_from_utf16_slice(ptr %slice, i32 %length)
+              ret ptr %result
+            }
+            """);
+    }
+
     private void EmitStringRuntimeOutOfMemory()
     {
         if (compilation.UsesExceptionHandling)
@@ -2503,7 +2687,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         _output.AppendLine("  %control = phi ptr [ %current, %lookup ], [ %candidate, %candidate.won ]");
         _output.AppendLine("  call void @luma_weak_lock(ptr %control)");
         _output.AppendLine("  %active.ptr = getelementptr %luma.weak.control, ptr %control, i32 0, i32 2");
-        _output.AppendLine("  %active.old = atomicrmw add ptr %active.ptr, i32 1 acq_rel");
+        EmitCheckedReferenceCountIncrement("%active.ptr", "activate.done", "weak.active");
+        _output.AppendLine("activate.done:");
         _output.AppendLine("  call void @luma_weak_unlock(ptr %control)");
         _output.AppendLine($"  %handle = ptrtoint ptr %control to {sizeType}");
         _output.AppendLine($"  ret {sizeType} %handle");
@@ -2537,8 +2722,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         _output.AppendLine("  %should.retain = and i1 %is.alive, %not.detached");
         _output.AppendLine("  br i1 %should.retain, label %retain, label %done");
         _output.AppendLine("retain:");
-        _output.AppendLine($"  %count.address = getelementptr i8, ptr %target, {sizeType} {pointerBytes}");
-        _output.AppendLine("  %old.count = atomicrmw add ptr %count.address, i32 1 acq_rel");
+        _output.AppendLine("  call void @luma_class_retain_dynamic(ptr %target)");
         _output.AppendLine("  br label %done");
         _output.AppendLine("done:");
         _output.AppendLine("  %result = select i1 %is.alive, ptr %target, ptr null");
@@ -8147,7 +8331,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 var value = v!.Value;
                 if (value.IsAddress) return $"ptr {value.Value}";
                 var argumentValue = value.Value;
-                if (target.Intrinsic is not null && IsStringType(value.Type))
+                if (target.Intrinsic is not null && target.Intrinsic.Name != "__strslice" && IsStringType(value.Type))
                     argumentValue = EmitIntrinsicStringDataPointer(argumentValue, value.Type);
                 var llvmType = LlvmType(value.Type);
                 var attribute = target.Declaration.IsExtern ? AbiAttribute(target.Declaration.Parameters[index].TypeName, enumTypes) : "";

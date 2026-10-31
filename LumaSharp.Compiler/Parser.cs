@@ -1629,6 +1629,38 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         if (minPrecedence == 1 && Eat("?")) { var at = left.Location; var whenTrue = ParseExpression(); Expect(":"); var whenFalse = ParseExpression(1); left = new ConditionalExpression(left, whenTrue, whenFalse, at); }
         return left;
     }
+    private bool LooksLikeInlineOutDeclaration()
+    {
+        if (Current.Text == "var") return IsIdentifier(Peek());
+        if (Current.Kind != TokenKind.Identifier) return false;
+
+        var offset = 1;
+        while (Peek(offset).Text == "." && IsIdentifier(Peek(offset + 1))) offset += 2;
+        if (Peek(offset).Text == "<")
+        {
+            var depth = 0;
+            do
+            {
+                var token = Peek(offset++).Text;
+                if (token == "<") depth++;
+                else if (token == ">") depth--;
+                else if (token == ">>") depth -= 2;
+                if (token == "<" && depth <= 0 || token is ">" or ">>" && depth < 0) return false;
+            }
+            while (depth > 0 && Peek(offset).Kind != TokenKind.End);
+            if (depth != 0) return false;
+        }
+
+        while (true)
+        {
+            if (Peek(offset).Text is "?" or "*") { offset++; continue; }
+            if (Peek(offset).Text == "[" && Peek(offset + 1).Text == "]") { offset += 2; continue; }
+            break;
+        }
+
+        return IsIdentifier(Peek(offset));
+    }
+
     private Expression ParseUnary()
     {
         var at = Current.Location;
@@ -1683,7 +1715,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                     if (IsIdentifier(Current) && Peek().Text == ":") { argumentName = Take().Text.TrimStart('@'); Take(); sawNamed = true; }
                     else if (sawNamed) diagnostics.Add("LS0740", DiagnosticSeverity.Error, "A positional argument cannot follow a named argument.", Current.Location);
                     var argumentMode = Current.Text is "ref" or "in" or "out" ? Take().Text : null;
-                    if (argumentMode == "out" && Current.Kind == TokenKind.Identifier && Peek().Kind == TokenKind.Identifier)
+                    if (argumentMode == "out" && LooksLikeInlineOutDeclaration())
                     {
                         var declarationAt = Current.Location;
                         string? declaredType;
