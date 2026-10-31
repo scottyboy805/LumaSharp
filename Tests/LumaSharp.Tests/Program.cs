@@ -7246,7 +7246,7 @@ public sealed class CompilerTests
                     }
                     string chosen = true ? text : "unused";
                     Echo(chosen);
-                    string assigned;
+                    string assigned = "";
                     assigned = Echo(chosen);
                     if (assigned == "abc") return assigned.Length;
                     return 0;
