@@ -1050,6 +1050,21 @@ public static async int32 ReadValueAsync()
 }
 ```
 
+Ordinary `await` expressions are evaluated in source order, so each one waits before the next right-hand expression starts. To start several tasks first and then wait for all of them, use the batch form as the only initializer or right-hand expression:
+
+```lumasharp
+let first, second = await (AddOneAsync(20), AddOneAsync(40));
+first, second = await (AddOneAsync(20), AddOneAsync(40));
+```
+
+Each operand must be a `Task<T>` with a result matching its target. LumaSharp evaluates and queues the task expressions from left to right, waits for every task to complete, then reads results from left to right. A task fault is raised when its result is read; because every task has already completed, one failure cannot leave the other batch tasks running. For multiple assignment, targets are evaluated only after all results are available. A non-task operand or a non-generic `Task` is a compile-time error.
+
+For comparison, this declaration does not form a batch: the second call starts only after the first await completes.
+
+```lumasharp
+let first, second = await AddOneAsync(20), await AddOneAsync(40);
+```
+
 Calling an async method creates a task and queues its body to a runtime-managed worker pool. `await` polls for completion while blocking the current thread; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing a task fault; `Task<T>.Result` and `await` rethrow it with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
 
 Use `lock` to protect shared state. The lock expression is evaluated once, and the monitor is always released when the body exits, including when it throws:

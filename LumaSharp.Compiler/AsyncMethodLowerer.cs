@@ -5,6 +5,8 @@ internal static class AsyncMethodLowerer
     public static IReadOnlyList<CompilationUnit> Lower(IReadOnlyList<CompilationUnit> units, DiagnosticBag diagnostics)
     {
         var nextGeneratedMethod = 0;
+        var nextAwaitBatchGroup = 0;
+        var awaitBatchGroups = new Dictionary<AwaitBatchExpression, int>(ReferenceEqualityComparer.Instance);
         string? currentAwaitFrame = null;
         var appendAwaitObserverFrame = false;
         return units.Select(unit => unit with { Types = unit.Types.Select(LowerType).ToArray() }).ToArray();
@@ -215,6 +217,9 @@ internal static class AsyncMethodLowerer
         {
             AwaitExpression awaited when inAsyncMethod => RewriteAwait(awaited),
             AwaitExpression awaited => ReportAwaitOutsideAsync(awaited),
+            AwaitBatchResultExpression result when inAsyncMethod => RewriteAwaitBatchResult(result),
+            AwaitBatchResultExpression result => ReportAwaitOutsideAsync(new AwaitExpression(result.Batch.Tasks[result.Index], result.Location)),
+            AwaitBatchExpression batch => ReportInvalidAwaitBatch(batch),
             LambdaExpression lambda => RewriteLambda(lambda),
             UnaryExpression unary => unary with { Operand = RewriteExpression(unary.Operand, inAsyncMethod) },
             CastExpression cast => cast with { Operand = RewriteExpression(cast.Operand, inAsyncMethod) },
@@ -260,7 +265,25 @@ internal static class AsyncMethodLowerer
                 [
                     RewriteExpression(awaited.Operand, inAsyncMethod: true),
                     new LiteralExpression(QuoteStringLiteral(appendAwaitObserverFrame ? currentAwaitFrame ?? string.Empty : string.Empty), awaited.Location)
-                ], awaited.Location);
+                ], awaited.Location, IsAwaitResult: true);
+        }
+
+        Expression RewriteAwaitBatchResult(AwaitBatchResultExpression result)
+        {
+            if (result.Index < 0 || result.Index >= result.Batch.Tasks.Count)
+                throw new InvalidOperationException("An await batch result has an invalid task index.");
+            if (!awaitBatchGroups.TryGetValue(result.Batch, out var group))
+            {
+                group = nextAwaitBatchGroup++;
+                awaitBatchGroups.Add(result.Batch, group);
+            }
+            var frame = QuoteStringLiteral(appendAwaitObserverFrame ? currentAwaitFrame ?? string.Empty : string.Empty);
+            return new CallExpression(
+                new MemberAccessExpression(new NameExpression("System.Threading.Tasks.Task", result.Location), "GetAwaitedResult", result.Location),
+                [
+                    RewriteExpression(result.Batch.Tasks[result.Index], inAsyncMethod: true),
+                    new LiteralExpression(frame, result.Location)
+                ], result.Location, IsAwaitResult: true, AwaitBatchGroup: group);
         }
 
         static bool IsTaskType(string? typeName) => typeName is "Task" or "System.Threading.Tasks.Task" ||
@@ -279,6 +302,12 @@ internal static class AsyncMethodLowerer
         {
             diagnostics.Add("LS0105", DiagnosticSeverity.Error, "The await keyword can only be used inside an async method.", awaited.Location);
             return new UnsupportedExpression("await outside async method", awaited.Location);
+        }
+
+        Expression ReportInvalidAwaitBatch(AwaitBatchExpression batch)
+        {
+            diagnostics.Add("LS0105", DiagnosticSeverity.Error, "A batch await can only be used as the sole right-hand group in a multiple declaration or multiple assignment.", batch.Location);
+            return new UnsupportedExpression("invalid batch await context", batch.Location);
         }
     }
 
@@ -305,6 +334,8 @@ internal static class AsyncMethodLowerer
     private static bool ContainsAwait(Expression expression) => expression switch
     {
         AwaitExpression => true,
+        AwaitBatchExpression => true,
+        AwaitBatchResultExpression => true,
         LambdaExpression lambda => lambda.ExpressionBody is not null && ContainsAwait(lambda.ExpressionBody) || lambda.BlockBody is not null && ContainsAwait(lambda.BlockBody),
         UnaryExpression unary => ContainsAwait(unary.Operand),
         CastExpression cast => ContainsAwait(cast.Operand),

@@ -4659,25 +4659,27 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         }
         private void EmitVariableDeclarations(IReadOnlyList<VariableStatement> variables)
         {
-            var values = new (string Value, string Type)?[variables.Count];
-            var ownsScopeBoundDelegates = new bool[variables.Count];
-            for (var index = 0; index < variables.Count; index++)
-            {
-                var declaredType = variableTypes.GetValueOrDefault(variables[index]) ?? variables[index].TypeName ??
-                    (variables[index].Initializer is { } initial ? InferType(initial) : "?");
-                if (variables[index].IsRefLocal)
-                    continue;
-                if (structTypes.ContainsKey(declaredType)) EnsureTypeInitialized(declaredType, force: true);
-                if (variables[index].Initializer is { } initializer)
+            var values = EmitExpressionValuesWithAwaitBatch(
+                variables.Select(variable => variable.Initializer).ToArray(),
+                index =>
                 {
+                    if (variables[index].IsRefLocal) return;
+                    var declaredType = variableTypes.GetValueOrDefault(variables[index]) ?? variables[index].TypeName ??
+                        (variables[index].Initializer is { } initializer ? InferType(initializer) : "?");
+                    if (structTypes.ContainsKey(declaredType)) EnsureTypeInitialized(declaredType, force: true);
+                },
+                (index, initializer) =>
+                {
+                    var declaredType = variableTypes.GetValueOrDefault(variables[index]) ?? variables[index].TypeName ?? InferType(initializer);
                     var isScopeBound = scopeBoundVariables.Contains(variables[index]);
                     _isScopeVariableInitializer = isScopeBound && initializer is AllocationExpression { IsScope: true };
-                    values[index] = initializer is InlineArrayInitializerExpression inlineInitializer
+                    var value = initializer is InlineArrayInitializerExpression inlineInitializer
                         ? SemanticAnalyzer.TryParseManagedArrayType(declaredType, out _, out _) ? EmitManagedArrayInitializer(inlineInitializer, declaredType) : EmitInlineArrayInitializer(inlineInitializer, declaredType)
                         : EmitExpression(initializer);
                     _isScopeVariableInitializer = false;
-                }
-            }
+                    return value;
+                });
+            var ownsScopeBoundDelegates = new bool[variables.Count];
 
             for (var index = 0; index < variables.Count; index++)
             {
@@ -4731,9 +4733,67 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             }
             ReleaseAllOwnedArrays();
         }
+        private (string Value, string Type)?[] EmitExpressionValuesWithAwaitBatch(
+            IReadOnlyList<Expression?> expressions,
+            Action<int> prepare,
+            Func<int, Expression, (string Value, string Type)> emitExpression)
+        {
+            var values = new (string Value, string Type)?[expressions.Count];
+            for (var index = 0; index < expressions.Count; index++)
+            {
+                prepare(index);
+                if (expressions[index] is not { } expression) continue;
+
+                if (expression is CallExpression { IsAwaitResult: true, AwaitBatchGroup: >= 0 } firstBatchCall)
+                {
+                    var group = new List<(int Index, CallExpression Call, (string Value, string Type) Task, (string Value, string Type) Frame)>();
+                    var next = index;
+                    while (next < expressions.Count &&
+                           expressions[next] is CallExpression { IsAwaitResult: true } batchCall &&
+                           batchCall.AwaitBatchGroup == firstBatchCall.AwaitBatchGroup)
+                    {
+                        if (next != index) prepare(next);
+                        if (batchCall.Arguments.Count != 2)
+                            throw new InvalidOperationException("A lowered await expression must have a task and an observer frame argument.");
+                        var task = EmitExpression(batchCall.Arguments[0]);
+                        var taskType = GetClassReferenceType(task.Type) ??
+                            throw new InvalidOperationException("A lowered await expression did not produce a Task reference.");
+                        EnsureOwnedClass(task, taskType);
+                        var frame = EmitExpression(batchCall.Arguments[1]);
+                        group.Add((next, batchCall, task, frame));
+                        next++;
+                    }
+
+                    var remainingUses = group.GroupBy(item => item.Task.Value, StringComparer.Ordinal)
+                        .ToDictionary(items => items.Key, items => items.Count(), StringComparer.Ordinal);
+                    var waitMethod = methods.FirstOrDefault(candidate =>
+                        candidate.Owner.Name == "Task" && candidate.Owner.Namespace == "System.Threading.Tasks" &&
+                        candidate.Declaration.Name == "Wait" && !candidate.Declaration.IsStatic &&
+                        candidate.Declaration.Parameters.Count == 0) ??
+                        throw new InvalidOperationException("The runtime Task.Wait() method is required to lower a batch await.");
+
+                    foreach (var item in group)
+                        Emit($"call void @{FunctionName(waitMethod, methods)}(ptr {item.Task.Value})");
+
+                    foreach (var item in group)
+                    {
+                        values[item.Index] = EmitCall(item.Call, releaseOwnedArguments: false,
+                            sourceArgumentOverrides: [item.Task, item.Frame]);
+                        remainingUses[item.Task.Value]--;
+                        if (remainingUses[item.Task.Value] == 0) ReleaseOwnedClass(item.Task);
+                    }
+
+                    index = next - 1;
+                }
+                else values[index] = emitExpression(index, expression);
+            }
+            return values;
+        }
         private void EmitMultiAssignment(MultiAssignmentStatement assignment)
         {
-            var values = assignment.Values.Select(EmitExpression).ToArray();
+            var values = EmitExpressionValuesWithAwaitBatch(assignment.Values, _ => { }, (_, expression) => EmitExpression(expression))
+                .Select(value => value ?? throw new InvalidOperationException("A multiple-assignment expression did not produce a value."))
+                .ToArray();
             var targets = new List<MultiAssignmentTarget>(assignment.Targets.Count);
             for (var targetIndex = 0; targetIndex < assignment.Targets.Count; targetIndex++)
             {

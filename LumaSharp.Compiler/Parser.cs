@@ -1275,6 +1275,10 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         Expect("=");
         var values = new List<Expression> { ParseExpression() };
         while (Eat(",")) values.Add(ParseExpression());
+        if (values.Count == 1 && values[0] is AwaitBatchExpression batch)
+            values = batch.Tasks.Select((_, index) => (Expression)new AwaitBatchResultExpression(batch, index, batch.At)).ToList();
+        else if (values.Any(value => value is AwaitBatchExpression))
+            diagnostics.Add("LS0105", DiagnosticSeverity.Error, "A batch await must be the only right-hand expression in a multiple assignment.", at);
         Expect(";");
         return new(targets, values, at);
     }
@@ -1509,11 +1513,20 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             initializers.Add(Is("{") ? ParseInlineArrayInitializer() : ParseExpression());
             while (Eat(",")) initializers.Add(Is("{") ? ParseInlineArrayInitializer() : ParseExpression());
         }
+        var isAwaitBatch = initializers.Count == 1 && initializers[0] is AwaitBatchExpression;
+        if (initializers.Count == 1 && initializers[0] is AwaitBatchExpression batch)
+        {
+            initializers = batch.Tasks.Select((_, index) => (Expression)new AwaitBatchResultExpression(batch, index, batch.At)).ToList();
+            if (batch.Tasks.Count != names.Count)
+                diagnostics.Add("LS0212", DiagnosticSeverity.Error, "A batch await must provide one result for every declared identifier.", batch.At);
+        }
+        else if (initializers.Any(initializer => initializer is AwaitBatchExpression))
+            diagnostics.Add("LS0105", DiagnosticSeverity.Error, "A batch await must be the only initializer in a multiple declaration.", at);
         if (expectSemicolon) Expect(";");
 
         if (initializers.Skip(1).Any(e => e is BinaryExpression { Operator: "=" }))
             diagnostics.Add("LS0214", DiagnosticSeverity.Error, "Multiple declarators use one initializer list; write all names before the single '='.", at);
-        else if (initializers.Count > names.Count)
+        else if (!isAwaitBatch && initializers.Count > names.Count)
             diagnostics.Add("LS0212", DiagnosticSeverity.Error, "A multiple declaration has more initializers than identifiers.", at);
 
         if (isConstant && (initializers.Count != names.Count || initializers.Any(initializer => initializer is null)))
@@ -1623,6 +1636,14 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         {
             if (_lockDepth > 0)
                 diagnostics.Add("LS0105", DiagnosticSeverity.Error, "An await expression cannot appear inside a lock statement.", at);
+            if (Eat("("))
+            {
+                var tasks = new List<Expression> { ParseExpression() };
+                while (Eat(",")) tasks.Add(ParseExpression());
+                Expect(")");
+                if (tasks.Count > 1) return new AwaitBatchExpression(tasks, at);
+                return new AwaitExpression(tasks[0], at);
+            }
             return new AwaitExpression(ParseUnary(), at);
         }
         if (LooksLikeLambda()) return ParseLambdaExpression();

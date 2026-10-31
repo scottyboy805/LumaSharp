@@ -404,6 +404,60 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void BatchAwaitStartsTasksBeforeWaitingAndOrdinaryAwaitsRemainSequential()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var fixturePath = RuntimeSourcePath("Tests/fixtures/AsyncMultipleAwait.ls");
+        var result = LumaCompiler.Compile(runtimeSources.Append((fixturePath, File.ReadAllText(fixturePath))), new CompilationOptions(UnsafeEnabled: true));
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var ir = result.LlvmIr!;
+        string GetBody(string generatedMethodName)
+        {
+            var functionStart = ir.IndexOf("@luma_Program___hidden_" + generatedMethodName + "_async_body_", StringComparison.Ordinal);
+            Assert.True(functionStart >= 0, $"Expected the lowered async body for {generatedMethodName}.");
+            functionStart = ir.LastIndexOf("define ", functionStart, StringComparison.Ordinal);
+            var functionEnd = ir.IndexOf("\n}", functionStart, StringComparison.Ordinal);
+            Assert.True(functionEnd > functionStart, $"Expected a complete lowered {generatedMethodName} function.");
+            return ir[functionStart..functionEnd];
+        }
+
+        var batchBody = GetBody("RunAsync");
+        var taskCalls = FindPositions(batchBody, "@luma_Program_ArriveTogetherAsync_1");
+        var waits = FindPositions(batchBody, "Task_inst_Wait_0");
+        var awaitedResults = FindPositions(batchBody, "GetAwaitedResult");
+        Assert.Equal(4, taskCalls.Count);
+        Assert.Equal(4, waits.Count);
+        Assert.Equal(4, awaitedResults.Count);
+        Assert.True(taskCalls[0] < taskCalls[1] && taskCalls[1] < waits[0] && waits[0] < waits[1] &&
+                    waits[1] < awaitedResults[0] && awaitedResults[0] < awaitedResults[1],
+            "The first batch must start both tasks, wait for both, then read results left-to-right.");
+        Assert.True(awaitedResults[1] < taskCalls[2] && taskCalls[2] < taskCalls[3] &&
+                    taskCalls[3] < waits[2] && waits[2] < waits[3] &&
+                    waits[3] < awaitedResults[2] && awaitedResults[2] < awaitedResults[3],
+            "The second batch must preserve the same start, wait, and result order.");
+
+        var sequentialBody = GetBody("SequentialAwaitsAsync");
+        var sequentialCalls = FindPositions(sequentialBody, "@luma_Program_ImmediateAsync_1");
+        var sequentialAwaits = FindPositions(sequentialBody, "GetAwaitedResult");
+        Assert.Equal(2, sequentialCalls.Count);
+        Assert.Equal(2, sequentialAwaits.Count);
+        Assert.True(sequentialCalls[0] < sequentialAwaits[0] && sequentialAwaits[0] < sequentialCalls[1] && sequentialCalls[1] < sequentialAwaits[1],
+            "Individual await expressions in a multi declaration must wait in source order.");
+
+        static List<int> FindPositions(string text, string value)
+        {
+            var positions = new List<int>();
+            for (var position = text.IndexOf(value, StringComparison.Ordinal); position >= 0;
+                 position = text.IndexOf(value, position + value.Length, StringComparison.Ordinal))
+                positions.Add(position);
+            return positions;
+        }
+    }
+
+    [Fact]
     public void AwaitAndLockRejectInvalidContexts()
     {
         var awaitOutsideAsync = Compile("class Program { public static int32 Main() { int32 value = await Main(); return value; } }");
@@ -424,6 +478,15 @@ public sealed class CompilerTests
 
         var awaitNonTask = Compile("class Program { public static async int32 Invalid() { return await 1; } public static int32 Main() { return 0; } }");
         Assert.False(awaitNonTask.Succeeded);
+
+        var batchAwaitNonTask = Compile("class Program { public static async int32 ValueAsync() { return 1; } public static async int32 Invalid() { let first, second = await (ValueAsync(), 2); return first + second; } public static int32 Main() { return 0; } }");
+        Assert.False(batchAwaitNonTask.Succeeded);
+
+        var batchAwaitVoidTask = Compile("class Program { public static async void SignalAsync() { } public static async int32 ValueAsync() { return 1; } public static async int32 Invalid() { let first, second = await (SignalAsync(), ValueAsync()); return first + second; } public static int32 Main() { return 0; } }");
+        Assert.False(batchAwaitVoidTask.Succeeded);
+
+        var batchAwaitWrongArity = Compile("class Program { public static async int32 ValueAsync() { return 1; } public static async int32 Invalid() { let first, second, third = await (ValueAsync(), ValueAsync()); return first + second + third; } public static int32 Main() { return 0; } }");
+        Assert.Contains(batchAwaitWrongArity.Diagnostics, diagnostic => diagnostic.Code == "LS0212");
 
         var asyncByRef = Compile("class Program { public static async int32 Invalid(ref int32 value) { return value; } public static int32 Main() { return 0; } }");
         Assert.False(asyncByRef.Succeeded);

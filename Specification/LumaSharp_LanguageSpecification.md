@@ -596,10 +596,11 @@ Rules:
 
 1. The number of initializers MUST be **less than or equal to** the number of identifiers (error LS0212).
 2. Initializers are matched to identifiers in order. Each remaining identifier receives its type's **default** (§4.3): zero for value types and `null` for nullable types. A remaining identifier of a non-default-constructible type (including non-nullable references such as `string`) is an error (LS0810).
-3. Initializers are evaluated **left to right**. An initializer MUST NOT refer to any variable declared by the same statement (error LS0201).
-4. Initializer expressions in a multiple declaration cannot be assignment expressions at top level. The C# form `int32 a = 1, b = 2;` is therefore an error (LS0214: "use `int32 a, b = 1, 2;`").
-5. With `var` or `let` and **no explicit type**, every identifier MUST have an initializer (equal counts) and all initializers MUST have the **same single type** (including nullability); otherwise error LS0213. To mix types, or when no single type exists, give the type explicitly with `let`.
-6. `var` cannot be combined with an explicit type (a normal typed declaration is already mutable).
+3. Initializers are evaluated **left to right**. An initializer MUST NOT refer to any variable declared by the same statement (error LS0201). Each ordinary `await E` waits at its position in this order before the next initializer is evaluated.
+4. A batch await, written `await (E1, E2, ...)`, is permitted only as the sole initializer group of a multiple declaration. Its arity MUST equal the number of declared identifiers. Each operand MUST have type `Task<T>`; a non-task operand or non-generic `Task` is an error. The compiler evaluates all operands left to right, waits for all resulting tasks to complete, then reads their results left to right. No variable is initialized until every result has been read successfully. If multiple tasks fault, the first fault encountered in result order is propagated; every task has already completed before a fault is observed.
+5. Initializer expressions in a multiple declaration cannot be assignment expressions at top level. The C# form `int32 a = 1, b = 2;` is therefore an error (LS0214: "use `int32 a, b = 1, 2;`").
+6. With `var` or `let` and **no explicit type**, every identifier MUST have an initializer (equal counts) and all initializers MUST have the **same single type** (including nullability); otherwise error LS0213. To mix types, or when no single type exists, give the type explicitly with `let`.
+7. `var` cannot be combined with an explicit type (a normal typed declaration is already mutable).
 
 ```lumasharp
 var a, b = 1, 2;                 // both int32
@@ -742,11 +743,12 @@ multi_assign = target "," target { "," target } "=" expr "," expr { "," expr } "
 
 This is a **statement** distinguished from a multiple *declaration* (§4.2.4) by the absence of a leading type. The number of targets MUST equal the number of expressions (error LS0210). Evaluation is **simultaneous**, in this exact order:
 
-1. Evaluate every right-hand expression **left to right**, storing each result in a temporary.
-2. Evaluate the sub-expressions of every target (receiver expressions, index expressions) **left to right**.
-3. Assign the temporaries to the targets **left to right**.
+1. Evaluate every right-hand expression **left to right**, storing each result in a temporary. Ordinary `await E` waits at its position before evaluation continues.
+2. If the right-hand side is a sole batch await `await (E1, E2, ...)`, evaluate the task operands left to right, wait for every task to complete, then read results left to right. Its arity MUST equal the number of targets, and every operand MUST be `Task<T>`; a non-task or non-generic `Task` operand is an error.
+3. Evaluate the sub-expressions of every target (receiver expressions, index expressions) **left to right**.
+4. Assign the temporaries to the targets **left to right**.
 
-No target is modified until every right-hand expression has been evaluated.
+No target is evaluated or modified until every right-hand value is available. Batch task expressions start in source order and can run concurrently; if multiple tasks fault, the first fault encountered in result order is propagated after all batch tasks have completed.
 
 ```lumasharp
 a, b = 1, 2;               // a == 1, b == 2
@@ -4820,7 +4822,9 @@ The compiler may synthesize private helper methods and closure data to execute t
 
 `Task.IsCompleted` becomes true exactly once after either normal completion or fault publication. `Task.Exception` is null on success and contains the exception on fault. Completion publication and reads MUST be synchronized so a thread observing completion also observes the task result or exception.
 
-`Task.Wait()` blocks until completion and does not rethrow a fault. `Task<T>.Result` blocks until completion, then returns the result or throws the stored fault. The `await` operator has the same blocking and result behavior as `Result`, except awaiting the non-generic `Task` produces no value. This version uses polling with a short sleep, or an equivalent bounded-wait mechanism; it does not suspend and later resume a continuation. The code following an await therefore runs on the same thread that called the async method containing that await.
+`Task.Wait()` blocks until completion and does not rethrow a fault. `Task<T>.Result` blocks until completion, then returns the result or throws the stored fault. The `await` operator has the same blocking and result behavior as `Result`, except awaiting the non-generic `Task` produces no value. This version uses polling with a short sleep, or an equivalent bounded-wait mechanism; it does not suspend and later resume a continuation. The code following an await therefore runs on the same thread that called the async method containing that await. Separate await expressions are evaluated and waited in ordinary left-to-right expression order.
+
+For concurrent startup in a multiple declaration or multiple assignment, the language provides the batch form `await (taskA, taskB, ...)`. It is valid only as the sole right-hand group of that statement, must have one `Task<T>` operand per target, evaluates all task expressions from left to right, waits for all tasks to complete, then reads results in source order. A fault is raised while reading results; all batch tasks have completed first, and the first fault in source order is the one propagated. A non-task or non-generic `Task` operand is a compile-time error.
 
 Awaiting does not imply that the task started on a separate thread from every caller: a source method invoked from an async body still returns a task that is independently scheduled on the pool. Await is forbidden in a `lock` body. No synchronization context is captured or restored.
 
@@ -5001,7 +5005,9 @@ relational         = shift { ( "<" | ">" | "<=" | ">=" ) shift }
 shift              = additive { ( "<<" | ">>" ) additive } ;
 additive           = multiplicative { ( "+" | "-" ) multiplicative } ;
 multiplicative     = unary { ( "*" | "/" | "%" ) unary } ;
-unary              = ( "+" | "-" | "!" | "~" | "++" | "--" | "&" | "*" | "await" ) unary
+unary              = ( "+" | "-" | "!" | "~" | "++" | "--" | "&" | "*" ) unary
+                   | "await" unary
+                   | "await" "(" expr "," expr { "," expr } ")" (* batch await; only in multi declarations/assignments *)
                    | "(" type ")" unary          (* cast; disambiguation as in C# *)
                    | postfix ;
 postfix            = primary { "." identifier [ type_args ]      (* also auto-dereferences pointers *)

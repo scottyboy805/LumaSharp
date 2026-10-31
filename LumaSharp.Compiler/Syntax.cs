@@ -78,7 +78,7 @@ public sealed record BinaryExpression(Expression Left, string Operator, Expressi
 public sealed record ConditionalExpression(Expression Condition, Expression WhenTrue, Expression WhenFalse, SourceLocation At) : Expression(At);
 public sealed record MemberAccessExpression(Expression Receiver, string Member, SourceLocation At, bool IsNullConditional = false, bool IsUnsafeContext = false) : Expression(At);
 public sealed record IndexExpression(Expression Receiver, IReadOnlyList<Expression> Indices, SourceLocation At, bool IsUnsafeContext = false, bool IsNullConditional = false) : Expression(At);
-public sealed record CallExpression(Expression Target, IReadOnlyList<Expression> Arguments, SourceLocation At, IReadOnlyList<string?>? ArgumentNames = null, IReadOnlyList<string?>? ArgumentModes = null, bool IsUnsafeContext = false, IReadOnlyList<string>? TypeArguments = null) : Expression(At);
+public sealed record CallExpression(Expression Target, IReadOnlyList<Expression> Arguments, SourceLocation At, IReadOnlyList<string?>? ArgumentNames = null, IReadOnlyList<string?>? ArgumentModes = null, bool IsUnsafeContext = false, IReadOnlyList<string>? TypeArguments = null, bool IsAwaitResult = false, int AwaitBatchGroup = -1) : Expression(At);
 public sealed record LambdaParameter(string? TypeName, string Name, SourceLocation Location);
 public sealed record LambdaExpression(IReadOnlyList<LambdaParameter> Parameters, Expression? ExpressionBody, BlockStatement? BlockBody, SourceLocation At) : Expression(At);
 public sealed record InlineOutVariableExpression(string? TypeName, string Name, SourceLocation At) : Expression(At);
@@ -88,3 +88,5 @@ public sealed record SizeOfExpression(string TypeName, SourceLocation At) : Expr
 public sealed record UnsupportedExpression(string Description, SourceLocation At) : Expression(At);
 public sealed record NullAssertionExpression(Expression Operand, SourceLocation At) : Expression(At);
 public sealed record AwaitExpression(Expression Operand, SourceLocation At) : Expression(At);
+public sealed record AwaitBatchExpression(IReadOnlyList<Expression> Tasks, SourceLocation At) : Expression(At);
+public sealed record AwaitBatchResultExpression(AwaitBatchExpression Batch, int Index, SourceLocation At) : Expression(At);
