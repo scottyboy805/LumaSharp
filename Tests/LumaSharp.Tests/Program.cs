@@ -3044,6 +3044,18 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void GenericInvocationsAcceptNullableAndNestedTypeArgumentsWithoutChangingComparisons()
+    {
+        const string source = "class Item { } class Box<T> { } class Program { public static int32 Touch<T>() { return 7; } public static int32 Main() { int32 nullableArgument = Touch<Item?>(); int32 nestedArguments = Touch<Box<Box<int32>>>(); int32 left = 2; int32 right = 1; return nullableArgument == 7 && nestedArguments == 7 && left > right && right < left ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void ClosedGenericInterfacesSupportContractsAndDispatch()
     {
         const string source = "interface IValue<T> { T Get(); } class Box : IValue<int32> { public int32 Get() { return 42; } } class Program { public static int32 Main() { IValue<int32> value = new Box(); return value.Get() == 42 ? 0 : 1; } }";

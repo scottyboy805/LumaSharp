@@ -1753,20 +1753,78 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     }
     private bool LooksLikeGenericInvocation()
     {
-        var depth = 0;
-        for (var index = _position; index < tokens.Count; index++)
+        if (_position >= tokens.Count || tokens[_position].Text != "<") return false;
+        var index = _position + 1;
+        var pendingClosers = 0;
+
+        bool ConsumeClose()
         {
-            // A generic argument list contains only type syntax. Stop at a
-            // statement or expression boundary so a later relational '>' cannot
-            // make an earlier comparison look like `Method<T>(...)`.
-            if (index > _position && tokens[index].Text is ";" or "{" or "}" or ")" or "=>" or "&&" or "||" or "==" or "!=" or "<=" or ">=" or "+" or "-" or "/" or "%" or "|" or "^" or "=" or "?" or "!")
-                return false;
-            if (tokens[index].Text == "<") depth++;
-            else if (tokens[index].Text == ">") depth--;
-            else if (tokens[index].Text == ">>") depth -= 2;
-            if (depth <= 0) return depth == 0 && index + 1 < tokens.Count && tokens[index + 1].Text == "(";
+            if (pendingClosers > 0)
+            {
+                pendingClosers--;
+                return true;
+            }
+            if (index >= tokens.Count) return false;
+            if (tokens[index].Text == ">")
+            {
+                index++;
+                return true;
+            }
+            if (tokens[index].Text == ">>")
+            {
+                index++;
+                pendingClosers++;
+                return true;
+            }
+            return false;
         }
-        return false;
+
+        bool ScanTypeArgument()
+        {
+            if (index >= tokens.Count || tokens[index].Kind != TokenKind.Identifier) return false;
+            index++;
+            while (index + 1 < tokens.Count && tokens[index].Text == "." && tokens[index + 1].Kind == TokenKind.Identifier)
+                index += 2;
+
+            if (index < tokens.Count && tokens[index].Text == "<")
+            {
+                index++;
+                if (!ScanTypeArgument()) return false;
+                while (index < tokens.Count && tokens[index].Text == ",")
+                {
+                    index++;
+                    if (!ScanTypeArgument()) return false;
+                }
+                if (!ConsumeClose()) return false;
+            }
+
+            while (index < tokens.Count)
+            {
+                if (tokens[index].Text is "?" or "*")
+                {
+                    index++;
+                    continue;
+                }
+                if (tokens[index].Text is "[" or "?[")
+                {
+                    index++;
+                    while (index < tokens.Count && tokens[index].Text == ",") index++;
+                    if (index >= tokens.Count || tokens[index].Text != "]") return false;
+                    index++;
+                    continue;
+                }
+                break;
+            }
+            return true;
+        }
+
+        if (!ScanTypeArgument()) return false;
+        while (index < tokens.Count && tokens[index].Text == ",")
+        {
+            index++;
+            if (!ScanTypeArgument()) return false;
+        }
+        return ConsumeClose() && pendingClosers == 0 && index < tokens.Count && tokens[index].Text == "(";
     }
     private bool LooksLikeExplicitInterfaceQualifier()
     {
