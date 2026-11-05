@@ -63,6 +63,8 @@ public sealed record EmptyStatement(SourceLocation At) : Statement(At);
 
 public abstract record Expression(SourceLocation Location);
 public sealed record LiteralExpression(string Value, SourceLocation At) : Expression(At);
+public sealed record NameOfExpression(string Name, Expression Operand, SourceLocation At) : Expression(At);
+public sealed record TypeOfExpression(string TypeName, SourceLocation At) : Expression(At);
 public sealed record InlineArrayInitializerExpression(IReadOnlyList<Expression> Elements, SourceLocation At) : Expression(At);
 public sealed record AllocationExpression(string? TypeName, IReadOnlyList<Expression> Dimensions, InlineArrayInitializerExpression? Initializer, bool IsScope, SourceLocation At,
     IReadOnlyList<Expression>? ConstructorArguments = null, IReadOnlyList<string?>? ConstructorArgumentNames = null, IReadOnlyList<string?>? ConstructorArgumentModes = null,

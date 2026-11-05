@@ -76,6 +76,8 @@ internal static class CompilerIntrinsics
         Add("__threadabort", "void", "threading", "int");
         Add("__threadsleep", "void", "threading", "int32");
         Add("__threadcurrent", "System.Threading.Thread", "threading");
+        Add("__typeref", "System.Type", "type", "System.Object");
+        Add("__typenew", "System.Object", "type", "System.Type", "System.Object?[]");
         Add("__monitorenter", "void", "monitor", "System.Object");
         Add("__monitorexit", "bool", "monitor", "System.Object");
         Add("__throwpreserve", "void", "exception", "System.Exception");
@@ -142,6 +144,8 @@ internal static class CompilerIntrinsics
         "__threadabort" => "luma_thread_abort",
         "__threadsleep" => "luma_thread_sleep",
         "__threadcurrent" => "luma_thread_current",
+        "__typeref" => "luma_object_get_type",
+        "__typenew" => "luma_type_new",
         "__monitorenter" => "luma_monitor_enter",
         "__monitorexit" => "luma_monitor_exit",
         "__throwpreserve" => "luma_throw_preserve",

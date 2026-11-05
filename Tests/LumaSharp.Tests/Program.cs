@@ -19,6 +19,43 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void NameofProducesAccessibleSymbolNamesWithoutEvaluatingOperands()
+    {
+        const string source = "class Widget { public int32 Value; public static int32 StaticValue; public int32 Convert(int32 value) => value; public string Convert(string value) => value; public int32 Read() => Value; public string FieldName() => nameof(this.Value); } class Box<T> { public T Value; } class Program { public const string ConstantName = nameof(Widget.Value); static int32 calls; static Widget GetWidget() { calls++; return new Widget(); } public static string GenericName<T>() => nameof(T); public static int32 Main() { Widget widget = new Widget(); string localName = nameof(widget); string fieldName = nameof(widget.Value); string methodName = nameof(widget.Convert); string qualifiedField = nameof(Widget.Value); string qualifiedMethod = nameof(Widget.Read); string typeName = nameof(Widget); string genericTypeName = nameof(Box<int32>); string genericMemberName = nameof(Box<int32>.Value); string staticName = nameof(Widget.StaticValue); string nestedName = nameof(GetWidget().Value); string thisName = widget.FieldName(); return localName == \"widget\" && fieldName == \"Value\" && methodName == \"Convert\" && qualifiedField == \"Value\" && qualifiedMethod == \"Read\" && typeName == \"Widget\" && genericTypeName == \"Box\" && genericMemberName == \"Value\" && staticName == \"StaticValue\" && nestedName == \"Value\" && thisName == \"Value\" && Program.ConstantName == \"Value\" && GenericName<int32>() == \"T\" && calls == 0 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+
+        var invalidLiteral = Compile("class Program { public static int32 Main() { string name = nameof(42); return 0; } }");
+        Assert.False(invalidLiteral.Succeeded);
+        Assert.Contains(invalidLiteral.Diagnostics, diagnostic => diagnostic.Code == "LMC3010");
+
+        var unknownName = Compile("class Program { public static int32 Main() { string name = nameof(missing); return 0; } }");
+        Assert.False(unknownName.Succeeded);
+
+        var unknownMember = Compile("class Widget { public int32 Value; } class Program { public static int32 Main() { Widget widget = new Widget(); string name = nameof(widget.Missing); return 0; } }");
+        Assert.False(unknownMember.Succeeded);
+
+        var expressionOperand = Compile("class Program { public static int32 Main() { int32 value = 1; string name = nameof(value + 1); return 0; } }");
+        Assert.False(expressionOperand.Succeeded);
+        Assert.Contains(expressionOperand.Diagnostics, diagnostic => diagnostic.Code == "LMC3010");
+
+        var inaccessibleMember = Compile("class Widget { private int32 Hidden; } class Program { public static int32 Main() { Widget widget = new Widget(); string name = nameof(widget.Hidden); return 0; } }");
+        Assert.False(inaccessibleMember.Succeeded);
+
+        const string extendedForms = "class Item { public int32 Value; public int32 @class; } extension Item { public int32 Extra() => Value; } enum State { Ready } class Program { public static int32 Main() { Item item = new Item(); Item? maybeItem = item; string escaped = nameof(item.@class); string conditional = nameof(maybeItem?.Value); string extension = nameof(item.Extra); string enumMember = nameof(State.Ready); return escaped == \"class\" && conditional == \"Value\" && extension == \"Extra\" && enumMember == \"Ready\" ? 0 : 1; } }";
+        var extendedResult = Compile(extendedForms);
+        Assert.True(extendedResult.Succeeded, string.Join(Environment.NewLine, extendedResult.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(extendedResult.LlvmIr!).ExitCode);
+
+        var missingArgument = Compile("class Program { public static int32 Main() { string name = nameof(); return 0; } }");
+        Assert.False(missingArgument.Succeeded);
+
+        var extraArgument = Compile("class Program { public static int32 Main() { int32 value = 1; string name = nameof(value, value); return 0; } }");
+        Assert.False(extraArgument.Succeeded);
+    }
+
+    [Fact]
     public void ExtensionMethodsLowerToStaticHelpersWithAnImplicitReceiver()
     {
         const string source = "class Counter { public int32 Value; public int32 Existing() { return Value; } } extension Counter { public int32 Val => Value + 1; public int32 Alias { get => Value; set { Value = value; } } public int32 Read() => Value; public int32 Add(int32 amount) { return this.Existing() + amount; } } class Program { public static int32 Main() { Counter counter = new Counter(); counter.Alias = 4; Counter? missing = null; int32? missingRead = missing?.Read(); int32? missingValue = missing?.Val; return counter.Val == 5 && counter.Read() == 4 && counter.Add(5) == 9 && missingRead == null && missingValue == null ? 0 : 1; } }";
@@ -212,6 +249,437 @@ public sealed class CompilerTests
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         Assert.Contains("define internal i32 @luma_intrinsic_arrlen", result.LlvmIr);
+    }
+
+    [Fact]
+    public void TypeofReturnsStableRuntimeMetadataForClassesAndPrimitives()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            namespace Example;
+            public class Widget { }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    System.Type widget = typeof(Widget);
+                    System.Type integer = typeof(int32);
+                    object boxedWidget = new Widget();
+                    object boxedInteger = 42;
+                    System.Type dynamicWidget = boxedWidget.GetType();
+                    System.Type dynamicInteger = boxedInteger.GetType();
+                    string text = "metadata";
+                    object boxedText = text;
+                    System.Type dynamicText = boxedText.GetType();
+                    int32[] values = new int32[1];
+                    object boxedArray = values;
+                    System.Type dynamicArray = boxedArray.GetType();
+                    int32[,] matrixValues = new int32[1, 1];
+                    object boxedMatrix = matrixValues;
+                    System.Type dynamicMatrix = boxedMatrix.GetType();
+                    int32[,,] cubeValues = new int32[1, 1, 1];
+                    object boxedCube = cubeValues;
+                    System.Type dynamicCube = boxedCube.GetType();
+                    System.Type matrix = typeof(int32[,]);
+                    System.Type cube = typeof(int32[,,]);
+                    if (widget.Name != "Widget" || widget.Namespace != "Example" || !widget.IsClass || widget.IsValueType) return 1;
+                    if (integer.Name != "Int32" || integer.Namespace != "System" || !integer.IsValueType || !integer.IsPrimitive) return 2;
+                    if (dynamicWidget != widget) return 3;
+                    if (dynamicInteger != integer) return 4;
+                    if (dynamicText != typeof(string)) return 5;
+                    if (typeof(string?) != typeof(string)) return 6;
+                    if (dynamicArray != typeof(int32[])) return 7;
+                    if (!matrix.IsArray || matrix.Name != "int32[,]" || dynamicMatrix != matrix) return 8;
+                    if (!cube.IsArray || cube.Name != "int32[,,]" || dynamicCube != cube) return 9;
+                    return 0;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("typeof-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("@luma_type_handle_Example_Widget", result.LlvmIr!, StringComparison.Ordinal);
+        Assert.Contains("@luma_type_handle_int32", result.LlvmIr!, StringComparison.Ordinal);
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void ValueTypesGetTheirStaticTypeWithoutBoxingAndTypeStringifiesRepresentedType()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            namespace Example;
+            public enum Shade { Bright = 7 }
+            public struct Pair { public int32 Value; }
+            public class Program
+            {
+                public static Type GenericType<T>(T value) => value.GetType();
+                public static int32 Main()
+                {
+                    int32 num = 123;
+                    let type = num.GetType();
+                    Pair pair = Pair();
+                    Shade shade = Shade.Bright;
+                    int32? maybeNumber = 321;
+                    Type pairType = pair.GetType();
+                    Type shadeType = shade.GetType();
+                    Type genericPairType = GenericType<Pair>(pair);
+                    Type genericInt32Type = GenericType<int32>(num);
+                    Type nullableInt32Type = maybeNumber.GetType();
+                    Console.WriteLine("Int32 type = " + type.ToString());
+                    if (type != typeof(int32)) return 1;
+                    if (type.ToString() != "System.Int32") return 2;
+                    if (pairType != typeof(Pair)) return 3;
+                    if (genericPairType != pairType) return 4;
+                    if (shadeType != typeof(Shade)) return 5;
+                    if (genericInt32Type != type || nullableInt32Type != type) return 6;
+                    int32? noNumber = null;
+                    try { Type missingType = noNumber.GetType(); return 7; }
+                    catch (NullReferenceException) { }
+                    return 0;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("value-gettype-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var ir = result.LlvmIr!;
+        var mainStart = ir.IndexOf("define i32 @luma_Example_Program_Main_0(", StringComparison.Ordinal);
+        Assert.True(mainStart >= 0, "Expected the test Main function in the emitted LLVM IR.");
+        var mainEnd = ir.IndexOf("\n}", mainStart, StringComparison.Ordinal);
+        Assert.True(mainEnd > mainStart, "Expected the test Main function body to be terminated.");
+        Assert.DoesNotContain("call ptr @luma_object_get_type", ir[mainStart..mainEnd], StringComparison.Ordinal);
+        Assert.Contains("@luma_type_handle_int32", ir[mainStart..mainEnd], StringComparison.Ordinal);
+        var genericBodies = Regex.Matches(ir,
+            @"define ptr @luma_Example_Program_GenericType__g_[^\r\n]*\{\r?\n(?<body>.*?)\r?\n\}", RegexOptions.Singleline);
+        Assert.Equal(2, genericBodies.Count);
+        foreach (Match genericBody in genericBodies)
+        {
+            Assert.DoesNotContain("call ptr @luma_object_get_type", genericBody.Groups["body"].Value, StringComparison.Ordinal);
+            Assert.DoesNotContain("call ptr @malloc", genericBody.Groups["body"].Value, StringComparison.Ordinal);
+        }
+
+        var execution = LlvmJit.RunMain(ir);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Theory]
+    [InlineData("void")]
+    [InlineData("int32*")]
+    [InlineData("int32?")]
+    [InlineData("MissingType")]
+    public void TypeofRejectsTypesWithoutRuntimeDescriptors(string typeName)
+    {
+        var result = Compile($"class Program {{ public static int32 Main() {{ System.Type type = typeof({typeName}); return 0; }} }}");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" &&
+            diagnostic.Message.Contains("typeof", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TypeNewAllocatesAndInvokesTheBestMatchingPublicConstructor()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-test.ls", "using System; public class Item { public int32 Value; public this() { Value = 1; } public this(int32 value) { Value = value; } public this(string value) { Value = value.Length; } } public class Plain { public int32 Value = 7; } public class Program { public static int32 Main() { Type type = typeof(Item); Item defaultItem = (Item)type.New(); Item numericItem = (Item)type.New(42); Item stringItem = (Item)type.New(\"abc\"); Plain implicitDefault = (Plain)typeof(Plain).New(); if (defaultItem.Value != 1 || numericItem.Value != 42 || stringItem.Value != 3 || implicitDefault.Value != 7) return 1; try { object invalid = type.New(true); return 2; } catch (InvalidOperationException) { } return 0; } }")));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeNewPrefersTheClosestAssignableClassConstructor()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public virtual class Base { }
+            public interface IMarked { int32 Read(); }
+            public class Derived : Base, IMarked { public int32 Read() => 1; }
+            public class Selection
+            {
+                public int32 Value;
+                public this(object value) { Value = 1; }
+                public this(Base value) { Value = 2; }
+                public this(Derived value) { Value = 3; }
+            }
+            public class InterfaceSelection
+            {
+                public int32 Value;
+                public this(object value) { Value = 1; }
+                public this(IMarked value) { Value = 4; }
+            }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    object argument = new Derived();
+                    Selection selected = (Selection)typeof(Selection).New(argument);
+                    InterfaceSelection interfaceSelected = (InterfaceSelection)typeof(InterfaceSelection).New(argument);
+                    return selected.Value == 3 && interfaceSelected.Value == 4 ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-overload-distance-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeNewBoxesConstructedStructsAndPreservesManagedFields()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public class Owner { public int32 Value; public this(int32 value) { Value = value; } }
+            public struct Point { public int32 X; public this(int32 x) { X = x; } }
+            public struct Holder { public Owner? Owner; public this(Owner? owner) { Owner = owner; } }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    object pointBox = typeof(Point).New(42);
+                    Point point = (Point)pointBox;
+                    Owner owner = new Owner(17);
+                    object holderBox = typeof(Holder).New(owner);
+                    Holder holder = (Holder)holderBox;
+                    return point.X == 42 && holder.Owner!.Value == 17 ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-struct-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeNewHandlesNullReferenceAndNullableValueArgumentsSafely()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public class MaybeNumber { public int32 Value; public this(int32? value) { Value = value ?? 9; } }
+            public class MaybeText { public int32 Value; public this(string? value) { Value = value == null ? 0 : value.Length; } }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    object? missing = null;
+                    MaybeNumber number = (MaybeNumber)typeof(MaybeNumber).New(missing);
+                    MaybeNumber present = (MaybeNumber)typeof(MaybeNumber).New(23);
+                    MaybeText text = (MaybeText)typeof(MaybeText).New(missing);
+                    return number.Value == 9 && present.Value == 23 && text.Value == 0 ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-null-arguments-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeNewWithoutArgumentsBoxesDefaultValuesForValueTypes()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public enum Shade : int32 { Bright = 7 }
+            public struct Empty { public int32 Value; }
+            public struct Point
+            {
+                public int32 X = 91;
+                public string? Label;
+                public this(int32 x) { X = x; }
+            }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    object integerBox = typeof(int32).New();
+                    object booleanBox = typeof(bool).New();
+                    object enumBox = typeof(Shade).New();
+                    object emptyBox = typeof(Empty).New();
+                    object pointBox = typeof(Point).New();
+                    int32 integer = (int32)integerBox;
+                    bool boolean = (bool)booleanBox;
+                    Shade shade = (Shade)enumBox;
+                    Empty empty = (Empty)emptyBox;
+                    Point point = (Point)pointBox;
+                    if (integer != 0 || boolean || shade == Shade.Bright || empty.Value != 0 || point.X != 0 || point.Label != null) return 1;
+                    if (integerBox.GetType() != typeof(int32) || integerBox.ToString() != "0") return 2;
+                    Point initialized = (Point)typeof(Point).New(13);
+                    if (initialized.X != 13) return 3;
+                    try { object invalid = typeof(int32).New(13); return 4; }
+                    catch (InvalidOperationException) { }
+                    return 0;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-default-values-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeNewBoxesDefaultForEveryPrimitiveValueType()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    object booleanBox = typeof(bool).New();
+                    object characterBox = typeof(char).New();
+                    object int8Box = typeof(int8).New();
+                    object uint8Box = typeof(uint8).New();
+                    object int16Box = typeof(int16).New();
+                    object uint16Box = typeof(uint16).New();
+                    object int32Box = typeof(int32).New();
+                    object uint32Box = typeof(uint32).New();
+                    object int64Box = typeof(int64).New();
+                    object uint64Box = typeof(uint64).New();
+                    object nativeIntBox = typeof(int).New();
+                    object nativeUIntBox = typeof(uint).New();
+                    object floatBox = typeof(float).New();
+                    object doubleBox = typeof(double).New();
+                    return !(bool)booleanBox && (int32)(char)characterBox == 0 &&
+                        (int8)int8Box == 0 && (uint8)uint8Box == 0 &&
+                        (int16)int16Box == 0 && (uint16)uint16Box == 0 &&
+                        (int32)int32Box == 0 && (uint32)uint32Box == 0 &&
+                        (int64)int64Box == 0 && (uint64)uint64Box == 0 &&
+                        (int)nativeIntBox == 0 && (uint)nativeUIntBox == 0 &&
+                        (float)floatBox == 0.0f && (double)doubleBox == 0.0 ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-primitive-defaults-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeofResolvesGenericParametersAndReportsSupportedTypeKinds()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            namespace Example;
+            public interface IContract { int32 Read(); }
+            public struct Point { public int32 X; }
+            public enum Shade : int32 { Light = 0 }
+            public delegate int32 Mapper(int32 value);
+            public static class Utility { }
+            public virtual class AbstractLike { public virtual int32 Read(); }
+            public class TypeProbe<T> { public static Type GetArgumentType() => typeof(T); }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Type point = typeof(Point);
+                    Type array = typeof(Point[]);
+                    Type contract = typeof(IContract);
+                    Type shade = typeof(Shade);
+                    Type mapper = typeof(Mapper);
+                    Type utility = typeof(Utility);
+                    Type abstractLike = typeof(AbstractLike);
+                    Type generic = TypeProbe<Point>.GetArgumentType();
+                    return point.IsValueType && !point.IsPrimitive && array.IsArray && array.IsClass &&
+                        contract.IsInterface && shade.IsEnum && shade.IsValueType && mapper.IsDelegate &&
+                        utility.IsStatic && abstractLike.IsAbstract && generic == point ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("typeof-kinds-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeNewRejectsMissingAbstractAndUnmatchedConstructorsWithCatchableExceptions()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public interface IContract { int32 Read(); }
+            public class Hidden { private this() { } }
+            public class Number { public this(int32 value) { } }
+            public virtual class AbstractLike { public virtual int32 Read(); }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    int32 failures = 0;
+                    try { object value = typeof(Hidden).New(); } catch (InvalidOperationException) { failures++; }
+                    try { object value = typeof(Number).New(true); } catch (InvalidOperationException) { failures++; }
+                    try { object value = typeof(IContract).New(); } catch (InvalidOperationException) { failures++; }
+                    try { object value = typeof(AbstractLike).New(); } catch (InvalidOperationException) { failures++; }
+                    try { object value = typeof(int32[]).New(); } catch (InvalidOperationException) { failures++; }
+                    return failures == 5 ? 0 : 1;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-failures-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
     }
 
     [Fact]

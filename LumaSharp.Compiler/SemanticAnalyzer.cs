@@ -18,6 +18,7 @@ internal sealed record StaticFieldSymbol(TypeDeclaration Owner, FieldDeclaration
     bool RequiresInitialization = false);
 internal sealed record StaticFieldBinding(string TypeName, string GlobalName, bool Mutable, string OwnerType);
 internal sealed record ClassToStringBinding(string TypeName, bool CallsBaseImplementation = false);
+internal sealed record StaticGetTypeBinding(string TypeName, bool ReceiverIsNullableValue = false);
 internal sealed record ComputedPropertySymbol(TypeDeclaration Owner, ComputedPropertyDeclaration Declaration, string TypeName, MethodSymbol? Getter, MethodSymbol? Setter);
 internal sealed record ComputedIndexerSymbol(TypeDeclaration Owner, ComputedIndexerDeclaration Declaration, string TypeName, MethodSymbol? Getter, MethodSymbol? Setter);
 internal sealed record StructFieldSymbol(TypeDeclaration Owner, FieldDeclaration Declaration, string TypeName, int Index);
@@ -29,6 +30,7 @@ internal sealed record ClassAllocationBinding(string TypeName, CallExpression Co
 internal sealed record GenericConstructionBinding(string TypeName, CallExpression? ConstructorCall = null);
 internal sealed record ConstructorInitializerBinding(CallExpression Call, bool DelegatesToThis);
 internal sealed record ManagedArrayIndexBinding(string ElementType, int Rank);
+internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags);
 internal sealed record DelegateMethodGroupBinding(string DelegateType, MethodSymbol Method, bool IsInstance = false, int? VirtualSlot = null,
     ClosureEnvironmentBinding? ClosureEnvironment = null);
 internal sealed record ClosureEnvironmentBinding(string TypeName, IReadOnlyDictionary<string, int> CapturedFieldIndices,
@@ -52,6 +54,7 @@ internal sealed record CompilationAnalysis(
     IReadOnlyDictionary<CallExpression, string> EnumToStringCalls,
     IReadOnlyDictionary<CallExpression, ClassToStringBinding> ClassToStringCalls,
     IReadOnlyDictionary<CallExpression, string> StructToStringCalls,
+    IReadOnlyDictionary<CallExpression, StaticGetTypeBinding> StaticGetTypeCalls,
     IReadOnlyDictionary<CallExpression, int> VirtualCallSlots,
     IReadOnlyDictionary<CallExpression, int> InterfaceCallSlots,
     IReadOnlyDictionary<string, TypeDeclaration> InterfaceTypes,
@@ -95,9 +98,12 @@ internal sealed record CompilationAnalysis(
     IReadOnlyDictionary<BinaryExpression, string> TypePatternVariableTypes,
     IReadOnlyDictionary<SwitchLabel, string> SwitchTypePatterns,
     IReadOnlyDictionary<SizeOfExpression, string> SizeOfTypes,
+    IReadOnlyDictionary<TypeOfExpression, string> TypeOfTypes,
+    IReadOnlyDictionary<string, RuntimeTypeMetadata> RuntimeTypes,
     IReadOnlyDictionary<CallExpression, BoundCallArguments> CallArguments,
     IReadOnlyDictionary<MethodSymbol, ConstructorInitializerBinding> ConstructorInitializers,
     IReadOnlyDictionary<LiteralExpression, StringLiteralInfo> StringLiterals,
+    IReadOnlyDictionary<NameOfExpression, StringLiteralInfo> NameOfStringLiterals,
     IReadOnlyDictionary<MemberAccessExpression, bool> StringLengthAccesses,
     IReadOnlyDictionary<IndexExpression, bool> StringIndexAccesses,
     IReadOnlyDictionary<AllocationExpression, string> ManagedArrayAllocations,
@@ -247,6 +253,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<CallExpression, string> _enumToStringCalls = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CallExpression, ClassToStringBinding> _classToStringCalls = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CallExpression, string> _structToStringCalls = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<CallExpression, StaticGetTypeBinding> _staticGetTypeCalls = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CallExpression, int> _virtualCallSlots = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<CallExpression, int> _interfaceCallSlots = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<Expression, DelegateMethodGroupBinding> _delegateMethodGroups = new(ReferenceEqualityComparer.Instance);
@@ -260,6 +267,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<CallExpression, BoundCallArguments> _callArguments = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<MethodSymbol, ConstructorInitializerBinding> _constructorInitializers = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<LiteralExpression, StringLiteralInfo> _stringLiterals = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<NameOfExpression, StringLiteralInfo> _nameOfStringLiterals = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<MemberAccessExpression, bool> _stringLengthAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<IndexExpression, bool> _stringIndexAccesses = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<AllocationExpression, string> _managedArrayAllocations = new(ReferenceEqualityComparer.Instance);
@@ -322,6 +330,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<string, string> _enumUnderlyingTypes = new(StringComparer.Ordinal);
     private readonly Dictionary<CastExpression, string> _castTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<SizeOfExpression, string> _sizeOfTypes = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<TypeOfExpression, string> _typeOfTypes = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<string, RuntimeTypeMetadata> _runtimeTypes = new(StringComparer.Ordinal);
+    private bool _usesRuntimeTypeMetadata;
     private readonly int _nativePointerSize = GetNativePointerSize(options.TargetTriple);
     private TypeDeclaration? _enumEvaluationOwner;
     private HashSet<string>? _currentDeclarationNames;
@@ -433,7 +444,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression => true,
         BinaryExpression binary => binary.Operator is "+" or "-" or "*" or "/" or "%" or "+=" or "-=" or "*=" or "/=" or "%=" || ExpressionMayRaise(binary.Left) || ExpressionMayRaise(binary.Right),
         UnaryExpression unary => unary.Operator is "++" or "--" || ExpressionMayRaise(unary.Operand),
-        CallExpression call => call.Target is MemberAccessExpression { Member: "GetLength" } || call.Arguments.Any(ExpressionMayRaise) || ExpressionMayRaise(call.Target),
+        CallExpression call => call.Target is MemberAccessExpression { Member: "GetLength" or "New" or "GetType" } || call.Arguments.Any(ExpressionMayRaise) || ExpressionMayRaise(call.Target),
         MemberAccessExpression member => ExpressionMayRaise(member.Receiver),
         ConditionalExpression conditional => ExpressionMayRaise(conditional.Condition) || ExpressionMayRaise(conditional.WhenTrue) || ExpressionMayRaise(conditional.WhenFalse),
         InlineArrayInitializerExpression initializer => initializer.Elements.Any(ExpressionMayRaise),
@@ -962,7 +973,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         var multiAssignmentAccessorAssignments = new Dictionary<MultiAssignmentStatement, IReadOnlyDictionary<int, BinaryExpression>>(ReferenceEqualityComparer.Instance);
         foreach (var (statement, assignments) in _multiAssignmentAccessorAssignments)
             multiAssignmentAccessorAssignments.Add(statement, assignments);
-        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _boxedValueTypeInterfaceTypes, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _typePatternVariableTypes, _switchTypePatterns, _sizeOfTypes, _callArguments, _constructorInitializers, _stringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
+        BuildRuntimeTypeMetadata();
+        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _staticGetTypeCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _boxedValueTypeInterfaceTypes, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _typePatternVariableTypes, _switchTypePatterns, _sizeOfTypes, _typeOfTypes, _runtimeTypes, _callArguments, _constructorInitializers, _stringLiterals, _nameOfStringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
     }
 
     private bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
@@ -2205,7 +2217,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         try
         {
             BindTypeExpressions(field.Initializer, owner);
-            if (!ValidateConstantStringLiterals(field.Initializer)) return;
+            if (!ValidateConstantStringLiterals(field.Initializer, owner)) return;
             if (_constantFields.ContainsKey(key))
             {
                 diagnostics.Add("LMC3013", DiagnosticSeverity.Error, $"Constant field '{key}' is declared more than once.", field.Location);
@@ -2244,16 +2256,103 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         }
     }
 
-    private bool ValidateConstantStringLiterals(Expression expression) => expression switch
+    private bool ValidateConstantStringLiterals(Expression expression, TypeDeclaration owner) => expression switch
     {
         LiteralExpression literal when literal.Value.StartsWith('"') || literal.Value.StartsWith('@') => TryInternStringLiteral(literal, out _),
-        UnaryExpression unary => ValidateConstantStringLiterals(unary.Operand),
-        CastExpression cast => ValidateConstantStringLiterals(cast.Operand),
-        BinaryExpression binary => ValidateConstantStringLiterals(binary.Left) && ValidateConstantStringLiterals(binary.Right),
-        ConditionalExpression conditional => ValidateConstantStringLiterals(conditional.Condition) && ValidateConstantStringLiterals(conditional.WhenTrue) && ValidateConstantStringLiterals(conditional.WhenFalse),
-        OverflowContextExpression overflow => ValidateConstantStringLiterals(overflow.Value),
+        NameOfExpression nameOf => ValidateConstantNameOf(nameOf, owner),
+        UnaryExpression unary => ValidateConstantStringLiterals(unary.Operand, owner),
+        CastExpression cast => ValidateConstantStringLiterals(cast.Operand, owner),
+        BinaryExpression binary => ValidateConstantStringLiterals(binary.Left, owner) && ValidateConstantStringLiterals(binary.Right, owner),
+        ConditionalExpression conditional => ValidateConstantStringLiterals(conditional.Condition, owner) && ValidateConstantStringLiterals(conditional.WhenTrue, owner) && ValidateConstantStringLiterals(conditional.WhenFalse, owner),
+        OverflowContextExpression overflow => ValidateConstantStringLiterals(overflow.Value, owner),
         _ => true
     };
+
+    private bool ValidateConstantNameOf(NameOfExpression expression, TypeDeclaration owner)
+    {
+        var declaration = new MethodDeclaration(owner.Name, "$nameof_constant", "void", [], new([], expression.Location),
+            IsStatic: true, IsPublic: false, IsMutating: false, HasTypeParameters: false, expression.Location);
+        return AnalyzeNameOfExpression(expression, new MethodContext(new MethodSymbol(owner, declaration))) == "string";
+    }
+
+    private void BuildRuntimeTypeMetadata()
+    {
+        var sourceNames = _typeOfTypes.Values.ToHashSet(StringComparer.Ordinal);
+        if (_usesRuntimeTypeMetadata)
+        {
+            sourceNames.UnionWith(_classTypes.Keys);
+            sourceNames.UnionWith(_structTypes.Keys);
+            sourceNames.UnionWith(_enumUnderlyingTypes.Keys);
+            sourceNames.UnionWith(_interfaceTypes.Keys);
+            sourceNames.UnionWith(_delegateTypes.Keys);
+            sourceNames.UnionWith(SupportedTypes.Where(type => type is not "null" and not "?"));
+            sourceNames.Add("object");
+            sourceNames.Add("string");
+            foreach (var type in _variableTypes.Values.Concat(_forInTypes.Values).Concat(_staticFields.Values.Select(field => field.Symbol.Declaration.TypeName))
+                         .Concat(_methods.SelectMany(method => method.Declaration.Parameters.Select(parameter => parameter.TypeName).Append(method.Declaration.ReturnType))))
+                if (TryParseManagedArrayType(type, out _, out _)) sourceNames.Add(type);
+        }
+        foreach (var sourceName in sourceNames)
+        {
+            var typeName = sourceName;
+            var elementType = typeName;
+            var isArray = TryParseManagedArrayType(typeName, out elementType, out _);
+            var type = _types.FirstOrDefault(candidate => GetQualifiedTypeName(candidate) == typeName ||
+                candidate.Name == typeName && string.IsNullOrEmpty(candidate.Namespace));
+            var flags = 0;
+            string name;
+            string ns;
+            if (isArray)
+            {
+                name = typeName;
+                ns = "System";
+                flags = 2 | 4;
+            }
+            else if (type is not null)
+            {
+                name = type.Name;
+                ns = type.Namespace;
+                flags = type.Kind switch
+                {
+                    "class" => 4,
+                    "struct" => 8,
+                    "interface" => 32,
+                    "enum" => 8 | 64,
+                    "delegate" => 4 | 128,
+                    _ => 0
+                };
+                if (type.IsStatic) flags |= 1;
+                if (type.Members.OfType<MethodDeclaration>().Any(method => !method.IsStatic && method.Body is null)) flags |= 256;
+            }
+            else
+            {
+                (name, ns, flags) = typeName switch
+                {
+                    "void" => ("Void", "System", 8 | 16),
+                    "bool" => ("Boolean", "System", 8 | 16),
+                    "char" => ("Char", "System", 8 | 16),
+                    "int8" => ("SByte", "System", 8 | 16),
+                    "uint8" => ("Byte", "System", 8 | 16),
+                    "int16" => ("Int16", "System", 8 | 16),
+                    "uint16" => ("UInt16", "System", 8 | 16),
+                    "int32" => ("Int32", "System", 8 | 16),
+                    "uint32" => ("UInt32", "System", 8 | 16),
+                    "int64" => ("Int64", "System", 8 | 16),
+                    "uint64" => ("UInt64", "System", 8 | 16),
+                    "int" => ("IntPtr", "System", 8 | 16),
+                    "uint" => ("UIntPtr", "System", 8 | 16),
+                    "float" => ("Single", "System", 8 | 16),
+                    "double" => ("Double", "System", 8 | 16),
+                    "string" => ("String", "System", 4),
+                    "object" => ("Object", "System", 4),
+                    _ => (typeName, "", 0)
+                };
+            }
+            _runtimeTypes.TryAdd(typeName, new(name, ns, flags));
+            _ = TryInternStringText(name, out _);
+            _ = TryInternStringText(ns, out _);
+        }
+    }
 
     private void AnalyzeStructFields(IEnumerable<(TypeDeclaration Owner, FieldDeclaration Declaration)> declarations)
     {
@@ -3820,6 +3919,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
     private string? ConstantExpressionType(Expression expression) => expression switch
     {
+        NameOfExpression => "string",
         LiteralExpression literal => LiteralType(literal) is "?" ? null : LiteralType(literal),
         NameExpression name when TryGetConstantField(name, out var binding) => ConstantFieldExpressionType(binding),
         MemberAccessExpression access when TryGetConstantField(access, out var binding) => ConstantFieldExpressionType(binding),
@@ -3850,6 +3950,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         error = null;
         switch (expression)
         {
+            case NameOfExpression nameOf:
+                value = new("string", Text: nameOf.Name);
+                return true;
             case NameExpression name when TryGetConstantField(name, out var nameBinding):
                 return TryEvaluateStoredConstant(nameBinding, out value, out error);
             case MemberAccessExpression access when TryGetConstantField(access, out var accessBinding):
@@ -7239,11 +7342,173 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         finally { _activeExpressions.Remove(expression); }
     }
 
+    private string AnalyzeNameOfExpression(NameOfExpression expression, MethodContext context)
+    {
+        if (expression.Name.Length == 0 || !ValidateNameOfOperand(expression.Operand, context))
+        {
+            if (expression.Name.Length == 0)
+                diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "nameof requires a name, type, or member access.", expression.Location);
+            return "?";
+        }
+
+        if (!StringLiteralCodec.TryCreate(expression.Name, out var literal, out var error))
+        {
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, error ?? "The nameof result cannot be represented as a string.", expression.Location);
+            return "?";
+        }
+        _stringLiteralPool.TryAdd(literal.Text, literal);
+        _nameOfStringLiterals[expression] = _stringLiteralPool[literal.Text];
+        return "string";
+    }
+
+    private bool ValidateNameOfOperand(Expression operand, MethodContext context)
+    {
+        if (operand is not (NameExpression or MemberAccessExpression or ThisExpression or BaseExpression))
+        {
+            diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "nameof accepts a name, type, this, base, or member access expression.", operand.Location);
+            return false;
+        }
+
+        if (operand is ThisExpression or BaseExpression)
+        {
+            var before = diagnostics.Items.Count;
+            _ = AnalyzeExpression(operand, context);
+            return diagnostics.Items.Skip(before).All(item => item.Severity != DiagnosticSeverity.Error);
+        }
+
+        if (operand is NameExpression name)
+        {
+            if (context.Lookup(name.Name) is not null ||
+                IsNameOfTypeParameter(name.Name, context) ||
+                IsNameOfTypeName(name.Name, context) ||
+                IsNameOfNamespace(name.Name, context.Method.Owner) ||
+                HasUnqualifiedNameOfMethod(name.Name, context))
+                return true;
+        }
+
+        if (operand is MemberAccessExpression member)
+        {
+            if (TryFlattenName(member, out var fullName) && IsNameOfNamespace(fullName, context.Method.Owner)) return true;
+            if (IsTypeReference(member.Receiver, context) && TryFlattenName(member.Receiver, out var requestedType))
+            {
+                var types = FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(requestedType, context.Method.Owner)), context.Method.Owner);
+                if (types.Length == 1 &&
+                    (HasNameOfMethod(types[0], member.Member, isStatic: null, context) || HasNameOfDeclaredMember(types[0], member.Member, context)))
+                    return true;
+                if (TryFlattenName(member, out var nestedTypeName) &&
+                    FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(nestedTypeName, context.Method.Owner)), context.Method.Owner).Length > 0)
+                    return true;
+            }
+            else
+            {
+                var receiverType = AnalyzeExpression(member.Receiver, context);
+                var receiverTypes = receiverType == "?" ? [] : FindTypes(
+                    NormalizeBuiltinTypeQualifier(NormalizeEnumType(NullableUnderlyingType(receiverType), context.Method.Owner)), context.Method.Owner);
+                if (receiverTypes.Any(receiver => HasNameOfMethod(receiver, member.Member, isStatic: false, context)))
+                    return true;
+            }
+        }
+
+        var diagnosticCount = diagnostics.Items.Count;
+        var resultType = AnalyzeExpression(operand, context);
+        return resultType != "?" && diagnostics.Items.Skip(diagnosticCount).All(item => item.Severity != DiagnosticSeverity.Error);
+    }
+
+    private bool IsNameOfTypeParameter(string name, MethodContext context)
+    {
+        if (context.Method.Owner.TypeParameters?.Contains(name, StringComparer.Ordinal) == true ||
+            context.Method.Declaration.TypeParameters?.Contains(name, StringComparer.Ordinal) == true ||
+            context.Method.GenericTemplate?.TypeParameters?.Contains(name, StringComparer.Ordinal) == true)
+            return true;
+        var genericOwner = _genericTypeInstantiations.FirstOrDefault(instance =>
+            GetQualifiedTypeName(instance.Specialized) == GetQualifiedTypeName(context.Method.Owner))?.Definition;
+        return genericOwner?.TypeParameters?.Contains(name, StringComparer.Ordinal) == true;
+    }
+
+    private bool IsNameOfTypeName(string name, MethodContext context)
+    {
+        if (FindTypes(NormalizeBuiltinTypeQualifier(NormalizeEnumType(name, context.Method.Owner)), context.Method.Owner).Length > 0)
+            return true;
+        if (!TrySplitGenericType(name, out var definitionName, out var arguments)) return false;
+        var definition = GenericTypeSpecializer.ResolveDefinition(definitionName, context.Method.Owner, _genericDefinitions);
+        return definition is not null && definition.TypeParameters?.Count == arguments.Count &&
+            FindTypes(definitionName, context.Method.Owner).Any(type => GetQualifiedTypeName(type) == GetQualifiedTypeName(definition));
+    }
+
+    private bool IsNameOfNamespace(string name, TypeDeclaration context)
+    {
+        var target = name;
+        foreach (var alias in context.Usings?.Where(directive => directive.Alias is not null) ?? [])
+        {
+            if (target == alias.Alias) { target = alias.Target; break; }
+            if (target.StartsWith(alias.Alias + ".", StringComparison.Ordinal))
+            {
+                target = alias.Target + target[alias.Alias!.Length..];
+                break;
+            }
+        }
+        return _types.Any(type => type.Namespace == target || type.Namespace.StartsWith(target + ".", StringComparison.Ordinal));
+    }
+
+    private bool HasUnqualifiedNameOfMethod(string name, MethodContext context)
+    {
+        var ownerName = GetQualifiedTypeName(context.Method.Owner);
+        var visibleOwners = context.Method.Owner.Kind == "class"
+            ? GetClassChain(ownerName).ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>([ownerName], StringComparer.Ordinal);
+        return _methods.Concat(_genericMethodDefinitions).Any(method => method.Declaration.Name == name &&
+            visibleOwners.Contains(GetQualifiedTypeName(method.Owner)) && IsMethodAccessible(method, context.Method.Owner));
+    }
+
+    private bool HasNameOfMethod(TypeDeclaration receiver, string name, bool? isStatic, MethodContext context)
+    {
+        var receiverName = GetQualifiedTypeName(receiver);
+        IEnumerable<string> owners = receiver.Kind switch
+        {
+            "class" => GetClassChain(receiverName),
+            "interface" => GetInterfaceHierarchy(receiver).Select(GetQualifiedTypeName),
+            _ => [receiverName]
+        };
+        var visibleOwners = owners.ToHashSet(StringComparer.Ordinal);
+        if (_methods.Concat(_genericMethodDefinitions).Any(method => method.Declaration.Name == name &&
+            (isStatic is null || method.Declaration.IsStatic == isStatic.Value) && visibleOwners.Contains(GetQualifiedTypeName(method.Owner)) &&
+            IsMethodAccessible(method, context.Method.Owner)))
+            return true;
+        if (isStatic != true && receiver.Kind == "class" && name == "ToString" && GetClassChain(receiverName).Contains("System.Object", StringComparer.Ordinal))
+            return true;
+        return isStatic != true && GetExtensionMethods(receiverName, name, context.Method.Owner).Length > 0;
+    }
+
+    private bool HasNameOfDeclaredMember(TypeDeclaration receiver, string name, MethodContext context)
+    {
+        var receiverName = GetQualifiedTypeName(receiver);
+        IEnumerable<string> owners = receiver.Kind switch
+        {
+            "class" => GetClassChain(receiverName),
+            "interface" => GetInterfaceHierarchy(receiver).Select(GetQualifiedTypeName),
+            _ => [receiverName]
+        };
+        foreach (var ownerName in owners)
+        {
+            var owner = _types.FirstOrDefault(type => GetQualifiedTypeName(type) == ownerName);
+            if (owner is null) continue;
+            foreach (var field in owner.Members.OfType<FieldDeclaration>().Where(field => field.Name == name))
+                if (IsAccessibilityAvailable(GetFieldAccessibility(field), owner, context.Method.Owner)) return true;
+            foreach (var field in owner.Members.OfType<ConstantFieldDeclaration>().Where(field => field.Name == name))
+                if (IsAccessibilityAvailable(GetFieldAccessibility(field), owner, context.Method.Owner)) return true;
+            foreach (var property in owner.Members.OfType<ComputedPropertyDeclaration>().Where(property => property.Name == name))
+                if (IsAccessibilityAvailable(property.Accessibility, owner, context.Method.Owner)) return true;
+        }
+        return false;
+    }
+
     private string AnalyzeExpressionCore(Expression expression, MethodContext context, string? expectedType)
     {
         cancellationToken.ThrowIfCancellationRequested();
         switch (expression)
         {
+            case NameOfExpression nameOf:
+                return AnalyzeNameOfExpression(nameOf, context);
             case ThisExpression thisExpression:
                 if (!context.Method.IsStructConstructor && !context.Method.IsStructInstanceMethod && !context.Method.IsClassConstructor && !context.Method.IsClassInstanceMethod && !context.Method.IsClassFinalizer)
                 {
@@ -7849,6 +8114,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Unknown compiler intrinsic '{intrinsicCall.Name}'.", call.Location);
                         return "?";
                     }
+                    if (intrinsic.Name == "__typeref") _usesRuntimeTypeMetadata = true;
                     var intrinsicMethod = CompilerIntrinsics.CreateMethod(intrinsic, call.Location);
                     if (call.Arguments.Count != intrinsicMethod.Declaration.Parameters.Count)
                     {
@@ -7917,8 +8183,32 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 else if (call.Target is MemberAccessExpression instanceCall && !IsTypeReference(instanceCall.Receiver, context))
                 {
                     var instanceReceiverType = AnalyzeExpression(instanceCall.Receiver, context);
-                    if (IsPointerType(instanceReceiverType))
+                    var instanceReceiverWasPointer = IsPointerType(instanceReceiverType);
+                    if (instanceReceiverWasPointer)
                         instanceReceiverType = NormalizePointerMemberReceiverType(instanceReceiverType, call.IsUnsafeContext, instanceCall.Location);
+                    if (!instanceReceiverWasPointer && instanceCall.Member == "GetType" && call.Arguments.Count == 0)
+                    {
+                        var nullableValue = IsNullableValueType(instanceReceiverType);
+                        var normalizedGetTypeName = NormalizeEnumType(
+                            nullableValue ? NullableUnderlyingType(instanceReceiverType) : instanceReceiverType,
+                            context.Method.Owner);
+                        var getTypeName = PrimitiveKeywordAlias(NormalizeBuiltinTypeQualifier(normalizedGetTypeName)) ?? normalizedGetTypeName;
+                        var hasValueTypeGetType = IsBoxableValueType(getTypeName) || IsStructType(getTypeName);
+                        var hasDeclaredStructGetType = IsStructType(getTypeName) && _methods.Concat(_genericMethodDefinitions).Any(candidate =>
+                            candidate.IsStructInstanceMethod && GetQualifiedTypeName(candidate.Owner) == getTypeName &&
+                            candidate.Declaration.Name == "GetType" && candidate.Declaration.Parameters.Count == 0);
+                        if (hasValueTypeGetType && !hasDeclaredStructGetType)
+                        {
+                            if (FindTypes("System.Type", context.Method.Owner).Length == 0)
+                                diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "GetType on a value type requires the System.Type runtime library type.", call.Location);
+                            else
+                            {
+                                _staticGetTypeCalls[call] = new(getTypeName, nullableValue);
+                                _usesRuntimeTypeMetadata = true;
+                                return "System.Type";
+                            }
+                        }
+                    }
                     if (instanceCall.Member == "ToString" && call.Arguments.Count == 0 &&
                         (IsStringType(instanceReceiverType) || instanceReceiverType is "bool" or "char" || IntegerTypes.Contains(instanceReceiverType) || FloatingTypes.Contains(instanceReceiverType)))
                     {
@@ -8339,6 +8629,30 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (!IsSupportedType(sizeType) || sizeOf.TypeName == "void")
                 { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"sizeof is not supported for type '{sizeOf.TypeName}'.", sizeOf.Location); return "int32"; }
                 return "int32";
+            case TypeOfExpression typeOf:
+                _usesRuntimeTypeMetadata = true;
+                var metaType = NormalizeEnumType(typeOf.TypeName, context.Method.Owner);
+                if (ValidateTypeAccessibility(metaType, context.Method.Owner, typeOf.Location)) return "System.Type";
+                if (metaType == "void" || IsPointerType(metaType) || !IsSupportedType(metaType,
+                        context.Method.Owner, context.Method.Declaration.TypeParameters))
+                {
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"typeof is not supported for type '{typeOf.TypeName}'.", typeOf.Location);
+                    return "System.Type";
+                }
+                if (IsNullableValueType(metaType))
+                {
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"typeof does not support nullable value type '{typeOf.TypeName}'.", typeOf.Location);
+                    return "System.Type";
+                }
+                if (IsNullableClassType(metaType) || IsNullableDelegateType(metaType) || IsNullableStringType(metaType) || IsNullableArrayType(metaType))
+                    metaType = NullableUnderlyingType(metaType);
+                if (FindTypes("System.Type", context.Method.Owner).Length == 0)
+                {
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "typeof requires the System.Type runtime library type.", typeOf.Location);
+                    return "System.Type";
+                }
+                _typeOfTypes[typeOf] = metaType;
+                return "System.Type";
             case InlineArrayInitializerExpression initializer:
                 var normalizedInitializerType = expectedType is null ? null : NormalizeEnumType(expectedType, context.Method.Owner);
                 if (normalizedInitializerType is not null && TryParseManagedArrayType(normalizedInitializerType, out var managedInitializerElementType, out var managedInitializerRank))

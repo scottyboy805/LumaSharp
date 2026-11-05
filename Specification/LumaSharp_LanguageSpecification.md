@@ -796,9 +796,15 @@ Operands are evaluated **left to right**. Arguments are evaluated left to right 
 | `new T[n]`, `scope T[n]`, `new T[] {…}`, `{…}`, `new [n]`, `scope [n]` | Array creation (§15.2) |
 | `default`, `default(T)` | Default value (§3.5) |
 | `sizeof(T)` | Size in bytes (unsafe, unmanaged `T`), type `int32` |
+| `nameof(name)` | Compile-time `string` containing the identifier name; accepts a resolvable name or member access |
+| `typeof(T)` | Runtime `System.Type` metadata handle for a type or a closed generic type parameter (§28.6.1) |
 | `checked(e)`, `unchecked(e)` | Overflow-context expression (§5.7) |
 | `(e)` | Parenthesised expression |
 | lambda | §17 |
+
+`nameof` is a contextual keyword. `nameof(x)` returns `"x"`; `nameof(value.Member)` returns `"Member"`, including when the receiver is a type name or a larger expression such as `GetValue().Member`. The compiler validates that the name or member exists and is accessible, but it does not evaluate the operand. A method group is valid without selecting an overload, so `nameof(value.OverloadedMethod)` returns the method name. Literals, invocations as the final operand, operators, and other expressions that do not identify a name are errors. The result is a compile-time string constant.
+
+`typeof(T)` accepts a type name, array type, or type parameter. A generic parameter is resolved for each compiled closed instantiation. `void`, pointer types, unknown types, and nullable value types are rejected. A nullable reference/array annotation does not create a distinct runtime type and yields the underlying type handle. The expression is evaluated at compile time and returns an immortal runtime metadata handle; it does not allocate a new `System.Type` instance.
 
 ## 5.3 Arithmetic Operators
 
@@ -4128,7 +4134,7 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Async lambdas, task cancellation, custom schedulers, synchronization contexts | Async methods, `Task`/`Task<T>`, `await`, thread-pool scheduling, and `lock` are specified in §7.10 and Chapter 34. |
 | Public atomic APIs and a complete cross-thread memory model | Runtime reference counting and compiler synchronization primitives are thread-safe (§27.8, §34); a general atomic API remains deferred. |
 | Attributes | The syntax `[ … ]` before a declaration is reserved |
-| Reflection, `typeof`, `GetType` | Runtime type information beyond `is`/`as`/casts is not exposed |
+| Full reflection | Only the minimal `System.Type` metadata and `Type.New` API in §28.6.1 are available; member enumeration, attributes, generic definitions and general invocation are not exposed |
 | Multicast delegates | Delegates are single-target (§17) |
 | Extension methods | |
 | User-defined implicit/explicit conversions | |
@@ -4437,6 +4443,16 @@ A descriptor provides at least:
 | Flags (has finalizer, has references, abstract, ...) | Fast paths |
 
 *Reference layout:* Appendix E.1.
+
+## 28.6.1 Minimal Runtime Type API
+
+`System.Type` is a small, read-only view over compiler-emitted runtime metadata; it is not full reflection. For each type used by `typeof` or by `Object.GetType`, the compiler emits one stable, immortal handle. Handles compare equal when they describe the same compiled type. `Name` is the unqualified type name (array names include their element type and rank), and `Namespace` is the namespace; primitive aliases report their runtime names such as `System.Int32`.
+
+The Boolean properties `IsStatic`, `IsArray`, `IsClass`, `IsValueType`, `IsPrimitive`, `IsInterface`, `IsEnum`, `IsDelegate`, and `IsAbstract` expose the corresponding metadata flags. Arrays are class types. Enums are value types but not primitive types. A type parameter's handle is for the actual closed type used in that instantiation.
+
+`Object.GetType()` reads the receiver's dynamic descriptor and returns the corresponding handle. For a boxed value it reads the existing box descriptor; obtaining the handle does not create an additional box. When called on a statically known value-type expression, including a closed generic specialization, the compiler returns that type's handle directly without boxing. A nullable value with no value throws `NullReferenceException`; a present nullable value reports its underlying type. A null reference receiver throws `NullReferenceException`. `Type.ToString()` returns the metadata type's namespace-qualified name, or just `Name` when `Namespace` is empty.
+
+`Type.New(object? ... arguments)` selects among the type's public, non-variadic constructors that have the same argument count and do not require omitted default arguments. Value arguments are boxed when placed in the `object?` argument array. The runtime prefers exact type matches, then an assignable interface, then the nearest assignable class. Arrays and interfaces use their runtime descriptors. A unique best match is allocated on the heap and invoked. When called with no arguments on a value type, it instead returns the value type's default value boxed as `object`; this applies to primitives, enums, and structs and does not run struct field initializers. With one or more arguments, a matching public constructor is still required. Struct constructor results are boxed before being returned as `object`. A missing or ambiguous match, an interface, an abstract class, an array, or an unmatched argument list raises `InvalidOperationException`. Constructor exceptions propagate as usual. This API does not expose member enumeration, attributes, generic definitions, or invocation of arbitrary methods.
 
 ## 28.7 Virtual and Interface Dispatch
 
@@ -5054,7 +5070,8 @@ postfix            = primary { "." identifier [ type_args ]      (* also auto-de
                              | "[" arguments "]" | "?[" arguments "]"
                              | "(" [ arguments ] ")"
                              | "!" | "++" | "--" } ;
-primary            = literal | identifier [ type_args ] | "this" | "base" "." identifier
+primary            = "nameof" "(" expression ")" | "typeof" "(" type ")"
+                   | literal | identifier [ type_args ] | "this" | "base" "." identifier
                    | "base" "[" arguments "]" | "(" expression ")"
                    | "new" [ type ] "(" [ arguments ] ")"             (* new T(...), new(...) *)
                    | "scope" [ type ] "(" [ arguments ] ")"           (* scope T(...), scope(...) *)
@@ -5090,10 +5107,10 @@ Disambiguation notes (informative):
 | Parameters | `ref in out scope` |
 | Control flow | `if else switch case default while do for in break continue return throw try catch finally lock` |
 | Expressions | `new scope this base null true false is as sizeof default checked unchecked await` |
-| Contextual | `get set field value when and or not where` |
+| Contextual | `typeof nameof get set field value when and or not where` |
 | Reserved for future versions | *none of `async`, `await`, or `lock`; attribute syntax `[ ... ]` remains reserved* |
 
-`when`, `and`, `or`, `not`, `where`, `get`, `set`, `field`, `value` are keywords only in the positions described in the text and are otherwise ordinary identifiers. `const` and `readonly` change meaning with context (field or local); `scope` may modify allocations and by-value parameters. There are no keywords for the excluded features of §24.1.
+`typeof` and `nameof` are contextual when followed by `(`; otherwise they may be used as identifiers. `when`, `and`, `or`, `not`, `where`, `get`, `set`, `field`, `value` are keywords only in the positions described in the text and are otherwise ordinary identifiers. `const` and `readonly` change meaning with context (field or local); `scope` may modify allocations and by-value parameters. There are no keywords for the excluded features of §24.1.
 
 ---
 

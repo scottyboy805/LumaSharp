@@ -14,6 +14,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private int _cancellationCheckCounter;
     private int _unsafeDepth;
     private int _pendingGenericClosers;
+    private int _nameOfArgumentDepth;
     private int _lockDepth;
     private int _nextLockLocal;
     private string _namespace = "";
@@ -2004,6 +2005,34 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     {
         var tokenIndex = _position;
         var token = Take();
+        if (token.Text == "typeof" && Eat("("))
+        {
+            var typeName = ParseTypeName(validateUnsafe: false);
+            if (typeName is null)
+            {
+                Error(Current, "Expected a type name in typeof(T).");
+                typeName = "?";
+            }
+            Expect(")");
+            return new TypeOfExpression(typeName, token.Location);
+        }
+        if (token.Text == "nameof" && Eat("("))
+        {
+            Expression operand;
+            _nameOfArgumentDepth++;
+            try { operand = ParseExpression(); }
+            finally { _nameOfArgumentDepth--; }
+            Expect(")");
+            var name = operand switch
+            {
+                NameExpression identifier => GetNameOfIdentifier(identifier.Name),
+                MemberAccessExpression member => member.Member,
+                ThisExpression => "this",
+                BaseExpression => "base",
+                _ => ""
+            };
+            return new NameOfExpression(name, operand, token.Location);
+        }
         if (token.Text == "(")
         {
             var close = FindClosingParenthesis(tokenIndex);
@@ -2055,9 +2084,19 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (tokens[index].Text == "<") depth++;
             else if (tokens[index].Text == ">") depth--;
             else if (tokens[index].Text == ">>") depth -= 2;
-            if (depth <= 0) return depth == 0 && index + 1 < tokens.Count && tokens[index + 1].Text == ".";
+            if (depth <= 0)
+                return depth == 0 && index + 1 < tokens.Count &&
+                    (tokens[index + 1].Text == "." || _nameOfArgumentDepth > 0 && tokens[index + 1].Text == ")");
         }
         return false;
+    }
+
+    private static string GetNameOfIdentifier(string name)
+    {
+        var genericStart = name.IndexOf('<');
+        if (genericStart >= 0) name = name[..genericStart];
+        var qualification = name.LastIndexOf('.');
+        return qualification >= 0 ? name[(qualification + 1)..] : name;
     }
     private AllocationExpression ParseAllocationExpression(Token keyword)
     {

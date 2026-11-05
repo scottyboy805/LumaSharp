@@ -548,6 +548,7 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             Expression? assignedValue, HashSet<string> visitedParameters)
         {
             if (!visitedParameters.Add(parameter)) return false;
+            if (memberName == "GetType" && call is { Arguments.Count: 0 }) return true;
             if (!constraints.TryGetValue(parameter, out var items)) return false;
             if (items.Contains("class", StringComparer.Ordinal) && memberName == "ToString" && (call is null || call.Arguments.Count == 0)) return true;
             foreach (var item in items)
@@ -967,7 +968,8 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                 ? assertedType.EndsWith('?') ? assertedType[..^1] : assertedType
                 : null,
             OverflowContextExpression overflow => KnownExpressionType(overflow.Value),
-            SizeOfExpression => "int32",
+        SizeOfExpression => "int32",
+        TypeOfExpression => "System.Type",
             _ => null
         };
 
@@ -1729,6 +1731,7 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         // cloned. Reusing NameExpression nodes across specializations lets the last analyzed
         // instantiation overwrite the binding used by every earlier one.
         LiteralExpression literal => literal with { },
+        NameOfExpression nameOf => nameOf with { Operand = RewriteExpression(nameOf.Operand, substitutions) },
         NameExpression name => name with { },
         ThisExpression @this => @this with { },
         BaseExpression @base => @base with { },
@@ -1776,6 +1779,7 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                 substitutions.ContainsKey(defaultValue.TypeName)
         },
         SizeOfExpression sizeOf => sizeOf with { TypeName = RewriteTypeName(sizeOf.TypeName, substitutions) },
+        TypeOfExpression typeOf => typeOf with { TypeName = RewriteTypeName(typeOf.TypeName, substitutions) },
         NullAssertionExpression assertion => assertion with { Operand = RewriteExpression(assertion.Operand, substitutions) },
         _ => expression
     };

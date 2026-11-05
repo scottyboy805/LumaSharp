@@ -256,6 +256,7 @@ internal static class ExtensionLowerer
 
     private static Expression RewriteExpression(Expression expression, HashSet<string> members, HashSet<string> locals) => expression switch
     {
+        NameOfExpression nameOf => nameOf with { Operand = RewriteExpression(nameOf.Operand, members, locals) },
         ThisExpression self => Receiver(self.Location),
         NameExpression name when members.Contains(name.Name) && !locals.Contains(name.Name) => new MemberAccessExpression(Receiver(name.Location), name.Name, name.Location),
         UnaryExpression unary => unary with { Operand = RewriteExpression(unary.Operand, members, locals) },

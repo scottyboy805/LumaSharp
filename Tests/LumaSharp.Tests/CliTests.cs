@@ -59,6 +59,20 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task NameofMethodGroupCanBePassedToBundledConsoleWriteLine()
+    {
+        using var workspace = new TemporaryWorkspace();
+        var source = workspace.Write("Program.ls", "using System; class Program { public static int32 Main() { Console.WriteLine(nameof(Main)); return 0; } }");
+
+        var result = await Run(workspace.Root, "build", source, "--no-llvm", "--out-dir", "bin", "--intermediate-dir", "obj");
+
+        Assert.True(result.ExitCode == 0, result.StandardError + result.StandardOutput);
+        var ir = File.ReadAllText(Path.Combine(workspace.Root, "obj", "Program.ll"));
+        Assert.Contains("luma_System_Console_WriteLine", ir);
+        Assert.Contains("Main", ir);
+    }
+
+    [Fact]
     public async Task SourceModeAcceptsAnExternalRuntimeLibraryOption()
     {
         using var workspace = new TemporaryWorkspace();

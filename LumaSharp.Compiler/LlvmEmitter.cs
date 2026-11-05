@@ -194,6 +194,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             {
                 EmitRuntimeExceptionInstance("System.OutOfMemoryException", "luma_oom_instance");
                 EmitRuntimeExceptionInstance("System.OverflowException", "luma_overflow_instance");
+                if (compilation.ClassTypes.ContainsKey("System.InvalidOperationException") &&
+                    compilation.CallTargets.Values.Any(method => method.Intrinsic?.Name == "__typenew"))
+                    EmitRuntimeExceptionInstance("System.InvalidOperationException", "luma_type_new_failure");
             }
         }
         EmitAggregateOwnershipRuntime();
@@ -1272,7 +1275,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private void EmitMethod(MethodSymbol method)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.TypePatternVariableTypes, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.StringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.GenericSpanEmptyAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
+        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.StaticGetTypeCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.TypePatternVariableTypes, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.TypeOfTypes, compilation.RuntimeTypes, compilation.StringLiterals, compilation.NameOfStringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.GenericSpanEmptyAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
         var parameters = d.Parameters.Select((p, i) => $"{LlvmParameterType(p)} %arg{i}");
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
@@ -2466,6 +2469,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         foreach (var type in compilation.ManagedArrayAllocations.Values) Add(type);
         foreach (var type in compilation.TypeOperatorTargets.Values) Add(type);
         foreach (var type in compilation.SwitchTypePatterns.Values) Add(type);
+        foreach (var type in compilation.TypeOfTypes.Values) Add(type);
+        foreach (var type in compilation.RuntimeTypes.Keys) Add(type);
         foreach (var field in compilation.StaticFields) Add(field.Declaration.TypeName);
         foreach (var type in compilation.ClassTypes.Values)
             foreach (var field in type.Fields) Add(field.TypeName);
@@ -2521,6 +2526,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         foreach (var type in compilation.ManagedArrayAllocations.Values) AddType(type);
         foreach (var type in compilation.TypeOperatorTargets.Values) AddType(type);
         foreach (var type in compilation.SwitchTypePatterns.Values) AddType(type);
+        foreach (var type in compilation.RuntimeTypes.Keys) AddType(type);
+        if (compilation.TypeOfTypes.Count > 0) AddType("System.Type");
+        if (compilation.RuntimeTypes.Count > 0) AddType("System.Type");
         foreach (var method in compilation.Methods)
         {
             AddType(method.Declaration.ReturnType);
@@ -3675,7 +3683,83 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             _output.AppendLine("  ret void");
             _output.AppendLine("}");
         }
+        EmitRuntimeTypeHandles();
     }
+
+    private void EmitRuntimeTypeHandles()
+    {
+        if (compilation.RuntimeTypes.Count == 0) return;
+        if (!compilation.ClassTypes.TryGetValue("System.Type", out var typeClass))
+            throw new InvalidOperationException("Runtime type handles require System.Type.");
+
+        var typeId = 1;
+        foreach (var (typeName, metadata) in compilation.RuntimeTypes.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            string StringValue(string text) => compilation.StringLiteralPool.TryGetValue(text, out var literal)
+                ? "@" + literal.Symbol
+                : "@luma_string_empty";
+            var values = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["name"] = StringValue(metadata.Name),
+                ["namespaceName"] = StringValue(metadata.Namespace),
+                ["flags"] = metadata.Flags.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["typeId"] = typeId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            };
+            var fields = typeClass.Fields.OrderBy(field => field.Index).Select(field =>
+            {
+                if (!values.TryGetValue(field.Declaration.Name, out var value))
+                    throw new InvalidOperationException($"System.Type runtime field '{field.Declaration.Name}' is not initialized by the compiler.");
+                return $"{LlvmType(field.TypeName)} {value}";
+            });
+            var suffix = typeClass.Fields.Count == 0 ? "" : ", " + string.Join(", ", fields);
+            _output.AppendLine($"@luma_type_handle_{Safe(typeName)} = internal global %class.System_Type {{ ptr @luma_classdesc_System_Type, i32 -1, i32 1, ptr null{suffix} }}");
+            typeId++;
+        }
+
+        _output.AppendLine("define internal ptr @luma_object_get_type(ptr %object) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %is.null = icmp eq ptr %object, null");
+        _output.AppendLine("  br i1 %is.null, label %null, label %lookup");
+        _output.AppendLine("null:");
+        _output.AppendLine("  call void @luma_throw_null()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("lookup:");
+        _output.AppendLine("  %descriptor = load ptr, ptr %object");
+        var runtimeMappings = compilation.RuntimeTypes.Keys.Order(StringComparer.Ordinal)
+            .Select(typeName => (TypeName: typeName, Descriptor: RuntimeTypeDescriptor(typeName)))
+            .Where(item => item.Descriptor is not null)
+            .ToArray();
+        for (var index = 0; index < runtimeMappings.Length; index++)
+        {
+            var item = runtimeMappings[index];
+            var nextLabel = index == runtimeMappings.Length - 1 ? "unknown" : $"check.{index + 1}";
+            _output.AppendLine($"  %matches.{index} = icmp eq ptr %descriptor, {item.Descriptor}");
+            _output.AppendLine($"  br i1 %matches.{index}, label %found.{index}, label %{nextLabel}");
+            _output.AppendLine($"found.{index}:");
+            _output.AppendLine($"  ret ptr @luma_type_handle_{Safe(item.TypeName)}");
+            if (index < runtimeMappings.Length - 1) _output.AppendLine($"check.{index + 1}:");
+        }
+        _output.AppendLine("unknown:");
+        _output.AppendLine("  call void @llvm.trap()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("}");
+        EmitDynamicTypeRuntime();
+    }
+
+    private string? RuntimeTypeDescriptor(string typeName)
+    {
+        if (typeName == "object") typeName = "System.Object";
+        if (compilation.ClassTypes.ContainsKey(typeName)) return $"@luma_classdesc_{Safe(typeName)}";
+        if (compilation.DelegateTypes.ContainsKey(typeName)) return $"@luma_classdesc_delegate_{Safe(typeName)}";
+        if (SemanticAnalyzer.TryParseManagedArrayType(typeName, out _, out _)) return ArrayDescriptorPointer(typeName.EndsWith("?", StringComparison.Ordinal) ? typeName[..^1] : typeName);
+        if (typeName == "string") return "@luma_string_type";
+        if (typeName == "System.String") return "@luma_string_type";
+        if (compilation.StructTypes.ContainsKey(typeName) || compilation.EnumUnderlyingTypes.ContainsKey(typeName) ||
+            typeName is "bool" or "char" or "int" or "uint" or "int8" or "uint8" or "int16" or "uint16" or "int32" or "uint32" or "int64" or "uint64" or "float" or "double")
+            return $"@luma_boxdesc_{Safe(typeName)}";
+        return null;
+    }
+
 
     private void EmitRuntimeExceptionInstance(string typeName, string instanceName)
     {
@@ -3742,6 +3826,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         IReadOnlyDictionary<CallExpression, string> enumToStringCalls,
         IReadOnlyDictionary<CallExpression, ClassToStringBinding> classToStringCalls,
         IReadOnlyDictionary<CallExpression, string> structToStringCalls,
+        IReadOnlyDictionary<CallExpression, StaticGetTypeBinding> staticGetTypeCalls,
         IReadOnlyDictionary<CallExpression, int> virtualCallSlots,
         IReadOnlyDictionary<CallExpression, int> interfaceCallSlots,
         IReadOnlyDictionary<Expression, DelegateMethodGroupBinding> delegateMethodGroups,
@@ -3786,7 +3871,10 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         IReadOnlyDictionary<ConditionalExpression, string> conditionalExpressionTypes,
         IReadOnlyDictionary<SwitchLabel, string> switchTypePatterns,
         IReadOnlyDictionary<SizeOfExpression, string> sizeOfTypes,
+        IReadOnlyDictionary<TypeOfExpression, string> typeOfTypes,
+        IReadOnlyDictionary<string, RuntimeTypeMetadata> runtimeTypes,
         IReadOnlyDictionary<LiteralExpression, StringLiteralInfo> stringLiterals,
+        IReadOnlyDictionary<NameOfExpression, StringLiteralInfo> nameOfStringLiterals,
         IReadOnlyDictionary<MemberAccessExpression, bool> stringLengthAccesses,
         IReadOnlyDictionary<IndexExpression, bool> stringIndexAccesses,
         IReadOnlyDictionary<AllocationExpression, string> managedArrayAllocations,
@@ -6327,6 +6415,25 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     if (literal.Value.StartsWith('\'') && SemanticAnalyzer.TryParseCharacter(literal.Value, out var character)) return (character.ToString(), "char");
                     if (SemanticAnalyzer.IsFloatingLiteral(literal.Value)) { var floating = SemanticAnalyzer.ParseFloating(literal.Value); return (FormatFloating(floating.Type, floating.Value), floating.Type); }
                     var parsed = SemanticAnalyzer.ParseInteger(literal.Value); return (parsed.Value?.ToString() ?? "0", parsed.Type);
+                case NameOfExpression nameOf:
+                    if (nameOfStringLiterals.TryGetValue(nameOf, out var nameOfLiteral)) return ("@" + nameOfLiteral.Symbol, "string");
+                    throw new NotSupportedException("A nameof expression reached emission without a resolved symbol.");
+                case TypeOfExpression typeOf:
+                    if (typeOfTypes.TryGetValue(typeOf, out var targetType) && runtimeTypes.ContainsKey(targetType))
+                        return ("@luma_type_handle_" + Safe(targetType), "System.Type");
+                    throw new NotSupportedException("A typeof expression reached emission without runtime type metadata.");
+                case CallExpression call when staticGetTypeCalls.TryGetValue(call, out var staticType):
+                    if (call.Target is not MemberAccessExpression getTypeTarget)
+                        throw new NotSupportedException("A statically bound GetType call requires an instance receiver.");
+                    var receiver = EmitExpression(getTypeTarget.Receiver);
+                    if (staticType.ReceiverIsNullableValue)
+                    {
+                        var aggregateType = LlvmType(receiver.Type);
+                        var hasValue = NewTemp(); Emit($"{hasValue} = extractvalue {aggregateType} {receiver.Value}, 0");
+                        var noValue = NewTemp(); Emit($"{noValue} = xor i1 {hasValue}, true");
+                        TrapIf(noValue, "luma_throw_null");
+                    }
+                    return ("@luma_type_handle_" + Safe(staticType.TypeName), "System.Type");
                 case DefaultValueExpression defaultValue:
                     if (!defaultTypes.TryGetValue(defaultValue, out var defaultType)) throw new NotSupportedException("A default expression reached emission without a bound target type.");
                     if (structTypes.ContainsKey(defaultType)) EnsureTypeInitialized(defaultType, force: true);
@@ -8353,14 +8460,14 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                         var element = elements[elementIndex];
                         var converted = CastValue(element.Value, element.Type, elementType);
                         var address = NewTemp(); Emit($"{address} = getelementptr {LlvmType(elementType)}, ptr {data}, i32 {elementIndex}");
-                        if (IsStringType(elementType)) EnsureOwnedString(element);
-                        else if (SemanticAnalyzer.TryParseManagedArrayType(elementType, out _, out _)) EnsureOwnedArray(element);
-                        else if (GetClassReferenceType(elementType) is { } classElementType) EnsureOwnedClass(element, classElementType);
+                        if (IsStringType(elementType)) EnsureOwnedString((converted, elementType));
+                        else if (SemanticAnalyzer.TryParseManagedArrayType(elementType, out _, out _)) EnsureOwnedArray((converted, elementType));
+                        else if (GetClassReferenceType(elementType) is { } classElementType) EnsureOwnedClass((converted, elementType), classElementType);
                         else if (IsManagedAggregateType(elementType)) EnsureOwnedAggregate((converted, elementType));
                         Emit($"store {LlvmType(elementType)} {converted}, ptr {address}");
-                        if (IsStringType(elementType)) _ownedStringValues.Remove(element.Value);
-                        else if (SemanticAnalyzer.TryParseManagedArrayType(elementType, out _, out _)) _ownedArrayValues.Remove(element.Value);
-                        else if (GetClassReferenceType(elementType) is { } ownedClassType) _ownedClassValues.Remove((element.Value, ownedClassType));
+                        if (IsStringType(elementType)) _ownedStringValues.Remove(converted);
+                        else if (SemanticAnalyzer.TryParseManagedArrayType(elementType, out _, out _)) _ownedArrayValues.Remove(converted);
+                        else if (GetClassReferenceType(elementType) is { } ownedClassType) _ownedClassValues.Remove((converted, ownedClassType));
                         else if (IsManagedAggregateType(elementType))
                         {
                             _ownedAggregateValues.Remove((converted, elementType));

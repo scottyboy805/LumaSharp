@@ -306,7 +306,7 @@ class Program
 
 ## 4. Expressions and operators
 
-Expressions include literals, calls, member access, indexing, object and array creation, casts, conditional expressions, and lambdas. Arithmetic, comparison, logical, bitwise, shift, and assignment operators are available.
+Expressions include literals, calls, member access, indexing, object and array creation, casts, conditional expressions, and lambdas. Arithmetic, comparison, logical, bitwise, shift, and assignment operators are available. `nameof(expression)` returns the accessible identifier or member name as a compile-time string without evaluating the expression. `typeof(T)` returns the runtime metadata handle for a type, including a closed generic type parameter. Nullable reference annotations share the underlying handle; nullable value types, pointers, and `void` are rejected.
 
 ```lumasharp
 class Example
@@ -322,6 +322,12 @@ class Example
         return selected + count;
     }
 }
+```
+
+```lumasharp
+string member = nameof(Calculate);       // "Calculate"
+string property = nameof(text.Length);    // "Length"
+System.Type metadata = typeof(int32);     // metadata, not full reflection
 ```
 
 The conditional operators `&&` and `||` short-circuit: the right operand is evaluated only if needed. `??` returns the left value when it is non-null, otherwise evaluates and returns its fallback. `??=` assigns a fallback only when the left side is null.
@@ -1195,6 +1201,24 @@ The compiler package includes the LumaSharp runtime sources and locates them bes
 
 `System.Environment` exposes the running executable's path, directory, and file name, the current processor count, and whether the platform is little-endian. Its `Platform` and `Architecture` properties report the target used to build the executable. The corresponding `System.Platform` values are `Windows`, `Linux`, `MacOS`, and `Unknown`; `System.Architecture` provides `X86`, `X64`, `Arm`, `Arm64`, and `Unknown`.
 
+`System.Type` provides a small runtime type API. `typeof(T)` returns a stable metadata object with `Name`, `Namespace`, and kind flags such as `IsClass`, `IsValueType`, `IsPrimitive`, `IsArray`, `IsInterface`, `IsEnum`, `IsDelegate`, `IsStatic`, and `IsAbstract`. Calling `GetType()` on an object reports its dynamic type; it uses the existing object or boxed-value descriptor and does not allocate another box. Calling it on a statically known value type, including a closed generic specialization, returns the matching metadata directly without boxing. `Type.ToString()` returns the represented type's namespace-qualified name, such as `System.Int32`.
+
+`Type.New(args...)` constructs an instance dynamically. Arguments are collected as `object?`, so value arguments are boxed. The runtime considers public constructors with the same argument count, preferring exact matches, then assignable interfaces, then the closest assignable class. A unique best match is allocated on the heap and invoked. Calling `New()` without arguments on a value type returns its default value boxed as `object` (including primitives and enums); it does not run struct field initializers. Calls with arguments still require a matching public constructor. Value-type results are returned boxed and can be cast back to their concrete type. No matching public constructor, an abstract or non-instantiable type, or an ambiguous match raises `InvalidOperationException`. This is intentionally a small construction API: it does not expose members, attributes, generic definitions, or other full-reflection services.
+
+```lumasharp
+using System;
+
+public class Widget
+{
+    public int32 Value;
+    public this(int32 value) { Value = value; }
+}
+
+Type widgetType = typeof(Widget);
+Widget widget = (Widget)widgetType.New(42);
+Type actualType = widget.GetType();
+```
+
 `System.Diagnostics.StopWatch` measures elapsed time with a monotonic high-resolution clock. Use `Start`, `Stop`, `Reset`, or `Restart`, or create and start one with `StartNew()`. Its `Elapsed` property returns `System.TimeSpan`, which exposes `Ticks`, `TotalMilliseconds`, and `TotalSeconds`; one tick is 100 nanoseconds. Timing uses `QueryPerformanceCounter` on Windows and `clock_gettime(CLOCK_MONOTONIC)` on Linux and macOS.
 
 ```lumasharp
@@ -1233,7 +1257,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
 - IO is synchronous and minimal; timeouts and broad .NET `File`/`Directory` APIs are not present.
-- Async lambdas, cancellation, custom schedulers, synchronization contexts, LINQ, reflection, attributes, and the complete .NET base class library are not included.
+- Async lambdas, cancellation, custom schedulers, synchronization contexts, LINQ, full reflection, attributes, and the complete .NET base class library are not included.
 
 When behavior matters for a particular edge case, consult the tests and the specifications. The test suite reflects the compiler's executable behavior; the specifications also describe intended rules that may not yet be implemented.
 
