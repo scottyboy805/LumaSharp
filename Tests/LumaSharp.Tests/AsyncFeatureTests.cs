@@ -245,6 +245,37 @@ class Program
     }
 
     [Fact]
+    public async Task AwaitedDelayWaitsAndRetainedTaskKeepsAsyncWorkAlive()
+    {
+        const string source = """
+using System.Diagnostics;
+using System.Threading;
+
+class Program
+{
+    public static async int32 CountAfterTwoDelays()
+    {
+        await Task.Delay(100);
+        await Task.Delay(100);
+        return 2;
+    }
+
+    public static int32 Main()
+    {
+        StopWatch watch = StopWatch.StartNew();
+        Task<int32> task = CountAfterTwoDelays();
+        int32 count = task.Result;
+        return count == 2 && watch.Elapsed.TotalMilliseconds >= 150.0 ? 0 : 1;
+    }
+}
+""";
+
+        var execution = await BuildAndRunNativeAsync(source, "AsyncAwaitDelayTiming");
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Empty(execution.StandardError);
+    }
+
+    [Fact]
     public async Task FileStreamAsyncReadAndWriteWorkThroughAsyncStream()
     {
         var filePath = Path.Combine(Path.GetTempPath(), "lumasharp-async-" + Guid.NewGuid().ToString("N") + ".bin");

@@ -34,7 +34,7 @@ class Program
 
     public static void Main() 
 	{
-		CountToTen();
+		CountToTen().Wait();
 
 		Type t = typeof(int32);
 		object inst = t.New();
