@@ -200,6 +200,35 @@ public class Dictionary<TKey, TValue> where TKey : default, System.IHashable, Sy
 		return capacity;
 	}
 
+	internal bool IsOccupied(int32 index)
+	{
+		if (index < 0 || index >= states.Length)
+			throw new System.ArgumentOutOfRangeException();
+		unsafe unchecked
+		{
+			return states[index] == 1;
+		}
+	}
+
+	internal TKey GetKeyAt(int32 index)
+	{
+		if (!IsOccupied(index))
+			throw new System.ArgumentOutOfRangeException();
+		unsafe unchecked
+		{
+			return keys[index];
+		}
+	}
+
+	internal TValue GetValueAt(int32 index)
+	{
+		if (!IsOccupied(index))
+			throw new System.ArgumentOutOfRangeException();
+		unsafe unchecked
+		{
+			return values[index];
+		}
+	}
 	private int32 Find(TKey key, int32 hash)
 	{
 		int32 slot = hash & 0x7FFFFFFF;

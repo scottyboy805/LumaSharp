@@ -926,9 +926,20 @@ public class Example
 | `Dictionary<TKey, TValue>` | Indexer, `Add`, `TryAdd`, `ContainsKey`, `TryGetValue`, `Remove`, `Clear`. |
 | `HashSet<T>` | `Add`, `Contains`, `Remove`, `Clear`; iteration order is unspecified. |
 
+The thread-safe collections are in `System.Collections.Concurrent`:
+
+| Type | Common operations |
+|---|---|
+| `ConcurrentQueue<T>` | `Enqueue`, `TryDequeue`, `TryPeek`, `Clear`, `ToArray`; snapshots and iteration are in queue order. |
+| `ConcurrentStack<T>` | `Push`, `PushRange`, `TryPop`, `TryPopRange`, `TryPeek`, `Clear`, `ToArray`; snapshots and iteration are top-first. |
+| `ConcurrentBag<T>` | `Add`, `TryTake`, `TryPeek`, `Clear`, `ToArray`; order is unspecified. |
+| `ConcurrentDictionary<TKey, TValue>` | Indexer, `TryAdd`, `GetOrAdd`, `AddOrUpdate`, `ContainsKey`, `TryGetValue`, `TryRemove`, `Keys`, `Values`, `ToArray`. |
+
+Each operation synchronizes on a per-instance monitor, so an individual call observes and applies its changes atomically with respect to calls on the same collection. These implementations favor straightforward correctness and are lock-based rather than lock-free. Enumeration uses a snapshot; changes made after `Iterate()` starts do not change that iterator's contents. Concurrent dictionary keys use the same `IHashable` and `IEquality<TKey>` constraints as `Dictionary<TKey, TValue>`. Its `GetOrAdd` and `AddOrUpdate` currently take values directly; delegate factory overloads and blocking producer/consumer collections are not part of this surface.
+
 `List<T>` requires `T` to implement `System.IEquality<T>`, because `IndexOf`, `Contains`, and `Remove` compare values through that contract. `HashSet<T>` and `Dictionary<TKey, TValue>` require keys to implement both `System.IHashable` and `System.IEquality<T>`; their hash and equality operations call those interfaces directly. Collection instantiation reports a generic-constraint error when a type does not implement the required contracts. Primitive aliases and `string` provide these contracts. User-defined key types should return equal hash values for equal values and implement equality consistently; the compiler does not fall back to `==` or a constant hash.
 
-These are an early runtime surface, not a complete copy of .NET collections. `List<T>`, `Stack<T>`, `Queue<T>`, and `HashSet<T>` can be used in a `for-in` loop. When the variable has a concrete collection type, the compiler uses its `Iterate()` method and keeps a returned struct iterator as a value, avoiding an iterator allocation or boxing in the loop. When the variable is typed as `IEnumerable<T>`, iteration goes through the interface implementation instead.
+These are an early runtime surface, not a complete copy of .NET collections. `List<T>`, `Stack<T>`, `Queue<T>`, `HashSet<T>`, `ConcurrentQueue<T>`, `ConcurrentStack<T>`, `ConcurrentBag<T>`, and `ConcurrentDictionary<TKey, TValue>` can be used in a `for-in` loop. When the variable has a concrete collection type, the compiler uses its `Iterate()` method and keeps a returned struct iterator as a value, avoiding an iterator allocation or boxing in the loop. When the variable is typed as `IEnumerable<T>`, iteration goes through the interface implementation instead.
 
 The same pattern can be used by your own types:
 
@@ -943,7 +954,7 @@ Implement `Iterate()` with no parameters and return a type that implements `IIte
 
 The built-in collection iterators treat a default iterator or one constructed with a null collection as empty: `Next()` returns `false`, and `Current` returns `default(T)`.
 
-Dictionary keys can be value types and enums; hash behavior can use `System.IHashable.Hash`, and custom equality is expressed by the root `System.IEquality<T>` interface. Dictionary enumeration and broader comparer APIs are not yet available. Hash-set iteration order is unspecified. Collection mutation during iteration has collection-defined behaviour.
+Dictionary keys can be value types and enums; hash behavior can use `System.IHashable.Hash`, and custom equality is expressed by the root `System.IEquality<T>` interface. Ordinary `Dictionary<TKey, TValue>` enumeration and broader comparer APIs are not yet available. Concurrent dictionary enumeration uses a snapshot; hash-set iteration order is unspecified. Collection mutation during iteration has collection-defined behaviour.
 
 The contiguous array-backed collections expose an unsafe `Ptr` to their backing storage. It is a low-level view: for a collection with a ring buffer or hash table, it does not imply that the logical contents form a packed sequence.
 
