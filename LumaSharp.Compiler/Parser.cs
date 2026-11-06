@@ -2,6 +2,17 @@ namespace LumaSharp.Compiler;
 
 internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnostics, bool unsafeEnabled = false, CancellationToken cancellationToken = default)
 {
+    private sealed class AttributeAwareMemberList : List<MemberDeclaration>
+    {
+        public IReadOnlyList<AttributeApplication> CurrentAttributes { get; set; } = [];
+
+        public new void Add(MemberDeclaration member)
+        {
+            if (CurrentAttributes.Count > 0) member = member with { Attributes = CurrentAttributes };
+            base.Add(member);
+        }
+    }
+
     private static readonly HashSet<string> ReservedWords = [
         "bool", "char", "int", "uint", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64", "float", "double", "object", "string", "void",
         "class", "struct", "interface", "enum", "delegate", "namespace", "using", "const", "let", "var", "extern", "operator",
@@ -89,6 +100,46 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (_position == before) { Error(Current, $"Unexpected token '{Current.Text}' in compilation unit."); SynchronizeTop(); }
         }
         return new(types, at, _usingDirectives.ToArray(), _namespace, extensions);
+    }
+
+    private IReadOnlyList<AttributeApplication> ReadAttributeLists()
+    {
+        if (!Is("[")) return [];
+        var attributes = new List<AttributeApplication>();
+        while (Eat("["))
+        {
+            while (Current.Kind != TokenKind.End && !Is("]"))
+            {
+                var location = Current.Location;
+                if (!IsIdentifier(Current))
+                {
+                    Error(Current, "Expected an attribute type name.");
+                    while (Current.Kind != TokenKind.End && !Is(",") && !Is("]")) Take();
+                    if (!Eat(",")) break;
+                    continue;
+                }
+                var name = Take().Text.TrimStart('@');
+                while (Eat("."))
+                {
+                    if (!IsIdentifier(Current)) { Error(Current, "Expected an identifier after '.' in attribute type name."); break; }
+                    name += "." + Take().Text.TrimStart('@');
+                }
+                var arguments = new List<Expression>();
+                if (Eat("("))
+                {
+                    while (Current.Kind != TokenKind.End && !Is(")"))
+                    {
+                        arguments.Add(ParseExpression());
+                        if (!Eat(",")) break;
+                    }
+                    Expect(")");
+                }
+                attributes.Add(new(name, arguments, location));
+                if (!Eat(",")) break;
+            }
+            Expect("]");
+        }
+        return attributes;
     }
 
     private bool TryParseExtension(List<ExtensionDeclaration> extensions)
@@ -179,12 +230,14 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     }
     private bool TryParseType(List<TypeDeclaration> types, bool isNested = false)
     {
+        var declarationStart = _position;
+        var attributes = ReadAttributeLists();
         var start = Current; var modifiers = ReadModifiers();
         var unsafeType = modifiers.Contains("unsafe");
         if (unsafeType && !unsafeEnabled) diagnostics.Add("LS1901", DiagnosticSeverity.Error, "Unsafe code is disabled for this compilation.", start.Location);
-        if (!(Is("class") || Is("struct") || Is("interface") || Is("enum") || Is("delegate"))) { _position = _position - modifiers.Count; return false; }
+        if (!(Is("class") || Is("struct") || Is("interface") || Is("enum") || Is("delegate"))) { _position = declarationStart; return false; }
         var kind = Take().Text;
-        if (kind == "delegate") return TryParseDelegateDeclaration(types, start, modifiers, isNested);
+        if (kind == "delegate") return TryParseDelegateDeclaration(types, start, modifiers, isNested, attributes);
         var name = Take();
         if (!IsIdentifier(name)) { Error(name, "Expected a non-keyword type name (use @ to escape a keyword). "); SynchronizeTop(); return true; }
         ValidateModifiers(modifiers, start.Location, isTopLevelType: !isNested);
@@ -196,7 +249,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         }, start.Location, $"{kind} declaration");
         if (modifiers.Contains("ref") && kind != "struct")
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "The 'ref' type modifier is supported only on structs.", start.Location);
-        if (kind == "enum") { ParseEnumType(types, name, start.Location, GetTypeAccessibility(modifiers, isNested), isNested ? _namespace : null); return true; }
+        if (kind == "enum") { ParseEnumType(types, name, start.Location, GetTypeAccessibility(modifiers, isNested), isNested ? _namespace : null, attributes); return true; }
         var declaredTypeParameters = ReadTypeParameterList();
         var enclosingTypeParameters = isNested ? _enclosingTypeParameters : [];
         foreach (var shadowedParameter in declaredTypeParameters.Intersect(enclosingTypeParameters, StringComparer.Ordinal))
@@ -227,9 +280,12 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         var previousGenericConstraints = _enclosingGenericConstraints;
         _enclosingTypeParameters = typeParameters;
         _enclosingGenericConstraints = scopeGenericConstraints;
-        var members = new List<MemberDeclaration>();
+        var members = new AttributeAwareMemberList();
         while (Current.Kind != TokenKind.End && !Is("}"))
         {
+            var memberStartPosition = _position;
+            var memberAttributes = ReadAttributeLists();
+            members.CurrentAttributes = memberAttributes;
             var memberStart = Current; var memberModifiers = ReadModifiers();
             ValidateModifiers(memberModifiers, memberStart.Location, isTopLevelType: false);
             var unsafeMember = memberModifiers.Contains("unsafe");
@@ -307,7 +363,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (Is("class") || Is("struct") || Is("interface") || Is("enum") || Is("delegate"))
             {
                 _unsafeDepth = previousMemberUnsafeDepth;
-                _position -= memberModifiers.Count;
+                _position = memberStartPosition;
                 var containingNamespace = _namespace;
                 _namespace = string.IsNullOrEmpty(containingNamespace)
                     ? name.Text.TrimStart('@')
@@ -491,9 +547,9 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             .Concat(ownConstraints).ToArray();
         _enclosingTypeParameters = previousTypeParameters;
         _enclosingGenericConstraints = previousGenericConstraints;
-        types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null, IsRefStruct: modifiers.Contains("ref"))); return true;
+        types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null, IsRefStruct: modifiers.Contains("ref")) { Attributes = attributes }); return true;
     }
-    private bool TryParseDelegateDeclaration(List<TypeDeclaration> types, Token start, IReadOnlyList<string> modifiers, bool isNested)
+    private bool TryParseDelegateDeclaration(List<TypeDeclaration> types, Token start, IReadOnlyList<string> modifiers, bool isNested, IReadOnlyList<AttributeApplication> attributes)
     {
         ValidateModifiers(modifiers, start.Location, isTopLevelType: !isNested);
         ValidateAllowedModifiers(modifiers, ["public", "private", "protected", "internal"], start.Location, "delegate declaration");
@@ -551,7 +607,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             HasTypeParameters: typeParameters.Length > 0, Usings: _usingDirectives.ToArray(),
             Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters,
             GenericConstraints: constraints, DelegateReturnType: returnType, DelegateParameters: parameters,
-            ContainingTypeName: isNested ? _namespace : null));
+            ContainingTypeName: isNested ? _namespace : null) { Attributes = attributes });
         return true;
     }
 
@@ -580,7 +636,8 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                     new HashSet<string>([parameter], StringComparer.Ordinal))))
             .ToArray();
     }
-    private void ParseEnumType(List<TypeDeclaration> types, Token name, SourceLocation at, string accessibility, string? containingTypeName)
+    private void ParseEnumType(List<TypeDeclaration> types, Token name, SourceLocation at, string accessibility, string? containingTypeName,
+        IReadOnlyList<AttributeApplication> attributes)
     {
         var underlying = "int32";
         if (Eat("<")) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Enums cannot have type parameters.", at); SkipBalanced("<", ">"); }
@@ -601,9 +658,9 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         }
         Expect("}");
         types.Add(new TypeDeclaration(_namespace, "enum", name.Text.TrimStart('@'), members, at, Usings: _usingDirectives.ToArray(), EnumUnderlyingType: underlying, Accessibility: accessibility,
-            ContainingTypeName: containingTypeName));
+            ContainingTypeName: containingTypeName) { Attributes = attributes });
     }
-    private void ParseFieldDeclaration(string typeName, Token firstName, IReadOnlyList<string> modifiers, SourceLocation at, List<MemberDeclaration> members)
+    private void ParseFieldDeclaration(string typeName, Token firstName, IReadOnlyList<string> modifiers, SourceLocation at, AttributeAwareMemberList members)
     {
         var names = new List<Token> { firstName };
         while (Eat(",")) names.Add(Take());

@@ -20,7 +20,7 @@ The language does not currently support generic extension methods or targets, ge
 
 ## Runtime and library
 
-The runtime uses deterministic reference counting, scoped allocations, exception unwinding, virtual/interface dispatch, type metadata, arrays, strings, closures, delegates, thread and monitor primitives, and a managed worker pool for async methods. `System.Type` exposes names, namespaces, type flags, stable handles, and `New`; this is not full reflection.
+The runtime uses deterministic reference counting, scoped allocations, exception unwinding, virtual/interface dispatch, type metadata, arrays, strings, closures, delegates, thread and monitor primitives, and a managed worker pool for async methods. `System.Type` exposes names, namespaces, type flags, stable handles, `New`, and directly applied type attributes; attribute retrieval constructs owned instances. This is not full reflection. `System.Attribute` is the abstract attribute base. `System.Interop.ImportAttribute` is validated on extern methods but does not yet affect symbol mapping or library loading.
 
 The library includes common sequential collections and monitor-based concurrent queue, stack, bag, and dictionary types. Concurrent collection operations synchronize per instance and enumerators use snapshots; they are not lock-free. Collection hash/equality behavior is constrained by `IHashable` and `IEquality<T>` where required.
 
@@ -33,7 +33,7 @@ The runtime ABI marker is version 2. The current generated contract and its limi
 LumaSharp is not a C# compatibility implementation. The language specification's current boundaries include:
 
 - no garbage collector or automatic cycle collection; strong reference cycles must be broken explicitly;
-- no tuple syntax/deconstruction, local functions, object initializers, `init`, attributes, LINQ syntax, exception filters, or raw string literals;
+- no tuple syntax/deconstruction, local functions, object initializers, `init`, general member-attribute reflection, named attribute arguments, generic attribute classes, LINQ syntax, exception filters, or raw string literals;
 - no function-pointer invocation, automatic native marshalling, or callbacks from native code into LumaSharp;
 - no multicast delegates, async lambdas, custom schedulers, or synchronization contexts;
 - no general reflection, generic argument enumeration, or arbitrary method invocation through `System.Type`;
@@ -50,4 +50,4 @@ The full suite is run for this status update with:
 dotnet test LumaSharp.slnx --no-restore
 ```
 
-The run passed all 544 compiler/runtime tests and all 4 benchmark tests. The compiler and CLI built successfully as part of the run. NuGet printed `NU1900` warnings because vulnerability metadata could not be fetched from `api.nuget.org`; the existing restore assets were sufficient and all builds/tests completed.
+The run passed all 546 compiler/runtime tests and all 5 benchmark tests. The compiler and CLI built successfully as part of the run. NuGet printed `NU1900` warnings because vulnerability metadata could not be fetched from `api.nuget.org`; the existing restore assets were sufficient and all builds/tests completed.

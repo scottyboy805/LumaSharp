@@ -662,6 +662,127 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void AttributesResolveValidateExposeTypeMetadataAndInstantiateValues()
+    {
+        const string source = """
+            using System;
+            using System.Interop;
+            [Mark(17), Mark(23)]
+            public class Item { }
+            [Mark(29)]
+            public struct StructItem { }
+            [Mark(31)]
+            public interface IMarked { }
+            [Mark(37)]
+            public enum ItemKind { One }
+            [NamedAttribute("native" + "-type")]
+            public class LabeledItem { }
+            [Flag]
+            public class FlaggedItem { }
+            [Throwing]
+            public class ThrowingItem { }
+            [Mark(43)]
+            public class Box<T> { }
+            public class MarkAttribute : Attribute
+            {
+                public int32 Value;
+                public this(int32 value) { Value = value; }
+            }
+            public class NamedAttribute : Attribute
+            {
+                public string Value;
+                public this(string value) { Value = value; }
+            }
+            public class FlagAttribute : Attribute { public this() { } }
+            public class ThrowingAttribute : Attribute
+            {
+                public this() { throw new InvalidOperationException(); }
+            }
+            public class Program
+            {
+                [Import("native-module", "native_entry")]
+                public static extern int32 NativeCall(int32 value);
+
+                public static int32 Main()
+                {
+                    Type item = typeof(Item);
+                    Type mark = typeof(MarkAttribute);
+                    if (!typeof(Attribute).IsAbstract) return 1;
+                    if (item.AttributeCount != 2 || !item.HasAttribute(mark)) return 2;
+                    if (item.GetAttributeType(0) != mark || item.GetAttributeType(1) != mark) return 3;
+                    if (item.GetAttributeType(-1) != null || item.GetAttributeType(2) != null) return 4;
+                    MarkAttribute first = (MarkAttribute)item.GetAttribute(0)!;
+                    MarkAttribute second = (MarkAttribute)item.GetAttribute(1)!;
+                    if (first.Value != 17 || second.Value != 23) return 5;
+                    if (item.GetAttribute(-1) != null || item.GetAttribute(2) != null) return 6;
+                    if (((MarkAttribute)typeof(StructItem).GetAttribute(0)!).Value != 29) return 7;
+                    if (typeof(IMarked).AttributeCount != 1 || typeof(ItemKind).AttributeCount != 1) return 8;
+                    if (((NamedAttribute)typeof(LabeledItem).GetAttribute(0)!).Value.Length != 11) return 9;
+                    if (typeof(FlaggedItem).GetAttribute(0) == null) return 10;
+                    if (item != typeof(Item) || item.HasAttribute(null)) return 11;
+                    try { object ignored = typeof(ThrowingItem).GetAttribute(0)!; return 12; }
+                    catch (InvalidOperationException) { }
+                    Type closedBox = typeof(Box<int32>);
+                    if (closedBox.AttributeCount != 1 || ((MarkAttribute)closedBox.GetAttribute(0)!).Value != 43) return 13;
+                    try { object invalid = typeof(Attribute).New(); return 14; }
+                    catch (InvalidOperationException) { }
+                    return 0;
+                }
+            }
+            """;
+        var result = CompileWithStandardLibrary(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+
+        var nonAttribute = CompileWithStandardLibrary("class NotAnAttribute { } [NotAnAttribute] class Item { } class Program { public static int32 Main() => 0; }");
+        Assert.False(nonAttribute.Succeeded);
+        Assert.Contains(nonAttribute.Diagnostics, diagnostic => diagnostic.Message.Contains("derived from System.Attribute", StringComparison.Ordinal));
+
+        var missingAttribute = CompileWithStandardLibrary("[Missing] class Item { } class Program { public static int32 Main() => 0; }");
+        Assert.False(missingAttribute.Succeeded);
+        Assert.Contains(missingAttribute.Diagnostics, diagnostic => diagnostic.Code == "LS0200");
+
+        var invalidImport = CompileWithStandardLibrary("using System.Interop; class Program { [Import(42, \"entry\")] public static extern int32 NativeCall(int32 value); public static int32 Main() => 0; }");
+        Assert.False(invalidImport.Succeeded);
+        Assert.Contains(invalidImport.Diagnostics, diagnostic => diagnostic.Message.Contains("constant string", StringComparison.Ordinal));
+
+        var nonconstantImport = CompileWithStandardLibrary("using System.Interop; class Program { public static string Module = \"module\"; [Import(Module, \"entry\")] public static extern int32 NativeCall(); public static int32 Main() => 0; }");
+        Assert.False(nonconstantImport.Succeeded);
+        Assert.Contains(nonconstantImport.Diagnostics, diagnostic => diagnostic.Message.Contains("constant string", StringComparison.Ordinal));
+
+        var importOnBody = CompileWithStandardLibrary("using System.Interop; class Program { [Import(\"module\", \"entry\")] public static int32 Method() => 1; public static int32 Main() => 0; }");
+        Assert.False(importOnBody.Succeeded);
+        Assert.Contains(importOnBody.Diagnostics, diagnostic => diagnostic.Message.Contains("only to extern methods", StringComparison.Ordinal));
+
+        var importOnInterfaceMethod = CompileWithStandardLibrary("using System.Interop; interface IContract { [Import(\"module\", \"entry\")] int32 Run(); } class Program { public static int32 Main() => 0; }");
+        Assert.False(importOnInterfaceMethod.Succeeded);
+        Assert.Contains(importOnInterfaceMethod.Diagnostics, diagnostic => diagnostic.Message.Contains("only to extern methods", StringComparison.Ordinal));
+
+        var privateAttributeConstructor = CompileWithStandardLibrary("using System; [Hidden(1)] class Item { } public class HiddenAttribute : Attribute { private this(int32 value) { } } class Program { public static int32 Main() => 0; }");
+        Assert.False(privateAttributeConstructor.Succeeded);
+        Assert.Contains(privateAttributeConstructor.Diagnostics, diagnostic => diagnostic.Message.Contains("No public attribute constructor", StringComparison.Ordinal));
+
+        var byRefAttributeConstructor = CompileWithStandardLibrary("using System; [ByRef(1)] class Item { } public class ByRefAttribute : Attribute { public this(ref int32 value) { } } class Program { public static int32 Main() => 0; }");
+        Assert.False(byRefAttributeConstructor.Succeeded);
+        Assert.Contains(byRefAttributeConstructor.Diagnostics, diagnostic => diagnostic.Message.Contains("No public attribute constructor", StringComparison.Ordinal));
+
+        var ambiguousAttributeConstructor = CompileWithStandardLibrary("using System; [Ambiguous(1)] class Item { } public class AmbiguousAttribute : Attribute { public this(int64 value) { } public this(double value) { } } class Program { public static int32 Main() => 0; }");
+        Assert.False(ambiguousAttributeConstructor.Succeeded);
+        Assert.Contains(ambiguousAttributeConstructor.Diagnostics, diagnostic => diagnostic.Message.Contains("Attribute constructor call", StringComparison.Ordinal));
+
+        var unsupportedMemberAttribute = CompileWithStandardLibrary("using System; public class MarkerAttribute : Attribute { public this() { } } class Program { [Marker] public int32 Value; public static int32 Main() => 0; }");
+        Assert.False(unsupportedMemberAttribute.Succeeded);
+        Assert.Contains(unsupportedMemberAttribute.Diagnostics, diagnostic => diagnostic.Message.Contains("member target is not supported", StringComparison.Ordinal));
+
+        var abstractAttributeConstruction = CompileWithStandardLibrary("using System; class Program { public static int32 Main() { Attribute value = new Attribute(); return 0; } }");
+        Assert.False(abstractAttributeConstruction.Succeeded);
+        Assert.Contains(abstractAttributeConstruction.Diagnostics, diagnostic => diagnostic.Code == "LS0834");
+    }
+
+    [Fact]
     public void TypeNewRejectsMissingAbstractAndUnmatchedConstructorsWithCatchableExceptions()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

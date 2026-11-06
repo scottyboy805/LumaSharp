@@ -142,6 +142,30 @@ enum Color { Red, Green = 4, Blue }
 
 Classes support fields, constructors (`this(...)`), static initialization (`static this()`), finalizers, inheritance, virtual/override dispatch, properties, indexers, and operator overloads. Classes are sealed by default; `virtual class` permits inheritance. Instance methods are read-only unless marked `mut`. Structs are value types with methods, constructors, properties, and operators; interfaces describe contracts; enums have integral values. Static classes contain static members only.
 
+## Attributes and runtime types
+
+Attribute classes derive from `System.Attribute` and can be applied to type declarations with positional compile-time constants:
+
+```lumasharp
+using System;
+
+class TagAttribute : Attribute { public this(string value) { } }
+[Tag("model")] class Model { }
+
+class Program
+{
+    public static int32 Main()
+    {
+        Type modelType = typeof(Model);
+        int32 count = modelType.AttributeCount;
+        Attribute tag = modelType.GetAttribute(0)!;
+        return count == 1 ? 0 : 1;
+    }
+}
+```
+
+`System.Type` exposes direct type attributes through `AttributeCount`, `GetAttributeType`, `HasAttribute`, and `GetAttribute`. `System.Interop.ImportAttribute(module, entryPoint)` is validated on extern methods, but symbol remapping and dynamic loading are not implemented yet. See the [full guide](Documentation.md#attributes) for limits and behavior.
+
 ## Generics, delegates, and lambdas
 
 ```lumasharp

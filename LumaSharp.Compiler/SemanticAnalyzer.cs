@@ -33,7 +33,9 @@ internal sealed record ClassAllocationBinding(string TypeName, CallExpression Co
 internal sealed record GenericConstructionBinding(string TypeName, CallExpression? ConstructorCall = null);
 internal sealed record ConstructorInitializerBinding(CallExpression Call, bool DelegatesToThis);
 internal sealed record ManagedArrayIndexBinding(string ElementType, int Rank);
-internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags);
+internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags, IReadOnlyList<RuntimeAttributeMetadata> Attributes);
+internal sealed record RuntimeAttributeArgument(string TypeName, string LlvmLiteral);
+internal sealed record RuntimeAttributeMetadata(string TypeName, MethodSymbol Constructor, IReadOnlyList<RuntimeAttributeArgument> Arguments);
 internal sealed record DelegateMethodGroupBinding(string DelegateType, MethodSymbol Method, bool IsInstance = false, int? VirtualSlot = null,
     ClosureEnvironmentBinding? ClosureEnvironment = null);
 internal sealed record ClosureEnvironmentBinding(string TypeName, IReadOnlyDictionary<string, int> CapturedFieldIndices,
@@ -337,6 +339,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<SizeOfExpression, string> _sizeOfTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<TypeOfExpression, string> _typeOfTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<string, RuntimeTypeMetadata> _runtimeTypes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<RuntimeAttributeMetadata>> _typeAttributes = new(StringComparer.Ordinal);
     private bool _usesRuntimeTypeMetadata;
     private readonly int _nativePointerSize = GetNativePointerSize(options.TargetTriple);
     private TypeDeclaration? _enumEvaluationOwner;
@@ -966,6 +969,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 ValidateDeclaredType(p.TypeName, "Parameter", p.Location, method.Owner, declaration.TypeParameters);
             if (declaration.Body is not null) { AnalyzeMethod(method); AnalyzeOutParameterFlow(method); }
         }
+        AnalyzeAttributeApplications(methods);
         ValidateConstructorDelegationCycles();
         ValidateConstructorThisUsage();
         ValidateClassReferenceFieldInitialization();
@@ -2314,6 +2318,139 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return AnalyzeNameOfExpression(expression, new MethodContext(new MethodSymbol(owner, declaration))) == "string";
     }
 
+    private void AnalyzeAttributeApplications(IReadOnlyList<MethodSymbol> methods)
+    {
+        var attributeTypeDeclarations = _types.Concat(_genericDefinitions)
+            .DistinctBy(type => (GetQualifiedTypeName(type), type.HasTypeParameters))
+            .ToArray();
+        foreach (var type in attributeTypeDeclarations)
+        {
+            var resolved = new List<RuntimeAttributeMetadata>();
+            foreach (var attribute in type.Attributes)
+                if (ResolveAttributeType(attribute, type, "type") is { } attributeType)
+                {
+                    if (ValidateAttributeConstructor(attribute, attributeType, methods) is not { } constructor) continue;
+                    var arguments = new List<RuntimeAttributeArgument>(attribute.Arguments.Count);
+                    var validArguments = true;
+                    for (var index = 0; index < attribute.Arguments.Count; index++)
+                    {
+                        var argument = attribute.Arguments[index];
+                        if (!TryEvaluateConstant(argument, out var constant, out _)) { validArguments = false; break; }
+                        var parameterType = constructor.Declaration.Parameters[index].TypeName;
+                        if (!TryConvertConstant(constant, parameterType, argument, out var literal))
+                        {
+                            diagnostics.Add("LMC3010", DiagnosticSeverity.Error,
+                                $"Attribute argument {index + 1} cannot be represented as a constant '{parameterType}' value.", argument.Location);
+                            validArguments = false;
+                            break;
+                        }
+                        arguments.Add(new(parameterType, literal));
+                    }
+                    if (validArguments) resolved.Add(new(GetQualifiedTypeName(attributeType), constructor, arguments));
+                }
+            var typeName = GetQualifiedTypeName(type);
+            if (!type.HasTypeParameters) _typeAttributes[typeName] = resolved;
+
+            foreach (var member in type.Members.Where(member => member.Attributes.Count > 0 && member is not MethodDeclaration))
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    "Attributes are currently supported on types and methods only; this member target is not supported.",
+                    member.Attributes[0].Location);
+        }
+
+        foreach (var (owner, declaration) in attributeTypeDeclarations
+                     .SelectMany(type => type.Members.OfType<MethodDeclaration>().Select(method => (Owner: type, Declaration: method))))
+        {
+            if (declaration.Attributes.Count == 0 || declaration.IsCompilerGenerated) continue;
+            foreach (var attribute in declaration.Attributes)
+            {
+                var attributeType = ResolveAttributeType(attribute, owner, "method");
+                if (attributeType is null) continue;
+                var constructor = ValidateAttributeConstructor(attribute, attributeType, methods);
+                if (GetQualifiedTypeName(attributeType) == "System.Interop.ImportAttribute")
+                {
+                    if (!declaration.IsExtern)
+                        diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "ImportAttribute may be applied only to extern methods.", attribute.Location);
+                    if (attribute.Arguments.Count != 2 || attribute.Arguments.Any(argument =>
+                            !TryEvaluateConstant(argument, out var value, out _) || value.TypeName != "string"))
+                        diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "ImportAttribute requires constant string module and entry-point arguments.", attribute.Location);
+                }
+                else if (constructor is not null)
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                        "Runtime retrieval of method attributes is not supported; custom attributes can currently be applied only to types.",
+                        attribute.Location);
+            }
+        }
+    }
+
+    private TypeDeclaration? ResolveAttributeType(AttributeApplication attribute, TypeDeclaration owner, string target)
+    {
+        var matches = FindTypes(attribute.Name, owner);
+        if (matches.Length == 0 && !attribute.Name.EndsWith("Attribute", StringComparison.Ordinal))
+            matches = FindTypes(attribute.Name + "Attribute", owner);
+        if (matches.Length == 0)
+        {
+            diagnostics.Add("LS0200", DiagnosticSeverity.Error, $"Attribute type '{attribute.Name}' could not be found.", attribute.Location);
+            return null;
+        }
+        if (matches.Length > 1)
+        {
+            diagnostics.Add("LS2001", DiagnosticSeverity.Error, $"Attribute type name '{attribute.Name}' is ambiguous.", attribute.Location);
+            return null;
+        }
+        var type = matches[0];
+        var typeName = GetQualifiedTypeName(type);
+        if (type.Kind != "class" || typeName == "System.Attribute" || !IsReferenceAssignable("System.Attribute", typeName))
+        {
+            diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"'{typeName}' is not an attribute class derived from System.Attribute.", attribute.Location);
+            return null;
+        }
+        ValidateTypeAccessibility(typeName, owner, attribute.Location);
+        if (typeName == "System.Interop.ImportAttribute" && target != "method")
+            diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "ImportAttribute may be applied only to methods.", attribute.Location);
+        return type;
+    }
+
+    private MethodSymbol? ValidateAttributeConstructor(AttributeApplication attribute, TypeDeclaration attributeType, IReadOnlyList<MethodSymbol> methods)
+    {
+        if (attributeType.HasTypeParameters)
+        {
+            diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Generic attribute classes are not supported.", attribute.Location);
+            return null;
+        }
+        var constructors = methods.Where(method => method.IsClassConstructor && ReferenceEquals(method.Owner, attributeType) &&
+            (method.SourceConstructor?.IsPublic ?? method.Declaration.IsPublic) &&
+            method.Declaration.Parameters.All(parameter => parameter.PassingMode.Length == 0 && !parameter.IsVariadic && !parameter.IsScoped)).ToArray();
+        var candidates = constructors.Where(method => method.Declaration.Parameters.Count == attribute.Arguments.Count).ToArray();
+        if (candidates.Length == 0)
+        {
+            diagnostics.Add("LS0751", DiagnosticSeverity.Error,
+                $"No public attribute constructor on '{GetQualifiedTypeName(attributeType)}' accepts {attribute.Arguments.Count} argument(s).", attribute.Location);
+            return null;
+        }
+        var valid = candidates.Where(candidate => candidate.Declaration.Parameters.Zip(attribute.Arguments).All(pair =>
+        {
+            var actualType = ConstantExpressionType(pair.Second);
+            return actualType is not null && TryEvaluateConstant(pair.Second, out var constant, out _) &&
+                CanConvert(constant.TypeName, pair.First.TypeName, pair.Second);
+        })).ToArray();
+        if (valid.Length == 0)
+        {
+            diagnostics.Add("LMC3010", DiagnosticSeverity.Error,
+                $"Attribute arguments do not match a constant-valued constructor of '{GetQualifiedTypeName(attributeType)}'.", attribute.Location);
+            return null;
+        }
+        var exact = valid.Where(candidate => candidate.Declaration.Parameters.Zip(attribute.Arguments)
+            .All(pair => ConstantExpressionType(pair.Second) == pair.First.TypeName)).ToArray();
+        if (exact.Length == 1) return exact[0];
+        if (exact.Length > 1 || valid.Length > 1)
+        {
+            diagnostics.Add("LS0751", DiagnosticSeverity.Error,
+                $"Attribute constructor call on '{GetQualifiedTypeName(attributeType)}' is ambiguous; use arguments that select one public constructor exactly.", attribute.Location);
+            return null;
+        }
+        return valid[0];
+    }
+
     private void BuildRuntimeTypeMetadata()
     {
         var sourceNames = _typeOfTypes.Values.ToHashSet(StringComparer.Ordinal);
@@ -2326,6 +2463,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             sourceNames.UnionWith(_enumUnderlyingTypes.Keys);
             sourceNames.UnionWith(_interfaceTypes.Keys);
             sourceNames.UnionWith(_delegateTypes.Keys);
+            sourceNames.UnionWith(_typeAttributes.Values.SelectMany(attributes => attributes.Select(attribute => attribute.TypeName)));
             sourceNames.UnionWith(SupportedTypes.Where(type => type is not "null" and not "?"));
             sourceNames.Add("object");
             sourceNames.Add("string");
@@ -2371,7 +2509,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     _ => 0
                 };
                 if (type.IsStatic) flags |= 1;
-                if (type.Members.OfType<MethodDeclaration>().Any(method => !method.IsStatic && method.Body is null)) flags |= 256;
+                if (typeName == "System.Attribute" || type.Members.OfType<MethodDeclaration>().Any(method => !method.IsStatic && method.Body is null)) flags |= 256;
             }
             else
             {
@@ -2397,7 +2535,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     _ => (typeName, "", 0)
                 };
             }
-            _runtimeTypes.TryAdd(typeName, new(name, ns, flags));
+            _runtimeTypes.TryAdd(typeName, new(name, ns, flags, _typeAttributes.GetValueOrDefault(typeName, [])));
             _ = TryInternStringText(name, out _);
             _ = TryInternStringText(ns, out _);
         }
@@ -2796,7 +2934,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             // A constructor declaration alone does not make an abstract class
             // constructible. The generic `new` constraints promise that every
             // permitted type argument can actually be instantiated.
-            if (_classTypes.ContainsKey(argumentType) && HasUnimplementedVirtualMembers(argumentType)) return false;
+            if (_classTypes.ContainsKey(argumentType) && IsAbstractClassType(argumentType)) return false;
             var requestedParameters = ParseConstraintParameterTypes(constraint[4..^1])
                 .Select(parameter => NormalizeEnumType(parameter, accessingType)).ToArray();
             if (requestedParameters.Length == 0 && isValueType) return true;
@@ -3240,6 +3378,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             implementations[string.Join("\u001f", method.Declaration.Name, string.Join("\u001f", method.Declaration.Parameters.Select(parameter => parameter.TypeName)))] = method;
         return implementations.Values.Any(method => method.Declaration.Body is null);
     }
+
+    private bool IsAbstractClassType(string typeName) => typeName == "System.Attribute" || HasUnimplementedVirtualMembers(typeName);
 
     private void AnalyzeClassFields(IEnumerable<(TypeDeclaration Owner, FieldDeclaration Declaration)> declarations)
     {
@@ -8320,7 +8460,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Unknown compiler intrinsic '{intrinsicCall.Name}'.", call.Location);
                         return "?";
                     }
-                    if (intrinsic.Name == "__typeref") _usesRuntimeTypeMetadata = true;
+                    if (intrinsic.Name is "__typeref" or "__typeattrcount" or "__typeattrtype" or "__typeattribute") _usesRuntimeTypeMetadata = true;
                     var intrinsicMethod = CompilerIntrinsics.CreateMethod(intrinsic, call.Location);
                     if (call.Arguments.Count != intrinsicMethod.Declaration.Parameters.Count)
                     {
@@ -9019,7 +9159,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     }
                     if (allocation.IsScope && _isAnalyzingFieldInitializer)
                         diagnostics.Add("LS0803", DiagnosticSeverity.Error, "A scope allocation requires an enclosing method or block body and cannot appear in a field initializer.", allocation.Location);
-                    if (HasUnimplementedVirtualMembers(allocationType))
+                    if (IsAbstractClassType(allocationType))
                         diagnostics.Add("LS0834", DiagnosticSeverity.Error, $"Abstract class '{allocationType}' cannot be instantiated.", allocation.Location);
                     if (allocation.Dimensions.Count != 0) diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "Class allocation does not accept array dimensions.", allocation.Location);
                     if (allocation.Initializer is not null)

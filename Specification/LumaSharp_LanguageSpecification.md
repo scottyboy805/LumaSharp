@@ -223,7 +223,7 @@ virtual void while
 
 **Contextual keywords** (keywords only in a specific position): `get`, `set`, `field`, `value`, `when`, `and`, `or`, `not`, `where`. A loop label is an identifier followed by `:` at the start of a loop statement (§6.7).
 
-`async` is a method modifier, `await` is an expression operator, and `lock` is a statement keyword (§6.13, §7.10, Chapter 34). The attribute syntax `[ ... ]` before a declaration remains reserved. `[P-23]`
+`async` is a method modifier, `await` is an expression operator, and `lock` is a statement keyword (§6.13, §7.10, Chapter 34). Attribute lists use square brackets before supported declarations (§28.6.2). `[P-23]`
 
 Features that will **never** be part of the language (`event`, `record`, `partial`, `params`, `sealed`, `abstract`, `goto`, `fixed`, `stackalloc`, `dynamic`, LINQ query syntax, and similar) are not keywords; those spellings are ordinary identifiers.
 
@@ -2673,7 +2673,7 @@ Generic code behaves identically whether `T` is a struct, class, or primitive; v
 
 - **Variance:** type parameters are invariant. There is no `in`/`out` variance syntax; `IProducer<Dog>` is not convertible to `IProducer<Animal>`.
 - **Generic virtual methods:** a generic method MUST NOT be `virtual`, `override`, or an interface member. (Dynamic dispatch over an unbounded set of instantiations would force a particular implementation strategy.)
-- No generic attributes (attributes are not in this version), no static abstract interface members, no open-generic reflection.
+- Generic attribute classes and generic arguments in attribute applications are unsupported (§28.6.2); static abstract interface members and open-generic reflection are also unsupported.
 - The type of an expression can never be an unbound generic type (`Box<>`).
 
 ## 12.7 Generic Arrays and Nullable Combinations
@@ -4203,8 +4203,7 @@ These features are **not planned** and are not reserved as keywords. A program u
 |---|---|
 | Async lambdas, custom schedulers, synchronization contexts | Async methods, task cancellation, `Task`/`Task<T>`, `await`, thread-pool scheduling, and `lock` are specified in §7.10 and Chapter 34. |
 | Public atomic APIs and a complete cross-thread memory model | Runtime reference counting and compiler synchronization primitives are thread-safe (§27.8, §34); a general atomic API remains deferred. |
-| Attributes | The syntax `[ … ]` before a declaration is reserved |
-| Full reflection | Only the minimal `System.Type` metadata and `Type.New` API in §28.6.1 are available; member enumeration, attributes, generic definitions and general invocation are not exposed |
+| Full reflection | Only the minimal `System.Type` metadata, attribute access (§28.6.2), and `Type.New` API in §28.6.1 are available; member enumeration, generic definitions and general invocation are not exposed |
 | Multicast delegates | Delegates are single-target (§17) |
 | `ref` fields | Ref fields are not supported; ref locals, ref returns, and ref structs are specified in §14.7.1 |
 | Ranges/indices | `...` may move to a read-only span later |
@@ -4520,7 +4519,35 @@ The Boolean properties `IsStatic`, `IsArray`, `IsClass`, `IsValueType`, `IsPrimi
 
 `Object.GetType()` reads the receiver's dynamic descriptor and returns the corresponding handle. For a boxed value it reads the existing box descriptor; obtaining the handle does not create an additional box. When called on a statically known value-type expression, including a closed generic specialization, the compiler returns that type's handle directly without boxing. A nullable value with no value throws `NullReferenceException`; a present nullable value reports its underlying type. A null reference receiver throws `NullReferenceException`. `Type.ToString()` returns the metadata type's namespace-qualified name, or just `Name` when `Namespace` is empty.
 
-`Type.New(object? ... arguments)` selects among the type's public, non-variadic constructors that have the same argument count and do not require omitted default arguments. Value arguments are boxed when placed in the `object?` argument array. The runtime prefers exact type matches, then an assignable interface, then the nearest assignable class. Arrays and interfaces use their runtime descriptors. A unique best match is allocated on the heap and invoked. When called with no arguments on a value type, it instead returns the value type's default value boxed as `object`; this applies to primitives, enums, and structs and does not run struct field initializers. With one or more arguments, a matching public constructor is still required. Struct constructor results are boxed before being returned as `object`. A missing or ambiguous match, an interface, an abstract class, an array, or an unmatched argument list raises `InvalidOperationException`. Constructor exceptions propagate as usual. This API does not expose member enumeration, attributes, generic definitions, or invocation of arbitrary methods.
+`Type.New(object? ... arguments)` selects among the type's public, non-variadic constructors that have the same argument count and do not require omitted default arguments. Value arguments are boxed when placed in the `object?` argument array. The runtime prefers exact type matches, then an assignable interface, then the nearest assignable class. Arrays and interfaces use their runtime descriptors. A unique best match is allocated on the heap and invoked. When called with no arguments on a value type, it instead returns the value type's default value boxed as `object`; this applies to primitives, enums, and structs and does not run struct field initializers. With one or more arguments, a matching public constructor is still required. Struct constructor results are boxed before being returned as `object`. A missing or ambiguous match, an interface, an abstract class, an array, or an unmatched argument list raises `InvalidOperationException`. Constructor exceptions propagate as usual. This API does not expose member enumeration, generic definitions, or invocation of arbitrary methods.
+
+## 28.6.2 Attributes
+
+An **attribute application** is a comma-separated list of attribute names, optionally followed by positional arguments, enclosed in square brackets and placed before a type or supported member declaration:
+
+```lumasharp
+[Marker]
+class WorkItem { }
+
+[Marker(4), Label("worker")]
+struct Job { }
+```
+
+The `Attribute` suffix is optional when resolving an application name: `Marker` may resolve to `MarkerAttribute`, and `MarkerAttribute` may be written explicitly. Resolution MUST produce one unambiguous class deriving from `System.Attribute`. The base `System.Attribute` is abstract; every application must match a public instance constructor with ordinary by-value parameters. Constructor arguments are positional and MUST be compile-time constants representable by the corresponding parameter types. A unique exact parameter-type match is preferred; if there is no exact match, there must be one applicable constructor. If no matching constructor exists, arguments are invalid, or constructor selection is ambiguous, the compiler MUST report a diagnostic. Generic attribute classes and type arguments in attribute applications are unsupported.
+
+The current runtime metadata API supports attributes applied directly to type declarations. `System.Type.AttributeCount` reports the count; `GetAttributeType(index)` returns the stable metadata handle of the indexed attribute type; `HasAttribute(type)` tests the direct list and returns `false` for a null argument; and `GetAttribute(index)` allocates and initializes a fresh attribute object using the selected constructor and saved constant arguments. The two indexed methods return `null` when the index is outside `[0, AttributeCount)`, and attribute constructor exceptions propagate normally. Applications are returned in source order, including repeated uses. Attribute metadata is not inherited from base types. Attributes on members other than methods are diagnosed as unsupported; custom method attribute retrieval is not implemented.
+
+`System.Interop.ImportAttribute(string moduleName, string entryPointName)` is the sole currently supported method attribute. It MUST be applied to an extern method and both values MUST be constant strings. At this milestone it is validated as compiler declaration metadata but does not yet alter extern symbol naming or load a dynamic library. Those actions are reserved for later interop work.
+
+```lumasharp
+using System.Interop;
+
+class NativeMethods
+{
+    [Import("native-library", "native_entry")]
+    public static extern int32 ManagedName(int32 value);
+}
+```
 
 ## 28.7 Virtual and Interface Dispatch
 
@@ -5194,7 +5221,7 @@ Disambiguation notes (informative):
 | Control flow | `if else switch case default while do for in break continue return throw try catch finally lock` |
 | Expressions | `new scope this async base null true false is as sizeof default checked unchecked await` |
 | Contextual | `typeof nameof get set field value when and or not where` |
-| Reserved for future versions | *none of `async`, `await`, or `lock`; attribute syntax `[ ... ]` remains reserved* |
+| Reserved for future versions | *none of `async`, `await`, or `lock`; generic attribute classes and named attribute arguments remain unsupported* |
 
 `typeof` and `nameof` are contextual when followed by `(`; otherwise they may be used as identifiers. `when`, `and`, `or`, `not`, `where`, `get`, `set`, `field`, `value` are keywords only in the positions described in the text and are otherwise ordinary identifiers. `const` and `readonly` change meaning with context (field or local); `scope` may modify allocations and by-value parameters. There are no keywords for the excluded features of §24.1.
 
@@ -5253,7 +5280,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | P-20 | Array members | `Length` (total), `Rank`, `GetLength(int32)`; recommended row-major contiguous layout for multi-dimensional arrays |
 | P-21 | Cycle warning | Graph algorithm in §14.8 (nullable fields suppress; derived classes expanded) |
 | P-22 | Reference ABI | Header, type-descriptor and string/array layouts and the runtime function set of Appendix E; compiler-known types of §1.7 and their members |
-| P-23 | Reserved words | `async`, `await`, and `lock` are active syntax (§6.13, §7.10, Chapter 34); `[ … ]` attribute syntax remains reserved |
+| P-23 | Reserved words | `async`, `await`, and `lock` are active syntax (§6.13, §7.10, Chapter 34); `[ … ]` is active attribute syntax with the limited semantics in §28.6.2 |
 | P-24 | Overloads/named/optional | C#-like resolution; named after positional; defaults inserted at the call site |
 | P-25 | C# fallback | Silent areas follow C# unless excluded in §24 |
 | P-26 | Release timing | As-if rule for early release; finalizers derived→base; fields released in reverse declaration order; exceptions from finalizers are fatal |

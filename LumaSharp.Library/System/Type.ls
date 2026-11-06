@@ -21,6 +21,22 @@ public class Type : Object
 	public bool IsEnum { get => (flags & 64) != 0; }
 	public bool IsDelegate { get => (flags & 128) != 0; }
 	public bool IsAbstract { get => (flags & 256) != 0; }
+	public int32 AttributeCount { get => __typeattrcount(this); }
+
+	public Type? GetAttributeType(int32 index)
+	{
+		return __typeattrtype(this, index);
+	}
+
+	public Attribute? GetAttribute(int32 index)
+	{
+		return __typeattribute(this, index);
+	}
+
+	public bool HasAttribute(Type? attributeType)
+	{
+		return __typehasattribute(this, attributeType);
+	}
 
 	public override string ToString()
 	{

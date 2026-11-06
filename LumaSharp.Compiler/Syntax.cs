@@ -3,11 +3,18 @@ namespace LumaSharp.Compiler;
 public sealed record CompilationUnit(IReadOnlyList<TypeDeclaration> Types, SourceLocation Location,
     IReadOnlyList<UsingDirective>? Usings = null, string Namespace = "", IReadOnlyList<ExtensionDeclaration>? Extensions = null);
 public sealed record UsingDirective(string Target, string? Alias, SourceLocation Location);
+public sealed record AttributeApplication(string Name, IReadOnlyList<Expression> Arguments, SourceLocation Location);
 public sealed record ExtensionDeclaration(string Namespace, string TargetType, IReadOnlyList<MemberDeclaration> Members,
     string Accessibility, SourceLocation Location, IReadOnlyList<UsingDirective>? Usings = null);
-public sealed record TypeDeclaration(string Namespace, string Kind, string Name, IReadOnlyList<MemberDeclaration> Members, SourceLocation Location, bool HasTypeParameters = false, bool HasBaseList = false, IReadOnlyList<UsingDirective>? Usings = null, string? EnumUnderlyingType = null, IReadOnlyList<string>? BaseTypes = null, bool IsVirtual = false, bool IsStatic = false, string Accessibility = "internal", IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, string? DelegateReturnType = null, IReadOnlyList<ParameterDeclaration>? DelegateParameters = null, string? ContainingTypeName = null, bool IsRefStruct = false);
+public sealed record TypeDeclaration(string Namespace, string Kind, string Name, IReadOnlyList<MemberDeclaration> Members, SourceLocation Location, bool HasTypeParameters = false, bool HasBaseList = false, IReadOnlyList<UsingDirective>? Usings = null, string? EnumUnderlyingType = null, IReadOnlyList<string>? BaseTypes = null, bool IsVirtual = false, bool IsStatic = false, string Accessibility = "internal", IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, string? DelegateReturnType = null, IReadOnlyList<ParameterDeclaration>? DelegateParameters = null, string? ContainingTypeName = null, bool IsRefStruct = false)
+{
+    public IReadOnlyList<AttributeApplication> Attributes { get; init; } = [];
+}
 public sealed record GenericConstraintDeclaration(string TypeParameter, IReadOnlyList<string> Constraints, SourceLocation Location);
-public abstract record MemberDeclaration(SourceLocation Location);
+public abstract record MemberDeclaration(SourceLocation Location)
+{
+    public IReadOnlyList<AttributeApplication> Attributes { get; init; } = [];
+}
 public sealed record MethodDeclaration(string ContainingType, string Name, string ReturnType, IReadOnlyList<ParameterDeclaration> Parameters, BlockStatement? Body, bool IsStatic, bool IsPublic, bool IsMutating, bool HasTypeParameters, SourceLocation Location, bool IsUnsafe = false, bool IsExtern = false, bool IsOperator = false, string? Operator = null, bool IsVirtual = false, bool IsOverride = false, string Accessibility = "public", string? PropertyName = null, string? ExplicitInterfaceName = null, IReadOnlyList<string>? TypeParameters = null, IReadOnlyList<GenericConstraintDeclaration>? GenericConstraints = null, bool ReturnsByRef = false, bool IsAsync = false, bool IsCompilerGenerated = false) : MemberDeclaration(Location)
 {
     public bool IsConversionOperator => IsOperator && Operator is "implicit" or "explicit";

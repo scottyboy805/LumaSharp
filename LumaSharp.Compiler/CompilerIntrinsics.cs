@@ -78,6 +78,10 @@ internal static class CompilerIntrinsics
         Add("__threadcurrent", "System.Threading.Thread", "threading");
         Add("__typeref", "System.Type", "type", "System.Object");
         Add("__typenew", "System.Object", "type", "System.Type", "System.Object?[]");
+        Add("__typeattrcount", "int32", "type", "System.Type");
+        Add("__typeattrtype", "System.Type?", "type", "System.Type", "int32");
+        Add("__typeattribute", "System.Attribute?", "type", "System.Type", "int32");
+        Add("__typehasattribute", "bool", "type", "System.Type", "System.Type?");
         Add("__monitorenter", "void", "monitor", "System.Object");
         Add("__monitorexit", "bool", "monitor", "System.Object");
         Add("__throwpreserve", "void", "exception", "System.Exception");
@@ -146,6 +150,10 @@ internal static class CompilerIntrinsics
         "__threadcurrent" => "luma_thread_current",
         "__typeref" => "luma_object_get_type",
         "__typenew" => "luma_type_new",
+        "__typeattrcount" => "luma_type_attribute_count",
+        "__typeattrtype" => "luma_type_attribute_type",
+        "__typeattribute" => "luma_type_attribute",
+        "__typehasattribute" => "luma_type_has_attribute",
         "__monitorenter" => "luma_monitor_enter",
         "__monitorexit" => "luma_monitor_exit",
         "__throwpreserve" => "luma_throw_preserve",

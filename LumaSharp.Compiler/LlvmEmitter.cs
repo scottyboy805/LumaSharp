@@ -3833,6 +3833,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         _output.AppendLine("  unreachable");
         _output.AppendLine("}");
         EmitDynamicTypeRuntime();
+        if (compilation.CallTargets.Values.Any(method => method.Intrinsic?.Name is "__typeattrcount" or "__typeattrtype" or "__typeattribute" or "__typehasattribute"))
+            EmitTypeAttributeRuntime();
     }
 
     private string? RuntimeTypeDescriptor(string typeName)
