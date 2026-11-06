@@ -2,7 +2,7 @@
 
 LumaSharp is a statically typed language with C#-style syntax. It compiles ahead of time to native code through LLVM and manages ordinary objects with deterministic reference counting. This guide explains the language as it is implemented today, using examples rather than specification terminology.
 
-The language and compiler are still under active development. Some features described by the specifications are not implemented yet, and a few implemented features have narrower support than their C# equivalents. The [Quick Reference](Overview.md) is a compact syntax sheet; this page is the longer introduction and usage guide.
+The language and compiler are still under active development. The specifications define language behavior and call out current implementation limits; some features have narrower support than their C# equivalents. The [Quick Reference](Overview.md) is a compact syntax sheet; this page is the longer introduction and usage guide.
 
 ## Contents
 
@@ -278,7 +278,7 @@ class Example
 }
 ```
 
-User-defined conversions can be declared on a class or struct with `implicit operator` or `explicit operator`. A direct user-defined conversion can participate in assignment or a cast; conversion chaining is not supported yet.
+User-defined conversions can be declared on a class or struct with `implicit operator` or `explicit operator`. A direct user-defined conversion can participate in assignment or a cast; this language version does not chain user-defined conversions with other conversions.
 
 ```lumasharp
 public struct Number
@@ -664,7 +664,7 @@ public class Program
 
 ## 8. Generic types and methods
 
-Classes, structs, interfaces, and methods can be generic. Type arguments can often be inferred for method calls; generic types specify their arguments when constructed.
+Classes, structs, interfaces, delegates, and methods can be generic. The compiler creates concrete closed specializations as they are used. Type arguments can often be inferred for method calls; generic types specify their arguments when constructed.
 
 ```lumasharp
 public class Box<T>
@@ -705,7 +705,7 @@ public class Slot<T> where T : default
 
 Implemented constraints include `class`, `struct`, `enum`, `default`, base-class and interface constraints, and constructor constraints such as `new()` or a listed constructor signature. The `default` constraint accepts value types and nullable types, including nullable references. It rejects non-nullable class types because those have no default value. For example, `Slot<int32>` and `Slot<MyClass?>` are valid, while `Slot<MyClass>` is not.
 
-Inside a generic method or type, use only operations guaranteed by the type's constraints. Generic specialization supports common class, struct, interface, array, nullable, delegate, and nested generic patterns. Some unusual combinations of overload inference remain unsupported; see [Current boundaries](#17-current-boundaries).
+Inside a generic method or type, use only operations guaranteed by the type's constraints. Generic specialization supports class, struct, interface, delegate, array, nullable, and nested generic patterns. A nested type carries only containing type parameters that it actually uses, along with those parameters' constraints. Its flattened qualified form lists captured outer arguments first: `Outer.Inner<int32, string>` means `Outer<T>.Inner<U>` with `T=int32` and `U=string` when `Inner` references `T`; if it does not reference `T`, use `Outer.Inner<string>`. Type inference uses call arguments and supports exact/lower-bound inference, including supported constructed types, arrays, delegates, compatible base/interface types, and target-typed lambdas and method groups. It does not infer from the expected return type or constraints. Some combinations of overload resolution and nested receiver/argument inference remain unsupported; use explicit type arguments where possible. Generic method bodies are fully bound when a closed specialization is created, so diagnostics inside an unused open generic body may be deferred until that member is used.
 
 ## 9. Delegates, lambdas, and captures
 
@@ -1328,16 +1328,17 @@ Some low-level runtime operations use compiler-reserved names beginning with `__
 
 LumaSharp implements a broad language subset, but this guide is not a promise of complete C# compatibility. Keep these current limits in mind:
 
-- The specifications describe some future behavior as well as current behavior. This guide focuses on functionality implemented in the compiler/runtime.
+- The language specification defines behavior and documents current implementation boundaries in §12.8, §24, and feature-specific notes. This guide focuses on functionality implemented in the compiler/runtime.
 - There is no garbage collector. Strong reference cycles are not reclaimed automatically; use weak references or break cycles explicitly.
-- Generic method inference and generic constrained operations have edge cases that are still being completed.
+- Generic extension methods and generic extension targets are diagnosed as unsupported. Generic virtual/override methods, generic interface methods, variance, and open-generic reflection are not implemented. Nested generic type names use the flattened form documented in §8; C#'s `Outer<T>.Inner<U>` spelling is not accepted.
+- The compiler limits generic type argument nesting to 64 levels and closed generic method specializations to 16,384 per compilation. Expansive recursive specialization reports `LMC3000`.
 - Dictionary enumeration and caller-supplied collection comparers are absent. `List<T>` and `HashSet<T>` support the generic enumerable protocol.
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
 - IO is minimal; async file reads and writes are supported through `AsyncStream` and `FileStream`, while `MemoryStream` remains synchronous. Timeouts and broad .NET `File`/`Directory` APIs are not present.
 - Async lambdas, cancellation callbacks and linked cancellation sources, custom schedulers, synchronization contexts, LINQ, full reflection, attributes, and the complete .NET base class library are not included.
 
-When behavior matters for a particular edge case, consult the tests and the specifications. The test suite reflects the compiler's executable behavior; the specifications also describe intended rules that may not yet be implemented.
+When behavior matters for a particular edge case, consult the tests and the specifications. The tests exercise the compiler's executable behavior, and the specifications define its language contract. Known unsupported forms and implementation limits are identified in the specifications; a discrepancy outside those boundaries is a compiler bug.
 
 ## 20. Further reading
 

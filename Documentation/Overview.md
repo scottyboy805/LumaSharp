@@ -1,6 +1,6 @@
 # LumaSharp quick reference
 
-This page is a compact syntax guide to the language features currently represented by the compiler. It is not a complete semantics document: the language is still evolving, and parts of the draft specification remain unimplemented. See [the language specification](../Specification/LumaSharp_LanguageSpecification.md) for intended rules and [the compiler specification](../Specification/LumaSharp_CompilerSpecification.md) for build behaviour.
+This page is a compact syntax guide to the language features currently represented by the compiler. It omits many semantic details and documents unsupported forms where they affect everyday use. See [the language specification](../Specification/LumaSharp_LanguageSpecification.md) for language rules and current implementation boundaries, and [the compiler specification](../Specification/LumaSharp_CompilerSpecification.md) for build behaviour.
 
 For a guided explanation with examples, see the [LumaSharp Language and Usage Guide](Documentation.md).
 
@@ -156,7 +156,7 @@ delegate int32 Transform(int32 value);
 Transform increment = value => value + 1;
 ```
 
-Generic classes, structs, interfaces, and methods support type arguments and constraints. Delegate values represent static or instance methods and lambdas; target-typed lambdas can capture locals, parameters, and `this` subject to lifetime rules. Closure captures share mutable storage where required. Multicast delegates are not part of the language.
+Generic classes, structs, interfaces, delegates, and methods support type arguments and constraints. Nested generic types capture only the containing type parameters they use and use a flattened name such as `Outer.Inner<int32, string>`; unused containing parameters are omitted. Generic method inference uses call arguments, not return targets or constraints. Delegate values represent static or instance methods and lambdas; target-typed lambdas can capture locals, parameters, and `this` subject to lifetime rules. Closure captures share mutable storage where required. Multicast delegates are not part of the language.
 
 ## Strings, arrays, and memory
 
@@ -247,5 +247,5 @@ A file may begin with one file-scoped namespace declaration (`namespace A.B;`). 
 
 ## Build status and full rules
 
-The compiler implements substantially more detail than fits in these examples, including nullable flow analysis, runtime type tests/casts, boxes, generic specialization, ownership cleanup, static initialization, and native target emission. Coverage is still incomplete; consult the specifications for intended behaviour and the test suite for exercised cases. The README at the repository root has build instructions.
+The compiler implements substantially more detail than fits in these examples, including nullable flow analysis, runtime type tests/casts, boxes, generic specialization, ownership cleanup, static initialization, and native target emission. The specification records current limits such as unsupported generic virtual/interface methods, unsupported generic extensions, and specialization resource limits. The test suite exercises executable behavior; the README at the repository root has build instructions.
 

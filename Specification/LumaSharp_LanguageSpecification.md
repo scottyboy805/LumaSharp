@@ -142,14 +142,14 @@ Features inherited from C# without change include operator precedence and associ
 | Switch | `break` required | No fall-through; `case 1, 2, 3:` |
 | Overflow | Unchecked by default | Checked by default; `unchecked` requires `unsafe` |
 | `!=` | Overloadable | Always derived from `==` |
-| `object` | `Equals`, `GetHashCode`, `GetType`, `ToString` | Only `ToString` |
+| `object` | `Equals`, `GetHashCode`, `GetType`, `ToString` | `ToString` and `GetType`; no general equality/hash methods |
 | Pointers | `->` and `.` | `.` only (automatic dereference) |
 | Non-nullable `string` default | No default value | Non-nullable reference |
 | Events, records, partial, params, goto, … | Present | Absent (§24) |
 
 ## 1.6 Language Version 1 Scope
 
-**Included:** classes, structs, interfaces, enums, generics (with constraints), delegates and lambdas, properties, indexers, operators, exceptions, arrays (single-dimensional, jagged, and multi-dimensional up to three dimensions), strings, nullable types, pattern-capable `switch` and `is`, loop labels, unsafe code and pointers, inline arrays, native interop, deterministic reference counting, `scope`, `mut`, `let`, `const`, `readonly`, multiple assignment, `for`-in loops, optional/named arguments, variadic arguments.
+**Included:** classes, structs, interfaces, enums, generics (with constraints), delegates and lambdas, properties, indexers, operators and user-defined conversions, extension methods and computed properties, exceptions, arrays (single-dimensional, jagged, and multi-dimensional up to three dimensions), strings and interpolated strings, nullable types, `nameof`, `typeof` and minimal `System.Type` metadata, pattern-capable `switch` statements and expressions, loop labels, unsafe code and pointers, inline arrays, native interop, deterministic reference counting, `scope`, `mut`, `let`, `const`, `readonly`, multiple assignment, `for`-in loops, optional/named arguments, variadic arguments, async methods and cancellation, threads, and monitors. Library surface includes weak references and concurrent collections.
 
 **Excluded:** see §24.
 
@@ -159,7 +159,8 @@ The language itself needs a small, fixed set of types to exist in the standard l
 
 | Type | Purpose and required members |
 |---|---|
-| `object` (`System.Object`) | Root of the class hierarchy. Only member: `virtual string ToString()` |
+| `object` (`System.Object`) | Root of the class hierarchy. `virtual string ToString()` is compiler-provided; the runtime library declares `Type GetType()` |
+| `System.Type` | Shared runtime metadata handle used by `typeof` and `Object.GetType`; exposes `Name`, `Namespace`, type flags, and `object New(object? ... arguments)` (§28.6.1) |
 | `System.Enum` | Value-type helper for enum metadata: `static T[] GetValues<T>(T value) where T : enum` (§11.5) |
 | `string` (`System.String`) | Immutable string: `int32 Length`, `char this[int32]`, `==`, `+` (§16) |
 | `Exception` | Base class of everything thrown: `string Message { get; }`, `Exception? InnerException { get; }`, constructors `this()`, `this(string message)`, `this(string message, Exception? inner)` |
@@ -2241,7 +2242,7 @@ Rules:
 
 ## 8.11 `object`, `ToString`, Equality and Hashing
 
-`object` has exactly one member: `virtual string ToString()`. It has **no** `Equals`, `GetHashCode`, or `GetType`. Equality of references and structs is provided by `==` (§5.6).
+`object` exposes `virtual string ToString()` and `System.Type GetType()`. The compiler provides the default virtual `ToString`; the runtime library implements `GetType` through a compiler intrinsic. It has **no** `Equals` or `GetHashCode`. Equality of references and structs is provided by `==` (§5.6).
 
 ```lumasharp
 class Point
@@ -2563,7 +2564,20 @@ Box<Box<int32>> nested = new Box<Box<int32>>(a);
 
 - Each distinct set of type arguments produces a distinct type. `Box<int32>` and `Box<double>` are unrelated types with no common base besides `object`.
 - Static members and static constructors are per-instantiation.
-- Type parameters are in scope throughout the declaration.
+- Type parameters are in scope throughout the declaration, including all nested types. A nested type captures only containing type parameters that it references in its base types, constraints, member signatures, or member bodies; unused containing parameters are not part of its own constructed type. Constraints declared on captured parameters are inherited. Because this language represents nested generic types as one qualified type name, write `Outer.Inner<TOuter, TInner>` rather than `Outer<TOuter>.Inner<TInner>` when the inner declaration uses the outer parameter. Captured outer arguments come first, followed by the nested type's own arguments. For example, if `Outer<T>.Inner<U>` uses `T`, its closed form is `Outer.Inner<int32, string>`; if it does not use `T`, its closed form is `Outer.Inner<string>`. A nested declaration may not redeclare any in-scope containing parameter name or repeat a containing constraint; these forms produce `LS0001`.
+
+```lumasharp
+class Outer<T> where T : struct
+{
+    public class Inner<U> where U : struct
+    {
+        public T First;
+        public U Second;
+    }
+}
+
+Outer.Inner<int32, int64> pair;
+```
 
 ## 12.2 Generic Methods
 
@@ -2577,7 +2591,7 @@ int32 m = Max<int32>(3, 7);                // explicit type argument
 int32 n = Max(3, 7);                       // inferred: T = int32
 ```
 
-**Type inference:** type arguments are inferred from the call's argument types using C#'s algorithm (exact/lower-bound inference per argument). Inference does not use return types or constraints. If inference fails, the type arguments must be given explicitly (error LS1101).
+**Type inference:** the compiler infers type arguments from call arguments using exact and lower-bound inference for supported type patterns, including constructed generic types, arrays, delegates, and compatible base/interface types. Target-typed lambda and method-group inputs can contribute when the delegate signature determines the missing types. Inference does not use the expected return type or constraints. Some combinations of overload resolution and nested receiver/argument inference remain unsupported; when no unique closed type-argument set can be inferred, the compiler reports `LS1101` and explicit type arguments can be used where the call is otherwise valid.
 
 ## 12.3 Constraints
 
@@ -2671,6 +2685,12 @@ Box<int32>?[] okay = new Box<int32>?[3];     // elements null initially
 Box<int32>[] filled = { new(1), new(2) };    // ok: every element provided
 List<Foo?> list = new List<Foo?>();          // type argument may itself be nullable
 ```
+
+## 12.8 Specialization and Current Boundaries
+
+The current compiler closes generic classes, structs, interfaces, delegates, and methods by monomorphization. Each distinct closed argument list gets a distinct generated type or method body. Generic type arguments may be nested to a maximum depth of 64; one compilation may create at most 16,384 closed generic method specializations. Exceeding either implementation limit, or detecting expansive recursive specialization that cannot reach a closed set, produces `LMC3000` instead of continuing to allocate specializations indefinitely. A generic type arity mismatch also currently reports `LMC3000`; generic method arity or inference failures report `LS1101`, and unsatisfied constraints report `LS1102`.
+
+Constraints, unsupported generic declaration forms, and generic type-parameter restrictions are checked at their declarations. Full expression binding of a generic member body occurs when a closed type or method specialization is created. An error in an unused open generic body can therefore be reported only when a corresponding closed specialization is used. Generic extension methods and generic extension targets are not supported and produce diagnostics. Generic virtual/override methods, generic interface methods, variance, open-generic reflection, and unbound generic expression types are not supported.
 
 ---
 
@@ -4164,7 +4184,6 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Feature | Notes |
 |---|---|
 | Events (`event`) | Libraries may provide event systems; delegates remain |
-| Weak references | `System.Weak<T>` for class targets; no unowned-reference syntax |
 | Garbage collection | Never |
 | `partial` types | |
 | `record` types | Only `class`, `struct`, `enum`, `interface` and `delegate` exist |
@@ -4187,8 +4206,6 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Attributes | The syntax `[ … ]` before a declaration is reserved |
 | Full reflection | Only the minimal `System.Type` metadata and `Type.New` API in §28.6.1 are available; member enumeration, attributes, generic definitions and general invocation are not exposed |
 | Multicast delegates | Delegates are single-target (§17) |
-| Extension methods | |
-| User-defined implicit/explicit conversions | |
 | `ref` fields | Ref fields are not supported; ref locals, ref returns, and ref structs are specified in §14.7.1 |
 | Ranges/indices | `...` may move to a read-only span later |
 | Rectangular arrays above three dimensions | |
@@ -4196,7 +4213,7 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Generic variance (`in`/`out`), generic virtual methods, static abstract interface members | §12.6 |
 | Exception filters (`when` on `catch`) | `when` is only used in `switch` guards |
 | Function pointers, unmanaged callbacks, explicit calling conventions, struct layout control | §21.2 |
-| Local functions, object initializers, `init` accessors, interpolated and raw string literals | |
+| Local functions, object initializers, `init` accessors, raw string literals | Interpolated strings are supported by §2.5.5 |
 | A preprocessor, and with it in-source diagnostic suppression | |
 | The standard library beyond the compiler-known types (§1.7) | Defined separately |
 
@@ -4497,7 +4514,7 @@ A descriptor provides at least:
 
 ## 28.6.1 Minimal Runtime Type API
 
-`System.Type` is a small, read-only view over compiler-emitted runtime metadata; it is not full reflection. For each type used by `typeof` or by `Object.GetType`, the compiler emits one stable, immortal handle. Handles compare equal when they describe the same compiled type. `Name` is the unqualified type name (array names include their element type and rank), and `Namespace` is the namespace; primitive aliases report their runtime names such as `System.Int32`.
+`System.Type` is a small, read-only view over compiler-emitted runtime metadata; it is not full reflection. For each type used by `typeof` or by `Object.GetType`, the compiler emits one stable, immortal handle. Handles compare equal when they describe the same compiled type. `Name` is the unqualified type name (array names include their element type and rank, and closed generic names include their source type arguments, for example `Box<int32>`); `Namespace` is the namespace. Primitive aliases report their runtime names such as `System.Int32`.
 
 The Boolean properties `IsStatic`, `IsArray`, `IsClass`, `IsValueType`, `IsPrimitive`, `IsInterface`, `IsEnum`, `IsDelegate`, and `IsAbstract` expose the corresponding metadata flags. Arrays are class types. Enums are value types but not primitive types. A type parameter's handle is for the actual closed type used in that instantiation.
 
@@ -4688,7 +4705,7 @@ ensure_initialized(T):
         throw wrapper
 ```
 
-An exception thrown while *ensuring a base class* is wrapped as a failure of the derived class too. Waiting threads (none exist in this version) wake after completion; detection of cross-thread initialization cycles is implementation-defined. The entry type is initialised by the startup code before `Main` (§26.3).
+An exception thrown while *ensuring a base class* is wrapped as a failure of the derived class too. Threads waiting for initialization wake after completion and observe the resulting *Done* or *Failed* state. Detection of cross-thread initialization cycles is implementation-defined. The entry type is initialised by the startup code before `Main` (§26.3).
 
 ## 29.5 Conversions
 
@@ -5209,7 +5226,7 @@ From **highest** to **lowest** precedence. Binary operators are left-associative
 
 Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining interpretation to confirm. D.2 lists other provisional proposals. D.3 summarises rules taken directly from the design instructions, so they can be traced.
 
-## D.1 Interpretations to confirm
+## D.1 Recorded interpretation
 
 | ID | Where | Interpretation chosen | Alternative |
 |---|---|---|---|

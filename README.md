@@ -81,7 +81,7 @@ CompilerBuildResult result = await LumaBuild.BuildAsync(request, cancellationTok
 
 ## Current implementation
 
-The compiler includes classes, structs, interfaces, enums, generics, delegates and closures, properties and indexers, nullable values/references, arrays, strings, pattern-capable `switch` and `is`, exceptions, unsafe pointers, native interop, static initialization, ownership/lifetime checks, and native code generation. Support varies by feature and edge case; recognized unsupported constructs produce diagnostics. The language and compiler specifications describe the wider design, while the tests document many implemented behaviours.
+The compiler includes classes, structs, interfaces, enums, generic types and methods, delegates and closures, extensions, properties and indexers, nullable values/references, arrays, interpolated strings, switch statements and expressions, `nameof`, `typeof` and runtime type metadata, exceptions, async methods, unsafe pointers, native interop, static initialization, ownership/lifetime checks, and native code generation. Support varies by feature and edge case; recognized unsupported constructs produce diagnostics. The specifications describe language semantics and identify current limits, while the tests exercise implemented behavior.
 
 ## License
 
