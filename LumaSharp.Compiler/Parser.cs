@@ -19,6 +19,8 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private bool _parsingSwitchPatternValue;
     private int _nextLockLocal;
     private string _namespace = "";
+    private IReadOnlyList<string> _enclosingTypeParameters = [];
+    private IReadOnlyList<GenericConstraintDeclaration> _enclosingGenericConstraints = [];
     private readonly List<UsingDirective> _usingDirectives = [];
     private readonly HashSet<string> _usingAliases = new(StringComparer.Ordinal);
     private Token Current => tokens[Math.Min(_position, tokens.Count - 1)];
@@ -195,8 +197,13 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         if (modifiers.Contains("ref") && kind != "struct")
             diagnostics.Add("LS0001", DiagnosticSeverity.Error, "The 'ref' type modifier is supported only on structs.", start.Location);
         if (kind == "enum") { ParseEnumType(types, name, start.Location, GetTypeAccessibility(modifiers, isNested), isNested ? _namespace : null); return true; }
-        var typeParameters = ReadTypeParameterList();
-        var generic = typeParameters.Count > 0; var hasBaseList = false; var baseTypes = new List<string>();
+        var declaredTypeParameters = ReadTypeParameterList();
+        var enclosingTypeParameters = isNested ? _enclosingTypeParameters : [];
+        foreach (var shadowedParameter in declaredTypeParameters.Intersect(enclosingTypeParameters, StringComparer.Ordinal))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error,
+                $"Nested type parameter '{shadowedParameter}' conflicts with a type parameter from its containing type.", start.Location);
+        var typeParameters = enclosingTypeParameters.Concat(declaredTypeParameters).ToArray();
+        var generic = typeParameters.Length > 0; var hasBaseList = false; var baseTypes = new List<string>();
         if (Eat(":"))
         {
             hasBaseList = true;
@@ -207,9 +214,19 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
                 baseTypes.Add(baseType);
             } while (Eat(","));
         }
-        var genericConstraints = ReadGenericConstraints(typeParameters);
+        var declaredConstraints = ReadGenericConstraints(typeParameters);
+        foreach (var shadowedConstraint in declaredConstraints.Where(constraint => enclosingTypeParameters.Contains(constraint.TypeParameter, StringComparer.Ordinal)))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error,
+                $"A nested type inherits the constraints for containing type parameter '{shadowedConstraint.TypeParameter}' and cannot redeclare them.", shadowedConstraint.Location);
+        var ownConstraints = declaredConstraints
+            .Where(constraint => !enclosingTypeParameters.Contains(constraint.TypeParameter, StringComparer.Ordinal)).ToArray();
+        var scopeGenericConstraints = (isNested ? _enclosingGenericConstraints : []).Concat(ownConstraints).ToArray();
         if (!Eat("{")) { Error(Current, "Expected '{' in type declaration."); SynchronizeTop(); return true; }
         var previousUnsafeDepth = _unsafeDepth; if (unsafeType) _unsafeDepth++;
+        var previousTypeParameters = _enclosingTypeParameters;
+        var previousGenericConstraints = _enclosingGenericConstraints;
+        _enclosingTypeParameters = typeParameters;
+        _enclosingGenericConstraints = scopeGenericConstraints;
         var members = new List<MemberDeclaration>();
         while (Current.Kind != TokenKind.End && !Is("}"))
         {
@@ -462,7 +479,19 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (!IsIdentifier(memberName)) Error(memberName, "Expected a non-keyword method name (use @ to escape a keyword).");
             members.Add(new MethodDeclaration(name.Text.TrimStart('@'), memberName.Text.TrimStart('@'), returnType, parameters, body, memberModifiers.Contains("static"), memberModifiers.Contains("public"), isMutating, hasTypeParameters, memberStart.Location, unsafeMember, memberModifiers.Contains("extern"), IsVirtual: memberModifiers.Contains("virtual"), IsOverride: memberModifiers.Contains("override"), Accessibility: GetMemberAccessibility(memberModifiers), ExplicitInterfaceName: explicitInterfaceName, TypeParameters: methodTypeParameters, GenericConstraints: methodConstraints, ReturnsByRef: memberModifiers.Contains("ref"), IsAsync: memberModifiers.Contains("async")));
         }
-        Expect("}"); _unsafeDepth = previousUnsafeDepth; types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null, IsRefStruct: modifiers.Contains("ref"))); return true;
+        Expect("}"); _unsafeDepth = previousUnsafeDepth;
+        var capturedTypeParameters = GetCapturedEnclosingTypeParameters(kind, name.Text.TrimStart('@'), members,
+            baseTypes, ownConstraints, enclosingTypeParameters, start.Location);
+        typeParameters = capturedTypeParameters.Concat(declaredTypeParameters).ToArray();
+        generic = typeParameters.Length > 0;
+        var capturedParameters = capturedTypeParameters.ToHashSet(StringComparer.Ordinal);
+        var genericConstraints = (isNested
+                ? _enclosingGenericConstraints.Where(constraint => capturedParameters.Contains(constraint.TypeParameter))
+                : [])
+            .Concat(ownConstraints).ToArray();
+        _enclosingTypeParameters = previousTypeParameters;
+        _enclosingGenericConstraints = previousGenericConstraints;
+        types.Add(new(_namespace, kind, name.Text.TrimStart('@'), members, start.Location, generic, hasBaseList, _usingDirectives.ToArray(), BaseTypes: baseTypes, IsVirtual: modifiers.Contains("virtual"), IsStatic: modifiers.Contains("static"), Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters, GenericConstraints: genericConstraints, ContainingTypeName: isNested ? _namespace : null, IsRefStruct: modifiers.Contains("ref"))); return true;
     }
     private bool TryParseDelegateDeclaration(List<TypeDeclaration> types, Token start, IReadOnlyList<string> modifiers, bool isNested)
     {
@@ -482,7 +511,12 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             SkipDeclaration();
             return true;
         }
-        var typeParameters = ReadTypeParameterList();
+        var declaredTypeParameters = ReadTypeParameterList();
+        var enclosingTypeParameters = isNested ? _enclosingTypeParameters : [];
+        foreach (var shadowedParameter in declaredTypeParameters.Intersect(enclosingTypeParameters, StringComparer.Ordinal))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error,
+                $"Nested delegate type parameter '{shadowedParameter}' conflicts with a type parameter from its containing type.", start.Location);
+        var typeParameters = enclosingTypeParameters.Concat(declaredTypeParameters).ToArray();
         if (!Eat("("))
         {
             Error(Current, "Expected '(' after delegate type name.");
@@ -491,7 +525,12 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         }
         var parameters = ParseParameters();
         Expect(")");
-        var constraints = ReadGenericConstraints(typeParameters);
+        var declaredConstraints = ReadGenericConstraints(typeParameters);
+        foreach (var shadowedConstraint in declaredConstraints.Where(constraint => enclosingTypeParameters.Contains(constraint.TypeParameter, StringComparer.Ordinal)))
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error,
+                $"A nested delegate inherits the constraints for containing type parameter '{shadowedConstraint.TypeParameter}' and cannot redeclare them.", shadowedConstraint.Location);
+        var ownConstraints = declaredConstraints
+            .Where(constraint => !enclosingTypeParameters.Contains(constraint.TypeParameter, StringComparer.Ordinal)).ToArray();
         Expect(";");
         foreach (var parameter in parameters)
         {
@@ -500,12 +539,46 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             if (parameter.IsVariadic)
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Delegate parameters cannot be variadic.", parameter.Location);
         }
+        var capturedTypeParameters = GetCapturedEnclosingTypeParameters("delegate", name.Text.TrimStart('@'), [], [],
+            ownConstraints, enclosingTypeParameters, start.Location, returnType, parameters);
+        typeParameters = capturedTypeParameters.Concat(declaredTypeParameters).ToArray();
+        var capturedParameters = capturedTypeParameters.ToHashSet(StringComparer.Ordinal);
+        var constraints = (isNested
+                ? _enclosingGenericConstraints.Where(constraint => capturedParameters.Contains(constraint.TypeParameter))
+                : [])
+            .Concat(ownConstraints).ToArray();
         types.Add(new(_namespace, "delegate", name.Text.TrimStart('@'), [], start.Location,
-            HasTypeParameters: typeParameters.Count > 0, Usings: _usingDirectives.ToArray(),
+            HasTypeParameters: typeParameters.Length > 0, Usings: _usingDirectives.ToArray(),
             Accessibility: GetTypeAccessibility(modifiers, isNested), TypeParameters: typeParameters,
             GenericConstraints: constraints, DelegateReturnType: returnType, DelegateParameters: parameters,
             ContainingTypeName: isNested ? _namespace : null));
         return true;
+    }
+
+    private static IReadOnlyList<string> GetCapturedEnclosingTypeParameters(
+        string kind,
+        string name,
+        IReadOnlyList<MemberDeclaration> members,
+        IReadOnlyList<string> baseTypes,
+        IReadOnlyList<GenericConstraintDeclaration> declaredConstraints,
+        IReadOnlyList<string> enclosingTypeParameters,
+        SourceLocation location,
+        string? delegateReturnType = null,
+        IReadOnlyList<ParameterDeclaration>? delegateParameters = null)
+    {
+        if (enclosingTypeParameters.Count == 0) return [];
+
+        var probe = new TypeDeclaration(string.Empty, kind, name, members, location,
+            BaseTypes: baseTypes, GenericConstraints: declaredConstraints,
+            DelegateReturnType: delegateReturnType, DelegateParameters: delegateParameters);
+        var referencedTypeNames = GenericTypeSpecializer.EnumerateTypeStrings(probe,
+                includeOnlyConstructedExpressionNameReferences: true)
+            .Select(reference => reference.TypeText).ToArray();
+        return enclosingTypeParameters
+            .Where(parameter => referencedTypeNames.Any(typeName =>
+                GenericTypeSpecializer.ReferencesAnyTypeParameter(typeName,
+                    new HashSet<string>([parameter], StringComparer.Ordinal))))
+            .ToArray();
     }
     private void ParseEnumType(List<TypeDeclaration> types, Token name, SourceLocation at, string accessibility, string? containingTypeName)
     {

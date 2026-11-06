@@ -267,11 +267,17 @@ public sealed class CompilerTests
         const string source = """
             namespace Example;
             public class Widget { }
+            public class Box<T> { }
             public class Program
             {
                 public static int32 Main()
                 {
                     System.Type widget = typeof(Widget);
+                    System.Type closedBox = typeof(Box<int32>);
+                    System.Type closedBoxAgain = typeof(Box<int32>);
+                    System.Type anotherClosedBox = typeof(Box<double>);
+                    object boxedGeneric = new Box<int32>();
+                    System.Type dynamicClosedBox = boxedGeneric.GetType();
                     System.Type integer = typeof(int32);
                     object boxedWidget = new Widget();
                     object boxedInteger = 42;
@@ -292,6 +298,7 @@ public sealed class CompilerTests
                     System.Type matrix = typeof(int32[,]);
                     System.Type cube = typeof(int32[,,]);
                     if (widget.Name != "Widget" || widget.Namespace != "Example" || !widget.IsClass || widget.IsValueType) return 1;
+                    if (closedBox.Name != "Box<int32>" || closedBox.Namespace != "Example" || closedBox != closedBoxAgain || closedBox == anotherClosedBox || dynamicClosedBox != closedBox) return 10;
                     if (integer.Name != "Int32" || integer.Namespace != "System" || !integer.IsValueType || !integer.IsPrimitive) return 2;
                     if (dynamicWidget != widget) return 3;
                     if (dynamicInteger != integer) return 4;
@@ -4080,6 +4087,108 @@ public sealed class CompilerTests
         const string source = "class Growing<T> { Growing<Growing<T>>? next; } class Program { public static int32 Main() { Growing<int32>? value = null; return value == null ? 0 : 1; } }";
         var result = Compile(source);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("cannot be monomorphized"));
+    }
+
+    [Fact]
+    public void ExpansiveRecursiveGenericTypesAreDetectedWhenOnlyOneArgumentGrows()
+    {
+        const string source = "class Box<T> { } class Growing<T, U> { Growing<Box<T>, int32>? next; } class Program { public static int32 Main() { Growing<int32, int64>? value = null; return value == null ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("Expansive recursive generic type", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExpansiveRecursiveGenericTypesAreDetectedAcrossTypeDefinitions()
+    {
+        const string source = "class Box<T> { } class First<T> { Second<T>? next; } class Second<T> { First<Box<T>>? next; } class Program { public static int32 Main() { First<int32>? value = null; return value == null ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("Expansive recursive generic type", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FiniteGenericTypeCyclesWithChangingArgumentsAreAllowed()
+    {
+        const string source = "class First<T> { Second<int32>? next; } class Second<T> { First<T>? next; } class Program { public static int32 Main() { First<string>? value = null; return value == null ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
+    public void GenericMethodsAllowClosedSelfRecursionAndFiniteTypeArgumentChanges()
+    {
+        const string source = "class Box<T> { } class Program { public static int32 Count<T>(int32 count) { return count == 0 ? 42 : Count<T>(count - 1); } public static int32 Finite<T>() { return Finite<Box<int32>>(); } public static int32 Main() { return Count<int32>(2) == 42 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
+    public void ExpansiveRecursiveGenericMethodsFailWithFeatureDiagnostic()
+    {
+        const string source = "class Box<T> { } class Program { public static int32 Grow<T>() { return Grow<Box<T>>(); } public static int32 Main() { return Grow<int32>(); } }";
+        var result = Compile(source);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("Expansive recursive generic method", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExpansiveRecursiveGenericMethodsAreDetectedAcrossMutualCalls()
+    {
+        const string source = "class Box<T> { } class Program { public static int32 First<T>() { return Second<T>(); } public static int32 Second<T>() { return First<Box<T>>(); } public static int32 Main() { return First<int32>(); } }";
+        var result = Compile(source);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("Expansive recursive generic method", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GenericMethodTypeParametersShadowContainingGenericTypeParameters()
+    {
+        const string source = "class Container<T> { public T Value; public T Echo<T>(T value) { return value; } } class Program { public static int32 Main() { Container<int32> container = new Container<int32>(); container.Value = 42; string text = container.Echo<string>(\"ok\"); return container.Value == 42 && text == \"ok\" ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
+    public void NestedGenericTypesCaptureContainingTypeArgumentsAndConstraints()
+    {
+        const string source = "class Outer<T> where T : struct { public class Inner<U> { public T OuterValue; public U InnerValue; public this(T outerValue, U innerValue) { OuterValue = outerValue; InnerValue = innerValue; } } } class Program { public static int32 Main() { Outer.Inner<int32, string> value = new Outer.Inner<int32, string>(42, \"ok\"); return value.OuterValue == 42 && value.InnerValue == \"ok\" ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+
+        const string invalidSource = "class Outer<T> where T : struct { public class Inner<U> { public T OuterValue; } } class Program { public static int32 Main() { Outer.Inner<string, int32> value = new Outer.Inner<string, int32>(); return 0; } }";
+        var invalid = Compile(invalidSource);
+        Assert.Contains(invalid.Diagnostics, diagnostic => diagnostic.Code == "LS1102" && diagnostic.Message.Contains("does not satisfy constraint 'struct'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void NestedGenericTypesDoNotCaptureUnusedContainingTypeParameters()
+    {
+        const string source = "class Outer<T> { public struct Independent<U> where U : default { public int32 T; public U Value; } } class Program { public static int32 Main() { Outer.Independent<int32> value = default; value.T = 20; value.Value = 22; return value.T + value.Value == 42 ? 0 : 1; } }";
+        var result = Compile(source);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+    }
+
+    [Fact]
+    public void NestedGenericStructsInterfacesAndDelegatesCaptureOuterTypeArguments()
+    {
+        const string source = "class Outer<T> where T : struct { public struct Pair<U> where U : struct { public T First; public U Second; } public interface IMap<U> { T Map(U value); } public delegate T Mapper<U>(U value); } class Doubler : Outer.IMap<int32, int32> { public int32 Map(int32 value) { return value * 2; } } class Program { public static int32 Main() { Outer.Pair<int32, int64> pair = default; pair.First = 20; pair.Second = 22; Outer.Mapper<int32, int32> mapper = value => value + 1; Outer.IMap<int32, int32> map = new Doubler(); return pair.First + (int32)pair.Second + mapper(0) + map.Map(0) == 43 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(0, LlvmJit.RunMain(result.LlvmIr!).ExitCode);
+
+        var shadowed = Compile("class Outer<T> { public class Inner<T> { } } class Program { public static int32 Main() { return 0; } }");
+        Assert.Contains(shadowed.Diagnostics, diagnostic => diagnostic.Code == "LS0001" && diagnostic.Message.Contains("conflicts with a type parameter", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CachedGenericMethodSpecializationDoesNotBypassTypeAccessibility()
+    {
+        const string source = "class Outer { private class Hidden { } public static int32 Use<T>() { return 0; } public static int32 Allowed() { return Use<Outer.Hidden>(); } } class Program { public static int32 Main() { return Outer.Use<Outer.Hidden>(); } }";
+        var result = Compile(source);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LMC3012" && diagnostic.Message.Contains("inaccessible", StringComparison.Ordinal));
     }
 
     [Fact]

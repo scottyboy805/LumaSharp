@@ -22,7 +22,7 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
     private const int MaximumNestedGenericArgumentDepth = 64;
     private static readonly HashSet<string> TypeStringProperties = new(StringComparer.Ordinal)
     {
-        "TypeName", "ReturnType", "BaseTypes", "EnumUnderlyingType", "TypePatternName", "ExplicitInterfaceName", "Constraints", "TypeArguments", "Name"
+        "TypeName", "ReturnType", "DelegateReturnType", "BaseTypes", "EnumUnderlyingType", "TypePatternName", "ExplicitInterfaceName", "Constraints", "TypeArguments", "Name"
     };
 
     private readonly List<GenericTypeInstantiation> _instantiations = [];
@@ -120,9 +120,9 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                     continue;
                 }
 
-                if (currentInstantiation is not null &&
-                    QualifiedName(currentInstantiation.Definition) == QualifiedName(definition) &&
-                    IsExpansiveRecursiveInstantiation(currentInstantiation.Arguments, use.Arguments))
+                if (currentInstantiation is not null && GetInstantiationPath(current).Any(ancestor =>
+                        QualifiedName(ancestor.Definition) == QualifiedName(definition) &&
+                        IsExpansiveRecursiveInstantiation(ancestor.Arguments, use.Arguments)))
                 {
                     AddOnce("expansive-recursion:" + QualifiedName(definition) + ":" + location.File + ":" + location.Line + ":" + location.Column,
                         "LMC3000", $"Expansive recursive generic type '{QualifiedName(definition)}' cannot be monomorphized because its type arguments grow without reaching a closed set.", location);
@@ -158,6 +158,21 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             concreteTypes = concreteTypes.Select(type => RewriteClosedTypeReferences(type, closedTypeNames)).ToList();
 
         return new(concreteTypes, genericDefinitions, _instantiations.ToArray());
+    }
+
+    private IReadOnlyList<GenericTypeInstantiation> GetInstantiationPath(TypeDeclaration current)
+    {
+        var path = new List<GenericTypeInstantiation>();
+        var visited = new HashSet<TypeDeclaration>(ReferenceEqualityComparer.Instance);
+        while (visited.Add(current))
+        {
+            var instantiation = _instantiations.FirstOrDefault(candidate => ReferenceEquals(candidate.Specialized, current));
+            if (instantiation is null) break;
+            path.Add(instantiation);
+            current = instantiation.RequestContext;
+        }
+        path.Reverse();
+        return path;
     }
 
     private static IEnumerable<(string TypeText, SourceLocation Location)> GetClosedGenericMethodTypeUses(
@@ -1412,7 +1427,9 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         }
     }
 
-    private static IEnumerable<(string TypeText, SourceLocation Location)> EnumerateTypeStrings(TypeDeclaration root)
+    internal static IEnumerable<(string TypeText, SourceLocation Location)> EnumerateTypeStrings(
+        TypeDeclaration root, bool includeExpressionNameReferences = true,
+        bool includeOnlyConstructedExpressionNameReferences = false)
     {
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
         var results = new List<(string, SourceLocation)>();
@@ -1425,6 +1442,9 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             if (value is string text)
             {
                 if (propertyName is not null && TypeStringProperties.Contains(propertyName) &&
+                    (includeExpressionNameReferences || propertyName != "Name") &&
+                    (propertyName != "Name" || !includeOnlyConstructedExpressionNameReferences ||
+                     TypeNameSyntax.TryParse(text, out var parsedName) && parsedName.Arguments.Count > 0) &&
                     (excludedTypeParameters is null || !ReferencesAnyTypeParameter(text, excludedTypeParameters)))
                     results.Add((text, inheritedLocation));
                 return;
@@ -1500,15 +1520,17 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         return maximum;
     }
 
-    private static bool IsExpansiveRecursiveInstantiation(IReadOnlyList<string> currentArguments, IReadOnlyList<string> nextArguments)
+    internal static bool IsExpansiveRecursiveInstantiation(IReadOnlyList<string> currentArguments, IReadOnlyList<string> nextArguments)
     {
         if (currentArguments.Count != nextArguments.Count ||
             nextArguments.Sum(argument => argument.Length) <= currentArguments.Sum(argument => argument.Length)) return false;
-        return currentArguments.All(currentArgument => nextArguments.Any(nextArgument =>
-            nextArgument.Equals(currentArgument, StringComparison.Ordinal) ||
-            nextArgument.Contains("<" + currentArgument, StringComparison.Ordinal) ||
-            nextArgument.Contains("," + currentArgument, StringComparison.Ordinal)));
+        return currentArguments.Any(currentArgument => nextArguments.Any(nextArgument => TypeNameContains(nextArgument, currentArgument)));
     }
+
+    private static bool TypeNameContains(string candidate, string containedType) =>
+        TypeNameSyntax.TryParse(candidate, out var parsed)
+            ? parsed.DescendantsAndSelf().Any(node => node.ToString() == containedType)
+            : Regex.IsMatch(candidate, $"(?<![A-Za-z0-9_]){Regex.Escape(containedType)}(?![A-Za-z0-9_])");
 
     private static int FindMatchingAngle(string text, int open)
     {
@@ -1585,7 +1607,8 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
 
     private static TypeDeclaration RewriteType(TypeDeclaration definition, string specializedName, IReadOnlyDictionary<string, string> substitutions)
     {
-        var members = definition.Members.Select(member => RewriteMember(member, specializedName, substitutions)).ToArray();
+        var members = definition.Members.Select(member => RewriteMember(member, specializedName, substitutions,
+            preserveMethodTypeParameterScope: true)).ToArray();
         return definition with
         {
             Name = specializedName,
@@ -1599,19 +1622,12 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         };
     }
 
-    internal static MemberDeclaration RewriteMember(MemberDeclaration member, string ownerName, IReadOnlyDictionary<string, string> substitutions) => member switch
+    internal static MemberDeclaration RewriteMember(MemberDeclaration member, string ownerName, IReadOnlyDictionary<string, string> substitutions,
+        bool preserveMethodTypeParameterScope = false) => member switch
     {
         FieldDeclaration field => field with { TypeName = RewriteTypeName(field.TypeName, substitutions), Initializer = RewriteOptional(field.Initializer, substitutions) },
         ConstantFieldDeclaration field => field with { TypeName = RewriteTypeName(field.TypeName, substitutions), Initializer = RewriteExpression(field.Initializer, substitutions) },
-        MethodDeclaration method => method with
-        {
-            ContainingType = ownerName,
-            ReturnType = RewriteTypeName(method.ReturnType, substitutions),
-            Parameters = method.Parameters.Select(parameter => RewriteParameter(parameter, substitutions)).ToArray(),
-            Body = method.Body is null ? null : (BlockStatement)RewriteStatement(method.Body, substitutions, method.ReturnType),
-            ExplicitInterfaceName = RewriteOptionalType(method.ExplicitInterfaceName, substitutions),
-            GenericConstraints = RewriteConstraints(method.GenericConstraints, substitutions)
-        },
+        MethodDeclaration method => RewriteMethod(method, ownerName, substitutions, preserveMethodTypeParameterScope),
         ConstructorDeclaration constructor => constructor with
         {
             ContainingType = ownerName,
@@ -1638,6 +1654,27 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
         },
         _ => member
     };
+
+    private static MethodDeclaration RewriteMethod(MethodDeclaration method, string ownerName,
+        IReadOnlyDictionary<string, string> substitutions, bool preserveMethodTypeParameterScope)
+    {
+        IReadOnlyDictionary<string, string> effectiveSubstitutions = substitutions;
+        if (preserveMethodTypeParameterScope && method.TypeParameters is { Count: > 0 })
+        {
+            var methodParameters = method.TypeParameters.ToHashSet(StringComparer.Ordinal);
+            effectiveSubstitutions = substitutions.Where(pair => !methodParameters.Contains(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        }
+        return method with
+        {
+            ContainingType = ownerName,
+            ReturnType = RewriteTypeName(method.ReturnType, effectiveSubstitutions),
+            Parameters = method.Parameters.Select(parameter => RewriteParameter(parameter, effectiveSubstitutions)).ToArray(),
+            Body = method.Body is null ? null : (BlockStatement)RewriteStatement(method.Body, effectiveSubstitutions, method.ReturnType),
+            ExplicitInterfaceName = RewriteOptionalType(method.ExplicitInterfaceName, effectiveSubstitutions),
+            GenericConstraints = RewriteConstraints(method.GenericConstraints, effectiveSubstitutions)
+        };
+    }
 
     internal static Expression CloneExpressionForAnalysis(Expression expression) =>
         RewriteExpression(expression, new Dictionary<string, string>(StringComparer.Ordinal));

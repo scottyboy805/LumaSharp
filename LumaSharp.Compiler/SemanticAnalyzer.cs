@@ -7,11 +7,14 @@ internal sealed record MethodSymbol(TypeDeclaration Owner, MethodDeclaration Dec
     bool IsTypeInitializer = false, MethodDeclaration? GenericTemplate = null, CompilerIntrinsic? Intrinsic = null,
     bool IsExtensionMethod = false, string? ExtensionReceiverType = null, bool ExtensionReceiverByRef = false)
 {
+    public IReadOnlyList<string> GenericTypeArguments { get; init; } = [];
+    public IReadOnlyList<GenericMethodSpecializationFrame> GenericSpecializationPath { get; init; } = [];
     public string QualifiedName => (string.IsNullOrEmpty(Owner.Namespace) ? Owner.Name : Owner.Namespace + "." + Owner.Name) + "." + Declaration.Name;
     public bool IsStructInstanceMethod => Owner.Kind == "struct" && !Declaration.IsStatic && !IsStructConstructor;
     public bool IsClassInstanceMethod => Owner.Kind == "class" && !Declaration.IsStatic && !IsClassConstructor && !IsClassFinalizer;
     public bool IsStructEqualityOperator => Owner.Kind == "struct" && Declaration.IsOperator && Declaration.Operator == "==";
 }
+internal sealed record GenericMethodSpecializationFrame(string DefinitionIdentity, IReadOnlyList<string> TypeArguments);
 internal sealed record ConstantValue(string TypeName, BigInteger? Integer = null, double? Floating = null, bool? Boolean = null, string? Text = null);
 internal sealed record ConstantFieldBinding(string TypeName, string Value, string? StringValue = null);
 internal sealed record StaticFieldSymbol(TypeDeclaration Owner, FieldDeclaration Declaration, string GlobalName, string InitialValue,
@@ -186,6 +189,7 @@ internal static class VirtualDispatchLayout
 
 internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
 {
+    private const int MaximumGenericMethodSpecializations = 16384;
     private readonly HashSet<Expression> _activeExpressions = new(ReferenceEqualityComparer.Instance);
     private bool UnsafeEnabledAt(SourceLocation location) => options.UnsafeEnabled ||
         runtimeSourcePaths.Contains(Path.GetFullPath(location.File));
@@ -636,8 +640,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
             if (type.Kind == "delegate")
             {
-                // Generic delegate declarations are parsed and retained for accurate
-                // diagnostics, but their closed runtime representation is not yet lowered.
+                // Open generic definitions are retained separately; closed delegate
+                // specializations enter _types as ordinary concrete declarations.
                 if (type.HasTypeParameters) continue;
                 if (type.DelegateReturnType is { } delegateReturnType)
                     ValidateDeclaredType(NormalizeEnumType(delegateReturnType, type), "Delegate return", type.Location, type);
@@ -667,7 +671,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A static class can contain only static fields, static methods, and a static constructor.", member.Location);
                 }
             }
-            if (type.HasTypeParameters) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Generic types are not yet supported.", type.Location);
+            if (type.HasTypeParameters) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "Open generic type definitions must be closed before backend lowering.", type.Location);
             if (type.Kind is not ("class" or "struct") && type.HasBaseList) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Inheritance is not supported for {type.Kind} declarations.", type.Location);
             if (type.Kind is not ("class" or "struct")) diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"{type.Kind} declarations are not supported by the current backend.", type.Location);
             foreach (var member in type.Members)
@@ -2310,6 +2314,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private void BuildRuntimeTypeMetadata()
     {
         var sourceNames = _typeOfTypes.Values.ToHashSet(StringComparer.Ordinal);
+        var genericInstantiationsByClosedName = _genericTypeInstantiations.ToDictionary(
+            instantiation => GetQualifiedTypeName(instantiation.Specialized), StringComparer.Ordinal);
         if (_usesRuntimeTypeMetadata)
         {
             sourceNames.UnionWith(_classTypes.Keys);
@@ -2342,8 +2348,16 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
             else if (type is not null)
             {
-                name = type.Name;
-                ns = type.Namespace;
+                if (genericInstantiationsByClosedName.TryGetValue(typeName, out var genericInstantiation))
+                {
+                    name = genericInstantiation.Definition.Name + "<" + string.Join(",", genericInstantiation.Arguments) + ">";
+                    ns = genericInstantiation.Definition.Namespace;
+                }
+                else
+                {
+                    name = type.Name;
+                    ns = type.Namespace;
+                }
                 flags = type.Kind switch
                 {
                     "class" => 4,
@@ -12006,13 +12020,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     {
         var declaration = template.Declaration;
         var typeParameters = declaration.TypeParameters ?? [];
-        var cacheKey = template.QualifiedName + "@" + declaration.Location.File + ":" + declaration.Location.Line + ":" + declaration.Location.Column +
-            "<" + string.Join(",", rawTypeArguments) + ">";
-        if (_genericMethodSpecializations.TryGetValue(cacheKey, out var cached)) return cached;
-        if (_failedGenericMethodSpecializations.Contains(cacheKey)) return null;
         if (rawTypeArguments.Count != typeParameters.Count)
         {
-            _failedGenericMethodSpecializations.Add(cacheKey);
             diagnostics.Add("LS1101", DiagnosticSeverity.Error,
                 $"Generic method '{declaration.Name}' requires {typeParameters.Count} type argument(s), but {rawTypeArguments.Count} were supplied.", callLocation);
             return null;
@@ -12022,9 +12031,15 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         // parameter, return, and constructed-type arguments. Validate them before
         // specialization so a private nested type cannot leak through a generic call.
         foreach (var typeArgument in rawTypeArguments)
-            ValidateTypeAccessibility(typeArgument, context.Method.Owner, callLocation);
+            if (ValidateTypeAccessibility(typeArgument, context.Method.Owner, callLocation))
+                return null;
 
         var typeArguments = rawTypeArguments.Select(argument => NormalizeEnumType(argument, context.Method.Owner)).ToArray();
+        var cacheKey = template.QualifiedName + "@" + declaration.Location.File + ":" + declaration.Location.Line + ":" + declaration.Location.Column +
+            "<" + string.Join(",", typeArguments) + ">";
+        if (_genericMethodSpecializations.TryGetValue(cacheKey, out var cached)) return cached;
+        if (_failedGenericMethodSpecializations.Contains(cacheKey)) return null;
+
         var substitutions = typeParameters.Zip(typeArguments).ToDictionary(pair => pair.First, pair => pair.Second, StringComparer.Ordinal);
         foreach (var clause in declaration.GenericConstraints ?? [])
         {
@@ -12047,6 +12062,34 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             }
         }
 
+        var definitionIdentity = GenericMethodDefinitionIdentity(template.Owner, declaration);
+        var recursiveFrames = context.Method.GenericSpecializationPath
+            .Select((frame, index) => (frame, index))
+            .Where(item => item.frame.DefinitionIdentity == definitionIdentity)
+            .ToArray();
+        if (recursiveFrames.Length > 0)
+        {
+            var latestRecursiveFrame = recursiveFrames[^1];
+            var hasExpandedRecursionPath = recursiveFrames.Length > 1 || latestRecursiveFrame.index < context.Method.GenericSpecializationPath.Count - 1;
+            if (hasExpandedRecursionPath && GenericTypeSpecializer.IsExpansiveRecursiveInstantiation(
+                    latestRecursiveFrame.frame.TypeArguments, typeArguments))
+            {
+                _failedGenericMethodSpecializations.Add(cacheKey);
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    $"Expansive recursive generic method '{declaration.Name}' cannot be specialized because its type arguments grow without reaching a closed set.",
+                    callLocation);
+                return null;
+            }
+        }
+
+        if (_genericMethodSpecializations.Count >= MaximumGenericMethodSpecializations)
+        {
+            _failedGenericMethodSpecializations.Add(cacheKey);
+            diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                $"Generic method specialization exceeds the supported limit of {MaximumGenericMethodSpecializations} closed methods.", callLocation);
+            return null;
+        }
+
         var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
             cacheKey + "|" + string.Join(",", typeArguments))).AsSpan(0, 10)).ToLowerInvariant();
         var specializedName = declaration.Name + "__g_" + hash;
@@ -12066,12 +12109,18 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         {
             Declaration = rewritten,
             IsGenericMethodSpecialization = true,
-            GenericTemplate = template.Declaration
+            GenericTemplate = template.Declaration,
+            GenericTypeArguments = typeArguments,
+            GenericSpecializationPath = context.Method.GenericSpecializationPath
+                .Append(new GenericMethodSpecializationFrame(definitionIdentity, typeArguments)).ToArray()
         };
         _genericMethodSpecializations.Add(cacheKey, specialized);
         _methodList.Add(specialized);
         return specialized;
     }
+
+    private static string GenericMethodDefinitionIdentity(TypeDeclaration owner, MethodDeclaration method) =>
+        $"{GetQualifiedTypeName(owner)}.{method.Name}@{method.Location.File}:{method.Location.Line}:{method.Location.Column}";
 
     private BlockStatement CreateEnumGetValuesBody(string enumTypeName, SourceLocation location)
     {
