@@ -109,7 +109,7 @@ public static class LumaBuild
             objectPath = Path.Combine(intermediateDirectory, request.OutputName + "." + Guid.NewGuid().ToString("N") + (OperatingSystem.IsWindows() ? ".obj" : ".o"));
             var backend = profiler is null
                 ? LlvmToolchain.VerifyAndEmitObject(compilation.LlvmIr!, objectPath, target, request.Options.Optimize, !request.Options.StaticLibrary, cancellationToken)
-                : profiler.Measure("LLVM verify and object generation", () => LlvmToolchain.VerifyAndEmitObject(compilation.LlvmIr!, objectPath, target, request.Options.Optimize, !request.Options.StaticLibrary, cancellationToken));
+                : profiler.Measure("LLVM verify and object generation", () => LlvmToolchain.VerifyAndEmitObject(compilation.LlvmIr!, objectPath, target, request.Options.Optimize, !request.Options.StaticLibrary, cancellationToken, profiler));
             if (!backend.Succeeded)
             {
                 var code = backend.Error?.Contains("unavailable", StringComparison.OrdinalIgnoreCase) == true ? "LMC2001" : "LMC2002";

@@ -190,6 +190,7 @@ internal static class VirtualDispatchLayout
 internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null)
 {
     private const int MaximumGenericMethodSpecializations = 16384;
+    private readonly Dictionary<TypeDeclaration, string> _qualifiedTypeNameCache = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<Expression> _activeExpressions = new(ReferenceEqualityComparer.Instance);
     private bool UnsafeEnabledAt(SourceLocation location) => options.UnsafeEnabled ||
         runtimeSourcePaths.Contains(Path.GetFullPath(location.File));
@@ -361,7 +362,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
 
     private static IReadOnlyList<TypeDeclaration> CreateBuiltinExceptionTypes(IReadOnlyList<TypeDeclaration> sourceTypes)
     {
-        var existing = sourceTypes.Select(GetQualifiedTypeName).ToHashSet(StringComparer.Ordinal);
+        var existing = sourceTypes.Select(VirtualDispatchLayout.QualifiedTypeName).ToHashSet(StringComparer.Ordinal);
         var location = new SourceLocation("<LumaSharp runtime>", 1, 1);
         return BuiltinExceptionNames
             .Where(name => !existing.Contains(BuiltinExceptionNamespace(name) + "." + name))
@@ -2711,7 +2712,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         Parameters = declaration.Parameters.Select(parameter => parameter with { TypeName = NormalizeEnumType(parameter.TypeName, owner) }).ToArray()
     };
 
-    private static string InterfaceMethodIdentity(MethodSymbol method) => GetQualifiedTypeName(method.Owner) + "\u001e" +
+    private string InterfaceMethodIdentity(MethodSymbol method) => GetQualifiedTypeName(method.Owner) + "\u001e" +
         method.Declaration.Name + "\u001e" + string.Join("\u001f", method.Declaration.Parameters.Select(parameter => parameter.TypeName + ":" + parameter.PassingMode));
 
     private int FindInterfaceMethodSlot(MethodSymbol method)
@@ -3904,7 +3905,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return new(exits, missingReturn, transfers);
     }
 
-    private static bool IsStaticFieldTarget(Expression target, HashSet<string> locals, TypeDeclaration owner, string fieldName)
+    private bool IsStaticFieldTarget(Expression target, HashSet<string> locals, TypeDeclaration owner, string fieldName)
     {
         if (target is NameExpression name) return name.Name == fieldName && !locals.Contains(name.Name);
         return target is MemberAccessExpression access && access.Member == fieldName &&
@@ -10257,10 +10258,10 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         _blockClosureEnvironments.Values.Any(environment => environment.TypeName == typeName) ||
         _compositeClosureEnvironments.Values.Any(environment => environment.TypeName == typeName);
 
-    private static bool CanInitializeReadOnlyStructField(StructFieldBinding field, Expression receiver, MethodContext context) =>
+    private bool CanInitializeReadOnlyStructField(StructFieldBinding field, Expression receiver, MethodContext context) =>
         context.Method.IsStructConstructor && receiver is ThisExpression && GetQualifiedTypeName(context.Method.Owner) == field.OwnerType;
 
-    private static bool CanInitializeReadOnlyClassField(StructFieldBinding field, Expression receiver, MethodContext context) =>
+    private bool CanInitializeReadOnlyClassField(StructFieldBinding field, Expression receiver, MethodContext context) =>
         context.Method.IsClassConstructor && receiver is ThisExpression && GetQualifiedTypeName(context.Method.Owner) == field.OwnerType;
 
     private bool CanInitializeReadOnlyFieldTarget(Expression target, MethodContext context)
@@ -12121,7 +12122,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return specialized;
     }
 
-    private static string GenericMethodDefinitionIdentity(TypeDeclaration owner, MethodDeclaration method) =>
+    private string GenericMethodDefinitionIdentity(TypeDeclaration owner, MethodDeclaration method) =>
         $"{GetQualifiedTypeName(owner)}.{method.Name}@{method.Location.File}:{method.Location.Line}:{method.Location.Column}";
 
     private BlockStatement CreateEnumGetValuesBody(string enumTypeName, SourceLocation location)
@@ -12326,7 +12327,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return _methods.Concat(_genericMethodDefinitions).Where(m => m.Owner == owner && m.Declaration.Name == access.Member && m.Declaration.IsStatic && IsMethodAccessible(m, context.Method.Owner)).ToArray();
     }
 
-    private static string GetQualifiedTypeName(TypeDeclaration type) => string.IsNullOrEmpty(type.Namespace) ? type.Name : type.Namespace + "." + type.Name;
+    private string GetQualifiedTypeName(TypeDeclaration type)
+    {
+        if (_qualifiedTypeNameCache.TryGetValue(type, out var name)) return name;
+        name = string.IsNullOrEmpty(type.Namespace) ? type.Name : type.Namespace + "." + type.Name;
+        _qualifiedTypeNameCache.Add(type, name);
+        return name;
+    }
     private bool IsConstructorAccessible(MethodSymbol constructor, TypeDeclaration accessingType)
     {
         var accessibility = constructor.SourceConstructor?.Accessibility ??

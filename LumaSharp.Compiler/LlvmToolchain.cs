@@ -60,11 +60,11 @@ public static unsafe class LlvmToolchain
         VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode: true);
 
     internal static LlvmToolchainResult VerifyAndEmitObject(string llvmIr, string outputPath, string targetTriple,
-        bool optimize, bool eliminateDeadCode, CancellationToken cancellationToken = default) =>
-        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode);
+        bool optimize, bool eliminateDeadCode, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null) =>
+        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode, profiler);
 
     private static LlvmToolchainResult VerifyAndEmitObjectCore(string llvmIr, string outputPath, string targetTriple, bool optimize,
-        CancellationToken cancellationToken, bool eliminateDeadCode)
+        CancellationToken cancellationToken, bool eliminateDeadCode, CompilationProfiler? profiler = null)
     {
         LLVMOpaqueContext* context = null; LLVMOpaqueMemoryBuffer* buffer = null; LLVMOpaqueModule* module = null;
         LLVMOpaqueTargetMachine* machine = null; LLVMOpaqueTargetData* dataLayout = null; LLVMOpaquePassBuilderOptions* passOptions = null;
@@ -74,50 +74,62 @@ public static unsafe class LlvmToolchain
             cancellationToken.ThrowIfCancellationRequested();
             var requestedTriple = targetTriple == "host" ? GetHostTripleUnsafe() : targetTriple;
             if (string.IsNullOrWhiteSpace(requestedTriple)) return new(false, null, "LLVM did not provide a host target triple.");
-            InitializeTarget(requestedTriple);
+            if (profiler is null) InitializeTarget(requestedTriple);
+            else profiler.Measure("LLVM target initialization", () => InitializeTarget(requestedTriple));
             triplePtr = Utf8Ptr(requestedTriple); sourceNamePtr = Utf8Ptr("lumasharp.module.ll"); pathPtr = Utf8Ptr(Path.GetFullPath(outputPath)); cpuPtr = Utf8Ptr(""); featuresPtr = Utf8Ptr("");
             var irBytes = Encoding.UTF8.GetBytes(llvmIr);
-            fixed (byte* irPointer = irBytes)
+            using (profiler?.Measure("LLVM IR parsing"))
             {
-                context = LLVM.ContextCreate();
-                buffer = LLVM.CreateMemoryBufferWithMemoryRangeCopy((sbyte*)irPointer, (nuint)irBytes.Length, (sbyte*)sourceNamePtr);
-                sbyte* parseError = null;
-                var parseResult = LLVM.ParseIRInContext(context, buffer, &module, &parseError);
-                // LLVMParseIRInContext takes ownership of the memory buffer.
-                buffer = null;
-                if (parseResult != 0)
+                fixed (byte* irPointer = irBytes)
                 {
-                    var message = Utf8(parseError); if (parseError != null) LLVM.DisposeMessage(parseError);
-                    return new(false, requestedTriple, $"LLVM IR parse failed: {message}");
+                    context = LLVM.ContextCreate();
+                    buffer = LLVM.CreateMemoryBufferWithMemoryRangeCopy((sbyte*)irPointer, (nuint)irBytes.Length, (sbyte*)sourceNamePtr);
+                    sbyte* parseError = null;
+                    var parseResult = LLVM.ParseIRInContext(context, buffer, &module, &parseError);
+                    // LLVMParseIRInContext takes ownership of the memory buffer.
+                    buffer = null;
+                    if (parseResult != 0)
+                    {
+                        var message = Utf8(parseError); if (parseError != null) LLVM.DisposeMessage(parseError);
+                        return new(false, requestedTriple, $"LLVM IR parse failed: {message}");
+                    }
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
-            LLVM.SetTarget(module, (sbyte*)triplePtr);
-            LLVMTarget* target = null; sbyte* targetError = null;
-            if (LLVM.GetTargetFromTriple((sbyte*)triplePtr, &target, &targetError) != 0)
+            using (profiler?.Measure("LLVM target machine setup"))
             {
-                var message = Utf8(targetError); if (targetError != null) LLVM.DisposeMessage(targetError);
-                return new(false, requestedTriple, $"LLVM target '{requestedTriple}' is unavailable: {message}");
+                LLVM.SetTarget(module, (sbyte*)triplePtr);
+                LLVMTarget* target = null; sbyte* targetError = null;
+                if (LLVM.GetTargetFromTriple((sbyte*)triplePtr, &target, &targetError) != 0)
+                {
+                    var message = Utf8(targetError); if (targetError != null) LLVM.DisposeMessage(targetError);
+                    return new(false, requestedTriple, $"LLVM target '{requestedTriple}' is unavailable: {message}");
+                }
+                machine = LLVM.CreateTargetMachine(target, (sbyte*)triplePtr, (sbyte*)cpuPtr, (sbyte*)featuresPtr,
+                    LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
+                if (machine == null) return new(false, requestedTriple, $"LLVM could not create a target machine for '{requestedTriple}'.");
+                dataLayout = LLVM.CreateTargetDataLayout(machine); LLVM.SetModuleDataLayout(module, dataLayout);
             }
-            machine = LLVM.CreateTargetMachine(target, (sbyte*)triplePtr, (sbyte*)cpuPtr, (sbyte*)featuresPtr,
-                LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
-            if (machine == null) return new(false, requestedTriple, $"LLVM could not create a target machine for '{requestedTriple}'.");
-            dataLayout = LLVM.CreateTargetDataLayout(machine); LLVM.SetModuleDataLayout(module, dataLayout);
             if (optimize || eliminateDeadCode)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                passOptions = LLVM.CreatePassBuilderOptions(); LLVM.PassBuilderOptionsSetVerifyEach(passOptions, 1);
+                // Verify the completed pipeline once below. Verifying after every
+                // individual LLVM pass substantially slows optimized builds.
+                passOptions = LLVM.CreatePassBuilderOptions();
                 // Executables internalize compiler-managed definitions, so even a
                 // debug build can safely discard functions and globals unreachable
                 // from main without optimizing the remaining function bodies.
                 IntPtr passPtr = Utf8Ptr(optimize ? "default<O2>" : "globaldce");
                 try
                 {
-                    var passError = LLVM.RunPasses(module, (sbyte*)passPtr, machine, passOptions);
-                    if (passError != null)
+                    using (profiler?.Measure(optimize ? "LLVM optimization passes" : "LLVM dead-code elimination"))
                     {
-                        var message = Utf8(LLVM.GetErrorMessage(passError)); LLVM.ConsumeError(passError);
-                        return new(false, requestedTriple, $"LLVM {(optimize ? "optimization" : "dead-code elimination")} failed: {message}");
+                        var passError = LLVM.RunPasses(module, (sbyte*)passPtr, machine, passOptions);
+                        if (passError != null)
+                        {
+                            var message = Utf8(LLVM.GetErrorMessage(passError)); LLVM.ConsumeError(passError);
+                            return new(false, requestedTriple, $"LLVM {(optimize ? "optimization" : "dead-code elimination")} failed: {message}");
+                        }
                     }
                 }
                 finally { Marshal.FreeCoTaskMem(passPtr); }
@@ -125,14 +137,20 @@ public static unsafe class LlvmToolchain
             }
             cancellationToken.ThrowIfCancellationRequested();
             sbyte* verifyError = null;
-            if (LLVM.VerifyModule(module, LLVMVerifierFailureAction.LLVMReturnStatusAction, &verifyError) != 0)
+            var verificationResult = 0;
+            using (profiler?.Measure("LLVM final verification"))
+                verificationResult = LLVM.VerifyModule(module, LLVMVerifierFailureAction.LLVMReturnStatusAction, &verifyError);
+            if (verificationResult != 0)
             {
                 var message = Utf8(verifyError); if (verifyError != null) LLVM.DisposeMessage(verifyError);
                 return new(false, requestedTriple, $"LLVM IR verification failed: {message}");
             }
             cancellationToken.ThrowIfCancellationRequested();
             sbyte* emitError = null;
-            if (LLVM.TargetMachineEmitToFile(machine, module, (sbyte*)pathPtr, LLVMCodeGenFileType.LLVMObjectFile, &emitError) != 0)
+            var emitResult = 0;
+            using (profiler?.Measure("LLVM object code generation"))
+                emitResult = LLVM.TargetMachineEmitToFile(machine, module, (sbyte*)pathPtr, LLVMCodeGenFileType.LLVMObjectFile, &emitError);
+            if (emitResult != 0)
             {
                 var message = Utf8(emitError); if (emitError != null) LLVM.DisposeMessage(emitError);
                 return new(false, requestedTriple, $"LLVM object emission failed: {message}");
