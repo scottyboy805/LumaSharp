@@ -8,6 +8,13 @@ namespace LumaSharp.Tests;
 public sealed class CompilerTests
 {
     private static CompilationResult Compile(string source, CompilationOptions? options = null) => LumaCompiler.Compile([("test.ls", source)], options);
+    private static CompilationResult CompileWithStandardLibrary(string source, CompilationOptions? options = null)
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        return LumaCompiler.Compile(runtimeSources.Append(("interpolated-string-test.ls", source)), options);
+    }
     private static string RuntimeSourcePath(string relativePath)
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
@@ -2635,6 +2642,82 @@ public sealed class CompilerTests
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
         Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void InterpolatedStringsEvaluateExpressionsOnceAndEscapeBraces()
+    {
+        const string source = "class Program { static int32 calls; public static int32 Next() { calls++; return calls; } public static int32 Pick<T, U>(T left, U right) => 8; public static int32 Main() { int32 value = 5; string text = $\"value={value + 2}; calls={Next()}:{Next()}; braces={{ok}}; slash=\\\\; newline=\\n\"; string casted = (string)$\"{value}\"; string choice = $\"{calls == 2 ? Next() : value}\"; string generic = $\"{Pick<int32, int32>(1, 2)}\"; string general = $\"{value:G}\"; return text == \"value=7; calls=1:2; braces={ok}; slash=\\\\; newline=\\n\" && casted == \"5\" && choice == \"3\" && generic == \"8\" && general == \"5\" && calls == 3 ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void InterpolatedStringsUseExistingStructAndClassStringConversions()
+    {
+        const string source = "struct Point { int32 x; public this(int32 value) { x = value; } public override string ToString() => \"Point(\" + x + \")\"; } class Badge { public override string ToString() => \"badge\"; } class Program { public static int32 Main() { Point point = Point(7); Badge badge = new Badge(); string? missing = null; string text = $\"{point}|{badge}|{missing}\"; return text == \"Point(7)|badge|\" ? 0 : 1; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void InterpolatedStringsSupportVerbatimFormsAndNestedExpressions()
+    {
+        const string source = """"
+            class Program
+            {
+                public static string Echo(string value) => value;
+                public static int32 Main()
+                {
+                    string path = $@"C:\{"folder"}\{{file}}";
+                    string alternate = @$"{1 + 2} ""quoted""";
+                    string nested = $"outer {$"inner {Echo("x")}"}";
+                    return path == "C:\\folder\\{file}" && alternate == "3 \"quoted\"" && nested == "outer inner x" ? 0 : 1;
+                }
+            }
+            """";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void InterpolatedStringsSupportAlignmentAndDiagnoseUnsupportedFormats()
+    {
+        const string source = "class Program { static int32 widthCalls; public static int32 Width() { widthCalls++; return 5; } public static int32 Main() { string left = $\"[{\"x\",5}]\"; string right = $\"[{\"x\",-5}]\"; string dynamicWidth = $\"{\"x\",Width()}\"; return left == \"[    x]\" && right == \"[x    ]\" && dynamicWidth == \"    x\" && widthCalls == 1 ? 0 : 1; } }";
+        var result = CompileWithStandardLibrary(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+
+        var unsupportedFormat = Compile("class Program { public static int32 Main() { string text = $\"{42:X}\"; return 0; } }");
+        Assert.False(unsupportedFormat.Succeeded);
+        Assert.Contains(unsupportedFormat.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("format 'X'", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("class Program { public static int32 Main() { string value = $\"{1\"; return 0; } }")]
+    [InlineData("class Program { public static int32 Main() { string value = $\"text }\"; return 0; } }")]
+    [InlineData("class Program { public static int32 Main() { string value = $\"{1,}\"; return 0; } }")]
+    public void MalformedInterpolatedStringsReturnDiagnostics(string source)
+    {
+        var result = Compile(source);
+        Assert.False(result.Succeeded);
+        Assert.NotNull(result.Diagnostics.FirstOrDefault(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "LMC9000");
     }
 
     [Fact]

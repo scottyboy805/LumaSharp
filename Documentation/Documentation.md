@@ -149,6 +149,17 @@ The target type must exist. Existing type members take precedence over extension
 
 Use `//` for a line comment and `/* ... */` for a block comment. String literals use double quotes; character literals use single quotes. Escape sequences such as `\n`, `\t`, and `\\` are available. Verbatim strings begin with `@`, as in `@"C:\data\notes.txt"`.
 
+Interpolated strings use `$"..."`; verbatim interpolation is available as `$@"..."` or `@$"..."`. Put an expression in braces, double braces for literal braces, and optionally add an alignment width:
+
+```lumasharp
+string name = "Ada";
+string greeting = $"Hello, {name}!";
+string columns = $"|{name,12}|{42,-6}|"; // positive aligns right; negative aligns left
+string path = $@"C:\users\{name}\{{notes}}";
+```
+
+Embedded expressions use the same conversions as string concatenation and are evaluated once from left to right. Alignment pads with spaces and does not truncate. The default format and `G`/`g` format are supported; other format strings produce a compiler diagnostic instead of being ignored. See [§2.5.5 of the language specification](../Specification/LumaSharp_LanguageSpecification.md#255-string-literals) for details.
+
 Access modifiers are `public`, `private`, `protected`, `internal`, `protected internal`, and `private protected`. A top-level type with no modifier is internal; members with no modifier are private.
 
 ## 3. Types, variables, and values

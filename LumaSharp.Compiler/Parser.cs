@@ -2041,7 +2041,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         index++;
         if (index >= tokens.Count) return false;
         var next = tokens[index];
-        if (next.Kind is TokenKind.Identifier or TokenKind.Number or TokenKind.Character or TokenKind.String) return true;
+        if (next.Kind is TokenKind.Identifier or TokenKind.Number or TokenKind.Character or TokenKind.String or TokenKind.InterpolatedString) return true;
         if (next.Text is "true" or "false" or "null" or "default" or "sizeof" or "new" or "scope" or "(" or "!" or "~" or "&" or "*" or "++" or "--") return true;
         return next.Text is "+" or "-" && TypeKeywords.Contains(tokens[_position + 1].Text.TrimStart('@'));
     }
@@ -2088,6 +2088,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             }
             var expression = ParseExpression(); Expect(")"); return expression;
         }
+        if (token.Kind == TokenKind.InterpolatedString) return ParseInterpolatedString(token);
         if (token.Kind is TokenKind.Number or TokenKind.String or TokenKind.Character || token.Text is "true" or "false" or "null") return new LiteralExpression(token.Text, token.Location);
         if (token.Text == "default")
         {
@@ -2115,6 +2116,281 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         if (IsIdentifier(token) || token.Kind == TokenKind.Identifier && !ReservedWords.Contains(token.Text)) return new NameExpression(token.Text.TrimStart('@'), token.Location);
         if (token.Kind == TokenKind.Identifier) { Error(token, $"Keyword '{token.Text}' cannot be used as an expression name."); return new LiteralExpression("0", token.Location); }
         Error(token, $"Expected an expression, found '{token.Text}'."); return new LiteralExpression("0", token.Location);
+    }
+
+    private Expression ParseInterpolatedString(Token token)
+    {
+        var raw = token.Text;
+        var verbatim = raw.StartsWith("$@\"", StringComparison.Ordinal) || raw.StartsWith("@$\"", StringComparison.Ordinal);
+        var bodyStart = verbatim ? 3 : 2;
+        var bodyEnd = raw.Length > bodyStart && raw[^1] == '"' ? raw.Length - 1 : raw.Length;
+        var parts = new List<(string? Text, Expression? Value, int Offset)>();
+        var textStart = bodyStart;
+        var index = bodyStart;
+
+        while (index < bodyEnd)
+        {
+            if (!verbatim && raw[index] == '\\') { index = Math.Min(index + 2, bodyEnd); continue; }
+            if (verbatim && raw[index] == '"' && index + 1 < bodyEnd && raw[index + 1] == '"') { index += 2; continue; }
+            if (raw[index] == '{' && index + 1 < bodyEnd && raw[index + 1] == '{') { index += 2; continue; }
+            if (raw[index] == '}' && index + 1 < bodyEnd && raw[index + 1] == '}') { index += 2; continue; }
+            if (raw[index] != '{') { index++; continue; }
+
+            AddInterpolatedText(raw[textStart..index], textStart, verbatim, token, parts);
+            var holeOpen = index;
+            if (!TryScanInterpolationHole(raw, holeOpen + 1, bodyEnd, out var holeEnd, out var alignmentStart, out var formatStart))
+            {
+                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Unterminated interpolation expression; expected '}'.", GetInterpolatedLocation(token, holeOpen));
+                index = bodyEnd;
+                textStart = bodyEnd;
+                break;
+            }
+
+            var expressionEnd = alignmentStart >= 0 ? alignmentStart : formatStart >= 0 ? formatStart : holeEnd;
+            var expressionStart = holeOpen + 1;
+            var expressionText = raw[expressionStart..expressionEnd];
+            var leadingWhitespace = expressionText.Length - expressionText.TrimStart().Length;
+            var expressionLocation = GetInterpolatedLocation(token, expressionStart + leadingWhitespace);
+            var expression = ParseInterpolationExpression(expressionText.Trim(), expressionLocation);
+
+            if (alignmentStart >= 0)
+            {
+                var alignmentEnd = formatStart >= 0 ? formatStart : holeEnd;
+                var alignmentText = raw[(alignmentStart + 1)..alignmentEnd];
+                var alignmentLeadingWhitespace = alignmentText.Length - alignmentText.TrimStart().Length;
+                var alignmentLocation = GetInterpolatedLocation(token, alignmentStart + 1 + alignmentLeadingWhitespace);
+                if (alignmentText.Trim().Length == 0)
+                {
+                    diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Expected an alignment expression after ','.", GetInterpolatedLocation(token, alignmentStart));
+                }
+                else
+                {
+                    var width = ParseInterpolationExpression(alignmentText.Trim(), alignmentLocation);
+                    var stringified = new BinaryExpression(new LiteralExpression("\"\"", expressionLocation), "+", expression,
+                        expressionLocation);
+                    var target = new MemberAccessExpression(new MemberAccessExpression(new NameExpression("System", expressionLocation), "String", expressionLocation),
+                        "Align", expressionLocation);
+                    expression = new CallExpression(target, [stringified, width], expressionLocation);
+                }
+            }
+
+            if (formatStart >= 0)
+            {
+                var format = raw[(formatStart + 1)..holeEnd];
+                if (format.Length > 0 && format is not ("G" or "g"))
+                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                        $"Interpolated string format '{format}' is not supported. Use the default format or 'G'.", GetInterpolatedLocation(token, formatStart));
+            }
+
+            parts.Add((null, expression, holeOpen));
+            index = holeEnd + 1;
+            textStart = index;
+        }
+        AddInterpolatedText(raw[textStart..bodyEnd], textStart, verbatim, token, parts);
+
+        Expression? result = null;
+        foreach (var part in parts)
+        {
+            Expression next;
+            if (part.Value is not null) next = part.Value;
+            else
+            {
+                if (!StringLiteralCodec.TryParse(part.Text!, out _, out _)) continue;
+                next = new LiteralExpression(part.Text!, GetInterpolatedLocation(token, part.Offset));
+            }
+            result = result is null
+                ? next is LiteralExpression ? next : new BinaryExpression(new LiteralExpression("\"\"", token.Location), "+", next, token.Location)
+                : new BinaryExpression(result, "+", next, next.Location);
+        }
+        return result ?? new LiteralExpression("\"\"", token.Location);
+    }
+
+    private void AddInterpolatedText(string rawText, int rawOffset, bool verbatim, Token token,
+        List<(string? Text, Expression? Value, int Offset)> parts)
+    {
+        if (rawText.Length == 0) return;
+        var escaped = new System.Text.StringBuilder(rawText.Length);
+        for (var index = 0; index < rawText.Length; index++)
+        {
+            if (rawText[index] is '{' or '}' && index + 1 < rawText.Length && rawText[index + 1] == rawText[index]) index++;
+            escaped.Append(rawText[index]);
+        }
+        var literal = verbatim ? "@\"" + escaped + "\"" : "\"" + escaped + "\"";
+        if (!StringLiteralCodec.TryParse(literal, out _, out var error))
+        {
+            diagnostics.Add("LS0001", DiagnosticSeverity.Error, error ?? "Invalid interpolated string text.", GetInterpolatedLocation(token, rawOffset));
+            return;
+        }
+        parts.Add((literal, null, rawOffset));
+    }
+
+    private Expression ParseInterpolationExpression(string text, SourceLocation location)
+    {
+        var nestedLexer = new Lexer(location.File, text, diagnostics, cancellationToken, location.Line, location.Column);
+        var nested = new Parser(nestedLexer.Scan(), diagnostics, unsafeEnabled, cancellationToken)
+        {
+            _namespace = _namespace,
+            _unsafeDepth = _unsafeDepth,
+            _lockDepth = _lockDepth,
+            _nameOfArgumentDepth = _nameOfArgumentDepth
+        };
+        var expression = nested.ParseExpression();
+        if (nested.Current.Kind != TokenKind.End)
+            nested.Error(nested.Current, $"Unexpected token '{nested.Current.Text}' in interpolation expression.");
+        return expression;
+    }
+
+    private SourceLocation GetInterpolatedLocation(Token token, int offset)
+    {
+        var line = token.Location.Line;
+        var column = token.Location.Column;
+        for (var index = 0; index < offset && index < token.Text.Length; index++)
+        {
+            if (token.Text[index] == '\r')
+            {
+                if (index + 1 < offset && token.Text[index + 1] == '\n') index++;
+                line++;
+                column = 1;
+            }
+            else if (token.Text[index] == '\n') { line++; column = 1; }
+            else column++;
+        }
+        return new(token.Location.File, line, column);
+    }
+
+    private bool TryScanInterpolationHole(string text, int start, int end, out int close,
+        out int alignment, out int format)
+    {
+        var braces = 0;
+        var parentheses = 0;
+        var brackets = 0;
+        var angleBrackets = 0;
+        var conditional = 0;
+        alignment = -1;
+        format = -1;
+        for (var index = start; index < end;)
+        {
+            if (text[index] == '/' && index + 1 < end && text[index + 1] == '/')
+            {
+                index += 2; while (index < end && text[index] is not ('\r' or '\n')) index++; continue;
+            }
+            if (text[index] == '/' && index + 1 < end && text[index + 1] == '*')
+            {
+                index += 2;
+                while (index + 1 < end && !(text[index] == '*' && text[index + 1] == '/')) index++;
+                index = Math.Min(index + 2, end); continue;
+            }
+            if (TrySkipInterpolationString(text, ref index, end)) continue;
+            if (text[index] == '<' && (angleBrackets > 0 || LooksLikeGenericArgumentList(text, index, end)))
+            { angleBrackets++; index++; continue; }
+            if (text[index] == '>' && angleBrackets > 0) { angleBrackets--; index++; continue; }
+            switch (text[index])
+            {
+                case '{': braces++; index++; continue;
+                case '}':
+                    if (braces == 0 && parentheses == 0 && brackets == 0 && angleBrackets == 0) { close = index; return true; }
+                    braces--; index++; continue;
+                case '(': parentheses++; index++; continue;
+                case ')': parentheses--; index++; continue;
+                case '[': brackets++; index++; continue;
+                case ']': brackets--; index++; continue;
+            }
+            if (braces == 0 && parentheses == 0 && brackets == 0 && angleBrackets == 0 && format < 0)
+            {
+                if (text[index] == '?' && (index + 1 >= end || text[index + 1] is not ('?' or '.' or '[')))
+                { conditional++; index++; continue; }
+                if (text[index] == ':' && conditional > 0) { conditional--; index++; continue; }
+                if (text[index] == ':' && conditional == 0) { format = index; index++; continue; }
+                if (text[index] == ',' && alignment < 0 && format < 0) { alignment = index; index++; continue; }
+            }
+            index++;
+        }
+        close = -1;
+        return false;
+    }
+
+    private static bool TrySkipInterpolationString(string text, ref int index, int end)
+    {
+        var interpolated = false;
+        var verbatim = false;
+        if (text[index] == '$' && index + 1 < end && text[index + 1] == '"') { index++; interpolated = true; }
+        else if (text[index] == '$' && index + 2 < end && text[index + 1] == '@' && text[index + 2] == '"')
+        { index += 2; interpolated = true; verbatim = true; }
+        else if (text[index] == '@' && index + 2 < end && text[index + 1] == '$' && text[index + 2] == '"')
+        { index += 2; interpolated = true; verbatim = true; }
+        else if (text[index] == '@' && index + 1 < end && text[index + 1] == '"') { index++; verbatim = true; }
+        else if (text[index] != '"' && text[index] != '\'') return false;
+
+        var quote = text[index++];
+        while (index < end)
+        {
+            if (text[index] == quote)
+            {
+                if (verbatim && quote == '"' && index + 1 < end && text[index + 1] == '"') { index += 2; continue; }
+                index++; return true;
+            }
+            if (!verbatim && text[index] == '\\') { index = Math.Min(index + 2, end); continue; }
+            if (interpolated && text[index] == '{')
+            {
+                if (index + 1 < end && text[index + 1] == '{') { index += 2; continue; }
+                index++;
+                _ = TrySkipNestedInterpolationExpression(text, ref index, end);
+                continue;
+            }
+            if (interpolated && text[index] == '}' && index + 1 < end && text[index + 1] == '}')
+            { index += 2; continue; }
+            if (quote == '\'' && text[index] is '\r' or '\n') break;
+            index++;
+        }
+        return true;
+    }
+
+    private static bool TrySkipNestedInterpolationExpression(string text, ref int index, int end)
+    {
+        var nestedBraces = 0;
+        while (index < end)
+        {
+            if (text[index] == '/' && index + 1 < end && text[index + 1] == '/')
+            {
+                index += 2; while (index < end && text[index] is not ('\r' or '\n')) index++; continue;
+            }
+            if (text[index] == '/' && index + 1 < end && text[index + 1] == '*')
+            {
+                index += 2;
+                while (index + 1 < end && !(text[index] == '*' && text[index + 1] == '/')) index++;
+                index = Math.Min(index + 2, end); continue;
+            }
+            if (TrySkipInterpolationString(text, ref index, end)) continue;
+            if (text[index] == '{') { nestedBraces++; index++; continue; }
+            if (text[index] == '}')
+            {
+                if (nestedBraces == 0) { index++; return true; }
+                nestedBraces--; index++; continue;
+            }
+            index++;
+        }
+        return false;
+    }
+
+    private static bool LooksLikeGenericArgumentList(string text, int start, int end)
+    {
+        var previous = start - 1;
+        while (previous >= 0 && char.IsWhiteSpace(text[previous])) previous--;
+        if (previous < 0 || !(char.IsLetterOrDigit(text[previous]) || text[previous] is '_' or '>' or ']')) return false;
+
+        var depth = 0;
+        for (var index = start; index < end; index++)
+        {
+            if (text[index] == '<') depth++;
+            else if (text[index] == '>' && --depth == 0)
+            {
+                var next = index + 1;
+                while (next < end && char.IsWhiteSpace(text[next])) next++;
+                return next < end && text[next] is '(' or '.' or '?' or '[' or ')' or ',';
+            }
+            else if (text[index] is '{' or '}' or ';') return false;
+        }
+        return false;
     }
     private bool LooksLikeGenericTypeQualifier(int startIndex)
     {

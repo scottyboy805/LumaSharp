@@ -3,13 +3,14 @@ using System.Text;
 
 namespace LumaSharp.Compiler;
 
-internal enum TokenKind { Identifier, Number, String, Character, Punctuation, End }
+internal enum TokenKind { Identifier, Number, String, InterpolatedString, Character, Punctuation, End }
 internal sealed record Token(TokenKind Kind, string Text, SourceLocation Location);
 
-internal sealed class Lexer(string file, string source, DiagnosticBag diagnostics, CancellationToken cancellationToken = default)
+internal sealed class Lexer(string file, string source, DiagnosticBag diagnostics, CancellationToken cancellationToken = default,
+    int initialLine = 1, int initialColumn = 1)
 {
     private static readonly string[] Operators = [">>=", "<<=", "??=", "...", "?.", "?[", "??", "=>", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", ">>"];
-    private int _index, _line = 1, _column = 1;
+    private int _index, _line = initialLine, _column = initialColumn;
     private int _cancellationCheckCounter;
     public IReadOnlyList<Token> Scan()
     {
@@ -21,6 +22,9 @@ internal sealed class Lexer(string file, string source, DiagnosticBag diagnostic
             if (Current == '/' && Peek(1) == '/') { while (!AtEnd && Current is not ('\r' or '\n')) Advance(); continue; }
             if (Current == '/' && Peek(1) == '*') { ScanBlockComment(); continue; }
             var location = Location;
+            if (Current == '$' && Peek(1) == '"') { tokens.Add(ScanInterpolatedString(false, 2)); continue; }
+            if (Current == '$' && Peek(1) == '@' && Peek(2) == '"') { tokens.Add(ScanInterpolatedString(true, 3)); continue; }
+            if (Current == '@' && Peek(1) == '$' && Peek(2) == '"') { tokens.Add(ScanInterpolatedString(true, 3)); continue; }
             if (Current == '@' && Peek(1) == '"') { tokens.Add(ScanVerbatimString()); continue; }
             if (Current == '"') { tokens.Add(ScanQuoted('"', TokenKind.String)); continue; }
             if (Current == '\'') { tokens.Add(ScanQuoted('\'', TokenKind.Character)); continue; }
@@ -111,6 +115,89 @@ internal sealed class Lexer(string file, string source, DiagnosticBag diagnostic
         var location = Location; var start = _index; Advance(); Advance();
         while (!AtEnd) { if (Current == '"') { Advance(); if (Current == '"') { Advance(); continue; } return new(TokenKind.String, source[start.._index], location); } Advance(); }
         diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Unterminated verbatim string.", location); return new(TokenKind.String, source[start.._index], location);
+    }
+
+    private Token ScanInterpolatedString(bool verbatim, int prefixLength)
+    {
+        var location = Location;
+        var start = _index;
+        for (var index = 0; index < prefixLength; index++) Advance();
+        var closed = false;
+        while (!AtEnd)
+        {
+            if (Current == '"')
+            {
+                if (verbatim && Peek(1) == '"') { Advance(); Advance(); continue; }
+                Advance();
+                closed = true;
+                break;
+            }
+            if (!verbatim && Current is '\r' or '\n') break;
+            if (!verbatim && Current == '\\') { Advance(); if (!AtEnd) Advance(); continue; }
+            if (Current == '{')
+            {
+                if (Peek(1) == '{') { Advance(); Advance(); continue; }
+                Advance();
+                if (!ScanInterpolationHole(location)) break;
+                continue;
+            }
+            if (Current == '}')
+            {
+                if (Peek(1) == '}') { Advance(); Advance(); continue; }
+                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "A closing brace in an interpolated string must be escaped as '}}'.", Location);
+                Advance();
+                continue;
+            }
+            Advance();
+        }
+        if (!closed) diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Unterminated interpolated string literal.", location);
+        return new(TokenKind.InterpolatedString, source[start.._index], location);
+    }
+
+    private bool ScanInterpolationHole(SourceLocation interpolationLocation)
+    {
+        var nestedBraces = 0;
+        while (!AtEnd)
+        {
+            if (Current == '}' && nestedBraces == 0) { Advance(); return true; }
+            if (Current == '{') { nestedBraces++; Advance(); continue; }
+            if (Current == '}') { nestedBraces--; Advance(); continue; }
+            if (Current == '/' && Peek(1) == '/')
+            {
+                while (!AtEnd && Current is not ('\r' or '\n')) Advance();
+                continue;
+            }
+            if (Current == '/' && Peek(1) == '*') { ScanBlockComment(); continue; }
+            if (Current == '$' && Peek(1) == '"') { _ = ScanInterpolatedString(false, 2); continue; }
+            if (Current == '$' && Peek(1) == '@' && Peek(2) == '"' || Current == '@' && Peek(1) == '$' && Peek(2) == '"')
+            { _ = ScanInterpolatedString(true, 3); continue; }
+            if (Current == '@' && Peek(1) == '"') { _ = ScanVerbatimString(); continue; }
+            if (Current == '"' || Current == '\'')
+            {
+                if (!SkipQuotedInInterpolation(Current)) return false;
+                continue;
+            }
+            Advance();
+        }
+        diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Unterminated interpolation expression; expected '}'.", interpolationLocation);
+        return false;
+    }
+
+    private bool SkipQuotedInInterpolation(char quote)
+    {
+        var cursor = _index + 1;
+        while (cursor < source.Length)
+        {
+            if (source[cursor] == quote)
+            {
+                while (_index <= cursor) Advance();
+                return true;
+            }
+            if (source[cursor] is '\r' or '\n') return false;
+            if (source[cursor] == '\\') cursor += Math.Min(2, source.Length - cursor);
+            else cursor++;
+        }
+        return false;
     }
     private void ScanBlockComment()
     {

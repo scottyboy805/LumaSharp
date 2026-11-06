@@ -252,11 +252,24 @@ public class String : Object, IHashable, IEquality<string?>
 		if (repeatCount < 0)
 			throw new ArgumentOutOfRangeException();
 
-		string result = "";
-		string character = value.ToString();
+		char[] characters = new char[repeatCount];
 		for (int32 index = 0; index < repeatCount; index++)
-			result += character;
-		return result;
+			characters[index] = value;
+		return FromChars(characters);
+	}
+
+	public static string Align(string? value, int32 width)
+	{
+		string text = value ?? "";
+		if (width == int32.MinValue)
+			throw new ArgumentOutOfRangeException();
+
+		int32 targetWidth = width < 0 ? -width : width;
+		if (text.Length >= targetWidth)
+			return text;
+
+		string padding = Repeat(' ', targetWidth - text.Length);
+		return width < 0 ? text + padding : padding + text;
 	}
 }
 

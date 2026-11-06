@@ -285,10 +285,17 @@ Escape sequences: `\0 \a \b \f \n \r \t \v \\ \' \" \xH{1,4} \uHHHH`. A characte
 string a = "hello\tworld\n";
 string b = @"C:\no\escapes";     // verbatim string: backslash is literal, "" is a quote
 string c = "Unicode: \u00E9 \U0001F600";
+string name = "Ada";
+string greeting = $"Hello, {name}!";
+string path = $@"C:\users\{name}\{{notes}}";
 ```
 
 - A string literal has type `string`. Its encoding and storage are defined in §16 and §28.10.
-- Interpolated strings (`$"..."`), raw string literals, and UTF-8 literal suffixes are **not** part of this version.
+- An interpolated string is a string expression. It may use `$"..."`, `$@"..."`, or `@$"..."`. The latter two forms are verbatim interpolated strings: backslashes are literal and a quote is written `""`.
+- In interpolated text, `{{` and `}}` produce literal braces. An unescaped `{` starts an interpolation and an unescaped `}` is a compile-time error.
+- An interpolation contains an expression, optionally followed by `, alignment` and `: format`, in that order. The expression and alignment are parsed using the ordinary expression grammar. Nested expressions, strings, comments, and nested interpolated strings do not terminate the interpolation early.
+- Each embedded expression and alignment expression is evaluated exactly once, from left to right. The value is converted using the string conversion rules in §16.5; a null value contributes empty text. Alignment uses spaces, pads on the left for positive widths and on the right for negative widths, and never truncates. A width whose absolute value cannot be represented raises `ArgumentOutOfRangeException` at run time.
+- The default format and `G`/`g` format are supported. Other non-empty format strings currently produce a compile-time `LMC3000` diagnostic. Raw string literals and UTF-8 literal suffixes are not part of this version.
 
 ## 2.6 Operators and Punctuators
 
@@ -3506,6 +3513,8 @@ Apart from the empty string (§16.2.1), whether two string literals with identic
 `+` concatenates strings, producing a new string. If one operand is not a string, it is converted by calling `ToString()` on it (boxing value types if needed); a `null` operand contributes the empty text.
 Boolean values contribute `True` or `False`, matching `System.Bool.TrueString` and `System.Bool.FalseString`.
 
+Interpolated strings (§2.5.5) use these same conversions for each hole, evaluating holes once from left to right. Alignment adds spaces without truncating. The standard format forms supported by this language version are the default format and `G`/`g`; unsupported format strings are diagnosed instead of being ignored.
+
 ```lumasharp
 string a = "x" + "y";        // "xy"
 string b = "n=" + 5;          // "n=5"
@@ -3519,7 +3528,7 @@ string c = "v:" + s;          // "v:"
 
 ## 16.7 Other Members
 
-All other string members (`Substring`, `IndexOf`, `Replace`, …) are standard-library functionality and outside this specification, except that a conforming standard library MUST provide `Length`, indexing `this[int32]`, and `==`. Interpolated strings are not part of this version.
+All other string members (`Substring`, `IndexOf`, `Replace`, …) are standard-library functionality and outside this specification, except that a conforming standard library MUST provide `Length`, indexing `this[int32]`, and `==`. `System.String.Align(string?, int32)` is provided by the standard library for interpolation alignment lowering.
 
 ---
 
@@ -5137,7 +5146,11 @@ primary            = "nameof" "(" expression ")" | "typeof" "(" type ")"
                    | "default" [ "(" type ")" ] | "sizeof" "(" type ")"
                    | "checked" "(" expression ")" | "unchecked" "(" expression ")" ;
 array_suffix       = "[" [ expression { "," expression } ] "]" [ collection_initializer ] ;
-literal            = integer | float | char | string | "true" | "false" | "null" ;
+literal            = integer | float | char | string | interpolated_string | "true" | "false" | "null" ;
+interpolated_string = interpolated_string_token ; (* lexical forms and text escapes are specified in §2.5.5 *)
+interpolation      = "{" expression [ "," expression ] [ ":" format_text ] "}" ;
+(* Interpolated text follows the escape rules for ordinary or verbatim strings. A format_text
+   value is implementation-limited as described in §2.5.5; only G/g or an empty format is supported. *)
 ```
 
 Disambiguation notes (informative):
