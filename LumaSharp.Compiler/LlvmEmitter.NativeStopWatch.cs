@@ -34,8 +34,8 @@ internal sealed partial class LlvmEmitter
 
 	private void EmitWindowsStopWatchRuntime()
 	{
-		_output.AppendLine("declare i32 @QueryPerformanceCounter(ptr)");
-		_output.AppendLine("declare i32 @QueryPerformanceFrequency(ptr)");
+		AppendDeclarationIfMissing("declare i32 @QueryPerformanceCounter(ptr)");
+		AppendDeclarationIfMissing("declare i32 @QueryPerformanceFrequency(ptr)");
 		_output.AppendLine("define internal i64 @luma_diag_timestamp() {");
 		_output.AppendLine("entry:");
 		_output.AppendLine("  %counter.address = alloca i64, align 8");
@@ -71,7 +71,7 @@ internal sealed partial class LlvmEmitter
 			targetTriple.Contains("apple", StringComparison.OrdinalIgnoreCase) ? 6 : 1;
 		var timeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
 		var alignment = compilation.NativePointerSize;
-		_output.AppendLine("declare i32 @clock_gettime(i32, ptr)");
+		AppendDeclarationIfMissing("declare i32 @clock_gettime(i32, ptr)");
 		_output.AppendLine("define internal i64 @luma_diag_timestamp() {");
 		_output.AppendLine("entry:");
 		_output.AppendLine($"  %time.address = alloca {{ {timeType}, {timeType} }}, align {alignment}");

@@ -39,8 +39,8 @@ internal sealed partial class LlvmEmitter
 
 	private void EmitWindowsEnvironmentRuntime()
 	{
-		_output.AppendLine("declare i32 @GetModuleFileNameW(ptr, ptr, i32)");
-		_output.AppendLine("declare i32 @GetActiveProcessorCount(i16)");
+		AppendDeclarationIfMissing("declare i32 @GetModuleFileNameW(ptr, ptr, i32)");
+		AppendDeclarationIfMissing("declare i32 @GetActiveProcessorCount(i16)");
 		_output.AppendLine("define internal ptr @luma_env_executable_path() {");
 		_output.AppendLine("entry:");
 		_output.AppendLine("  %buffer = alloca [32768 x i16], align 2");
@@ -68,8 +68,8 @@ internal sealed partial class LlvmEmitter
 		if (targetTriple.Contains("linux", StringComparison.OrdinalIgnoreCase))
 		{
 			_output.AppendLine("@luma_env_executable_link = private unnamed_addr constant [15 x i8] c\"/proc/self/exe\\00\"");
-			_output.AppendLine($"declare {sizeType} @readlink(ptr, ptr, {sizeType})");
-			_output.AppendLine("declare i32 @get_nprocs()");
+			AppendDeclarationIfMissing($"declare {sizeType} @readlink(ptr, ptr, {sizeType})");
+			AppendDeclarationIfMissing("declare i32 @get_nprocs()");
 			_output.AppendLine("define internal ptr @luma_env_executable_path() {");
 			_output.AppendLine("entry:");
 			_output.AppendLine("  %buffer = alloca [32768 x i8], align 16");
@@ -111,9 +111,9 @@ internal sealed partial class LlvmEmitter
 	private void EmitMacOSEnvironmentRuntime(string sizeType)
 	{
 		_output.AppendLine("@luma_env_logical_cpu_name = private unnamed_addr constant [14 x i8] c\"hw.logicalcpu\\00\"");
-		_output.AppendLine("declare i32 @_NSGetExecutablePath(ptr, ptr)");
-		_output.AppendLine($"declare i32 @sysctlbyname(ptr, ptr, ptr, ptr, {sizeType})");
-		_output.AppendLine($"declare {sizeType} @strlen(ptr)");
+		AppendDeclarationIfMissing("declare i32 @_NSGetExecutablePath(ptr, ptr)");
+		AppendDeclarationIfMissing($"declare i32 @sysctlbyname(ptr, ptr, ptr, ptr, {sizeType})");
+		AppendDeclarationIfMissing($"declare {sizeType} @strlen(ptr)");
 		_output.AppendLine("define internal ptr @luma_env_executable_path() {");
 		_output.AppendLine("entry:");
 		_output.AppendLine("  %buffer = alloca [32768 x i8], align 16");

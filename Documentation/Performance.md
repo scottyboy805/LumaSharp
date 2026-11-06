@@ -10,15 +10,15 @@ The figures below are from the Windows x64 development environment using .NET 10
 
 | Measurement | Original | After earlier optimizations | Current |
 | --- | ---: | ---: | ---: |
-| Debug build median | 3.12 s | 0.99 s | ~0.96 s |
-| Optimized build median | 6.00 s | 5.24 s | ~1.15 s |
-| LLVM IR emission, debug | 1.16 s | 0.15 s | ~0.15 s |
-| LLVM IR emission allocations, debug | 1.05 GB | 156 MB | ~156 MB |
+| Debug build median | 3.12 s | 0.99 s | ~0.84 s |
+| Optimized build median | 6.00 s | 5.24 s | ~1.02 s |
+| LLVM IR emission, debug | 1.16 s | 0.15 s | ~0.11 s |
+| LLVM IR emission allocations, debug | 1.05 GB | 156 MB | ~114 MB |
 | LLVM method body emission, debug | 0.88 s | 0.11 s | ~0.09 s |
-| LLVM object generation, debug | 1.44 s | 0.26 s | ~0.09 s |
+| LLVM object generation, debug | 1.44 s | 0.26 s | ~0.08 s |
 | Semantic analysis allocations | ~196 MB | ~196 MB | ~67 MB |
 
-The latest benchmark run measured debug builds at 0.85–1.05 seconds and optimized builds at 1.13–1.19 seconds across three measured samples. Their LLVM `default<O2>` pipeline took about 0.38–0.42 seconds, LLVM IR parsing about 0.11–0.12 seconds, and object generation about 0.08–0.11 seconds. Source discovery and loading took about 5–8 ms, lexing 13–19 ms, and parsing 22–30 ms. Semantic analysis varied between about 0.22 and 0.40 seconds across runs; its allocation count was stable at about 67 MB after caching qualified type names, down from about 196 MB. Generic expansion used about 27 MB and took about 0.07–0.11 seconds. These results show that parsing runtime sources is not the main build-time cost.
+The latest benchmark run measured debug builds at 0.79–0.92 seconds and optimized builds at 1.01–1.02 seconds across three measured samples. Their LLVM `default<O2>` pipeline took about 0.37–0.40 seconds, LLVM IR parsing about 0.11–0.12 seconds, and object generation about 0.08 seconds. Source discovery and loading took about 5–7 ms, lexing 18–22 ms, and parsing 23–29 ms. Semantic analysis varied between about 0.19 and 0.36 seconds across runs; its allocation count was stable at about 67 MB after caching qualified type names, down from about 196 MB. Generic expansion used about 27 MB and took about 0.06–0.09 seconds. These results show that parsing runtime sources is not the main build-time cost.
 
 ## Changes
 
@@ -28,6 +28,7 @@ The latest benchmark run measured debug builds at 0.85–1.05 seconds and optimi
 - Removed LLVM's per-pass verification from optimized pipelines. LLVM verifies the completed module once before object emission, retaining a check of the exact IR sent to code generation while avoiding repeated whole-module verification after every optimization pass. On the benchmark fixture, this reduced the optimized build from about 5.05 seconds to about 1.1–1.2 seconds.
 - Cached qualified type names by `TypeDeclaration` identity for the lifetime of a semantic analysis. This avoids repeatedly allocating the same `Namespace.Type` strings during binding and validation. On the benchmark fixture, semantic analysis allocation fell from about 196 MB to 67 MB and its measured GC collections fell from roughly 13 to 5.
 - Added LLVM backend subphase measurements for target initialization, IR parsing, target-machine setup, optimization/dead-code passes, final verification, and object emission. The profiler remains opt-in and does not add profiling overhead to normal builds.
+- Replaced duplicate-declaration checks that copied and searched the whole LLVM module with an exact declaration set. The runtime-library fixture's IR emission allocations fell from about 156 MB to 114 MB (about 27% fewer), while keeping the generated module verifiable.
 - Added a phase benchmark that reports elapsed time, per-thread allocations where the phase stays on one thread, GC collections, and emitted IR size. Allocation reporting marks asynchronous phases unavailable when an async continuation moves to another thread.
 
 These changes preserve the full generated IR text in the intermediate `.ll` file. Dead-code elimination currently happens during native object generation, after IR emission.

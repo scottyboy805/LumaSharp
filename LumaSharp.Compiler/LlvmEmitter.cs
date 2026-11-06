@@ -11,6 +11,10 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         .Concat(compilation.InterfaceTypes.Keys).Concat(compilation.DelegateTypes.Keys).ToHashSet(StringComparer.Ordinal);
     private HashSet<string>? _managedClassTypes;
     private readonly StringBuilder _output = new();
+    // Keep exact declarations and function names as they are emitted instead of
+    // repeatedly materializing and scanning the complete LLVM module text.
+    private readonly HashSet<string> _llvmDeclarations = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _llvmDeclaredFunctionNames = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<TryStatement, string> _exceptionCatchTableNames = BuildExceptionCatchTableNames(compilation);
     private readonly IReadOnlyDictionary<string, string> _typeInitializationFunctions = compilation.Methods
         .Where(method => method.IsTypeInitializer)
@@ -137,11 +141,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     {
         cancellationToken.ThrowIfCancellationRequested();
         _output.AppendLine("; LumaSharp native LLVM IR");
-        _output.AppendLine("declare void @llvm.trap()");
-        _output.AppendLine("declare float @llvm.trunc.f32(float)");
-        _output.AppendLine("declare double @llvm.trunc.f64(double)");
+        AppendDeclarationIfMissing("declare void @llvm.trap()");
+        AppendDeclarationIfMissing("declare float @llvm.trunc.f32(float)");
+        AppendDeclarationIfMissing("declare double @llvm.trunc.f64(double)");
         foreach (var width in new[] { 8, 16, 32, 64 }) foreach (var prefix in new[] { "s", "u" }) foreach (var op in new[] { "add", "sub", "mul" })
-            _output.AppendLine($"declare {{ i{width}, i1 }} @llvm.{prefix}{op}.with.overflow.i{width}(i{width}, i{width})");
+            AppendDeclarationIfMissing($"declare {{ i{width}, i1 }} @llvm.{prefix}{op}.with.overflow.i{width}(i{width}, i{width})");
         if (HasStringSupport() || compilation.UsesExceptionHandling || HasManagedClassSupport())
         {
             EmitStderrWriterRuntime();
@@ -389,9 +393,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         if (UsesWindowsCommandLineApi())
         {
-            _output.AppendLine("declare ptr @GetCommandLineW()");
-            _output.AppendLine("declare ptr @CommandLineToArgvW(ptr, ptr)");
-            _output.AppendLine("declare ptr @LocalFree(ptr)");
+            AppendDeclarationIfMissing("declare ptr @GetCommandLineW()");
+            AppendDeclarationIfMissing("declare ptr @CommandLineToArgvW(ptr, ptr)");
+            AppendDeclarationIfMissing("declare ptr @LocalFree(ptr)");
         }
         _output.AppendLine("define internal { i32, i32 } @luma_utf8_decode(ptr %source, i32 %index) {");
         _output.AppendLine("entry:");
@@ -710,7 +714,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
 
     private void EmitWindowsWideStringRuntime(string sizeType)
     {
-        _output.AppendLine("declare i32 @WideCharToMultiByte(i32, i32, ptr, i32, ptr, i32, ptr, ptr)");
+        AppendDeclarationIfMissing("declare i32 @WideCharToMultiByte(i32, i32, ptr, i32, ptr, i32, ptr, ptr)");
         _output.AppendLine("define internal ptr @luma_string_from_winwide(ptr %source) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  %needed = call i32 @WideCharToMultiByte(i32 65001, i32 0, ptr %source, i32 -1, ptr null, i32 0, ptr null, ptr null)");
@@ -1050,9 +1054,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         var sizeType = "i" + pointerBits;
         var writeName = windowsTarget ? "_write" : "write";
         if (windowsTarget)
-            _output.AppendLine("declare i32 @_write(i32, ptr, i32)");
+            AppendDeclarationIfMissing("declare i32 @_write(i32, ptr, i32)");
         else
-            _output.AppendLine($"declare {sizeType} @write(i32, ptr, {sizeType})");
+            AppendDeclarationIfMissing($"declare {sizeType} @write(i32, ptr, {sizeType})");
 
         _output.AppendLine("define internal void @luma_write_stderr(ptr %bytes, i32 %length) {");
         _output.AppendLine("entry:");
@@ -1113,7 +1117,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     {
         const string diagnostic = "LumaSharp fatal error: reference-count overflow\n";
         EmitUtf8CConstant("@luma_fatal_refcount_message", diagnostic);
-        _output.AppendLine("declare void @abort() noreturn");
+        AppendDeclarationIfMissing("declare void @abort() noreturn");
         _output.AppendLine("define internal void @luma_fatal_reference_count_overflow() noreturn {");
         _output.AppendLine("entry:");
         _output.AppendLine($"  call void @luma_write_stderr(ptr {ConstantPointer("@luma_fatal_refcount_message", diagnostic)}, i32 {Encoding.UTF8.GetByteCount(diagnostic)})");
@@ -1329,7 +1333,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var attribute = AbiAttribute(parameter.TypeName, compilation.EnumUnderlyingTypes);
             return attribute.Length == 0 ? llvmType : $"{llvmType} {attribute.Trim()}";
         });
-        _output.AppendLine($"declare {returnAttribute}{LlvmReturnType(declaration)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", parameters)})");
+        AppendDeclarationIfMissing($"declare {returnAttribute}{LlvmReturnType(declaration)} @{FunctionName(method, compilation.Methods)}({string.Join(", ", parameters)})");
     }
     private string LlvmReturnType(MethodDeclaration declaration) => declaration.ReturnsByRef ? "ptr" : LlvmType(declaration.ReturnType);
     private static string AbiAttribute(string type, IReadOnlyDictionary<string, string> enumTypes) => enumTypes.TryGetValue(type, out var underlying) ? AbiAttribute(underlying, enumTypes) : type switch
@@ -1471,8 +1475,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private void EmitArrayMemoryDeclarations()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
-        _output.AppendLine($"declare ptr @malloc({sizeType})");
-        _output.AppendLine("declare void @free(ptr)");
+        AppendDeclarationIfMissing($"declare ptr @malloc({sizeType})");
+        AppendDeclarationIfMissing("declare void @free(ptr)");
     }
     private void EmitManagedArrayRuntime()
     {
@@ -1811,9 +1815,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             compilation.EnumToStringCalls.Count > 0 || HasStringSupport() || EntryPointHasStringArguments() || needsBoxedPrimitiveStringification;
         var needsFloatingStringification = UsesFloatStringConversion() || needsBoxedPrimitiveStringification;
         string SizeCast(string result, string operand) => sizeType == "i64" ? $"  %{result} = zext i32 %{operand} to i64" : $"  %{result} = add i32 %{operand}, 0";
-        _output.AppendLine($"declare ptr @malloc({sizeType})");
-        _output.AppendLine("declare void @free(ptr)");
-        _output.AppendLine($"declare ptr @memcpy(ptr, ptr, {sizeType})");
+        AppendDeclarationIfMissing($"declare ptr @malloc({sizeType})");
+        AppendDeclarationIfMissing("declare void @free(ptr)");
+        AppendDeclarationIfMissing($"declare ptr @memcpy(ptr, ptr, {sizeType})");
         if (UsesWindowsCommandLineApi()) EmitWindowsWideStringRuntime(sizeType);
         _output.AppendLine("define internal void @luma_string_retain(ptr %input) {");
         _output.AppendLine("entry:");
@@ -2269,7 +2273,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         }
         if (needsFloatingStringification)
         {
-            _output.AppendLine($"declare i32 @snprintf(ptr, {sizeType}, ptr, ...)");
+            AppendDeclarationIfMissing($"declare i32 @snprintf(ptr, {sizeType}, ptr, ...)");
             _output.AppendLine($$"""
                 define internal ptr @luma_string_from_float(double %input, i1 %single) {
                 entry:

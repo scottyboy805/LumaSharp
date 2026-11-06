@@ -215,15 +215,15 @@ internal sealed partial class LlvmEmitter
 		AppendDeclarationIfMissing("declare void @free(ptr)");
 		var cc = compilation.NativePointerSize == 4 ? "x86_stdcallcc " : "";
 		var closeHandleCc = cc;
-		if (_output.ToString().Contains("@CloseHandle(", StringComparison.Ordinal))
+		if (HasDeclarationForFunction("CloseHandle"))
 			closeHandleCc = "";
-		_output.AppendLine($"declare {cc}ptr @CreateThread(ptr, {sizeType}, ptr, ptr, i32, ptr)");
-		_output.AppendLine($"declare {cc}i32 @WaitForSingleObject(ptr, i32)");
-		_output.AppendLine($"declare {cc}i32 @TerminateThread(ptr, i32)");
+		AppendDeclarationIfMissing($"declare {cc}ptr @CreateThread(ptr, {sizeType}, ptr, ptr, i32, ptr)");
+		AppendDeclarationIfMissing($"declare {cc}i32 @WaitForSingleObject(ptr, i32)");
+		AppendDeclarationIfMissing($"declare {cc}i32 @TerminateThread(ptr, i32)");
 		AppendDeclarationIfMissing($"declare {closeHandleCc}i32 @CloseHandle(ptr)");
 		if (!compilation.Methods.Any(method => method.Declaration.IsExtern && FunctionName(method, compilation.Methods) == "Sleep"))
 			AppendDeclarationIfMissing($"declare {cc}void @Sleep(i32)");
-		_output.AppendLine($"declare {cc}void @ExitThread(i32)");
+		AppendDeclarationIfMissing($"declare {cc}void @ExitThread(i32)");
 		EmitThreadStartFunction(sizeType, true);
 		_output.AppendLine($"define internal i1 @luma_thread_join({sizeType} %handle, i32 %timeout) {{");
 		_output.AppendLine("entry:");
@@ -280,12 +280,12 @@ internal sealed partial class LlvmEmitter
 	{
 		AppendDeclarationIfMissing($"declare ptr @malloc({sizeType})");
 		AppendDeclarationIfMissing("declare void @free(ptr)");
-		_output.AppendLine("declare i32 @pthread_create(ptr, ptr, ptr, ptr)");
-		_output.AppendLine($"declare i32 @pthread_join({sizeType}, ptr)");
-		_output.AppendLine($"declare i32 @pthread_cancel({sizeType})");
-		_output.AppendLine("declare i32 @pthread_setcanceltype(i32, ptr)");
-		_output.AppendLine("declare void @pthread_exit(ptr)");
-		_output.AppendLine("declare i32 @nanosleep(ptr, ptr)");
+		AppendDeclarationIfMissing("declare i32 @pthread_create(ptr, ptr, ptr, ptr)");
+		AppendDeclarationIfMissing($"declare i32 @pthread_join({sizeType}, ptr)");
+		AppendDeclarationIfMissing($"declare i32 @pthread_cancel({sizeType})");
+		AppendDeclarationIfMissing("declare i32 @pthread_setcanceltype(i32, ptr)");
+		AppendDeclarationIfMissing("declare void @pthread_exit(ptr)");
+		AppendDeclarationIfMissing("declare i32 @nanosleep(ptr, ptr)");
 		EmitThreadStartFunction(sizeType, false);
 		EmitPosixThreadJoin(sizeType);
 		_output.AppendLine($"define internal void @luma_thread_close({sizeType} %handle) {{");

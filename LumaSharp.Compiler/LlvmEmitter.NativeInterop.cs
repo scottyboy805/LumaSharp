@@ -15,7 +15,7 @@ internal sealed partial class LlvmEmitter
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
         AppendDeclarationIfMissing($"declare ptr @malloc({sizeType})");
-        _output.AppendLine($"declare ptr @calloc({sizeType}, {sizeType})");
+        AppendDeclarationIfMissing($"declare ptr @calloc({sizeType}, {sizeType})");
         AppendDeclarationIfMissing("declare void @free(ptr)");
         AppendDeclarationIfMissing($"declare void @llvm.memcpy.p0.p0.i{compilation.NativePointerSize * 8}(ptr, ptr, {sizeType}, i1)");
         AppendDeclarationIfMissing($"declare void @llvm.memmove.p0.p0.i{compilation.NativePointerSize * 8}(ptr, ptr, {sizeType}, i1)");
@@ -76,9 +76,9 @@ internal sealed partial class LlvmEmitter
     {
         if (UsesWindowsCommandLineApi())
         {
-            _output.AppendLine("declare ptr @LoadLibraryW(ptr)");
-            _output.AppendLine("declare ptr @GetProcAddress(ptr, ptr)");
-            _output.AppendLine("declare i32 @FreeLibrary(ptr)");
+            AppendDeclarationIfMissing("declare ptr @LoadLibraryW(ptr)");
+            AppendDeclarationIfMissing("declare ptr @GetProcAddress(ptr, ptr)");
+            AppendDeclarationIfMissing("declare i32 @FreeLibrary(ptr)");
             _output.AppendLine("define internal ptr @luma_interop_library_load(ptr %path) {");
             _output.AppendLine("entry:");
             _output.AppendLine("  %handle = call ptr @LoadLibraryW(ptr %path)");
@@ -111,9 +111,9 @@ internal sealed partial class LlvmEmitter
             return;
         }
 
-        _output.AppendLine("declare ptr @dlopen(ptr, i32)");
-        _output.AppendLine("declare ptr @dlsym(ptr, ptr)");
-        _output.AppendLine("declare i32 @dlclose(ptr)");
+        AppendDeclarationIfMissing("declare ptr @dlopen(ptr, i32)");
+        AppendDeclarationIfMissing("declare ptr @dlsym(ptr, ptr)");
+        AppendDeclarationIfMissing("declare i32 @dlclose(ptr)");
         AppendDeclarationIfMissing("declare void @free(ptr)");
         EmitPosixLibraryLoad();
         _output.AppendLine("define internal ptr @luma_interop_library_get_proc_address(ptr %handle, ptr %name) {");
@@ -161,7 +161,13 @@ internal sealed partial class LlvmEmitter
 
     private void AppendDeclarationIfMissing(string declaration)
     {
-        if (!_output.ToString().Contains(declaration, StringComparison.Ordinal))
-            _output.AppendLine(declaration);
+        if (!_llvmDeclarations.Add(declaration)) return;
+        var nameStart = declaration.IndexOf('@');
+        var nameEnd = nameStart < 0 ? -1 : declaration.IndexOf('(', nameStart + 1);
+        if (nameEnd > nameStart + 1)
+            _llvmDeclaredFunctionNames.Add(declaration[(nameStart + 1)..nameEnd]);
+        _output.AppendLine(declaration);
     }
+
+    private bool HasDeclarationForFunction(string name) => _llvmDeclaredFunctionNames.Contains(name);
 }
