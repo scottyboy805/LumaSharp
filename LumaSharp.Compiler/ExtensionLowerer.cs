@@ -263,6 +263,7 @@ internal static class ExtensionLowerer
         CastExpression cast => cast with { Operand = RewriteExpression(cast.Operand, members, locals) },
         BinaryExpression binary => binary with { Left = RewriteExpression(binary.Left, members, locals), Right = RewriteExpression(binary.Right, members, locals) },
         ConditionalExpression conditional => conditional with { Condition = RewriteExpression(conditional.Condition, members, locals), WhenTrue = RewriteExpression(conditional.WhenTrue, members, locals), WhenFalse = RewriteExpression(conditional.WhenFalse, members, locals) },
+        SwitchExpression selection => RewriteSwitchExpression(selection, members, locals),
         MemberAccessExpression access => access with { Receiver = RewriteExpression(access.Receiver, members, locals) },
         IndexExpression index => index with { Receiver = RewriteExpression(index.Receiver, members, locals), Indices = index.Indices.Select(value => RewriteExpression(value, members, locals)).ToArray() },
         CallExpression call => call with { Target = RewriteExpression(call.Target, members, locals), Arguments = call.Arguments.Select(value => RewriteExpression(value, members, locals)).ToArray() },
@@ -275,6 +276,31 @@ internal static class ExtensionLowerer
         OverflowContextExpression overflow => overflow with { Value = RewriteExpression(overflow.Value, members, locals) },
         _ => expression
     };
+
+    private static SwitchExpression RewriteSwitchExpression(SwitchExpression selection, HashSet<string> members, HashSet<string> locals)
+    {
+        var arms = selection.Arms.Select(arm =>
+        {
+            var armLocals = new HashSet<string>(locals, StringComparer.Ordinal);
+            AddPatternNames(arm.Pattern, armLocals);
+            var pattern = RewriteLabel(arm.Pattern, members, armLocals);
+            var result = RewriteExpression(arm.Result, members, armLocals);
+            return arm with
+            {
+                Pattern = pattern,
+                Result = result,
+                CaptureScope = new BlockStatement([new ExpressionStatement(result, result.Location)], result.Location)
+            };
+        }).ToArray();
+        return selection with { Value = RewriteExpression(selection.Value, members, locals), Arms = arms };
+    }
+
+    private static void AddPatternNames(SwitchLabel pattern, HashSet<string> names)
+    {
+        if (pattern.PatternVariableName is { } name) names.Add(name);
+        if (pattern.LeftPattern is not null) AddPatternNames(pattern.LeftPattern, names);
+        if (pattern.RightPattern is not null) AddPatternNames(pattern.RightPattern, names);
+    }
 
     private static SwitchLabel RewriteLabel(SwitchLabel label, HashSet<string> members, HashSet<string> locals) => label with
     {

@@ -787,6 +787,7 @@ Operands are evaluated **left to right**. Arguments are evaluated left to right 
 | `e.Name`, `e?.Name` | Member access; null-conditional access (§13.5). On a pointer `p.Name` dereferences automatically (§19.3) |
 | `e[i]`, `e[i, j]`, `e?[i]` | Element/indexer access |
 | `e(args)` | Method or delegate invocation |
+| `e switch { pattern [when guard] => result, … }` | Ordered pattern selection expression (§5.16) |
 | `await e` | Wait for a `Task` or `Task<T>` and produce its result (§7.10) |
 | `e!` | Null assertion (§13.4) |
 | `e++`, `e--` | Post-increment/-decrement |
@@ -1061,6 +1062,33 @@ The target type of `new()`/`scope()` MUST be a class (or, for the array form, an
 ## 5.15 Member Access on Nullable Types
 
 Members of a nullable type **cannot** be accessed unless the compiler can prove the value is non-null at that point (§13.5). The null-assertion operator `e!` subverts the compile-time check and inserts a runtime check instead (§13.4).
+
+## 5.16 `switch` expressions
+
+A switch expression selects and evaluates one result expression based on a value and the same patterns used by a `switch` statement (§6.8):
+
+```lumasharp
+Orientation ToOrientation(Direction direction) => direction switch
+{
+    Direction.Up    => Orientation.North,
+    Direction.Right => Orientation.East,
+    Direction.Down  => Orientation.South,
+    Direction.Left  => Orientation.West,
+};
+
+string Describe(object value) => value switch
+{
+    string text when text.Length > 0 => text,
+    null => "nothing",
+    _ => "other",
+};
+```
+
+The governing expression is evaluated exactly once. Arms are tested in textual order. An arm consists of a pattern, an optional `when` guard, `=>`, and a value expression. A guard is evaluated only after its pattern matches; the result expression is evaluated only for the first matching arm whose guard is true. No later arm is evaluated. Pattern-variable scope and the validity of combined-pattern bindings are the same as for switch sections (§6.8); an arm's variables are available in its guard and result, but not in another arm or after the switch expression.
+
+A switch expression MUST have at least one arm (error LS0624). The result type is the best common type of the arm results, including implicit numeric promotions, reference common types, and nullable results. When an enclosing context supplies a target type, each arm may instead be converted to that target type. Every arm MUST produce a value and be convertible to the result type; `void` arms or incompatible result types are errors. Arm expressions can contain nested switch expressions and ordinary expression forms. LumaSharp does not currently support C# throw expressions (`throw e`) inside an arm; use a method that throws or a statement `switch` when an arm must throw.
+
+The compiler reports an unreachable or subsumed arm using LS0622. It proves exhaustiveness for finite domains and integral domains covered by unconditional patterns when it can do so. An unguarded discard or default pattern is exhaustive. If exhaustiveness cannot be proven, the compiler emits warning LS3003; this warning does not prevent compilation. If no arm matches at runtime, evaluation throws a catchable `System.InvalidOperationException`.
 
 ---
 
@@ -4047,6 +4075,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 | LS0610 | `break`/`continue`/`return` leaving a `finally` block or crossing a lambda boundary |
 | LS0620 | Empty `switch` section (§6.8) |
 | LS0622 | Switch label subsumed by an earlier label |
+| LS0624 | Switch expression has no arms (§5.16) |
 | LS0630 | Not all code paths return a value |
 | LS0640 | Ambiguous `IEnumerable<T>` in a `for`-in loop (§6.6) |
 | LS0701 | Escape of a scope-bound reference or `scope` parameter (§14.5, §14.7) |
@@ -4103,6 +4132,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 |---|---|
 | LS3001 | Unreachable code |
 | LS3002 | Member hides an inherited non-virtual member |
+| LS3003 | Switch expression exhaustiveness cannot be proven; unmatched evaluation throws (§5.16) |
 | LS3101 | `is` test whose result is a compile-time constant |
 | LS3103 | `!` applied to a value already known to be non-null |
 | LS3104 | Non-nullable reference compared with `null`; comparison is constant |
@@ -5093,7 +5123,9 @@ postfix            = primary { "." identifier [ type_args ]      (* also auto-de
                              | "?." identifier [ type_args ]
                              | "[" arguments "]" | "?[" arguments "]"
                              | "(" [ arguments ] ")"
+                             | "switch" "{" [ switch_expression_arm { "," switch_expression_arm } [ "," ] ] "}"
                              | "!" | "++" | "--" } ;
+switch_expression_arm = pattern [ "when" expression ] "=>" expression ;
 primary            = "nameof" "(" expression ")" | "typeof" "(" type ")"
                    | literal | identifier [ type_args ] | "this" | "async" | "base" "." identifier
                    | "base" "[" arguments "]" | "(" expression ")"
@@ -5144,7 +5176,7 @@ From **highest** to **lowest** precedence. Binary operators are left-associative
 
 | # | Category | Operators |
 |---|---|---|
-| 1 | Primary | `x.y`  `x?.y`  `x[i]`  `x?[i]`  `f(x)`  `x!`  `x++`  `x--`  `new`  `scope`  `default`  `sizeof`  `checked()`  `unchecked()` |
+| 1 | Primary / postfix | `x.y`  `x?.y`  `x[i]`  `x?[i]`  `f(x)`  `x switch { … }`  `x!`  `x++`  `x--`  `new`  `scope`  `default`  `sizeof`  `checked()`  `unchecked()` |
 | 2 | Unary (right-assoc.) | `+x`  `-x`  `!x`  `~x`  `++x`  `--x`  `&x`  `*x`  `await x`  `(T)x` |
 | 3 | Multiplicative | `*`  `/`  `%` |
 | 4 | Additive | `+`  `-` |

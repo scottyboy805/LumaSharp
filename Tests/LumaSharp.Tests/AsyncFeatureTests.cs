@@ -730,6 +730,17 @@ class Program
         Assert.Contains(invalidContext.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
     }
 
+    [Fact]
+    public async Task SwitchExpressionsCanContainAwaitInAsyncArms()
+    {
+        const string source = "using System.Threading; class Program { public static int32 Main() { Task<int32> task = Select(true); return task.Result == 42 ? 0 : 1; } public static async int32 Select(bool value) { return value switch { true => await GetValue(), false => -1 }; } public static async int32 GetValue() { return 42; } }";
+        var execution = await BuildAndRunNativeAsync(source, "SwitchExpressionAsyncArm");
+
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Empty(execution.StandardError);
+        Assert.Contains("switch.expr.arm", execution.LlvmIr);
+    }
+
     private static CompilationResult CompileWithRuntime(string source, string path)
     {
         var runtimeRoot = FindRuntimeRoot();

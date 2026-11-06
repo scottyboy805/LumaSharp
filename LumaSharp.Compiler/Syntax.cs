@@ -54,6 +54,15 @@ public sealed record SwitchSection(IReadOnlyList<SwitchLabel> Labels, IReadOnlyL
     public BlockStatement CaptureScope { get; init; } = new(Statements, At);
 }
 public sealed record SwitchStatement(Expression Value, IReadOnlyList<SwitchSection> Sections, SourceLocation At) : Statement(At);
+public sealed record SwitchExpressionArm(SwitchLabel Pattern, Expression Result, SourceLocation At)
+{
+    public BlockStatement CaptureScope { get; init; } = new([], At);
+}
+public sealed record SwitchExpression(Expression Value, IReadOnlyList<SwitchExpressionArm> Arms, SourceLocation At) : Expression(At)
+{
+    public string? ResultType { get; set; }
+    public bool IsExhaustive { get; set; }
+}
 public sealed record CatchClause(string? TypeName, string? VariableName, bool IsCatchAll, BlockStatement Body, SourceLocation At);
 public sealed record TryStatement(BlockStatement Body, IReadOnlyList<CatchClause> Catches, BlockStatement? Finally, SourceLocation At) : Statement(At);
 public sealed record ThrowStatement(Expression? Value, SourceLocation At) : Statement(At);

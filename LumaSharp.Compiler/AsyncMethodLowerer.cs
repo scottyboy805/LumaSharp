@@ -389,6 +389,39 @@ internal static class AsyncMethodLowerer
             }
         }
 
+        static IEnumerable<string> GetSwitchPatternVariableNames(SwitchLabel pattern)
+        {
+            if (pattern.PatternVariableName is { } name) yield return name;
+            if (pattern.LeftPattern is not null)
+                foreach (var nested in GetSwitchPatternVariableNames(pattern.LeftPattern)) yield return nested;
+            if (pattern.RightPattern is not null)
+                foreach (var nested in GetSwitchPatternVariableNames(pattern.RightPattern)) yield return nested;
+        }
+
+        SwitchExpression RewriteSwitchExpression(SwitchExpression selection, bool inAsyncMethod)
+        {
+            var value = RewriteExpression(selection.Value, inAsyncMethod);
+            var arms = selection.Arms.Select(arm =>
+            {
+                var previousShadows = currentAsyncContextShadows;
+                currentAsyncContextShadows = new HashSet<string>(previousShadows, StringComparer.Ordinal);
+                try
+                {
+                    currentAsyncContextShadows.UnionWith(GetSwitchPatternVariableNames(arm.Pattern));
+                    var pattern = arm.Pattern with
+                    {
+                        Value = RewriteOptional(arm.Pattern.Value, inAsyncMethod),
+                        Guard = RewriteOptional(arm.Pattern.Guard, inAsyncMethod)
+                    };
+                    var result = RewriteExpression(arm.Result, inAsyncMethod);
+                    var captureScope = new BlockStatement([new ExpressionStatement(result, result.Location)], result.Location);
+                    return arm with { Pattern = pattern, Result = result, CaptureScope = captureScope };
+                }
+                finally { currentAsyncContextShadows = previousShadows; }
+            }).ToArray();
+            return selection with { Value = value, Arms = arms };
+        }
+
         Statement RewriteStatement(Statement statement, bool inAsyncMethod) => statement switch
         {
             BlockStatement block => RewriteBlock(block, inAsyncMethod),
@@ -545,6 +578,7 @@ internal static class AsyncMethodLowerer
             CastExpression cast => cast with { Operand = RewriteExpression(cast.Operand, inAsyncMethod) },
             BinaryExpression binary => RewriteBinary(binary, inAsyncMethod),
             ConditionalExpression conditional => RewriteConditional(conditional, inAsyncMethod),
+            SwitchExpression selection => RewriteSwitchExpression(selection, inAsyncMethod),
             MemberAccessExpression member => member with { Receiver = RewriteExpression(member.Receiver, inAsyncMethod) },
             IndexExpression index => index with
             {
@@ -672,6 +706,8 @@ internal static class AsyncMethodLowerer
         CastExpression cast => ContainsAwait(cast.Operand),
         BinaryExpression binary => ContainsAwait(binary.Left) || ContainsAwait(binary.Right),
         ConditionalExpression conditional => ContainsAwait(conditional.Condition) || ContainsAwait(conditional.WhenTrue) || ContainsAwait(conditional.WhenFalse),
+        SwitchExpression selection => ContainsAwait(selection.Value) || selection.Arms.Any(arm =>
+            arm.Pattern.Value is not null && ContainsAwait(arm.Pattern.Value) || arm.Pattern.Guard is not null && ContainsAwait(arm.Pattern.Guard) || ContainsAwait(arm.Result)),
         MemberAccessExpression member => ContainsAwait(member.Receiver),
         IndexExpression index => ContainsAwait(index.Receiver) || index.Indices.Any(ContainsAwait),
         CallExpression call => ContainsAwait(call.Target) || call.Arguments.Any(ContainsAwait),

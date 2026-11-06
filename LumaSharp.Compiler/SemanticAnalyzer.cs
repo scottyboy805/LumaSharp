@@ -447,6 +447,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CallExpression call => call.Target is MemberAccessExpression { Member: "GetLength" or "New" or "GetType" } || call.Arguments.Any(ExpressionMayRaise) || ExpressionMayRaise(call.Target),
         MemberAccessExpression member => ExpressionMayRaise(member.Receiver),
         ConditionalExpression conditional => ExpressionMayRaise(conditional.Condition) || ExpressionMayRaise(conditional.WhenTrue) || ExpressionMayRaise(conditional.WhenFalse),
+        SwitchExpression => true,
         InlineArrayInitializerExpression initializer => initializer.Elements.Any(ExpressionMayRaise),
         OverflowContextExpression overflow => ExpressionMayRaise(overflow.Value),
         _ => false
@@ -502,6 +503,16 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             foreach (var expression in SwitchPatternExpressions(pattern.RightPattern)) yield return expression;
     }
 
+    private static IEnumerable<Expression> SwitchExpressionExpressions(SwitchExpression expression)
+    {
+        yield return expression.Value;
+        foreach (var arm in expression.Arms)
+        {
+            foreach (var item in SwitchPatternExpressions(arm.Pattern)) yield return item;
+            yield return arm.Result;
+        }
+    }
+
     private static bool ExpressionReferencesExceptionType(Expression expression) => expression switch
     {
         AllocationExpression allocation => allocation.TypeName is not null && IsBuiltinExceptionName(allocation.TypeName) || allocation.ConstructorArguments?.Any(ExpressionReferencesExceptionType) == true || allocation.Dimensions.Any(ExpressionReferencesExceptionType),
@@ -513,6 +524,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         IndexExpression index => ExpressionReferencesExceptionType(index.Receiver) || index.Indices.Any(ExpressionReferencesExceptionType),
         UnaryExpression unary => ExpressionReferencesExceptionType(unary.Operand),
         ConditionalExpression conditional => ExpressionReferencesExceptionType(conditional.Condition) || ExpressionReferencesExceptionType(conditional.WhenTrue) || ExpressionReferencesExceptionType(conditional.WhenFalse),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(ExpressionReferencesExceptionType),
         InlineArrayInitializerExpression initializer => initializer.Elements.Any(ExpressionReferencesExceptionType),
         NullAssertionExpression assertion => ExpressionReferencesExceptionType(assertion.Operand),
         OverflowContextExpression overflow => ExpressionReferencesExceptionType(overflow.Value),
@@ -1163,6 +1175,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     VisitExpression(conditional.WhenTrue, method, scopes);
                     VisitExpression(conditional.WhenFalse, method, scopes);
                     break;
+                case SwitchExpression selection:
+                    VisitExpression(selection.Value, method, scopes);
+                    foreach (var arm in selection.Arms)
+                    {
+                        foreach (var patternExpression in SwitchPatternExpressions(arm.Pattern)) VisitExpression(patternExpression, method, scopes);
+                        VisitExpression(arm.Result, method, scopes);
+                    }
+                    break;
                 case NullAssertionExpression assertion:
                     VisitExpression(assertion.Operand, method, scopes);
                     break;
@@ -1191,6 +1211,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             CastExpression cast => IsPotentialScopeBound(cast.Operand, method, scopes),
             OverflowContextExpression overflow => IsPotentialScopeBound(overflow.Value, method, scopes),
             ConditionalExpression conditional => IsPotentialScopeBound(conditional.WhenTrue, method, scopes) || IsPotentialScopeBound(conditional.WhenFalse, method, scopes),
+            SwitchExpression selection => selection.Arms.Any(arm => IsPotentialScopeBound(arm.Result, method, scopes)),
             BinaryExpression { Operator: "??" } coalesce => IsPotentialScopeBound(coalesce.Left, method, scopes) || IsPotentialScopeBound(coalesce.Right, method, scopes),
             _ => false
         };
@@ -1218,6 +1239,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 NullAssertionExpression assertion => GetStaticType(assertion.Operand, method, scopes),
                 CastExpression cast => NormalizeEnumType(cast.TypeName, method.Owner),
                 ConditionalExpression conditional => GetStaticType(conditional.WhenTrue, method, scopes) ?? GetStaticType(conditional.WhenFalse, method, scopes),
+                SwitchExpression selection => selection.Arms.Select(arm => GetStaticType(arm.Result, method, scopes)).FirstOrDefault(type => type is not null),
                 _ => null
             };
         }
@@ -2182,6 +2204,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             case UnaryExpression unary: BindTypeExpressions(unary.Operand, context); break;
             case BinaryExpression binary: BindTypeExpressions(binary.Left, context); BindTypeExpressions(binary.Right, context); break;
             case ConditionalExpression conditional: BindTypeExpressions(conditional.Condition, context); BindTypeExpressions(conditional.WhenTrue, context); BindTypeExpressions(conditional.WhenFalse, context); break;
+            case SwitchExpression selection:
+                BindTypeExpressions(selection.Value, context);
+                foreach (var arm in selection.Arms)
+                {
+                    foreach (var patternExpression in SwitchPatternExpressions(arm.Pattern)) BindTypeExpressions(patternExpression, context);
+                    BindTypeExpressions(arm.Result, context);
+                }
+                break;
             case OverflowContextExpression overflow: BindTypeExpressions(overflow.Value, context); break;
         }
     }
@@ -2264,6 +2294,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => ValidateConstantStringLiterals(cast.Operand, owner),
         BinaryExpression binary => ValidateConstantStringLiterals(binary.Left, owner) && ValidateConstantStringLiterals(binary.Right, owner),
         ConditionalExpression conditional => ValidateConstantStringLiterals(conditional.Condition, owner) && ValidateConstantStringLiterals(conditional.WhenTrue, owner) && ValidateConstantStringLiterals(conditional.WhenFalse, owner),
+        SwitchExpression selection => ValidateConstantStringLiterals(selection.Value, owner) && selection.Arms.All(arm =>
+            SwitchPatternExpressions(arm.Pattern).All(item => ValidateConstantStringLiterals(item, owner)) && ValidateConstantStringLiterals(arm.Result, owner)),
         OverflowContextExpression overflow => ValidateConstantStringLiterals(overflow.Value, owner),
         _ => true
     };
@@ -3876,6 +3908,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => ContainsScopeAllocation(cast.Operand),
         NullAssertionExpression assertion => ContainsScopeAllocation(assertion.Operand),
         ConditionalExpression conditional => ContainsScopeAllocation(conditional.Condition) || ContainsScopeAllocation(conditional.WhenTrue) || ContainsScopeAllocation(conditional.WhenFalse),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(ContainsScopeAllocation),
         OverflowContextExpression overflow => ContainsScopeAllocation(overflow.Value),
         InlineArrayInitializerExpression initializer => initializer.Elements.Any(ContainsScopeAllocation),
         _ => false
@@ -4241,6 +4274,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => ContainsThisReference(cast.Operand),
         BinaryExpression binary => ContainsThisReference(binary.Left) || ContainsThisReference(binary.Right),
         ConditionalExpression conditional => ContainsThisReference(conditional.Condition) || ContainsThisReference(conditional.WhenTrue) || ContainsThisReference(conditional.WhenFalse),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(ContainsThisReference),
         MemberAccessExpression member => ContainsThisReference(member.Receiver),
         IndexExpression index => ContainsThisReference(index.Receiver) || index.Indices.Any(ContainsThisReference),
         CallExpression call => ContainsThisReference(call.Target) || call.Arguments.Any(ContainsThisReference),
@@ -4372,6 +4406,25 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         trueState.IntersectWith(falseState);
                         assigned.IntersectWith(trueState);
                         assigned.UnionWith(trueState);
+                        break;
+                    case SwitchExpression selection:
+                        CheckExpression(selection.Value, assigned);
+                        var armStates = new List<HashSet<string>>();
+                        foreach (var arm in selection.Arms)
+                        {
+                            var armState = new HashSet<string>(assigned, StringComparer.Ordinal);
+                            foreach (var patternExpression in SwitchPatternExpressions(arm.Pattern)) CheckExpression(patternExpression, armState);
+                            CheckExpression(arm.Result, armState);
+                            armStates.Add(armState);
+                        }
+                        if (!selection.IsExhaustive) armStates.Add(new HashSet<string>(assigned, StringComparer.Ordinal));
+                        if (armStates.Count > 0)
+                        {
+                            var commonState = armStates[0];
+                            foreach (var armState in armStates.Skip(1)) commonState.IntersectWith(armState);
+                            assigned.IntersectWith(commonState);
+                            assigned.UnionWith(commonState);
+                        }
                         break;
                     case IndexExpression index:
                         CheckExpression(index.Receiver, assigned);
@@ -4554,6 +4607,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     break;
                 case CastExpression cast: CheckExpression(cast.Operand); break;
                 case ConditionalExpression conditional: CheckExpression(conditional.Condition); CheckExpression(conditional.WhenTrue); CheckExpression(conditional.WhenFalse); break;
+                case SwitchExpression selection:
+                    foreach (var item in SwitchExpressionExpressions(selection)) CheckExpression(item);
+                    break;
                 case IndexExpression index:
                     if (index.Receiver is not ThisExpression) CheckExpression(index.Receiver);
                     foreach (var subscript in index.Indices) CheckExpression(subscript);
@@ -4636,6 +4692,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             CastExpression cast => ExpressionContainsCapture(cast.Operand),
             BinaryExpression binary => ExpressionContainsCapture(binary.Left) || ExpressionContainsCapture(binary.Right),
             ConditionalExpression conditional => ExpressionContainsCapture(conditional.Condition) || ExpressionContainsCapture(conditional.WhenTrue) || ExpressionContainsCapture(conditional.WhenFalse),
+            SwitchExpression selection => SwitchExpressionExpressions(selection).Any(ExpressionContainsCapture),
             MemberAccessExpression member => ExpressionContainsCapture(member.Receiver),
             IndexExpression index => ExpressionContainsCapture(index.Receiver) || index.Indices.Any(ExpressionContainsCapture),
             CallExpression call => ExpressionContainsCapture(call.Target) || call.Arguments.Any(ExpressionContainsCapture),
@@ -4744,6 +4801,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             case CastExpression cast: return ExpressionContainsThis(cast.Operand, receiverType, visiting);
             case NullAssertionExpression assertion: return ExpressionContainsThis(assertion.Operand, receiverType, visiting);
             case ConditionalExpression conditional: return ExpressionContainsThis(conditional.Condition, receiverType, visiting) || ExpressionContainsThis(conditional.WhenTrue, receiverType, visiting) || ExpressionContainsThis(conditional.WhenFalse, receiverType, visiting);
+            case SwitchExpression selection: return SwitchExpressionExpressions(selection).Any(item => ExpressionContainsThis(item, receiverType, visiting));
             case OverflowContextExpression overflow: return ExpressionContainsThis(overflow.Value, receiverType, visiting);
             case AllocationExpression allocation: return (allocation.ConstructorArguments ?? []).Any(argument => ExpressionContainsThis(argument, receiverType, visiting)) || allocation.Initializer is not null && allocation.Initializer.Elements.Any(element => ExpressionContainsThis(element, receiverType, visiting));
             case InlineArrayInitializerExpression initializer: return initializer.Elements.Any(element => ExpressionContainsThis(element, receiverType, visiting));
@@ -5242,6 +5300,30 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 var trueState = new HashSet<string>(baseState, StringComparer.Ordinal); var falseState = new HashSet<string>(baseState, StringComparer.Ordinal);
                 AnalyzeOutFlowExpression(conditional.WhenTrue, trueState, outParameters); AnalyzeOutFlowExpression(conditional.WhenFalse, falseState, outParameters);
                 trueState.IntersectWith(falseState); assigned.Clear(); assigned.UnionWith(trueState); break;
+            case SwitchExpression selection:
+                AnalyzeOutFlowExpression(selection.Value, assigned, outParameters);
+                var switchBaseState = new HashSet<string>(assigned, StringComparer.Ordinal);
+                var switchArmStates = new List<HashSet<string>>();
+                foreach (var arm in selection.Arms)
+                {
+                    var armState = new HashSet<string>(switchBaseState, StringComparer.Ordinal);
+                    foreach (var patternExpression in SwitchPatternExpressions(arm.Pattern))
+                        AnalyzeOutFlowExpression(patternExpression, armState, outParameters);
+                    AnalyzeOutFlowExpression(arm.Result, armState, outParameters);
+                    switchArmStates.Add(armState);
+                }
+                if (!selection.IsExhaustive)
+                {
+                    switchArmStates.Add(switchBaseState);
+                    RecordOutFlowException(switchBaseState, "System.InvalidOperationException");
+                }
+                if (switchArmStates.Count > 0)
+                {
+                    var mergedSwitchState = MergeOutAssignmentPaths(switchArmStates);
+                    assigned.Clear();
+                    assigned.UnionWith(mergedSwitchState);
+                }
+                break;
             case MemberAccessExpression member:
                 AnalyzeOutFlowExpression(member.Receiver, assigned, outParameters);
                 RecordOutFlowException(assigned);
@@ -6209,7 +6291,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         return elementTypes.Length > 0;
     }
 
-    private void AnalyzeSwitch(SwitchStatement statement, MethodContext context)
+    private void AnalyzeSwitch(SwitchStatement statement, MethodContext context,
+        Action<ExpressionStatement, string>? expressionResult = null, string? expectedExpressionType = null)
     {
         var switchType = AnalyzeExpression(statement.Value, context);
         var supportsReferenceOrNullablePatterns = IsNullableType(switchType) || IsClassType(switchType) || IsInterfaceType(switchType) || IsDelegateType(switchType) || IsNullableClassType(switchType) || IsManagedArrayReferenceType(switchType);
@@ -6293,6 +6376,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 }
             }
         }
+        if (unconditionalCatchAll) _exhaustiveSwitches.Add(statement);
         if (governingReference is not null && (IsClassType(governingReference) || IsInterfaceType(governingReference) || IsDelegateType(governingReference) || IsManagedArrayReferenceType(governingReference) || governingReference == "string"))
         {
             var unguardedLabels = statement.Sections.SelectMany(section => section.Labels).Where(label => label.Guard is null).ToArray();
@@ -6340,11 +6424,110 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (context.Exists(variableName)) diagnostics.Add("LS0201", DiagnosticSeverity.Error, $"Pattern variable '{variableName}' conflicts with an existing name in the current context.", section.At);
                 else context.Declare(variableName, variableType, mutable: false, section.At, blockOwner: section.CaptureScope);
             }
-            foreach (var child in section.Statements) AnalyzeStatement(child, context);
+            foreach (var child in section.Statements)
+            {
+                if (expressionResult is not null && child is ExpressionStatement expressionStatement)
+                    expressionResult(expressionStatement, AnalyzeExpression(expressionStatement.Value, context, expectedExpressionType));
+                else AnalyzeStatement(child, context);
+            }
             context.Pop();
             context.ExitCaptureBlock(section.CaptureScope);
         }
         context.SwitchDepth--;
+    }
+
+    private string AnalyzeSwitchExpression(SwitchExpression expression, MethodContext context, string? expectedType)
+    {
+        var sections = expression.Arms.Select(arm => new SwitchSection(
+            [arm.Pattern], [new ExpressionStatement(arm.Result, arm.Result.Location)], arm.At)
+        {
+            CaptureScope = arm.CaptureScope
+        }).ToArray();
+        var analyzedSwitch = new SwitchStatement(expression.Value, sections, expression.Location);
+        var resultTypes = new List<string>(expression.Arms.Count);
+        AnalyzeSwitch(analyzedSwitch, context, (_, resultType) => resultTypes.Add(resultType), expectedType);
+        expression.IsExhaustive = _exhaustiveSwitches.Contains(analyzedSwitch);
+        if (!expression.IsExhaustive)
+            diagnostics.Add("LS3003", DiagnosticSeverity.Warning,
+                "The switch expression is not exhaustive; evaluation throws System.InvalidOperationException if no arm matches.", expression.Location);
+
+        if (resultTypes.Count == 0)
+        {
+            expression.ResultType = "?";
+            return "?";
+        }
+
+        string? result = null;
+        if (expectedType is not null && expectedType != "void" && resultTypes.Select((type, index) =>
+                CanConvert(type, expectedType, expression.Arms[index].Result)).All(convertible => convertible))
+            result = expectedType;
+
+        if (result is null)
+        {
+            result = resultTypes[0];
+            for (var index = 1; index < resultTypes.Count; index++)
+            {
+                var leftExpression = expression.Arms[index - 1].Result;
+                if (TryGetCommonSwitchResultType(result, leftExpression, resultTypes[index],
+                        expression.Arms[index].Result, context, out var common))
+                    result = common;
+                else
+                {
+                    result = "?";
+                    diagnostics.Add("LMC3010", DiagnosticSeverity.Error,
+                        "Switch expression arms must have a common supported type.", expression.Arms[index].At);
+                    break;
+                }
+            }
+        }
+
+        if (result == "void")
+        {
+            diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "A switch expression arm must produce a value.", expression.Location);
+            result = "?";
+        }
+        expression.ResultType = result;
+        return result;
+    }
+
+    private bool TryGetCommonSwitchResultType(string leftType, Expression leftExpression, string rightType,
+        Expression rightExpression, MethodContext context, out string commonType)
+    {
+        if (leftType == rightType) { commonType = leftType; return true; }
+        if (leftType == "null" && (IsNullableType(rightType) || IsManagedReferenceValue(rightType) || IsNullableValuePayloadType(rightType)))
+        { commonType = NullableUnderlyingType(rightType) + "?"; return true; }
+        if (rightType == "null" && (IsNullableType(leftType) || IsManagedReferenceValue(leftType) || IsNullableValuePayloadType(leftType)))
+        { commonType = NullableUnderlyingType(leftType) + "?"; return true; }
+        if (IsStringType(leftType) && IsStringType(rightType))
+        { commonType = IsNullableStringType(leftType) || IsNullableStringType(rightType) ? "string?" : "string"; return true; }
+        if (leftType == "null" && IsStringType(rightType) || rightType == "null" && IsStringType(leftType))
+        { commonType = "string?"; return true; }
+        if (NullableUnderlyingType(leftType) == NullableUnderlyingType(rightType) &&
+            (IsNullableType(leftType) || IsNullableType(rightType)))
+        { commonType = NullableUnderlyingType(leftType) + "?"; return true; }
+        if (TryFindConditionalNumericCommonType(leftType, leftExpression, rightType, rightExpression, out commonType)) return true;
+        if (IsGenericInferenceReferenceType(leftType) && IsGenericInferenceReferenceType(rightType))
+        {
+            var leftNonNull = IsDefinitelyNotNull(leftExpression, leftType, context);
+            var rightNonNull = IsDefinitelyNotNull(rightExpression, rightType, context);
+            var leftUnderlying = NormalizeEnumType(NullableUnderlyingType(leftType), context.Method.Owner);
+            var rightUnderlying = NormalizeEnumType(NullableUnderlyingType(rightType), context.Method.Owner);
+            var common = GetClassChain(leftUnderlying).FirstOrDefault(candidate =>
+                candidate == rightUnderlying || IsBaseClassOf(candidate, rightUnderlying));
+            if (common == "System.Object") common = null;
+            common ??= TryFindCommonReferenceInferenceType(leftType, rightType, context.Method.Owner, out var inferredReference)
+                ? NullableUnderlyingType(inferredReference)
+                : null;
+            if (common is not null)
+            {
+                commonType = leftNonNull && rightNonNull || IsNullableReferenceInferenceType(common)
+                    ? common
+                    : common + "?";
+                return true;
+            }
+        }
+        commonType = "?";
+        return false;
     }
 
     private bool IsFiniteSwitchDomainExhaustive(string switchType, HashSet<string> unconditionalLiteralKeys,
@@ -7840,6 +8023,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 return targetType;
             case BinaryExpression binary:
                 return AnalyzeBinary(binary, context);
+            case SwitchExpression selection:
+                return AnalyzeSwitchExpression(selection, context, expectedType);
             case ConditionalExpression conditional:
                 RequireBool(conditional.Condition, context);
                 var knownConditional = GetKnownBoolean(conditional.Condition);
@@ -9472,6 +9657,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         OverflowContextExpression overflow => GetScopeBoundDepth(overflow.Value, context),
         ConditionalExpression conditional => ShortestScopeLifetime(
             GetScopeBoundDepth(conditional.WhenTrue, context), GetScopeBoundDepth(conditional.WhenFalse, context)),
+        SwitchExpression selection => selection.Arms.Select(arm => GetScopeBoundDepth(arm.Result, context))
+            .Aggregate((int?)null, ShortestScopeLifetime),
         BinaryExpression { Operator: "??" } coalesce => ShortestScopeLifetime(
             GetScopeBoundDepth(coalesce.Left, context), GetScopeBoundDepth(coalesce.Right, context)),
         _ => null
@@ -9489,6 +9676,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             OverflowContextExpression overflow => GetScopeBoundOrBorrowedDepth(overflow.Value, context),
             ConditionalExpression conditional => LaterScopeOrder(
                 GetScopeBoundOrBorrowedDepth(conditional.WhenTrue, context), GetScopeBoundOrBorrowedDepth(conditional.WhenFalse, context)),
+            SwitchExpression selection => selection.Arms.Select(arm => GetScopeBoundOrBorrowedDepth(arm.Result, context))
+                .Aggregate((int?)null, LaterScopeOrder),
             BinaryExpression { Operator: "??" } coalesce => LaterScopeOrder(
                 GetScopeBoundOrBorrowedDepth(coalesce.Left, context), GetScopeBoundOrBorrowedDepth(coalesce.Right, context)),
             _ => null
@@ -9518,6 +9707,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         OverflowContextExpression overflow => GetScopeBoundOrder(overflow.Value, context),
         ConditionalExpression conditional => LaterScopeOrder(
             GetScopeBoundOrder(conditional.WhenTrue, context), GetScopeBoundOrder(conditional.WhenFalse, context)),
+        SwitchExpression selection => selection.Arms.Select(arm => GetScopeBoundOrder(arm.Result, context))
+            .Aggregate((int?)null, LaterScopeOrder),
         BinaryExpression { Operator: "??" } coalesce => LaterScopeOrder(
             GetScopeBoundOrder(coalesce.Left, context), GetScopeBoundOrder(coalesce.Right, context)),
         _ => null
@@ -9547,6 +9738,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => IsReadOnlyReferenceExpression(cast.Operand, context),
         OverflowContextExpression overflow => IsReadOnlyReferenceExpression(overflow.Value, context),
         ConditionalExpression conditional => IsReadOnlyReferenceExpression(conditional.WhenTrue, context) || IsReadOnlyReferenceExpression(conditional.WhenFalse, context),
+        SwitchExpression selection => selection.Arms.Any(arm => IsReadOnlyReferenceExpression(arm.Result, context)),
         BinaryExpression { Operator: "??" } coalesce => IsReadOnlyReferenceExpression(coalesce.Left, context) || IsReadOnlyReferenceExpression(coalesce.Right, context),
         _ => false
     };
@@ -9558,6 +9750,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => IsScopedParameterExpression(cast.Operand, context),
         OverflowContextExpression overflow => IsScopedParameterExpression(overflow.Value, context),
         ConditionalExpression conditional => IsScopedParameterExpression(conditional.WhenTrue, context) || IsScopedParameterExpression(conditional.WhenFalse, context),
+        SwitchExpression selection => selection.Arms.Any(arm => IsScopedParameterExpression(arm.Result, context)),
         BinaryExpression { Operator: "??" } coalesce => IsScopedParameterExpression(coalesce.Left, context) || IsScopedParameterExpression(coalesce.Right, context),
         _ => false
     };
@@ -10478,6 +10671,32 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 capturedName, location);
         }
 
+        static IEnumerable<string> PatternNames(SwitchLabel pattern)
+        {
+            if (pattern.PatternVariableName is { } name) yield return name;
+            if (pattern.LeftPattern is not null)
+                foreach (var nested in PatternNames(pattern.LeftPattern)) yield return nested;
+            if (pattern.RightPattern is not null)
+                foreach (var nested in PatternNames(pattern.RightPattern)) yield return nested;
+        }
+
+        SwitchExpression RewriteSwitchExpression(SwitchExpression selection)
+        {
+            var arms = selection.Arms.Select(arm =>
+            {
+                var addedNames = PatternNames(arm.Pattern).Where(shadowed.Add).ToArray();
+                try
+                {
+                    return arm with { Pattern = RewriteLabel(arm.Pattern), Result = RewriteExpression(arm.Result) };
+                }
+                finally
+                {
+                    foreach (var name in addedNames) shadowed.Remove(name);
+                }
+            }).ToArray();
+            return selection with { Value = RewriteExpression(selection.Value), Arms = arms };
+        }
+
         Expression RewriteExpression(Expression expression) => expression switch
         {
             ThisExpression self when compositeEnvironment?.CapturedVariableEnvironments?.TryGetValue("$this", out var thisEnvironment) == true
@@ -10505,6 +10724,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             {
                 Condition = RewriteExpression(conditional.Condition), WhenTrue = RewriteExpression(conditional.WhenTrue), WhenFalse = RewriteExpression(conditional.WhenFalse)
             },
+            SwitchExpression selection => RewriteSwitchExpression(selection),
             MemberAccessExpression member => member with { Receiver = RewriteExpression(member.Receiver) },
             IndexExpression index => index with { Receiver = RewriteExpression(index.Receiver), Indices = index.Indices.Select(RewriteExpression).ToArray() },
             CallExpression call => call with { Target = RewriteExpression(call.Target), Arguments = call.Arguments.Select(RewriteExpression).ToArray() },
@@ -10647,6 +10867,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             IndexExpression index => ExpressionMutates(index.Receiver) || index.Indices.Any(ExpressionMutates),
             CastExpression cast => ExpressionMutates(cast.Operand),
             ConditionalExpression conditional => ExpressionMutates(conditional.Condition) || ExpressionMutates(conditional.WhenTrue) || ExpressionMutates(conditional.WhenFalse),
+            SwitchExpression selection => SwitchExpressionExpressions(selection).Any(ExpressionMutates),
             InlineArrayInitializerExpression initializer => initializer.Elements.Any(ExpressionMutates),
             AllocationExpression allocation => allocation.Dimensions.Any(ExpressionMutates) || allocation.Initializer is not null && ExpressionMutates(allocation.Initializer) ||
                 allocation.ConstructorArguments is not null && allocation.ConstructorArguments.Any(ExpressionMutates),
@@ -10775,6 +10996,16 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 CollectTypePatternNames(conditional.WhenTrue, names);
                 CollectTypePatternNames(conditional.WhenFalse, names);
                 break;
+            case SwitchExpression selection:
+                CollectTypePatternNames(selection.Value, names);
+                foreach (var arm in selection.Arms)
+                {
+                    foreach (var pattern in GetSwitchPatternVariableNodes(arm.Pattern))
+                        if (pattern.PatternVariableName is { } switchPatternName) names.Add(switchPatternName);
+                    if (arm.Pattern.Guard is not null) CollectTypePatternNames(arm.Pattern.Guard, names);
+                    CollectTypePatternNames(arm.Result, names);
+                }
+                break;
             case MemberAccessExpression member: CollectTypePatternNames(member.Receiver, names); break;
             case IndexExpression index:
                 CollectTypePatternNames(index.Receiver, names);
@@ -10837,6 +11068,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => LambdaExpressionReferencesThis(cast.Operand),
         BinaryExpression binary => LambdaExpressionReferencesThis(binary.Left) || LambdaExpressionReferencesThis(binary.Right),
         ConditionalExpression conditional => LambdaExpressionReferencesThis(conditional.Condition) || LambdaExpressionReferencesThis(conditional.WhenTrue) || LambdaExpressionReferencesThis(conditional.WhenFalse),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(LambdaExpressionReferencesThis),
         MemberAccessExpression access => LambdaExpressionReferencesThis(access.Receiver),
         IndexExpression index => LambdaExpressionReferencesThis(index.Receiver) || index.Indices.Any(LambdaExpressionReferencesThis),
         CallExpression call => LambdaExpressionReferencesThis(call.Target) || call.Arguments.Any(LambdaExpressionReferencesThis),
@@ -10890,6 +11122,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         BinaryExpression binary => LambdaExpressionReferencesName(binary.Left, name) || LambdaExpressionReferencesName(binary.Right, name),
         ConditionalExpression conditional => LambdaExpressionReferencesName(conditional.Condition, name) ||
             LambdaExpressionReferencesName(conditional.WhenTrue, name) || LambdaExpressionReferencesName(conditional.WhenFalse, name),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(item => LambdaExpressionReferencesName(item, name)),
         MemberAccessExpression access => LambdaExpressionReferencesName(access.Receiver, name),
         IndexExpression index => LambdaExpressionReferencesName(index.Receiver, name) || index.Indices.Any(item => LambdaExpressionReferencesName(item, name)),
         CallExpression call => LambdaExpressionReferencesName(call.Target, name) || call.Arguments.Any(argument => LambdaExpressionReferencesName(argument, name)),
@@ -10908,6 +11141,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         CastExpression cast => ContainsDeclaredName(cast.Operand, names),
         BinaryExpression binary => ContainsDeclaredName(binary.Left, names) || ContainsDeclaredName(binary.Right, names),
         ConditionalExpression conditional => ContainsDeclaredName(conditional.Condition, names) || ContainsDeclaredName(conditional.WhenTrue, names) || ContainsDeclaredName(conditional.WhenFalse, names),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(item => ContainsDeclaredName(item, names)),
             MemberAccessExpression access => ContainsDeclaredName(access.Receiver, names),
             IndexExpression index => ContainsDeclaredName(index.Receiver, names) || index.Indices.Any(item => ContainsDeclaredName(item, names)),
         CallExpression call => ContainsDeclaredName(call.Target, names) || call.Arguments.Any(arg => ContainsDeclaredName(arg, names)),
@@ -11300,6 +11534,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         ConditionalExpression conditional => ContainsTargetDependentInferenceExpression(conditional.Condition, context, methodTypeParameters) ||
             ContainsTargetDependentInferenceExpression(conditional.WhenTrue, context, methodTypeParameters) ||
             ContainsTargetDependentInferenceExpression(conditional.WhenFalse, context, methodTypeParameters),
+        SwitchExpression selection => SwitchExpressionExpressions(selection).Any(item =>
+            ContainsTargetDependentInferenceExpression(item, context, methodTypeParameters)),
         MemberAccessExpression access => IsPotentialMethodGroupForInference(access, context) ||
             ContainsTargetDependentInferenceExpression(access.Receiver, context, methodTypeParameters),
         IndexExpression index => ContainsTargetDependentInferenceExpression(index.Receiver, context, methodTypeParameters) ||

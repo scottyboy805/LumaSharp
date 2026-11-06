@@ -964,6 +964,8 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
             BinaryExpression binary => GetBinaryResultType(binary),
             ConditionalExpression conditional => GetCommonExpressionType(
                 KnownExpressionType(conditional.WhenTrue), KnownExpressionType(conditional.WhenFalse)),
+            SwitchExpression selection => selection.ResultType ?? selection.Arms.Select(arm => KnownExpressionType(arm.Result))
+                .Aggregate((string?)null, GetCommonExpressionType),
             NullAssertionExpression assertion => KnownExpressionType(assertion.Operand) is { } assertedType
                 ? assertedType.EndsWith('?') ? assertedType[..^1] : assertedType
                 : null,
@@ -1756,6 +1758,21 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
                 : RewriteExpression(binary.Right, substitutions)
         },
         ConditionalExpression conditional => conditional with { Condition = RewriteExpression(conditional.Condition, substitutions), WhenTrue = RewriteExpression(conditional.WhenTrue, substitutions), WhenFalse = RewriteExpression(conditional.WhenFalse, substitutions) },
+        SwitchExpression selection => selection with
+        {
+            Value = RewriteExpression(selection.Value, substitutions),
+            Arms = selection.Arms.Select(arm =>
+            {
+                var pattern = RewriteSwitchLabel(arm.Pattern, substitutions);
+                var result = RewriteExpression(arm.Result, substitutions);
+                return arm with
+                {
+                    Pattern = pattern,
+                    Result = result,
+                    CaptureScope = new BlockStatement([new ExpressionStatement(result, result.Location)], result.Location)
+                };
+            }).ToArray()
+        },
         MemberAccessExpression access => access with { Receiver = RewriteExpression(access.Receiver, substitutions) },
         IndexExpression index => index with { Receiver = RewriteExpression(index.Receiver, substitutions), Indices = index.Indices.Select(item => RewriteExpression(item, substitutions)).ToArray() },
         CallExpression call => call with

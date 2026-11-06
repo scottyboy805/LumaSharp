@@ -396,6 +396,30 @@ public class Program
 
 Switch sections do not fall through. The compiler checks unreachable statements, missing returns, duplicate cases, and several forms of pattern subsumption.
 
+Switch expressions use the same patterns and ordered matching in an expression context. The governing value is evaluated once; each arm's guard runs only after its pattern matches, and the first arm with a matching pattern and true guard supplies the result. Pattern variables are available to that arm's guard and result only.
+
+```lumasharp
+enum Direction { Up, Right, Down, Left }
+enum Orientation { North, East, South, West }
+
+Orientation ToOrientation(Direction direction) => direction switch
+{
+    Direction.Up => Orientation.North,
+    Direction.Right => Orientation.East,
+    Direction.Down => Orientation.South,
+    Direction.Left => Orientation.West,
+};
+
+int32 Describe(object value) => value switch
+{
+    int32 number when number > 0 => number,
+    null => 0,
+    _ => -1,
+};
+```
+
+Arm results need a common type, or must convert to the type expected by the surrounding context. The compiler checks unreachable arms and warns with LS3003 when it cannot prove every input is covered. An unmatched switch expression throws a catchable `System.InvalidOperationException`; add a discard arm (`_ => ...`) when that is not intended. A switch expression must contain at least one arm. C# throw expressions are not supported in LumaSharp arms yet, so put throwing behavior in a helper method or use a statement `switch`.
+
 ## 6. Methods and parameters
 
 Methods may be overloaded, static or instance, expression-bodied or block-bodied, and may return `void` or a value.

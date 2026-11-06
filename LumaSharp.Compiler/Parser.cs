@@ -16,6 +16,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private int _pendingGenericClosers;
     private int _nameOfArgumentDepth;
     private int _lockDepth;
+    private bool _parsingSwitchPatternValue;
     private int _nextLockLocal;
     private string _namespace = "";
     private readonly List<UsingDirective> _usingDirectives = [];
@@ -858,6 +859,9 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         CastExpression cast => ContainsName(cast.Operand, name),
         BinaryExpression binary => ContainsName(binary.Left, name) || ContainsName(binary.Right, name),
         ConditionalExpression conditional => ContainsName(conditional.Condition, name) || ContainsName(conditional.WhenTrue, name) || ContainsName(conditional.WhenFalse, name),
+        SwitchExpression selection => ContainsName(selection.Value, name) || selection.Arms.Any(arm =>
+            arm.Pattern.Value is not null && ContainsName(arm.Pattern.Value, name) ||
+            arm.Pattern.Guard is not null && ContainsName(arm.Pattern.Guard, name) || ContainsName(arm.Result, name)),
         MemberAccessExpression member => ContainsName(member.Receiver, name),
         IndexExpression index => ContainsName(index.Receiver, name) || index.Indices.Any(item => ContainsName(item, name)),
         CallExpression call => ContainsName(call.Target, name) || call.Arguments.Any(item => ContainsName(item, name)),
@@ -1436,9 +1440,16 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         if (Current.Text is ">" or ">=" or "<" or "<=")
         {
             var relationalOperator = Take().Text;
-            return new(ParseExpression(2), false, at, RelationalOperator: relationalOperator);
+            return new(ParseSwitchPatternValue(), false, at, RelationalOperator: relationalOperator);
         }
-        return new(ParseExpression(2), false, at);
+        return new(ParseSwitchPatternValue(), false, at);
+    }
+    private Expression ParseSwitchPatternValue()
+    {
+        var previous = _parsingSwitchPatternValue;
+        _parsingSwitchPatternValue = true;
+        try { return ParseExpression(2); }
+        finally { _parsingSwitchPatternValue = previous; }
     }
     private bool TryParseSwitchTypePattern(SourceLocation at, out SwitchLabel pattern)
     {
@@ -1466,7 +1477,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         _position = start;
         return false;
     }
-    private static bool IsSwitchPatternBoundary(string token) => token is ":" or "," or "when" or "and" or "or";
+    private static bool IsSwitchPatternBoundary(string token) => token is ":" or "," or "when" or "and" or "or" or "=>";
     private Statement ParseFor(SourceLocation at)
     {
         Expect("(");
@@ -1739,6 +1750,13 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
     private Expression ParseUnary()
     {
         var at = Current.Location;
+        if (Eat("throw"))
+        {
+            _ = ParseExpression();
+            diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                "Throw expressions are not supported; call a helper method or use a throw statement.", at);
+            return new UnsupportedExpression("Throw expressions are not supported", at);
+        }
         if (Eat("await"))
         {
             if (_lockDepth > 0)
@@ -1753,7 +1771,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             }
             return new AwaitExpression(ParseUnary(), at);
         }
-        if (LooksLikeLambda()) return ParseLambdaExpression();
+        if (!_parsingSwitchPatternValue && LooksLikeLambda()) return ParseLambdaExpression();
         if (LooksLikeCast())
         {
             Take(); var type = ParseTypeName()!; Expect(")");
@@ -1779,6 +1797,7 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
         var expression = ParsePrimary();
         while (true)
         {
+            if (Eat("switch")) { expression = ParseSwitchExpression(expression, expression.Location); continue; }
             IReadOnlyList<string>? explicitTypeArguments = null;
             if (Is("<") && LooksLikeGenericInvocation()) explicitTypeArguments = ReadTypeArgumentList();
             if (Eat("("))
@@ -1825,6 +1844,30 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             break;
         }
         return expression;
+    }
+    private SwitchExpression ParseSwitchExpression(Expression value, SourceLocation at)
+    {
+        Expect("{");
+        var arms = new List<SwitchExpressionArm>();
+        while (Current.Kind != TokenKind.End && !Is("}"))
+        {
+            var armAt = Current.Location;
+            var pattern = ParseSwitchPattern(armAt);
+            if (Eat("when"))
+            {
+                var guard = ParseExpression();
+                pattern = pattern with { Guard = guard, GuardCaptureScope = new BlockStatement([], guard.Location) };
+            }
+            Expect("=>");
+            var result = ParseExpression();
+            var captureScope = new BlockStatement([new ExpressionStatement(result, result.Location)], result.Location);
+            arms.Add(new(pattern, result, armAt) { CaptureScope = captureScope });
+            if (!Eat(",")) break;
+        }
+        if (arms.Count == 0)
+            diagnostics.Add("LS0624", DiagnosticSeverity.Error, "A switch expression must contain at least one arm.", at);
+        Expect("}");
+        return new(value, arms, at);
     }
     private bool LooksLikeGenericInvocation()
     {

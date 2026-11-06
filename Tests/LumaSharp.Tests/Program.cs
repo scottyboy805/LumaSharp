@@ -5433,6 +5433,107 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void SwitchExpressionsSelectOrderedArmsAndEvaluateTheGoverningValueOnce()
+    {
+        const string source = "class Program { static int32 calls; static int32 armCalls; public static int32 Main() { int32 result = GetValue() switch { 1 => Mark(10), 2 => Mark(20), _ => Mark(30), }; int32 alternative = 2 switch { 1 or 2 => 7, _ => 0 }; return result == 20 && calls == 1 && armCalls == 1 && alternative == 7 ? 0 : 1; } static int32 GetValue() { calls++; return 2; } static int32 Mark(int32 value) { armCalls++; return value; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "LS3003");
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void SwitchExpressionsSupportGuardsTypePatternsNullableResultsAndCommonNumericTypes()
+    {
+        const string source = "class Number { public int32 Value; public this(int32 value) { Value = value; } } class Program { public static int32 Main() { object value = new Number(42); int32 matched = Read(value); string? present = SelectText(\"luma\"); string? absent = SelectText(null); int64 promoted = SelectNumber(false); if (matched != 42 || present != \"luma\" || absent != null || promoted != 9000000000L) return 1; return 0; } public static int32 Read(object value) { return value switch { Number number when number.Value > 0 => number.Value, _ => -1 }; } public static string? SelectText(string? value) { return value switch { null => null, string text when text.Length > 0 => text, _ => \"empty\" }; } public static int64 SelectNumber(bool choose) { var result = choose switch { true => 1, false => 9000000000L }; return result; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void NonExhaustiveSwitchExpressionsWarnAndThrowCatchableInvalidOperationExceptions()
+    {
+        const string source = "class Program { public static int32 Main() { try { return Select(false); } catch (InvalidOperationException) { return 0; } } public static int32 Select(bool value) { return value switch { true => 42 }; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS3003" && diagnostic.Severity == DiagnosticSeverity.Warning);
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void SwitchExpressionDiagnosticsRejectEmptyArmsUnreachableArmsAndIncompatibleResults()
+    {
+        var empty = Compile("class Program { public static int32 Main() { return 1 switch { }; } }");
+        Assert.Contains(empty.Diagnostics, diagnostic => diagnostic.Code == "LS0624");
+
+        var unreachable = Compile("class Program { public static int32 Main() { return true switch { _ => 1, true => 2 }; } }");
+        Assert.Contains(unreachable.Diagnostics, diagnostic => diagnostic.Code == "LS0622" && diagnostic.Message.Contains("subsumed", StringComparison.Ordinal));
+
+        var incompatible = Compile("class Program { public static int32 Main() { var value = true switch { true => 1, false => \"text\" }; return 0; } }");
+        Assert.Contains(incompatible.Diagnostics, diagnostic => diagnostic.Code == "LMC3010" && diagnostic.Message.Contains("common supported type", StringComparison.Ordinal));
+
+        var outOfScope = Compile("class Program { public static int32 Main() { object value = new object(); return value switch { Number number => 1, _ => number.Value }; } } class Number { public int32 Value; }");
+        Assert.Contains(outOfScope.Diagnostics, diagnostic => diagnostic.Code == "LS0200" && diagnostic.Message.Contains("number", StringComparison.Ordinal));
+
+        var throwArm = Compile("class Program { public static int32 Main() { return true switch { true => throw new System.Exception() }; } }");
+        Assert.Contains(throwArm.Diagnostics, diagnostic => diagnostic.Code == "LMC3000" && diagnostic.Message.Contains("Throw expressions are not supported", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SwitchExpressionsSupportNullableValuesNestedMatchesAndEnumExhaustiveness()
+    {
+        const string source = "enum Mode { First, Second } class Program { public static int32 Main() { int32? missing = SelectNullable(false); int32? present = SelectNullable(true); int32 arithmetic = 6 + Select(2); int32 nested = SelectNested(true, 2); if (missing != null || present != 42 || arithmetic != 10 || nested != 3 || Select(3) != 9 || Select(0) != 0) return 1; if (SelectMode(Mode.First) != 1 || SelectMode(Mode.Second) != 2) return 2; return 0; } static int32? SelectNullable(bool value) { var result = value switch { true => 42, false => null }; return result; } static int32 Select(int32 value) => value switch { > 0 and < 5 when value % 2 == 0 => value * 2, not 0 => 9, _ => 0 }; static int32 SelectNested(bool outer, int32 inner) => outer switch { true => inner switch { 1 => 2, _ => 3 }, false => 0 }; static int32 SelectMode(Mode value) => value switch { Mode.First => 1, Mode.Second => 2 }; }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "LS3003");
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void SwitchExpressionArmPatternVariablesCanBeCapturedByClosures()
+    {
+        const string source = "delegate int32 Getter(); class Number { public int32 Value; public this(int32 value) { Value = value; } } class Program { public static int32 Main() { Getter getter = Read(new Number(55)); return getter() == 55 ? 0 : 1; } static Getter Read(object value) { return value switch { Number number => () => number.Value, _ => () => -1 }; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void SwitchExpressionsInferCommonBaseTypeForManagedReferenceResults()
+    {
+        const string source = "virtual class Animal { public int32 Kind; } class Dog : Animal { public this() { Kind = 2; } } class Cat : Animal { public this() { Kind = 3; } } class Program { public static int32 Main() { Animal first = Select(true); Animal second = Select(false); return first.Kind == 2 && second.Kind == 3 ? 0 : 1; } static Animal Select(bool dog) { var selected = dog switch { true => new Dog(), false => new Cat() }; return selected; } }";
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "LS3003");
+
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void SupportsCombinedAndNegatedSwitchPatterns()
     {
         const string source = """

@@ -147,6 +147,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         _output.AppendLine("define internal void @luma_throw_bounds() noreturn {"); _output.AppendLine("entry:"); _output.AppendLine("  call void @llvm.trap()"); _output.AppendLine("  unreachable"); _output.AppendLine("}");
         _output.AppendLine("define internal void @luma_throw_out_of_memory() noreturn {"); _output.AppendLine("entry:"); _output.AppendLine("  call void @llvm.trap()"); _output.AppendLine("  unreachable"); _output.AppendLine("}");
         _output.AppendLine("define internal void @luma_throw_null() noreturn {"); _output.AppendLine("entry:"); _output.AppendLine("  call void @llvm.trap()"); _output.AppendLine("  unreachable"); _output.AppendLine("}");
+        _output.AppendLine("define internal void @luma_throw_switch_expression() noreturn {"); _output.AppendLine("entry:"); _output.AppendLine("  call void @llvm.trap()"); _output.AppendLine("  unreachable"); _output.AppendLine("}");
         foreach (var (name, structure) in compilation.StructTypes)
         {
             var fields = structure.Fields.Count == 0 ? "i8" : string.Join(", ", structure.Fields.Select(field => LlvmType(field.TypeName)));
@@ -4313,6 +4314,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 "luma_throw_out_of_memory" => "System.OutOfMemoryException",
                 "luma_throw_null" => "System.NullReferenceException",
                 "luma_throw_invalid_cast" => "System.InvalidCastException",
+                "luma_throw_switch_expression" => "System.InvalidOperationException",
                 _ => throw new InvalidOperationException($"Unknown runtime exception source '{runtimeFailure}'.")
             };
             if (!usesExceptionHandling || !classTypes.TryGetValue(exceptionType, out var exceptionClass))
@@ -5597,6 +5599,233 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             var dimensionLength = NewTemp(); Emit($"{dimensionLength} = load i32, ptr {dimensionAddress}");
             return dimensionLength;
         }
+        private (string Value, string Type) EmitSwitchExpression(SwitchExpression expression)
+        {
+            var resultType = expression.ResultType;
+            if (resultType is null or "?" or "void")
+                throw new InvalidOperationException("A switch expression reached emission without a supported result type.");
+
+            var governingValue = EmitExpression(expression.Value);
+            if (IsStringType(governingValue.Type))
+            {
+                EnsureOwnedString(governingValue);
+                _ownedStringValues.Remove(governingValue.Value);
+                var storage = $"%v{_temp++}";
+                Emit($"{storage} = alloca ptr");
+                Emit($"store ptr {governingValue.Value}, ptr {storage}");
+                _scopeStringPointers[^1].Add(storage);
+            }
+            else if (IsManagedArrayType(governingValue.Type) && !_scopeBoundArrayValues.Contains(governingValue.Value))
+            {
+                EnsureOwnedArray(governingValue);
+                _ownedArrayValues.Remove(governingValue.Value);
+                var storage = $"%v{_temp++}";
+                Emit($"{storage} = alloca ptr");
+                Emit($"store ptr {governingValue.Value}, ptr {storage}");
+                _scopeArrayPointers[^1].Add(storage);
+            }
+            else if (GetClassReferenceType(governingValue.Type) is { } governingClass && !_scopeBoundClassValues.Contains(governingValue.Value))
+            {
+                EnsureOwnedClass(governingValue, governingClass);
+                _ownedClassValues.RemoveWhere(value => value.Value == governingValue.Value);
+                var storage = $"%v{_temp++}";
+                Emit($"{storage} = alloca ptr");
+                Emit($"store ptr {governingValue.Value}, ptr {storage}");
+                _scopeClassPointers[^1].Add((storage, governingClass));
+            }
+
+            var resultAddress = $"%v{_temp++}";
+            Emit($"{resultAddress} = alloca {LlvmType(resultType)}");
+            var resultIsReference = IsStringType(resultType) || SemanticAnalyzer.TryParseManagedArrayType(resultType, out _, out _) || GetClassReferenceType(resultType) is not null;
+            Emit($"store {LlvmType(resultType)} {(resultIsReference ? "null" : "zeroinitializer")}, ptr {resultAddress}");
+            var resultClass = GetClassReferenceType(resultType);
+            var resultIsArray = SemanticAnalyzer.TryParseManagedArrayType(resultType, out _, out _);
+            var resultIsString = IsStringType(resultType);
+            var resultIsAggregate = IsManagedAggregateType(resultType);
+            if (resultIsString) _scopeStringPointers[^1].Add(resultAddress);
+            else if (resultIsArray) _scopeArrayPointers[^1].Add(resultAddress);
+            else if (resultClass is not null) _scopeClassPointers[^1].Add((resultAddress, resultClass));
+            else if (resultIsAggregate)
+            {
+                _scopeAggregatePointers[^1].Add((resultAddress, resultType));
+            }
+
+            var armLabels = expression.Arms.Select(_ => NewLabel("switch.expr.arm")).ToArray();
+            var endLabel = NewLabel("switch.expr.end");
+            var armPatternVariables = new List<(string Name, string Type, string Address)>[expression.Arms.Count];
+            for (var armIndex = 0; armIndex < expression.Arms.Count; armIndex++)
+            {
+                armPatternVariables[armIndex] = SwitchPatternVariableNodes(expression.Arms[armIndex].Pattern)
+                    .Where(pattern => pattern.PatternVariableName is not null && switchTypePatterns.ContainsKey(pattern))
+                    .GroupBy(pattern => pattern.PatternVariableName!, StringComparer.Ordinal)
+                    .Select(group => group.First())
+                    .Select(pattern =>
+                    {
+                        var type = switchTypePatterns[pattern];
+                        var address = NewTemp();
+                        Emit($"{address} = alloca {(IsBoxableValueType(type) ? LlvmType(type) : "ptr")}");
+                        return (Name: pattern.PatternVariableName!, Type: type, Address: address);
+                    }).ToList();
+            }
+
+            var stringsBefore = _ownedStringValues.ToArray();
+            var arraysBefore = _ownedArrayValues.ToArray();
+            var classesBefore = _ownedClassValues.ToArray();
+            var aggregatesBefore = _ownedAggregateValues.ToArray();
+            var scopedClassesBefore = _scopeBoundClassValues.ToArray();
+            var scopedArraysBefore = _scopeBoundArrayValues.ToArray();
+            for (var armIndex = 0; armIndex < expression.Arms.Count; armIndex++)
+            {
+                var arm = expression.Arms[armIndex];
+                var nextLabel = NewLabel("switch.expr.test");
+                var patternVariableNames = armPatternVariables[armIndex].Select(variable => variable.Name).ToHashSet(StringComparer.Ordinal);
+                Push();
+                foreach (var variable in armPatternVariables[armIndex])
+                    Declare(variable.Name, variable.Type, variable.Address, ownsString: false, ownsArray: false, ownsClass: false, ownsAggregate: false);
+
+                var match = EmitSwitchPattern(governingValue, arm.Pattern);
+                var matchedLabel = NewLabel("switch.expr.matched");
+                ReleaseOwnedTemporaryAdditions(stringsBefore, arraysBefore, classesBefore, aggregatesBefore);
+                Emit($"br i1 {match}, label %{matchedLabel}, label %{nextLabel}");
+                _terminated = true;
+                Label(matchedLabel);
+                foreach (var variable in armPatternVariables[armIndex])
+                {
+                    var patternNode = SwitchPatternVariableNodes(arm.Pattern).First(node => node.PatternVariableName == variable.Name &&
+                        switchTypePatterns.GetValueOrDefault(node) == variable.Type);
+                    var value = EmitSwitchPatternBindingValue(governingValue, variable.Type);
+                    if (IsManagedAggregateType(variable.Type)) EmitAggregateOwnership((value, variable.Type), retain: true);
+                    Emit($"store {LlvmType(variable.Type)} {value}, ptr {variable.Address}");
+                    _ = patternNode;
+                }
+
+                ClosureEnvironmentBinding? guardClosureEnvironment = null;
+                if (arm.Pattern.Guard is not null && blockClosureEnvironments.TryGetValue(arm.Pattern.GuardCaptureScope, out var foundGuardEnvironment))
+                {
+                    guardClosureEnvironment = foundGuardEnvironment;
+                    _ = AllocateClosureEnvironment(guardClosureEnvironment);
+                    _scopeClassPointers[^1].Add((_closureEnvironmentSlots[guardClosureEnvironment.TypeName], guardClosureEnvironment.TypeName));
+                    _activeBlockClosureEnvironments.Add(guardClosureEnvironment);
+                    foreach (var variable in armPatternVariables[armIndex].Where(variable => patternVariableNames.Contains(variable.Name) &&
+                                 guardClosureEnvironment.CapturedFieldIndices.ContainsKey(variable.Name)))
+                    {
+                        var capturedValue = NewTemp();
+                        Emit($"{capturedValue} = load {LlvmType(variable.Type)}, ptr {variable.Address}");
+                        var fieldIndex = guardClosureEnvironment.CapturedFieldIndices[variable.Name];
+                        var capturedAddress = EmitClosureFieldAddress(guardClosureEnvironment, fieldIndex);
+                        var captured = (capturedValue, variable.Type);
+                        if (IsStringType(variable.Type)) StoreStringInitial(capturedAddress, captured);
+                        else if (SemanticAnalyzer.TryParseManagedArrayType(variable.Type, out _, out _)) StoreArrayInitial(capturedAddress, captured, variable.Type);
+                        else if (GetClassReferenceType(variable.Type) is { } capturedClass) StoreClassInitial(capturedAddress, captured, capturedClass);
+                        else if (IsManagedAggregateType(variable.Type)) StoreAggregateInitial(capturedAddress, captured, variable.Type);
+                        else Emit($"store {LlvmType(variable.Type)} {CastValue(capturedValue, variable.Type, variable.Type)}, ptr {capturedAddress}");
+                        Declare(variable.Name, variable.Type, capturedAddress, ownsString: false, ownsArray: false, ownsClass: false, ownsAggregate: false);
+                    }
+                }
+
+                if (arm.Pattern.Guard is null)
+                    Branch(armLabels[armIndex]);
+                else
+                {
+                    var guard = EmitExpression(arm.Pattern.Guard);
+                    var guardPassed = NewLabel("switch.expr.guard.passed");
+                    var guardFailed = NewLabel("switch.expr.guard.failed");
+                    ReleaseOwnedTemporaryAdditions(stringsBefore, arraysBefore, classesBefore, aggregatesBefore);
+                    ReleaseStatementScopeTemps();
+                    Emit($"br i1 {guard.Value}, label %{guardPassed}, label %{guardFailed}");
+                    _terminated = true;
+                    Label(guardFailed);
+                    if (guardClosureEnvironment is not null) ReleaseScopeClasses(_scopes.Count - 1);
+                    ReleaseScopeAggregates(_scopes.Count - 1);
+                    Branch(nextLabel);
+                    Label(guardPassed);
+                    if (guardClosureEnvironment is not null) ReleaseScopeClasses(_scopes.Count - 1);
+                    Branch(armLabels[armIndex]);
+                }
+                if (guardClosureEnvironment is not null) _activeBlockClosureEnvironments.RemoveAt(_activeBlockClosureEnvironments.Count - 1);
+                Pop();
+                Label(nextLabel);
+                RestoreOwnedTemporaryState(stringsBefore, arraysBefore, classesBefore, scopedClassesBefore, scopedArraysBefore, aggregatesBefore);
+            }
+
+            ReleaseOwnedString(governingValue);
+            ReleaseOwnedArray(governingValue);
+            ReleaseOwnedClass(governingValue);
+            EmitRuntimeException("luma_throw_switch_expression");
+            RestoreOwnedTemporaryState(stringsBefore, arraysBefore, classesBefore, scopedClassesBefore, scopedArraysBefore, aggregatesBefore);
+
+            for (var armIndex = 0; armIndex < expression.Arms.Count; armIndex++)
+            {
+                Label(armLabels[armIndex]);
+                Push();
+                var arm = expression.Arms[armIndex];
+                var hasClosureEnvironment = blockClosureEnvironments.TryGetValue(arm.CaptureScope, out var closureEnvironment);
+                if (hasClosureEnvironment)
+                {
+                    _ = AllocateClosureEnvironment(closureEnvironment!);
+                    _scopeClassPointers[^1].Add((_closureEnvironmentSlots[closureEnvironment!.TypeName], closureEnvironment.TypeName));
+                    _activeBlockClosureEnvironments.Add(closureEnvironment);
+                }
+                foreach (var variable in armPatternVariables[armIndex])
+                {
+                    if (hasClosureEnvironment && closureEnvironment!.CapturedFieldIndices.TryGetValue(variable.Name, out var capturedFieldIndex))
+                    {
+                        var capturedValue = NewTemp();
+                        Emit($"{capturedValue} = load {LlvmType(variable.Type)}, ptr {variable.Address}");
+                        var capturedAddress = EmitClosureFieldAddress(closureEnvironment, capturedFieldIndex);
+                        var captured = (capturedValue, variable.Type);
+                        if (IsStringType(variable.Type)) StoreStringInitial(capturedAddress, captured);
+                        else if (SemanticAnalyzer.TryParseManagedArrayType(variable.Type, out _, out _)) StoreArrayInitial(capturedAddress, captured, variable.Type);
+                        else if (GetClassReferenceType(variable.Type) is { } capturedClass) StoreClassInitial(capturedAddress, captured, capturedClass);
+                        else if (IsManagedAggregateType(variable.Type)) StoreAggregateInitial(capturedAddress, captured, variable.Type);
+                        else Emit($"store {LlvmType(variable.Type)} {CastValue(capturedValue, variable.Type, variable.Type)}, ptr {capturedAddress}");
+                        Declare(variable.Name, variable.Type, capturedAddress, ownsString: false, ownsArray: false, ownsClass: false, ownsAggregate: false);
+                    }
+                    else Declare(variable.Name, variable.Type, variable.Address, ownsString: false, ownsArray: false, ownsClass: false, ownsAggregate: false);
+                }
+
+                var armValue = EmitExpression(arm.Result);
+                if (resultIsString)
+                {
+                    var converted = (CastValue(armValue.Value, armValue.Type, resultType), resultType);
+                    StoreStringReplacing(resultAddress, converted);
+                }
+                else if (resultIsArray)
+                {
+                    var converted = (CastValue(armValue.Value, armValue.Type, resultType), resultType);
+                    if (IsScopeBoundArrayExpression(arm.Result)) Emit($"call void @luma_array_retain(ptr {converted.Item1})");
+                    StoreArrayReplacing(resultAddress, converted, resultType);
+                }
+                else if (resultClass is not null)
+                {
+                    var converted = (CastValue(armValue.Value, armValue.Type, resultType), resultType);
+                    if (IsScopeBoundClassExpression(arm.Result) && converted.Item1 != "null") RetainClassReference(converted.Item1, resultClass);
+                    StoreClassReplacing(resultAddress, converted, resultClass);
+                }
+                else if (resultIsAggregate)
+                    StoreAggregateReplacing(resultAddress, (CastValue(armValue.Value, armValue.Type, resultType), resultType), resultType);
+                else
+                    Emit($"store {LlvmType(resultType)} {CastValue(armValue.Value, armValue.Type, resultType)}, ptr {resultAddress}");
+
+                ReleaseOwnedTemporaryAdditions(stringsBefore, arraysBefore, classesBefore, aggregatesBefore);
+                ReleaseAllOwnedArrays();
+                ReleaseStatementScopeTemps();
+                Pop();
+                if (hasClosureEnvironment) _activeBlockClosureEnvironments.RemoveAt(_activeBlockClosureEnvironments.Count - 1);
+                if (!_terminated) Branch(endLabel);
+                RestoreOwnedTemporaryState(stringsBefore, arraysBefore, classesBefore, scopedClassesBefore, scopedArraysBefore, aggregatesBefore);
+            }
+
+            Label(endLabel);
+            var result = NewTemp();
+            Emit($"{result} = load {LlvmType(resultType)}, ptr {resultAddress}");
+            if (resultIsString) EnsureOwnedString((result, resultType));
+            else if (resultIsArray) EnsureOwnedArray((result, resultType));
+            else if (resultClass is not null) EnsureOwnedClass((result, resultType), resultClass);
+            else if (resultIsAggregate) EnsureOwnedAggregate((result, resultType));
+            return (result, resultType);
+        }
+
         private void EmitSwitch(SwitchStatement statement)
         {
             Push();
@@ -6617,6 +6846,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     return (CastValue(castOperand.Item1, castOperand.Item2, castTarget, checkedConversion: _checkedContext), castTarget);
                 case BinaryExpression binary: return EmitBinary(binary);
                 case ConditionalExpression conditional: return EmitConditional(conditional);
+                case SwitchExpression selection: return EmitSwitchExpression(selection);
                 case CallExpression call:
                     var callValue = EmitCall(call);
                     if (callTargets.TryGetValue(call, out var callTarget) && callTarget.Declaration.ReturnsByRef)
@@ -8165,6 +8395,21 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             _ownedAggregateValues.Clear(); _ownedAggregateValues.UnionWith(aggregates);
             _scopeBoundClassValues.Clear(); _scopeBoundClassValues.UnionWith(scopedClasses);
             _scopeBoundArrayValues.Clear(); _scopeBoundArrayValues.UnionWith(scopedArrays);
+        }
+        private void ReleaseOwnedTemporaryAdditions(
+            IReadOnlyCollection<string> strings,
+            IReadOnlyCollection<string> arrays,
+            IReadOnlyCollection<(string Value, string Type)> classes,
+            IReadOnlyCollection<(string Value, string Type)> aggregates)
+        {
+            foreach (var value in _ownedAggregateValues.ToArray())
+                if (!aggregates.Contains(value)) ReleaseOwnedAggregate(value);
+            foreach (var value in _ownedClassValues.ToArray())
+                if (!classes.Contains(value)) ReleaseOwnedClass(value);
+            foreach (var value in _ownedArrayValues.ToArray())
+                if (!arrays.Contains(value) && _ownedArrayValues.Remove(value)) Emit($"call void @luma_array_release(ptr {value})");
+            foreach (var value in _ownedStringValues.ToArray())
+                if (!strings.Contains(value)) ReleaseOwnedString((value, "string"));
         }
         private (string Value, string Type) EmitNullConditionalClassField(MemberAccessExpression access, StructFieldBinding field)
         {
@@ -9855,6 +10100,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             CastExpression cast => IsScopeBoundClassExpression(cast.Operand),
             OverflowContextExpression overflow => IsScopeBoundClassExpression(overflow.Value),
             ConditionalExpression conditional => IsScopeBoundClassExpression(conditional.WhenTrue) || IsScopeBoundClassExpression(conditional.WhenFalse),
+            SwitchExpression selection => selection.Arms.Any(arm => IsScopeBoundClassExpression(arm.Result)),
             BinaryExpression { Operator: "??" } coalesce => IsScopeBoundClassExpression(coalesce.Left) || IsScopeBoundClassExpression(coalesce.Right),
             _ => false
         };
@@ -9869,6 +10115,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             CastExpression cast => IsScopeBoundArrayExpression(cast.Operand),
             OverflowContextExpression overflow => IsScopeBoundArrayExpression(overflow.Value),
             ConditionalExpression conditional => IsScopeBoundArrayExpression(conditional.WhenTrue) || IsScopeBoundArrayExpression(conditional.WhenFalse),
+            SwitchExpression selection => selection.Arms.Any(arm => IsScopeBoundArrayExpression(arm.Result)),
             BinaryExpression { Operator: "??" } coalesce => IsScopeBoundArrayExpression(coalesce.Left) || IsScopeBoundArrayExpression(coalesce.Right),
             _ => false
         };
