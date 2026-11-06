@@ -1,7 +1,8 @@
 namespace System.IO;
 
-public unsafe class FileStream : AsyncStream
+public virtual unsafe class FileStream : AsyncStream
 {
+	private const int32 asyncIoChunkSize = 65536;
 	private int handle;
 	private bool isOpen;
 	private bool canRead;
@@ -98,12 +99,14 @@ public unsafe class FileStream : AsyncStream
 
 	public override int32 Read(scope uint8[] buffer, int32 offset, int32 count) mut
 	{
-		EnsureOpen();
-		ValidateBufferArguments(buffer, offset, count);
-		if (!canRead)
-			throw new System.NotSupportedException("This stream does not support reading.");
+		EnsureReadableBuffer(buffer, offset, count);
 		if (count == 0)
 			return 0;
+		return ReadChunk(buffer, offset, count);
+	}
+
+	private int32 ReadChunk(scope uint8[] buffer, int32 offset, int32 count)
+	{
 		int32 bytesRead = 0;
 		uint8* start = (uint8*)buffer.Ptr + offset;
 		if (__fileread((void*)handle, start, count, out bytesRead) != 0)
@@ -113,30 +116,67 @@ public unsafe class FileStream : AsyncStream
 
 	public override void Write(scope uint8[] buffer, int32 offset, int32 count) mut
 	{
-		EnsureOpen();
-		ValidateBufferArguments(buffer, offset, count);
-		if (!canWrite)
-			throw new System.NotSupportedException("This stream does not support writing.");
-		if (count == 0)
-			return;
+		EnsureWritableBuffer(buffer, offset, count);
+		int32 totalBytesWritten = 0;
+		while (totalBytesWritten < count)
+		{
+			int32 remaining = count - totalBytesWritten;
+			int32 bytesWritten = WriteChunk(buffer, offset + totalBytesWritten, remaining);
+			if (bytesWritten == 0)
+				throw new IOException("Unable to write to the file.");
+			totalBytesWritten += bytesWritten;
+		}
+	}
+
+	private int32 WriteChunk(scope uint8[] buffer, int32 offset, int32 count)
+	{
 		int32 bytesWritten = 0;
 		uint8* start = (uint8*)buffer.Ptr + offset;
-		if (__filewrite((void*)handle, start, count, out bytesWritten) != 0 || bytesWritten != count)
+		if (__filewrite((void*)handle, start, count, out bytesWritten) != 0)
 			throw new IOException("Unable to write to the file.");
+		return bytesWritten;
 	}
 
 	public override async int32 ReadAsync(uint8[] buffer, int32 offset, int32 count) mut
 	{
 		async.ThrowIfCancellationRequested();
-		int32 bytesRead = Read(buffer, offset, count);
+		EnsureReadableBuffer(buffer, offset, count);
+		if (count == 0)
+		{
+			async.ThrowIfCancellationRequested();
+			return 0;
+		}
+
+		int32 totalBytesRead = 0;
+		while (totalBytesRead < count)
+		{
+			async.ThrowIfCancellationRequested();
+			int32 remaining = count - totalBytesRead;
+			int32 chunkCount = remaining > asyncIoChunkSize ? asyncIoChunkSize : remaining;
+			int32 bytesRead = Read(buffer, offset + totalBytesRead, chunkCount);
+			totalBytesRead += bytesRead;
+			async.ThrowIfCancellationRequested();
+			if (bytesRead == 0)
+				break;
+		}
 		async.ThrowIfCancellationRequested();
-		return bytesRead;
+		return totalBytesRead;
 	}
 
 	public override async void WriteAsync(uint8[] buffer, int32 offset, int32 count) mut
 	{
 		async.ThrowIfCancellationRequested();
-		Write(buffer, offset, count);
+		EnsureWritableBuffer(buffer, offset, count);
+		int32 totalBytesWritten = 0;
+		while (totalBytesWritten < count)
+		{
+			async.ThrowIfCancellationRequested();
+			int32 remaining = count - totalBytesWritten;
+			int32 chunkCount = remaining > asyncIoChunkSize ? asyncIoChunkSize : remaining;
+			Write(buffer, offset + totalBytesWritten, chunkCount);
+			totalBytesWritten += chunkCount;
+			async.ThrowIfCancellationRequested();
+		}
 		async.ThrowIfCancellationRequested();
 	}
 
@@ -177,6 +217,22 @@ public unsafe class FileStream : AsyncStream
 		if (__fileclose((void*)handle) != 0)
 			throw new IOException("Unable to close the file.");
 		handle = 0;
+	}
+
+	private void EnsureReadableBuffer(scope uint8[] buffer, int32 offset, int32 count)
+	{
+		EnsureOpen();
+		ValidateBufferArguments(buffer, offset, count);
+		if (!canRead)
+			throw new System.NotSupportedException("This stream does not support reading.");
+	}
+
+	private void EnsureWritableBuffer(scope uint8[] buffer, int32 offset, int32 count)
+	{
+		EnsureOpen();
+		ValidateBufferArguments(buffer, offset, count);
+		if (!canWrite)
+			throw new System.NotSupportedException("This stream does not support writing.");
 	}
 
 	private void EnsureOpen()

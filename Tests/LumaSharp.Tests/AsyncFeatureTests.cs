@@ -361,6 +361,142 @@ class Program
     }
 
     [Fact]
+    public async Task FileStreamAsyncReadAndWriteObserveCancellationBetweenChunks()
+    {
+        var filePath = Path.Combine(Path.GetTempPath(), "lumasharp-async-cancel-" + Guid.NewGuid().ToString("N") + ".bin");
+        var escapedPath = filePath.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal);
+        var source = $$"""
+using System;
+using System.IO;
+using System.Threading;
+
+class DelayedFileStream : FileStream
+{
+    private static object gate = new object();
+    private static bool readStarted;
+    private static bool writeStarted;
+
+    public this(string path, FileMode mode) : base(path, mode) { }
+
+    public static void ResetRead()
+    {
+        lock (gate)
+            readStarted = false;
+    }
+
+    public static bool ReadStarted
+    {
+        get
+        {
+            lock (gate)
+                return readStarted;
+        }
+    }
+
+    public static void ResetWrite()
+    {
+        lock (gate)
+            writeStarted = false;
+    }
+
+    public static bool WriteStarted
+    {
+        get
+        {
+            lock (gate)
+                return writeStarted;
+        }
+    }
+
+    public override int32 Read(scope uint8[] buffer, int32 offset, int32 count) mut
+    {
+        lock (gate)
+            readStarted = true;
+        Thread.Sleep(50);
+        return base.Read(buffer, offset, count);
+    }
+
+    public override void Write(scope uint8[] buffer, int32 offset, int32 count) mut
+    {
+        lock (gate)
+            writeStarted = true;
+        Thread.Sleep(50);
+        base.Write(buffer, offset, count);
+    }
+}
+
+class Program
+{
+    public static int32 Main()
+    {
+        uint8[] payload = new uint8[262144];
+        FileStream initial = new FileStream("{{escapedPath}}", FileMode.Create);
+        initial.Write(payload, 0, payload.Length);
+        initial.Close();
+
+        DelayedFileStream.ResetRead();
+        DelayedFileStream reader = new DelayedFileStream("{{escapedPath}}", FileMode.Open);
+        uint8[] destination = new uint8[payload.Length];
+        Task<int32> read = reader.ReadAsync(destination, 0, destination.Length);
+        int32 attempts = 0;
+        while (!DelayedFileStream.ReadStarted && attempts < 2000)
+        {
+            Thread.Sleep(1);
+            attempts++;
+        }
+        if (!DelayedFileStream.ReadStarted)
+            return 1;
+        read.RequestCancellation();
+        try
+        {
+            int32 ignored = read.Result;
+            return 2;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        int32 readPosition = reader.Position;
+        if (!read.IsCanceled || readPosition <= 0 || readPosition >= destination.Length)
+            return 3;
+        reader.Close();
+
+        DelayedFileStream.ResetWrite();
+        DelayedFileStream writer = new DelayedFileStream("{{escapedPath}}", FileMode.Create);
+        Task write = writer.WriteAsync(payload, 0, payload.Length);
+        attempts = 0;
+        while (!DelayedFileStream.WriteStarted && attempts < 2000)
+        {
+            Thread.Sleep(1);
+            attempts++;
+        }
+        if (!DelayedFileStream.WriteStarted)
+            return 4;
+        write.RequestCancellation();
+        write.Wait();
+        int32 writePosition = writer.Position;
+        if (!write.IsCanceled || writePosition <= 0 || writePosition >= payload.Length)
+            return 5;
+        writer.Close();
+        return 0;
+    }
+}
+""";
+
+        try
+        {
+            var execution = await BuildAndRunNativeAsync(source, "AsyncFileStreamCancellation");
+            Assert.Equal(0, execution.ExitCode);
+            Assert.Empty(execution.StandardError);
+        }
+        finally
+        {
+            if (File.Exists(filePath))
+                File.Delete(filePath);
+        }
+    }
+
+    [Fact]
     public async Task TasksCanRequestCancellationAndAsyncBodiesCanObserveIt()
     {
         const string source = """
