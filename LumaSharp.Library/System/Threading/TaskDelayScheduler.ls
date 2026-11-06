@@ -76,13 +76,14 @@ internal static class TaskDelayScheduler
 				while (current != null)
 				{
 					TaskDelayNode? nextNode = current!.next;
-					if (current!.dueTimestampTicks <= currentTicks)
+					if (current!.item.IsCompleted || current!.dueTimestampTicks <= currentTicks)
 					{
 						if (previous == null)
 							first = nextNode;
 						else
 							previous!.next = nextNode;
-						current!.item.Complete(null);
+						if (!current!.item.IsCompleted)
+							current!.item.Complete(null);
 					}
 					else
 						previous = current;

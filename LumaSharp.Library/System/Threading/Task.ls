@@ -11,15 +11,23 @@ public virtual class Task
 	private readonly object synchronization = new object();
 	private TaskCallback? callback;
 	private Exception? exception;
+	private OperationCanceledException? cancellationException;
 	private string parentStackTrace;
 	private bool isCompleted;
+	private bool isRunning;
+	private bool isCancellationRequested;
+	private bool isCanceled;
 
 	internal this(string parentTrace)
 	{
 		callback = null;
 		exception = null;
+		cancellationException = null;
 		parentStackTrace = parentTrace;
 		isCompleted = false;
+		isRunning = false;
+		isCancellationRequested = false;
+		isCanceled = false;
 	}
 
 	internal this(TaskCallback callback, string parentTrace) : this(parentTrace)
@@ -41,6 +49,24 @@ public virtual class Task
 		}
 	}
 
+	public bool IsCancellationRequested
+	{
+		get
+		{
+			lock (synchronization)
+				return isCancellationRequested;
+		}
+	}
+
+	public bool IsCanceled
+	{
+		get
+		{
+			lock (synchronization)
+				return isCanceled;
+		}
+	}
+
 	public Exception? Exception
 	{
 		get
@@ -50,13 +76,73 @@ public virtual class Task
 		}
 	}
 
+	internal OperationCanceledException? CancellationException
+	{
+		get
+		{
+			lock (synchronization)
+				return cancellationException;
+		}
+	}
+
+	public void RequestCancellation() mut
+	{
+		lock (synchronization)
+		{
+			if (isCompleted)
+				return;
+
+			isCancellationRequested = true;
+			if (!isRunning)
+			{
+				cancellationException = new OperationCanceledException();
+				cancellationException!.AppendAsyncStackTrace(parentStackTrace);
+				isCanceled = true;
+				isCompleted = true;
+				callback = null;
+			}
+		}
+	}
+
+	public void ThrowIfCancellationRequested()
+	{
+		if (IsCancellationRequested)
+			throw new OperationCanceledException();
+	}
+
 	internal virtual void Execute() mut
 	{
+		TaskCallback? work;
+		lock (synchronization)
+		{
+			if (isCompleted)
+				return;
+
+			if (isCancellationRequested)
+			{
+				cancellationException = new OperationCanceledException();
+				cancellationException!.AppendAsyncStackTrace(parentStackTrace);
+				isCanceled = true;
+				isCompleted = true;
+				callback = null;
+				return;
+			}
+
+			isRunning = true;
+			work = callback;
+		}
+
 		Exception? failure = null;
+		OperationCanceledException? cancellation = null;
 		try
 		{
-			if (callback != null)
-				callback!();
+			if (work != null)
+				work!();
+		}
+		catch (OperationCanceledException error)
+		{
+			error.AppendAsyncStackTrace(parentStackTrace);
+			cancellation = error;
 		}
 		catch (Exception error)
 		{
@@ -64,20 +150,38 @@ public virtual class Task
 			failure = error;
 		}
 
-		callback = null;
-		Complete(failure);
+		Complete(failure, cancellation);
 	}
 
 	internal void Complete(Exception? error) mut
 	{
+		Complete(error, null);
+	}
+
+	internal void Complete(Exception? error, OperationCanceledException? cancellation) mut
+	{
 		lock (synchronization)
 		{
+			if (isCompleted)
+				return;
+
 			exception = error;
+			cancellationException = cancellation;
+			isCanceled = cancellation != null;
+			if (isCanceled)
+				isCancellationRequested = true;
+			callback = null;
+			isRunning = false;
 			isCompleted = true;
 		}
 	}
 
 	internal void WaitForCompletion()
+	{
+		WaitForCompletion(null);
+	}
+
+	internal void WaitForCompletion(Task? cancellationContext)
 	{
 		if (IsCompleted)
 			return;
@@ -86,7 +190,10 @@ public virtual class Task
 		try
 		{
 			while (!IsCompleted)
+			{
+				cancellationContext?.ThrowIfCancellationRequested();
 				Thread.Sleep(1);
+			}
 		}
 		finally
 		{
@@ -147,9 +254,15 @@ public virtual class Task
 		return new Task(new StackTrace(1).ToString());
 	}
 
-	internal static void GetAwaitedResult(Task task, string awaitFrame)
+	internal static void GetAwaitedResult(Task task, string awaitFrame, Task cancellationContext)
 	{
-		task.WaitForCompletion();
+		task.WaitForCompletion(cancellationContext);
+		if (task.IsCanceled)
+		{
+			OperationCanceledException cancellationError = task.CancellationException ?? new OperationCanceledException();
+			cancellationError.AppendAsyncStackTrace(awaitFrame);
+			__throwpreserve(cancellationError);
+		}
 		Exception? error = task.Exception;
 		if (error != null)
 		{
@@ -158,9 +271,9 @@ public virtual class Task
 		}
 	}
 
-	internal static T GetAwaitedResult<T>(Task<T> task, string awaitFrame)
+	internal static T GetAwaitedResult<T>(Task<T> task, string awaitFrame, Task cancellationContext)
 	{
-		return task.GetTaskResult(awaitFrame);
+		return task.GetTaskResult(awaitFrame, cancellationContext);
 	}
 
 	public static Task Run(TaskCallback callback)
@@ -187,12 +300,23 @@ public class Task<T> : Task
 
 	internal T GetTaskResult()
 	{
-		return GetTaskResult("");
+		return GetTaskResult("", null);
 	}
 
 	internal T GetTaskResult(string awaitFrame)
 	{
-		WaitForCompletion();
+		return GetTaskResult(awaitFrame, null);
+	}
+
+	internal T GetTaskResult(string awaitFrame, Task? cancellationContext)
+	{
+		WaitForCompletion(cancellationContext);
+		if (IsCanceled)
+		{
+			OperationCanceledException cancelled = CancellationException ?? new OperationCanceledException();
+			cancelled.AppendAsyncStackTrace(awaitFrame);
+			__throwpreserve(cancelled);
+		}
 		Exception? error = Exception;
 		if (error != null)
 		{

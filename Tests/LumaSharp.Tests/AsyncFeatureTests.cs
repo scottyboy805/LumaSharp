@@ -252,6 +252,240 @@ class Program
         }
     }
 
+    [Fact]
+    public async Task TasksCanRequestCancellationAndAsyncBodiesCanObserveIt()
+    {
+        const string source = """
+using System;
+using System.Threading;
+
+delegate bool CancellationNameProbe(bool IsCancellationRequested);
+
+class Program
+{
+    private static object gate = new object();
+    private static bool started;
+    private static Task<int32>? childDelay;
+
+    private static void ResetStarted()
+    {
+        lock (gate)
+            started = false;
+    }
+
+    private static void MarkStarted()
+    {
+        lock (gate)
+            started = true;
+    }
+
+    private static void WaitForStarted()
+    {
+        while (true)
+        {
+            lock (gate)
+                if (started)
+                    return;
+            Thread.Sleep(1);
+        }
+    }
+
+    public static async int32 CancelUsingQualifiedContext()
+    {
+        bool IsCancellationRequested = false;
+        MarkStarted();
+        while (!async.IsCancellationRequested)
+            Thread.Sleep(1);
+        async.ThrowIfCancellationRequested();
+        return 1;
+    }
+
+    public static async int32 CancelUsingImplicitContext()
+    {
+        MarkStarted();
+        while (!IsCancellationRequested)
+            Thread.Sleep(1);
+        ThrowIfCancellationRequested();
+        return 2;
+    }
+
+    public static async int32 CancellationNamesRespectLexicalScope()
+    {
+        CancellationNameProbe probe = (bool IsCancellationRequested) => IsCancellationRequested;
+        if (probe(false))
+            return 15;
+        {
+            bool IsCancellationRequested = false;
+            if (IsCancellationRequested)
+                return 16;
+        }
+        MarkStarted();
+        while (!IsCancellationRequested)
+            Thread.Sleep(1);
+        ThrowIfCancellationRequested();
+        return 17;
+    }
+
+    public static async int32 DelayChild()
+    {
+        await Task.Delay(500);
+        return 5;
+    }
+
+    public static async int32 CancelWhileAwaiting()
+    {
+        childDelay = DelayChild();
+        MarkStarted();
+        int32 value = await childDelay!;
+        return 3;
+    }
+
+    public static async int32 IgnoreCancellation()
+    {
+        MarkStarted();
+        Thread.Sleep(50);
+        return 4;
+    }
+
+    public static async void CancelVoidOperation()
+    {
+        MarkStarted();
+        while (!async.IsCancellationRequested)
+            Thread.Sleep(1);
+        async.ThrowIfCancellationRequested();
+    }
+
+    public static async int32 LocalShadowsImplicitContext()
+    {
+        bool IsCancellationRequested = false;
+        return IsCancellationRequested ? 1 : 0;
+    }
+
+    public static int32 Main()
+    {
+        ResetStarted();
+        Task<int32> qualified = CancelUsingQualifiedContext();
+        WaitForStarted();
+        qualified.RequestCancellation();
+        if (!qualified.IsCancellationRequested)
+            return 1;
+        try
+        {
+            int32 value = qualified.Result;
+            return 2;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!qualified.IsCanceled)
+                return 3;
+        }
+
+        ResetStarted();
+        Task<int32> implicitContext = CancelUsingImplicitContext();
+        WaitForStarted();
+        implicitContext.RequestCancellation();
+        try
+        {
+            int32 value = implicitContext.Result;
+            return 4;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!implicitContext.IsCanceled)
+                return 5;
+        }
+
+        ResetStarted();
+        Task<int32> scopedNames = CancellationNamesRespectLexicalScope();
+        WaitForStarted();
+        scopedNames.RequestCancellation();
+        try
+        {
+            int32 value = scopedNames.Result;
+            return 15;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!scopedNames.IsCanceled)
+                return 16;
+        }
+
+        ResetStarted();
+        Task<int32> awaiting = CancelWhileAwaiting();
+        WaitForStarted();
+        awaiting.RequestCancellation();
+        try
+        {
+            int32 value = awaiting.Result;
+            return 17;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!awaiting.IsCanceled)
+                return 18;
+        }
+        Task<int32> completedChild = childDelay!;
+        if (completedChild.Result != 5 || completedChild.IsCanceled)
+            return 19;
+
+        ResetStarted();
+        Task<int32> cooperative = IgnoreCancellation();
+        WaitForStarted();
+        cooperative.RequestCancellation();
+        if (cooperative.Result != 4 || !cooperative.IsCancellationRequested || cooperative.IsCanceled)
+            return 20;
+
+        ResetStarted();
+        Task voidTask = CancelVoidOperation();
+        WaitForStarted();
+        voidTask.RequestCancellation();
+        voidTask.Wait();
+        if (!voidTask.IsCanceled || !voidTask.IsCancellationRequested)
+            return 21;
+
+        Task pendingDelay = Task.Delay(-1);
+        pendingDelay.RequestCancellation();
+        if (!pendingDelay.IsCompleted || !pendingDelay.IsCanceled || !pendingDelay.IsCancellationRequested)
+            return 22;
+        pendingDelay.Wait();
+
+        Task scheduledDelay = Task.Delay(3600000);
+        scheduledDelay.RequestCancellation();
+        if (!scheduledDelay.IsCompleted || !scheduledDelay.IsCanceled)
+            return 23;
+
+        Task completed = Task.CompletedTask;
+        completed.RequestCancellation();
+        if (!completed.IsCompleted || completed.IsCanceled || completed.IsCancellationRequested)
+            return 24;
+
+        if (LocalShadowsImplicitContext().Result != 0)
+            return 25;
+
+        return 0;
+    }
+}
+""";
+
+        var execution = await BuildAndRunNativeAsync(source, "AsyncCancellation");
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Empty(execution.StandardError);
+        Assert.Empty(execution.StandardOutput);
+
+        const string contextOutsideAsync = """
+class Program
+{
+    public static int32 Main()
+    {
+        return async.IsCancellationRequested ? 1 : 0;
+    }
+}
+""";
+        var invalidContext = CompileWithRuntime(contextOutsideAsync, "async-context-outside-async.ls");
+        Assert.False(invalidContext.Succeeded);
+        Assert.Contains(invalidContext.Diagnostics, diagnostic => diagnostic.Code == "LS0105");
+    }
+
     private static CompilationResult CompileWithRuntime(string source, string path)
     {
         var runtimeRoot = FindRuntimeRoot();

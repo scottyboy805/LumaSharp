@@ -983,7 +983,7 @@ public sealed class CompilerTests
 
         var batchBody = GetBody("RunAsync");
         var taskCalls = FindPositions(batchBody, "@luma_Program_ArriveTogetherAsync_1");
-        var waits = FindPositions(batchBody, "Task_inst_Wait_0");
+        var waits = FindPositions(batchBody, "Task_inst_WaitForCompletion_1");
         var awaitedResults = FindPositions(batchBody, "GetAwaitedResult");
         Assert.Equal(4, taskCalls.Count);
         Assert.Equal(4, waits.Count);

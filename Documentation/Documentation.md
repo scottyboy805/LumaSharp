@@ -1112,7 +1112,28 @@ public static async int32 ForwardAsync(int32 value)
 }
 ```
 
-Do not mix direct task forwarding with `await` or value-returning branches. If a method contains `await`, use `return await ChildAsync()` to return the child result. Calling ordinary async methods creates a task and queues the body to a runtime-managed worker pool. `await` polls for completion while blocking the thread evaluating it; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing a task fault; `Task<T>.Result` and `await` rethrow it with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
+Do not mix direct task forwarding with `await` or value-returning branches. If a method contains `await`, use `return await ChildAsync()` to return the child result. Calling ordinary async methods creates a task and queues the body to a runtime-managed worker pool. `await` polls for completion while blocking the thread evaluating it; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing; `Task<T>.Result` and `await` rethrow faults with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
+
+Async operations support cooperative cancellation without adding a token parameter to every method. Callers request cancellation on the returned task, and the async body checks its contextual cancellation state:
+
+```lumasharp
+public static async void ReadUntilCancelledAsync()
+{
+    while (!async.IsCancellationRequested)
+    {
+        async.ThrowIfCancellationRequested();
+        await Task.Delay(50);
+    }
+    async.ThrowIfCancellationRequested();
+}
+
+Task operation = ReadUntilCancelledAsync();
+operation.RequestCancellation();
+```
+
+The `async.` qualifier may be omitted for `IsCancellationRequested` and `ThrowIfCancellationRequested()` when no local, parameter, or containing member shadows those names. A cancellation request made before a queued body starts skips it. A running method must observe the request; the runtime never forcibly aborts its worker. `Task.IsCancellationRequested` reports the request, while `Task.IsCanceled` reports that the task completed by cancellation. `Task<T>.Result` and `await` throw `OperationCanceledException` for a canceled task; `Task.Wait()` only waits. Awaiting a child checks the parent operation's cancellation while polling, but does not cancel the child task. Direct-forwarding methods return the child task itself, so cancellation applies to that shared task.
+
+`FileStream` checks for cancellation before and after a read or write. A request during native I/O is observed when the operation returns; it does not interrupt the native call, and a write may already have taken effect even if the task then completes as canceled.
 
 Use `lock` to protect shared state. The lock expression is evaluated once, and the monitor is always released when the body exits, including when it throws:
 
@@ -1132,7 +1153,7 @@ public static class SharedCounter
 }
 ```
 
-Locks are reentrant and synchronize on object identity, as with C# monitors. `await` is not allowed inside a `lock` body. Async methods also cannot use `ref`, `in`, `out`, or `scope` parameters, return by reference, or mutate a struct receiver. Async interface implementations and virtual overrides must carry the `async` modifier; their transformed task signatures preserve dispatch through the base or interface type. Async lambdas, cancellation, custom schedulers, and synchronization contexts are not implemented yet.
+Locks are reentrant and synchronize on object identity, as with C# monitors. `await` is not allowed inside a `lock` body. Async methods also cannot use `ref`, `in`, `out`, or `scope` parameters, return by reference, or mutate a struct receiver. Async interface implementations and virtual overrides must carry the `async` modifier; their transformed task signatures preserve dispatch through the base or interface type. Async lambdas, custom schedulers, and synchronization contexts are not implemented yet.
 
 ## 17. Unsafe code and native pointers
 
@@ -1266,7 +1287,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
 - IO is minimal; async file reads and writes are supported through `AsyncStream` and `FileStream`, while `MemoryStream` remains synchronous. Timeouts and broad .NET `File`/`Directory` APIs are not present.
-- Async lambdas, cancellation, custom schedulers, synchronization contexts, LINQ, full reflection, attributes, and the complete .NET base class library are not included.
+- Async lambdas, cancellation callbacks and linked cancellation sources, custom schedulers, synchronization contexts, LINQ, full reflection, attributes, and the complete .NET base class library are not included.
 
 When behavior matters for a particular edge case, consult the tests and the specifications. The test suite reflects the compiler's executable behavior; the specifications also describe intended rules that may not yet be implemented.
 

@@ -127,12 +127,17 @@ public unsafe class FileStream : AsyncStream
 
 	public override async int32 ReadAsync(uint8[] buffer, int32 offset, int32 count) mut
 	{
-		return Read(buffer, offset, count);
+		async.ThrowIfCancellationRequested();
+		int32 bytesRead = Read(buffer, offset, count);
+		async.ThrowIfCancellationRequested();
+		return bytesRead;
 	}
 
 	public override async void WriteAsync(uint8[] buffer, int32 offset, int32 count) mut
 	{
+		async.ThrowIfCancellationRequested();
 		Write(buffer, offset, count);
+		async.ThrowIfCancellationRequested();
 	}
 
 	public override int32 Seek(int32 offset, SeekOrigin origin) mut

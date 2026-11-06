@@ -1659,9 +1659,13 @@ Ordinary async bodies start on a runtime-managed worker pool. Awaiting blocks th
 
 Async interface methods and virtual class methods may declare `async` and use the logical source result type. Every implementation of an async interface member and every override of an async virtual member MUST also be declared `async`; matching only the transformed task return type is insufficient. A bodyless async virtual method declares an abstract awaitable contract and may be implemented by an `override async` method. Calls through a base or interface type retain that task-returning contract.
 
-An async method cannot have `ref`, `in`, `out`, or `scope` parameters, a by-reference return, or a mutating struct receiver (LS0105). Its owned arguments and instance receiver are retained as needed by the operation. Async lambdas, iterators, cancellation, custom schedulers, and synchronization contexts are not supported. `await` inside `lock` is an error.
+An async method cannot have `ref`, `in`, `out`, or `scope` parameters, a by-reference return, or a mutating struct receiver (LS0105). Its owned arguments and instance receiver are retained as needed by the operation. Async lambdas, iterators, custom schedulers, and synchronization contexts are not supported. `await` inside `lock` is an error.
 
-If a task faults, awaiting it throws its stored exception with the original throw trace followed by the logical async caller frames. Compiler-generated helper frames MUST NOT appear in user-visible stack traces. `Task.Wait()` waits without rethrowing; `Task<T>.Result` and `await` rethrow the stored exception.
+Each scheduled async operation has task-owned cooperative cancellation state. Inside an async body, `async.IsCancellationRequested` reads that state and `async.ThrowIfCancellationRequested()` throws `System.OperationCanceledException` when cancellation has been requested. The same two members may be used without the `async.` qualifier when no parameter, local, or containing member shadows the name. The `async` qualifier is available only in an async body and accepts only these cancellation members.
+
+From a caller, `Task.RequestCancellation()` requests cancellation of that task. A request made before execution begins prevents the body from running and completes the task as canceled. A running body is not forcibly interrupted: it becomes canceled only if it observes the request and throws `OperationCanceledException`. A request racing with successful completion may leave the task successful; `IsCancellationRequested` records that the request occurred, while `IsCanceled` reports the final canceled state. Requests made after completion have no effect. A directly-forwarded async method exposes the child task itself, so requesting cancellation affects that same operation.
+
+If a task faults, awaiting it throws its stored exception with the original throw trace followed by the logical async caller frames. A canceled task has `IsCompleted`, `IsCanceled`, and `IsCancellationRequested` true and `Exception` null. Awaiting it or reading `Task<T>.Result` throws its stored `OperationCanceledException`; `Task.Wait()` waits without rethrowing either faults or cancellation. Awaiting a child task also checks the containing async task's cancellation request while polling. This ends the containing operation as canceled but does not request cancellation of the child task. Compiler-generated helper frames MUST NOT appear in user-visible stack traces.
 
 ---
 
@@ -4137,7 +4141,7 @@ These features are **not planned** and are not reserved as keywords. A program u
 
 | Feature | Notes |
 |---|---|
-| Async lambdas, task cancellation, custom schedulers, synchronization contexts | Async methods, `Task`/`Task<T>`, `await`, thread-pool scheduling, and `lock` are specified in §7.10 and Chapter 34. |
+| Async lambdas, custom schedulers, synchronization contexts | Async methods, task cancellation, `Task`/`Task<T>`, `await`, thread-pool scheduling, and `lock` are specified in §7.10 and Chapter 34. |
 | Public atomic APIs and a complete cross-thread memory model | Runtime reference counting and compiler synchronization primitives are thread-safe (§27.8, §34); a general atomic API remains deferred. |
 | Attributes | The syntax `[ … ]` before a declaration is reserved |
 | Full reflection | Only the minimal `System.Type` metadata and `Type.New` API in §28.6.1 are available; member enumeration, attributes, generic definitions and general invocation are not exposed |
@@ -4881,13 +4885,17 @@ The compiler may synthesize private helper methods and closure data to execute t
 
 ## 34.2 Task Completion and `await`
 
-`Task.IsCompleted` becomes true exactly once after either normal completion or fault publication. `Task.Exception` is null on success and contains the exception on fault. Completion publication and reads MUST be synchronized so a thread observing completion also observes the task result or exception.
+`Task.IsCompleted` becomes true exactly once after normal completion, fault publication, or cancellation publication. `Task.Exception` is null on success or cancellation and contains the exception on fault. `Task.IsCanceled` reports final canceled completion. `Task.IsCancellationRequested` reports whether cancellation has been requested and remains true if a running operation later completes successfully after ignoring the request. Completion publication and reads MUST be synchronized so a thread observing completion also observes the task result, exception, or canceled state.
+
+`Task.RequestCancellation()` is idempotent while the task is incomplete and has no effect after completion. A request made before a queued callback starts completes the task as canceled without invoking the callback. A request made while a callback is running sets the request state but does not interrupt the worker. The operation must observe cancellation, normally with `async.ThrowIfCancellationRequested()`. When the callback throws `System.OperationCanceledException`, the runtime publishes canceled completion, leaves `Task.Exception` null, and preserves the cancellation exception for `await` or `Task<T>.Result` to throw. `Task.Wait()` continues to wait without throwing.
+
+The contextual expression `async` and unqualified `IsCancellationRequested` / `ThrowIfCancellationRequested()` are valid only in async method bodies. Lexical variables and containing members shadow the unqualified names. Canceled parent awaits stop polling and complete the parent as canceled; child tasks continue independently unless their own task is canceled.
 
 `Task.Wait()` blocks until completion and does not rethrow a fault. `Task<T>.Result` blocks until completion, then returns the result or throws the stored fault. The `await` operator has the same blocking and result behavior as `Result`, except awaiting the non-generic `Task` produces no value. This version uses polling with a short sleep, or an equivalent bounded-wait mechanism; it does not suspend and later resume a continuation. The code following an await therefore runs on the same thread that called the async method containing that await. Separate await expressions are evaluated and waited in ordinary left-to-right expression order.
 
-`Task.Delay(int32 millisecondsDelay)` and `Task.Delay(TimeSpan delay)` return a `Task` that completes after the requested interval. A zero delay returns an already completed task. A delay of `-1` milliseconds, or exactly minus one millisecond as a `TimeSpan`, does not complete; values below `-1` milliseconds and other negative `TimeSpan` values throw `ArgumentOutOfRangeException`. The `TimeSpan` overload rejects intervals greater than 4,294,967,294 milliseconds. `Task.CompletedTask` exposes a task that is already complete. Delay tasks are awaitable using the ordinary `await` rules above.
+`Task.Delay(int32 millisecondsDelay)` and `Task.Delay(TimeSpan delay)` return a `Task` that completes after the requested interval. A zero delay returns an already completed task. A delay of `-1` milliseconds, or exactly minus one millisecond as a `TimeSpan`, does not complete; values below `-1` milliseconds and other negative `TimeSpan` values throw `ArgumentOutOfRangeException`. The `TimeSpan` overload rejects intervals greater than 4,294,967,294 milliseconds. `Task.CompletedTask` exposes a task that is already complete. An incomplete delay task can be canceled with `RequestCancellation()` and becomes completed as canceled immediately. Delay tasks are awaitable using the ordinary `await` rules above.
 
-For concurrent startup in a multiple declaration or multiple assignment, the language provides the batch form `await (taskA, taskB, ...)`. It is valid only as the sole right-hand group of that statement, must have one `Task<T>` operand per target, evaluates all task expressions from left to right, waits for all tasks to complete, then reads results in source order. A fault is raised while reading results; all batch tasks have completed first, and the first fault in source order is the one propagated. A non-task or non-generic `Task` operand is a compile-time error.
+For concurrent startup in a multiple declaration or multiple assignment, the language provides the batch form `await (taskA, taskB, ...)`. It is valid only as the sole right-hand group of that statement, must have one `Task<T>` operand per target, evaluates all task expressions from left to right, waits for all tasks to complete, then reads results in source order. Without cancellation, a fault is raised while reading results after all batch tasks complete, and the first fault in source order is propagated. If the containing async task is canceled while waiting, the batch await stops waiting and cancels the containing task; the child tasks continue independently. A non-task or non-generic `Task` operand is a compile-time error.
 
 Awaiting does not imply that the task started on a separate thread from every caller: a source method invoked from an async body still returns a task that is independently scheduled on the pool. Await is forbidden in a `lock` body. No synchronization context is captured or restored.
 
@@ -4915,7 +4923,7 @@ The runtime cannot identify every user-defined invariant or cleanup region. Abor
 
 `System.IO.AsyncStream` is an abstract virtual class derived from `Stream`. It declares pure virtual `async int32 ReadAsync(uint8[] buffer, int32 offset, int32 count)` and `async void WriteAsync(uint8[] buffer, int32 offset, int32 count)` methods. The buffer parameter is an owned array parameter, not a `scope` borrow, so it remains alive for the operation. Derived stream types MUST implement both methods with `override async` declarations.
 
-`System.IO.FileStream` derives from `AsyncStream` and implements these operations. Calling either method returns its compiler-managed task before the file operation completes; the caller thread does not wait for the I/O. On Windows the file runtime submits overlapped `ReadFile`/`WriteFile` requests and waits for completion on a runtime worker. On POSIX targets the current runtime dispatches the existing synchronous file operation to a worker. In both cases only `await`, `Task.Wait()`, or `Task<T>.Result` blocks the observing thread. Cancellation, timeouts, and concurrent-operation ordering on one stream are not provided by this surface.
+`System.IO.FileStream` derives from `AsyncStream` and implements these operations. Calling either method returns its compiler-managed task before the file operation completes; the caller thread does not wait for the I/O. On Windows the file runtime submits overlapped `ReadFile`/`WriteFile` requests and waits for completion on a runtime worker. On POSIX targets the current runtime dispatches the existing synchronous file operation to a worker. Both overrides check their task's cancellation state before and after the synchronous stream operation. Cancellation requested while an OS operation is in progress is observed after that operation returns; it does not interrupt the native operation, and a write may have taken effect even when its task completes as canceled. Awaiting a canceled parent does not cancel a child file operation. Timeouts and concurrent-operation ordering on one stream are not provided by this surface.
 
 ---
 
@@ -5085,7 +5093,7 @@ postfix            = primary { "." identifier [ type_args ]      (* also auto-de
                              | "(" [ arguments ] ")"
                              | "!" | "++" | "--" } ;
 primary            = "nameof" "(" expression ")" | "typeof" "(" type ")"
-                   | literal | identifier [ type_args ] | "this" | "base" "." identifier
+                   | literal | identifier [ type_args ] | "this" | "async" | "base" "." identifier
                    | "base" "[" arguments "]" | "(" expression ")"
                    | "new" [ type ] "(" [ arguments ] ")"             (* new T(...), new(...) *)
                    | "scope" [ type ] "(" [ arguments ] ")"           (* scope T(...), scope(...) *)
@@ -5120,7 +5128,7 @@ Disambiguation notes (informative):
 | Modifiers | `public private protected internal static virtual override readonly mut unsafe async` |
 | Parameters | `ref in out scope` |
 | Control flow | `if else switch case default while do for in break continue return throw try catch finally lock` |
-| Expressions | `new scope this base null true false is as sizeof default checked unchecked await` |
+| Expressions | `new scope this async base null true false is as sizeof default checked unchecked await` |
 | Contextual | `typeof nameof get set field value when and or not where` |
 | Reserved for future versions | *none of `async`, `await`, or `lock`; attribute syntax `[ ... ]` remains reserved* |
 

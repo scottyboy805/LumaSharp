@@ -5053,21 +5053,23 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
 
                 if (expression is CallExpression { IsAwaitResult: true, AwaitBatchGroup: >= 0 } firstBatchCall)
                 {
-                    var group = new List<(int Index, CallExpression Call, (string Value, string Type) Task, (string Value, string Type) Frame)>();
+                    var group = new List<(int Index, CallExpression Call, (string Value, string Type) Task,
+                        (string Value, string Type) Frame, (string Value, string Type) CancellationContext)>();
                     var next = index;
                     while (next < expressions.Count &&
                            expressions[next] is CallExpression { IsAwaitResult: true } batchCall &&
                            batchCall.AwaitBatchGroup == firstBatchCall.AwaitBatchGroup)
                     {
                         if (next != index) prepare(next);
-                        if (batchCall.Arguments.Count != 2)
-                            throw new InvalidOperationException("A lowered await expression must have a task and an observer frame argument.");
+                        if (batchCall.Arguments.Count != 3)
+                            throw new InvalidOperationException("A lowered await expression must have a task, observer frame, and cancellation context.");
                         var task = EmitExpression(batchCall.Arguments[0]);
                         var taskType = GetClassReferenceType(task.Type) ??
                             throw new InvalidOperationException("A lowered await expression did not produce a Task reference.");
                         EnsureOwnedClass(task, taskType);
                         var frame = EmitExpression(batchCall.Arguments[1]);
-                        group.Add((next, batchCall, task, frame));
+                        var cancellationContext = EmitExpression(batchCall.Arguments[2]);
+                        group.Add((next, batchCall, task, frame, cancellationContext));
                         next++;
                     }
 
@@ -5075,17 +5077,17 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                         .ToDictionary(items => items.Key, items => items.Count(), StringComparer.Ordinal);
                     var waitMethod = methods.FirstOrDefault(candidate =>
                         candidate.Owner.Name == "Task" && candidate.Owner.Namespace == "System.Threading" &&
-                        candidate.Declaration.Name == "Wait" && !candidate.Declaration.IsStatic &&
-                        candidate.Declaration.Parameters.Count == 0) ??
-                        throw new InvalidOperationException("The runtime Task.Wait() method is required to lower a batch await.");
+                        candidate.Declaration.Name == "WaitForCompletion" && !candidate.Declaration.IsStatic &&
+                        candidate.Declaration.Parameters.Count == 1) ??
+                        throw new InvalidOperationException("The runtime cancellation-aware Task.WaitForCompletion(Task) method is required to lower a batch await.");
 
                     foreach (var item in group)
-                        Emit($"call void @{FunctionName(waitMethod, methods)}(ptr {item.Task.Value})");
+                        Emit($"call void @{FunctionName(waitMethod, methods)}(ptr {item.Task.Value}, ptr {item.CancellationContext.Value})");
 
                     foreach (var item in group)
                     {
                         values[item.Index] = EmitCall(item.Call, releaseOwnedArguments: false,
-                            sourceArgumentOverrides: [item.Task, item.Frame]);
+                            sourceArgumentOverrides: [item.Task, item.Frame, item.CancellationContext]);
                         remainingUses[item.Task.Value]--;
                         if (remainingUses[item.Task.Value] == 0) ReleaseOwnedClass(item.Task);
                     }
