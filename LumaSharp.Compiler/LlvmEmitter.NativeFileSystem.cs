@@ -476,6 +476,8 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("declare ptr @CreateFileW(ptr, i32, i32, ptr, i32, i32, ptr)");
         _output.AppendLine("declare i32 @ReadFile(ptr, ptr, i32, ptr, ptr)");
         _output.AppendLine("declare i32 @WriteFile(ptr, ptr, i32, ptr, ptr)");
+        AppendDeclarationIfMissing("declare i32 @GetOverlappedResult(ptr, ptr, ptr, i32)");
+        AppendDeclarationIfMissing("declare i32 @GetLastError()");
         _output.AppendLine("declare i32 @WriteConsoleW(ptr, ptr, i32, ptr, ptr)");
         _output.AppendLine("declare i32 @GetConsoleMode(ptr, ptr)");
         _output.AppendLine("declare i32 @FlushFileBuffers(ptr)");
@@ -642,7 +644,7 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  %both = icmp eq i32 %mode, 3");
         _output.AppendLine("  %access = select i1 %both, i32 -1073741824, i32 %access.default");
         _output.AppendLine("  %creation.new = select i1 %create.new, i32 1, i32 %create.for.append");
-        _output.AppendLine("  %file = call ptr @CreateFileW(ptr %wide.ptr, i32 %access, i32 3, ptr null, i32 %creation.new, i32 128, ptr null)");
+        _output.AppendLine("  %file = call ptr @CreateFileW(ptr %wide.ptr, i32 %access, i32 3, ptr null, i32 %creation.new, i32 1073741952, ptr null)");
         _output.AppendLine($"  %failed = icmp eq ptr %file, inttoptr (i{compilation.NativePointerSize * 8} -1 to ptr)");
         _output.AppendLine("  br i1 %failed, label %error, label %success");
         _output.AppendLine("success:");
@@ -651,20 +653,8 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("error:");
         _output.AppendLine("  ret i32 -1");
         _output.AppendLine("}");
-        _output.AppendLine("define internal i32 @luma_fs_read(ptr %handle, ptr %buffer, i32 %count, ptr %bytesRead) {");
-        _output.AppendLine("entry:");
-        _output.AppendLine("  %result = call i32 @ReadFile(ptr %handle, ptr %buffer, i32 %count, ptr %bytesRead, ptr null)");
-        _output.AppendLine("  %ok = icmp ne i32 %result, 0");
-        _output.AppendLine("  %status = select i1 %ok, i32 0, i32 -1");
-        _output.AppendLine("  ret i32 %status");
-        _output.AppendLine("}");
-        _output.AppendLine("define internal i32 @luma_fs_write(ptr %handle, ptr %buffer, i32 %count, ptr %bytesWritten) {");
-        _output.AppendLine("entry:");
-        _output.AppendLine("  %result = call i32 @WriteFile(ptr %handle, ptr %buffer, i32 %count, ptr %bytesWritten, ptr null)");
-        _output.AppendLine("  %ok = icmp ne i32 %result, 0");
-        _output.AppendLine("  %status = select i1 %ok, i32 0, i32 -1");
-        _output.AppendLine("  ret i32 %status");
-        _output.AppendLine("}");
+        EmitWindowsOverlappedFileOperation(read: true);
+        EmitWindowsOverlappedFileOperation(read: false);
         _output.AppendLine("define internal i32 @luma_fs_seek(ptr %handle, i32 %offset, i32 %origin, ptr %position) {");
         _output.AppendLine("entry:");
         _output.AppendLine("  %offset.wide = sext i32 %offset to i64");
@@ -719,6 +709,89 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine("  ret i32 %status");
         _output.AppendLine("}");
         EmitWindowsPathStatusFunctions();
+    }
+
+    private void EmitWindowsOverlappedFileOperation(bool read)
+    {
+        var name = read ? "read" : "write";
+        var countOutput = read ? "bytesRead" : "bytesWritten";
+        var pointerBits = compilation.NativePointerSize * 8;
+        var overlappedSize = compilation.NativePointerSize == 8 ? 32 : 20;
+        var offsetField = compilation.NativePointerSize * 2;
+        var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
+        AppendDeclarationIfMissing($"declare void @llvm.memset.p0.i{pointerBits}(ptr, i8, {sizeType}, i1)");
+
+        _output.AppendLine($"define internal i32 @luma_fs_{name}(ptr %handle, ptr %buffer, i32 %count, ptr %{countOutput}) {{");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %position.storage = alloca i64, align 8");
+        _output.AppendLine("  %position.ok.native = call i32 @SetFilePointerEx(ptr %handle, i64 0, ptr %position.storage, i32 1)");
+        _output.AppendLine("  %position.ok = icmp ne i32 %position.ok.native, 0");
+        _output.AppendLine("  br i1 %position.ok, label %start, label %error");
+        _output.AppendLine("start:");
+        _output.AppendLine($"  %overlapped.storage = alloca [{overlappedSize} x i8], align {compilation.NativePointerSize}");
+        _output.AppendLine($"  %overlapped = getelementptr [{overlappedSize} x i8], ptr %overlapped.storage, i32 0, i32 0");
+        _output.AppendLine($"  call void @llvm.memset.p0.i{pointerBits}(ptr %overlapped, i8 0, {sizeType} {overlappedSize}, i1 false)");
+        _output.AppendLine($"  %offset.low.ptr = getelementptr i8, ptr %overlapped, i{pointerBits} {offsetField}");
+        _output.AppendLine($"  %offset.high.ptr = getelementptr i8, ptr %overlapped, i{pointerBits} {offsetField + 4}");
+        _output.AppendLine("  %position = load i64, ptr %position.storage, align 8");
+        _output.AppendLine("  %offset.low = trunc i64 %position to i32");
+        _output.AppendLine("  %offset.high.wide = lshr i64 %position, 32");
+        _output.AppendLine("  %offset.high = trunc i64 %offset.high.wide to i32");
+        _output.AppendLine("  store i32 %offset.low, ptr %offset.low.ptr, align 4");
+        _output.AppendLine("  store i32 %offset.high, ptr %offset.high.ptr, align 4");
+        _output.AppendLine($"  %request.started = call i32 @{(read ? "ReadFile" : "WriteFile")}(ptr %handle, ptr %buffer, i32 %count, ptr null, ptr %overlapped)");
+        _output.AppendLine("  %request.completed = icmp ne i32 %request.started, 0");
+        _output.AppendLine("  br i1 %request.completed, label %complete, label %check.pending");
+        _output.AppendLine("check.pending:");
+        _output.AppendLine("  %error.code = call i32 @GetLastError()");
+        _output.AppendLine("  %is.pending = icmp eq i32 %error.code, 997");
+        if (read)
+        {
+            _output.AppendLine("  %is.eof = icmp eq i32 %error.code, 38");
+            _output.AppendLine("  br i1 %is.pending, label %complete, label %check.eof");
+            _output.AppendLine("check.eof:");
+            _output.AppendLine("  br i1 %is.eof, label %eof, label %error");
+        }
+        else
+        {
+            _output.AppendLine("  br i1 %is.pending, label %complete, label %error");
+        }
+        _output.AppendLine("complete:");
+        _output.AppendLine($"  %wait.completed = call i32 @GetOverlappedResult(ptr %handle, ptr %overlapped, ptr %{countOutput}, i32 1)");
+        _output.AppendLine("  %wait.succeeded = icmp ne i32 %wait.completed, 0");
+        _output.AppendLine(read
+            ? "  br i1 %wait.succeeded, label %save.position, label %completion.error"
+            : "  br i1 %wait.succeeded, label %save.position, label %error");
+        if (read)
+        {
+            _output.AppendLine("completion.error:");
+            _output.AppendLine("  %completion.error.code = call i32 @GetLastError()");
+            _output.AppendLine("  %completion.eof = icmp eq i32 %completion.error.code, 38");
+            _output.AppendLine("  br i1 %completion.eof, label %eof, label %error");
+            _output.AppendLine("eof:");
+            _output.AppendLine($"  store i32 0, ptr %{countOutput}");
+            _output.AppendLine("  ret i32 0");
+        }
+        _output.AppendLine("save.position:");
+        _output.AppendLine($"  %completed.count = load i32, ptr %{countOutput}");
+        _output.AppendLine("  %completed.wide = zext i32 %completed.count to i64");
+        _output.AppendLine("  %next.position = add i64 %position, %completed.wide");
+        _output.AppendLine("  %position.updated = call i32 @SetFilePointerEx(ptr %handle, i64 %next.position, ptr null, i32 0)");
+        _output.AppendLine("  %position.update.succeeded = icmp ne i32 %position.updated, 0");
+        if (read)
+        {
+            _output.AppendLine("  %status = select i1 %position.update.succeeded, i32 0, i32 -1");
+        }
+        else
+        {
+            _output.AppendLine("  %write.completed = icmp eq i32 %completed.count, %count");
+            _output.AppendLine("  %write.succeeded = and i1 %position.update.succeeded, %write.completed");
+            _output.AppendLine("  %status = select i1 %write.succeeded, i32 0, i32 -1");
+        }
+        _output.AppendLine("  ret i32 %status");
+        _output.AppendLine("error:");
+        _output.AppendLine("  ret i32 -1");
+        _output.AppendLine("}");
     }
 
     private void EmitWindowsPathStatusFunctions()

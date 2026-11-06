@@ -454,8 +454,9 @@ internal sealed class Parser(IReadOnlyList<Token> tokens, DiagnosticBag diagnost
             else { Error(Current, "Expected a method body, expression body, or ';'."); SkipMember(); }
             if (kind == "interface" && body is not null)
                 diagnostics.Add("LS0001", DiagnosticSeverity.Error, "Interface methods cannot have a body.", memberStart.Location);
-            if (memberModifiers.Contains("async") && kind != "interface" && (body is null || memberModifiers.Contains("extern")))
-                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "An async method must have a body and cannot be extern.", memberStart.Location);
+            if (memberModifiers.Contains("async") && kind != "interface" &&
+                (body is null && !memberModifiers.Contains("virtual") || memberModifiers.Contains("extern")))
+                diagnostics.Add("LS0001", DiagnosticSeverity.Error, "An async method must have a body unless it declares a virtual async contract, and cannot be extern.", memberStart.Location);
             _unsafeDepth = previousMemberUnsafeDepth;
             if (!IsIdentifier(memberName)) Error(memberName, "Expected a non-keyword method name (use @ to escape a keyword).");
             members.Add(new MethodDeclaration(name.Text.TrimStart('@'), memberName.Text.TrimStart('@'), returnType, parameters, body, memberModifiers.Contains("static"), memberModifiers.Contains("public"), isMutating, hasTypeParameters, memberStart.Location, unsafeMember, memberModifiers.Contains("extern"), IsVirtual: memberModifiers.Contains("virtual"), IsOverride: memberModifiers.Contains("override"), Accessibility: GetMemberAccessibility(memberModifiers), ExplicitInterfaceName: explicitInterfaceName, TypeParameters: methodTypeParameters, GenericConstraints: methodConstraints, ReturnsByRef: memberModifiers.Contains("ref"), IsAsync: memberModifiers.Contains("async")));

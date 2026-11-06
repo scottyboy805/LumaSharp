@@ -1039,7 +1039,7 @@ public class Worker
 
 ## 16. Async methods, tasks, and locks
 
-An `async` method names the value it will eventually produce. LumaSharp wraps that result in a task automatically: `async void` returns `Task`, while `async T` returns `Task<T>`. Do not write `Task` as the source return type.
+An `async` method names its logical result. The compiler manages a `Task` for `async void` or a `Task<T>` for `async T`; the source declaration does not write a task return type. Capture the operation by assigning a call to `Task` or `Task<T>`, or use `await` when you need the result.
 
 ```lumasharp
 using System.Threading;
@@ -1066,7 +1066,7 @@ public static class Calculations
 }
 ```
 
-Inside an async method, `await` returns the task's result directly:
+Inside an async method, `await` returns the task's logical result directly. A body that uses `await` returns values on all paths; `return await ChildAsync()` is valid alongside `return 0` for an `async int32` method:
 
 ```lumasharp
 public static async int32 ReadValueAsync()
@@ -1103,7 +1103,16 @@ For comparison, this declaration does not form a batch: the second call starts o
 let first, second = await AddOneAsync(20), await AddOneAsync(40);
 ```
 
-Calling an async method creates a task and queues its body to a runtime-managed worker pool. `await` polls for completion while blocking the current thread; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing a task fault; `Task<T>.Result` and `await` rethrow it with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
+An async method may instead use direct-forwarding mode: with no `await` and a single task-return expression, the call returns the child `Task` object itself, without an extra task allocation or forwarding worker.
+
+```lumasharp
+public static async int32 ForwardAsync(int32 value)
+{
+    return AddOneAsync(value);
+}
+```
+
+Do not mix direct task forwarding with `await` or value-returning branches. If a method contains `await`, use `return await ChildAsync()` to return the child result. Calling ordinary async methods creates a task and queues the body to a runtime-managed worker pool. `await` polls for completion while blocking the thread evaluating it; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing a task fault; `Task<T>.Result` and `await` rethrow it with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
 
 Use `lock` to protect shared state. The lock expression is evaluated once, and the monitor is always released when the body exits, including when it throws:
 
@@ -1123,7 +1132,7 @@ public static class SharedCounter
 }
 ```
 
-Locks are reentrant and synchronize on object identity, as with C# monitors. `await` is not allowed inside a `lock` body. Async methods also cannot use `ref`, `in`, `out`, or `scope` parameters, return by reference, or mutate a struct receiver. Async lambdas, cancellation, custom schedulers, and synchronization contexts are not implemented yet.
+Locks are reentrant and synchronize on object identity, as with C# monitors. `await` is not allowed inside a `lock` body. Async methods also cannot use `ref`, `in`, `out`, or `scope` parameters, return by reference, or mutate a struct receiver. Async interface implementations and virtual overrides must carry the `async` modifier; their transformed task signatures preserve dispatch through the base or interface type. Async lambdas, cancellation, custom schedulers, and synchronization contexts are not implemented yet.
 
 ## 17. Unsafe code and native pointers
 
@@ -1240,9 +1249,9 @@ public class Program
 }
 ```
 
-The synchronous `System.IO` layer includes `Stream`, `MemoryStream`, `FileStream`, `File`, `Directory`, `Path`, `TextReader`, and `TextWriter`. `Stream.Read` and `Stream.Write` operate on byte arrays; `MemoryStream` supports seeking and exposes an unsafe pointer to its buffer. `FileStream` uses native OS operations, and handles can be released with `Close` or its finalizer.
+The `System.IO` layer includes `Stream`, `AsyncStream`, `MemoryStream`, `FileStream`, `File`, `Directory`, `Path`, `TextReader`, and `TextWriter`. `Stream.Read` and `Stream.Write` operate on byte arrays; `MemoryStream` supports seeking and exposes an unsafe pointer to its buffer. `AsyncStream` declares pure virtual async byte-array read/write methods. `FileStream` implements them, retains buffers for the operation, and exposes a task before I/O completes. Windows uses overlapped file requests; POSIX currently runs the synchronous file operation on a runtime worker. The initiating caller does not wait for the I/O unless it awaits or waits on the task. Handles can be released with `Close` or the finalizer.
 
-The IO surface is intentionally small: asynchronous methods, timeouts, `Dispose`, recursive directory deletion, file enumeration, and full canonical path normalization are not implemented.
+The IO surface is intentionally small: timeouts, `Dispose`, recursive directory deletion, file enumeration, and full canonical path normalization are not implemented.
 
 Some low-level runtime operations use compiler-reserved names beginning with `__`. They let the runtime reach platform services such as memory allocation, file APIs, and timing without declaring those operations as application-facing `extern` methods. These names are for runtime source files only; ordinary programs should use public runtime classes such as `NativeMemory`, `NativeLibrary`, `File`, and `Environment`.
 
@@ -1256,7 +1265,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - Dictionary enumeration and caller-supplied collection comparers are absent. `List<T>` and `HashSet<T>` support the generic enumerable protocol.
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
-- IO is synchronous and minimal; timeouts and broad .NET `File`/`Directory` APIs are not present.
+- IO is minimal; async file reads and writes are supported through `AsyncStream` and `FileStream`, while `MemoryStream` remains synchronous. Timeouts and broad .NET `File`/`Directory` APIs are not present.
 - Async lambdas, cancellation, custom schedulers, synchronization contexts, LINQ, full reflection, attributes, and the complete .NET base class library are not included.
 
 When behavior matters for a particular edge case, consult the tests and the specifications. The test suite reflects the compiler's executable behavior; the specifications also describe intended rules that may not yet be implemented.

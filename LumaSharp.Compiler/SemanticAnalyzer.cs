@@ -2905,13 +2905,15 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                             (candidate.ExplicitInterfaceName is null && candidate.Accessibility == "public" ||
                                 IsExplicitInterfaceImplementationFor(implementationType, candidate.ExplicitInterfaceName, contract)) &&
                             candidate.ReturnType == requirement.ReturnType &&
+                            candidate.IsAsync == requirement.IsAsync &&
                             candidate.Parameters.Count == requirement.Parameters.Count &&
                             candidate.Parameters.Zip(requirement.Parameters).All(pair =>
                                 pair.First.TypeName == pair.Second.TypeName && pair.First.PassingMode == pair.Second.PassingMode &&
                                 pair.First.IsVariadic == pair.Second.IsVariadic)) ||
                             implementationType.Kind == "class" && implementationType.IsVirtual && candidates.Any(candidate =>
                                 !candidate.IsStatic && candidate.Accessibility == "public" && candidate.IsVirtual && candidate.Body is null &&
-                                candidate.ReturnType == requirement.ReturnType && candidate.Parameters.Count == requirement.Parameters.Count &&
+                                candidate.ReturnType == requirement.ReturnType && candidate.IsAsync == requirement.IsAsync &&
+                                candidate.Parameters.Count == requirement.Parameters.Count &&
                                 candidate.Parameters.Zip(requirement.Parameters).All(pair => pair.First.TypeName == pair.Second.TypeName &&
                                     pair.First.PassingMode == pair.Second.PassingMode && pair.First.IsVariadic == pair.Second.IsVariadic));
                         if (!implemented)
@@ -3128,9 +3130,11 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             if (declaration.IsOverride)
             {
                 if (inherited is null || !inherited.Declaration.IsVirtual && !inherited.Declaration.IsOverride ||
-                    inherited.Declaration.ReturnType != declaration.ReturnType || inherited.Declaration.Accessibility != declaration.Accessibility ||
+                    inherited.Declaration.ReturnType != declaration.ReturnType ||
+                    inherited.Declaration.IsAsync != declaration.IsAsync ||
+                    inherited.Declaration.Accessibility != declaration.Accessibility ||
                     !OverrideParameterContractsMatch(inherited.Declaration.Parameters, declaration.Parameters))
-                    diagnostics.Add("LS0832", DiagnosticSeverity.Error, $"Override '{method.QualifiedName}' does not match an inherited virtual member's signature, parameter modifiers, return type, and accessibility.", declaration.Location);
+                    diagnostics.Add("LS0832", DiagnosticSeverity.Error, $"Override '{method.QualifiedName}' does not match an inherited virtual member's signature, async contract, parameter modifiers, return type, and accessibility.", declaration.Location);
             }
             else if (inherited is not null && (inherited.Declaration.IsVirtual || inherited.Declaration.IsOverride))
                 diagnostics.Add("LS0833", DiagnosticSeverity.Error, $"Member '{method.QualifiedName}' must be marked override to replace an inherited virtual member.", declaration.Location);

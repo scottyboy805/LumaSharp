@@ -1,6 +1,6 @@
 namespace System.IO;
 
-public unsafe class FileStream : Stream
+public unsafe class FileStream : AsyncStream
 {
 	private int handle;
 	private bool isOpen;
@@ -123,6 +123,16 @@ public unsafe class FileStream : Stream
 		uint8* start = (uint8*)buffer.Ptr + offset;
 		if (__filewrite((void*)handle, start, count, out bytesWritten) != 0 || bytesWritten != count)
 			throw new IOException("Unable to write to the file.");
+	}
+
+	public override async int32 ReadAsync(uint8[] buffer, int32 offset, int32 count) mut
+	{
+		return Read(buffer, offset, count);
+	}
+
+	public override async void WriteAsync(uint8[] buffer, int32 offset, int32 count) mut
+	{
+		Write(buffer, offset, count);
 	}
 
 	public override int32 Seek(int32 offset, SeekOrigin origin) mut

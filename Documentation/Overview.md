@@ -114,7 +114,7 @@ async int32 UseLater() { return await AddLater(41); }
 lock (gate) { sharedValue++; }
 ```
 
-An `async T` call returns `Task<T>` and an `async void` call returns `Task`; awaiting a task yields its result and continues on the awaiting thread after polling. Async bodies run on an automatically managed worker pool, which adds workers for queued work and blocked nested waits. `lock` synchronizes by object identity and is reentrant; `await` is not allowed inside its body.
+Async calls carry an implicit `Task<T>` or `Task` that can be captured by assignment; `await` yields the logical result and continues on the awaiting thread after polling. Virtual async declarations and their overrides must all use `async`. A no-await method with a single task return forwards the same task without allocating a wrapper. Ordinary async bodies run on an automatically managed worker pool. `AsyncStream` declares pure virtual async byte-array reads and writes, and `FileStream` implements them; the caller returns before I/O completes. `lock` synchronizes by object identity and is reentrant; `await` is not allowed inside its body.
 
 ## Classes, structs, interfaces, and enums
 

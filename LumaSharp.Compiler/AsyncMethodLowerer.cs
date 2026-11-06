@@ -21,7 +21,17 @@ internal static class AsyncMethodLowerer
                     if (asyncMethod.Body is null)
                     {
                         ValidateAsyncMethod(type, asyncMethod);
-                        members.Add(asyncMethod with { ReturnType = GetTaskType(asyncMethod), IsAsync = false });
+                        members.Add(asyncMethod with { ReturnType = GetTaskType(asyncMethod), IsAsync = true });
+                    }
+                    else if (CanForwardTaskDirectly(type, asyncMethod))
+                    {
+                        ValidateAsyncMethod(type, asyncMethod);
+                        members.Add(asyncMethod with
+                        {
+                            ReturnType = GetTaskType(asyncMethod),
+                            Body = (BlockStatement)RewriteStatement(asyncMethod.Body, inAsyncMethod: false),
+                            IsAsync = true
+                        });
                     }
                     else
                     {
@@ -99,10 +109,91 @@ internal static class AsyncMethodLowerer
             {
                 ReturnType = taskType,
                 Body = new BlockStatement([taskLocal, setCallback, queueTask, new ReturnStatement(new NameExpression(taskName, location), location)], location),
-                IsAsync = false
+                IsAsync = true
             };
             return (wrapper, bodyMethod);
         }
+
+        bool CanForwardTaskDirectly(TypeDeclaration owner, MethodDeclaration method)
+        {
+            if (method.Body is null || ContainsAwait(method.Body))
+                return false;
+
+            if (method.Body.Statements.Count != 1 ||
+                method.Body.Statements[0] is not ReturnStatement { Value: { } value })
+                return false;
+
+            return IsForwardedTaskExpression(owner, method, value);
+        }
+
+        bool IsForwardedTaskExpression(TypeDeclaration owner, MethodDeclaration method, Expression expression)
+        {
+            if (expression is NameExpression name)
+                return method.Parameters.Any(parameter =>
+                    parameter.Name == name.Name && IsTaskType(parameter.TypeName));
+            if (expression is ConditionalExpression conditional)
+                return IsForwardedTaskExpression(owner, method, conditional.WhenTrue) &&
+                    IsForwardedTaskExpression(owner, method, conditional.WhenFalse);
+            if (expression is CastExpression cast)
+                return IsForwardedTaskExpression(owner, method, cast.Operand);
+            if (expression is NullAssertionExpression assertion)
+                return IsForwardedTaskExpression(owner, method, assertion.Operand);
+            if (expression is not CallExpression call)
+                return false;
+
+            var methodName = call.Target switch
+            {
+                NameExpression targetName => targetName.Name,
+                MemberAccessExpression targetMember => targetMember.Member,
+                _ => null
+            };
+            if (methodName is null)
+                return false;
+
+            if (call.Target is NameExpression || call.Target is MemberAccessExpression { Receiver: ThisExpression })
+                return HasTaskReturningMethodInHierarchy(owner, methodName);
+            if (call.Target is MemberAccessExpression member &&
+                GetQualifiedExpressionName(member.Receiver) is { } receiverName)
+            {
+                var targetType = units.SelectMany(unit => unit.Types).FirstOrDefault(type =>
+                    type.Name == receiverName || GetQualifiedTypeName(type) == receiverName ||
+                    type.Name == receiverName.Split('.').Last());
+                return targetType?.Members.OfType<MethodDeclaration>()
+                    .Any(candidate => candidate.Name == methodName &&
+                        (candidate.IsAsync || IsTaskType(candidate.ReturnType))) == true;
+            }
+
+            return false;
+        }
+
+        bool HasTaskReturningMethodInHierarchy(TypeDeclaration type, string name)
+        {
+            if (type.Members.OfType<MethodDeclaration>().Any(candidate => candidate.Name == name &&
+                    (candidate.IsAsync || IsTaskType(candidate.ReturnType))))
+                return true;
+            foreach (var baseName in type.BaseTypes ?? [])
+            {
+                var baseType = units.SelectMany(unit => unit.Types).FirstOrDefault(candidate =>
+                    candidate.Name == baseName || GetQualifiedTypeName(candidate) == baseName ||
+                    candidate.Name == baseName.Split('<')[0].Split('.').Last());
+                if (baseType is not null && HasTaskReturningMethodInHierarchy(baseType, name))
+                    return true;
+            }
+            return false;
+        }
+
+        static string GetQualifiedTypeName(TypeDeclaration type) => string.IsNullOrEmpty(type.Namespace)
+            ? type.Name
+            : type.Namespace + "." + type.Name;
+
+        static string? GetQualifiedExpressionName(Expression expression) => expression switch
+        {
+            NameExpression name => name.Name,
+            MemberAccessExpression member => GetQualifiedExpressionName(member.Receiver) is { } prefix
+                ? prefix + "." + member.Member
+                : member.Member,
+            _ => null
+        };
 
         void ValidateAsyncMethod(TypeDeclaration owner, MethodDeclaration method)
         {

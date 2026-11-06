@@ -1632,7 +1632,7 @@ extension_member = instance_method | computed_property ;
 
 ## 7.10 Async Methods and `await`
 
-An `async` method declares the type of its completed result. Its callable signature returns `System.Threading.Task` when the declared result is `void`, or `System.Threading.Task<T>` for a declared result `T`. The source declaration MUST NOT write `Task` or `Task<T>` as the return type: the task wrapper is implicit.
+An `async` method declares its logical completed result type `T` or `void`. The source declaration MUST NOT write `Task` or `Task<T>` as that result type: the task is inferred and managed by the compiler. At the lowered call boundary, an `async T` method produces `System.Threading.Task<T>` and an `async void` method produces `System.Threading.Task`. A call may be assigned to a matching task variable to retain that operation, or consumed with `await` to obtain its logical result.
 
 ```lumasharp
 public static async int32 LoadCount()
@@ -1651,9 +1651,15 @@ int32 count = await LoadCount();
 await Save();
 ```
 
-`await` is permitted only in an `async` method and only on `Task` or `Task<T>`. Awaiting `Task` produces no value; awaiting `Task<T>` produces its `T`. A task value may be stored, passed, or returned like any other reference. An async method starts its body on a pool worker; awaiting a task blocks the current thread while polling for completion, and then continues on that same thread. It does not capture a synchronization context or schedule a continuation. `ThreadPool` sizing and worker lifetime are managed by the runtime.
+`await` is permitted only in an `async` method and only on `Task` or `Task<T>`. Awaiting `Task` produces no value; awaiting `Task<T>` produces its `T`. In await mode, a method body containing `await` returns logical values: `return await ChildAsync()` returns the child's result, and other branches may return ordinary values of `T`. A direct `return ChildAsync()` in an await-mode body is a type error; write `return await ChildAsync()` instead.
 
-Async interface methods may declare `async` and use the same source result type; their implementation returns the corresponding task. Implementations MUST match the transformed task signature. An async method cannot have `ref`, `in`, `out`, or `scope` parameters, a by-reference return, or a mutating struct receiver (LS0105). Async lambdas, iterators, cancellation, custom schedulers, and synchronization contexts are not supported. `await` inside `lock` is an error.
+A method with no `await` may use direct-forwarding mode when its body consists of a single return expression whose type is the matching `Task` or `Task<T>`. The compiler returns that exact task object without allocating or scheduling a wrapper task. This permits `async int32 Forward() { return CalculateAsync(); }`. Forwarding mode cannot be combined with `await` or with value-returning paths. An async method with no `await` that returns ordinary values uses the normal scheduled async implementation.
+
+Ordinary async bodies start on a runtime-managed worker pool. Awaiting blocks the thread evaluating `await` while polling for completion, then continues on that same thread. The runtime does not capture a synchronization context or schedule a continuation. Pool sizing and worker lifetime are managed by the runtime.
+
+Async interface methods and virtual class methods may declare `async` and use the logical source result type. Every implementation of an async interface member and every override of an async virtual member MUST also be declared `async`; matching only the transformed task return type is insufficient. A bodyless async virtual method declares an abstract awaitable contract and may be implemented by an `override async` method. Calls through a base or interface type retain that task-returning contract.
+
+An async method cannot have `ref`, `in`, `out`, or `scope` parameters, a by-reference return, or a mutating struct receiver (LS0105). Its owned arguments and instance receiver are retained as needed by the operation. Async lambdas, iterators, cancellation, custom schedulers, and synchronization contexts are not supported. `await` inside `lock` is an error.
 
 If a task faults, awaiting it throws its stored exception with the original throw trace followed by the logical async caller frames. Compiler-generated helper frames MUST NOT appear in user-visible stack traces. `Task.Wait()` waits without rethrowing; `Task<T>.Result` and `await` rethrow the stored exception.
 
@@ -4867,7 +4873,9 @@ This chapter specifies the runtime model for async methods (§7.10), task comple
 
 ## 34.1 Async Method Calls
 
-An async method has a source result type `T` or `void`, and its callable result is `Task<T>` or `Task`, respectively. Calling it creates and returns an incomplete task, captures the logical caller trace, and queues the method body to the runtime-managed thread pool. The body begins on a worker thread. Arguments and an instance receiver are retained for as long as required by the queued invocation.
+An async method has a logical source result type `T` or `void`; the compiler-managed call result is `Task<T>` or `Task`. In the ordinary scheduled mode, calling the method creates an incomplete task, captures the logical caller trace, and queues the body to the runtime-managed thread pool. The body begins on a worker thread. Arguments and an instance receiver are retained for as long as required by the queued invocation.
+
+A direct-forwarding async method has no `await` and consists of one return expression whose type is the matching task. The call evaluates that expression and returns the exact task object; it MUST NOT allocate a second task or queue a forwarding worker. The forwarded task preserves the child operation's result and failure. A method containing `await` is in await mode and MUST return logical values; it cannot directly return a task. A body cannot mix the two modes.
 
 The compiler may synthesize private helper methods and closure data to execute the body. Such artifacts are implementation details, are inaccessible from source, and MUST NOT appear in user-visible stack traces. A compiler MUST preserve the source method name and caller chain as logical frames, including when a task faults. The runtime retains a fault exception on the task until it is released; awaiting or reading `Task<T>.Result` throws that exception while preserving its original throw-site trace and appending the logical async call chain.
 
@@ -4902,6 +4910,12 @@ Await inside `lock` is a compile-time error. This rule follows C# monitor behavi
 `Abort()` is synchronous and blocking. It first requests termination, then waits for runtime-tracked critical regions to be left. Tracked regions include held monitors and the runtime's worker/callback teardown protocol. Once the target is outside those regions, the runtime may terminate it forcefully and MUST wait until the native thread has fully exited before returning. Resources owned by the `Thread` wrapper are released once, even if worker completion races with abort.
 
 The runtime cannot identify every user-defined invariant or cleanup region. Abort MAY interrupt ordinary user code outside the tracked regions and may bypass `finally` blocks, scoped-object destruction, finalizers, and reference-count releases. It is therefore a last resort. Callers SHOULD use `Join()` first and use `Abort()` only when terminating an unresponsive worker is required. Programs MUST NOT assume that arbitrary user state remains consistent after abort.
+
+## 34.6 Async streams and file I/O
+
+`System.IO.AsyncStream` is an abstract virtual class derived from `Stream`. It declares pure virtual `async int32 ReadAsync(uint8[] buffer, int32 offset, int32 count)` and `async void WriteAsync(uint8[] buffer, int32 offset, int32 count)` methods. The buffer parameter is an owned array parameter, not a `scope` borrow, so it remains alive for the operation. Derived stream types MUST implement both methods with `override async` declarations.
+
+`System.IO.FileStream` derives from `AsyncStream` and implements these operations. Calling either method returns its compiler-managed task before the file operation completes; the caller thread does not wait for the I/O. On Windows the file runtime submits overlapped `ReadFile`/`WriteFile` requests and waits for completion on a runtime worker. On POSIX targets the current runtime dispatches the existing synchronous file operation to a worker. In both cases only `await`, `Task.Wait()`, or `Task<T>.Result` blocks the observing thread. Cancellation, timeouts, and concurrent-operation ordering on one stream are not provided by this surface.
 
 ---
 
