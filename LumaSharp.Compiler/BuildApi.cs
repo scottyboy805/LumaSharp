@@ -28,7 +28,14 @@ public static class LumaBuild
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private static StringComparer PathComparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-    public static async Task<CompilerBuildResult> BuildAsync(CompilerBuildRequest request, CancellationToken cancellationToken = default)
+    public static Task<CompilerBuildResult> BuildAsync(CompilerBuildRequest request, CancellationToken cancellationToken = default) =>
+        BuildCoreAsync(request, null, cancellationToken);
+
+    internal static Task<CompilerBuildResult> BuildProfiledAsync(CompilerBuildRequest request, CompilationProfiler profiler,
+        CancellationToken cancellationToken = default) => BuildCoreAsync(request, profiler, cancellationToken);
+
+    private static async Task<CompilerBuildResult> BuildCoreAsync(CompilerBuildRequest request, CompilationProfiler? profiler,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var outputs = new List<string>();
@@ -48,34 +55,41 @@ public static class LumaBuild
 
             var sources = new List<(string Path, string Text)>();
             var seen = new HashSet<string>(PathComparer);
-            var inputPaths = request.SourcePaths.ToList();
-            var runtimeDirectory = RuntimeLibraryResolver.Resolve(request.RuntimeLibraryPath, inputPaths);
-            var runtimeSourcePaths = runtimeDirectory is null
-                ? Array.Empty<string>()
-                : Directory.EnumerateFiles(runtimeDirectory, "*.ls", SearchOption.AllDirectories).ToArray();
-            if (runtimeDirectory is not null)
-                inputPaths.AddRange(runtimeSourcePaths);
-            foreach (var inputPath in inputPaths)
+            string[] runtimeSourcePaths;
+            using (profiler?.Measure("Source discovery and loading"))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (string.IsNullOrWhiteSpace(inputPath) || !Path.GetExtension(inputPath).Equals(".ls", StringComparison.OrdinalIgnoreCase))
-                    return Failure("LMC1005", $"Source path '{inputPath}' must name a .ls file.");
-                var fullPath = Path.GetFullPath(inputPath);
-                if (!seen.Add(fullPath)) continue;
-                if (!File.Exists(fullPath)) return Failure("LMC1005", $"Source file '{fullPath}' does not exist.");
-                var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
-                string text;
-                try { text = StrictUtf8.GetString(bytes); }
-                catch (DecoderFallbackException ex) { return Failure("LMC1006", $"Source file '{fullPath}' is not valid UTF-8: {ex.Message}"); }
-                sources.Add((fullPath, text));
+                var inputPaths = request.SourcePaths.ToList();
+                var runtimeDirectory = RuntimeLibraryResolver.Resolve(request.RuntimeLibraryPath, inputPaths);
+                runtimeSourcePaths = runtimeDirectory is null
+                    ? Array.Empty<string>()
+                    : Directory.EnumerateFiles(runtimeDirectory, "*.ls", SearchOption.AllDirectories).ToArray();
+                if (runtimeDirectory is not null)
+                    inputPaths.AddRange(runtimeSourcePaths);
+                foreach (var inputPath in inputPaths)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (string.IsNullOrWhiteSpace(inputPath) || !Path.GetExtension(inputPath).Equals(".ls", StringComparison.OrdinalIgnoreCase))
+                        return Failure("LMC1005", $"Source path '{inputPath}' must name a .ls file.");
+                    var fullPath = Path.GetFullPath(inputPath);
+                    if (!seen.Add(fullPath)) continue;
+                    if (!File.Exists(fullPath)) return Failure("LMC1005", $"Source file '{fullPath}' does not exist.");
+                    var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+                    string text;
+                    try { text = StrictUtf8.GetString(bytes); }
+                    catch (DecoderFallbackException ex) { return Failure("LMC1006", $"Source file '{fullPath}' is not valid UTF-8: {ex.Message}"); }
+                    sources.Add((fullPath, text));
+                }
             }
 
-            var targetValidation = LlvmToolchain.ValidateTarget(request.Options.TargetTriple);
+            var targetValidation = profiler is null
+                ? LlvmToolchain.ValidateTarget(request.Options.TargetTriple)
+                : profiler.Measure("LLVM target validation", () => LlvmToolchain.ValidateTarget(request.Options.TargetTriple));
             if (!targetValidation.Succeeded)
                 return Failure("LMC2001", targetValidation.Error ?? $"LLVM target '{request.Options.TargetTriple}' is unavailable.");
             var target = targetValidation.TargetTriple!;
 
-            var compilation = LumaCompiler.CompileWithRuntimeLibrary(sources, request.Options, runtimeSourcePaths, cancellationToken);
+            var compilation = LumaCompiler.CompileWithRuntimeLibrary(sources, request.Options, runtimeSourcePaths, cancellationToken, profiler,
+                stripUnusedExecutableCode: !request.Options.StaticLibrary);
             diagnostics.AddRange(compilation.Diagnostics);
             if (!compilation.Succeeded) return new(false, diagnostics.ToArray(), []);
 
@@ -84,10 +98,18 @@ public static class LumaBuild
             Directory.CreateDirectory(outputDirectory);
             Directory.CreateDirectory(intermediateDirectory);
             var irPath = Path.Combine(intermediateDirectory, request.OutputName + ".ll");
-            await File.WriteAllTextAsync(irPath, compilation.LlvmIr!, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
+            if (profiler is null)
+                await File.WriteAllTextAsync(irPath, compilation.LlvmIr!, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
+            else
+            {
+                using (profiler.Measure("LLVM IR write"))
+                    await File.WriteAllTextAsync(irPath, compilation.LlvmIr!, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
+            }
 
             objectPath = Path.Combine(intermediateDirectory, request.OutputName + "." + Guid.NewGuid().ToString("N") + (OperatingSystem.IsWindows() ? ".obj" : ".o"));
-            var backend = LlvmToolchain.VerifyAndEmitObject(compilation.LlvmIr!, objectPath, target, request.Options.Optimize, cancellationToken);
+            var backend = profiler is null
+                ? LlvmToolchain.VerifyAndEmitObject(compilation.LlvmIr!, objectPath, target, request.Options.Optimize, !request.Options.StaticLibrary, cancellationToken)
+                : profiler.Measure("LLVM verify and object generation", () => LlvmToolchain.VerifyAndEmitObject(compilation.LlvmIr!, objectPath, target, request.Options.Optimize, !request.Options.StaticLibrary, cancellationToken));
             if (!backend.Succeeded)
             {
                 var code = backend.Error?.Contains("unavailable", StringComparison.OrdinalIgnoreCase) == true ? "LMC2001" : "LMC2002";
@@ -111,7 +133,14 @@ public static class LumaBuild
             var needsWindowsShell32 = compilation.LlvmIr!.Contains("@CommandLineToArgvW", StringComparison.Ordinal);
             var needsLinuxDl = target.Contains("linux", StringComparison.OrdinalIgnoreCase) &&
                 compilation.LlvmIr.Contains("@dlopen(", StringComparison.Ordinal);
-            var link = await LinkAsync(objectPath, temporaryOutput, request.Options.StaticLibrary, target, needsWindowsShell32, needsLinuxDl, cancellationToken).ConfigureAwait(false);
+            string? link;
+            if (profiler is null)
+                link = await LinkAsync(objectPath, temporaryOutput, request.Options.StaticLibrary, target, needsWindowsShell32, needsLinuxDl, cancellationToken).ConfigureAwait(false);
+            else
+            {
+                using (profiler.Measure("Native link"))
+                    link = await LinkAsync(objectPath, temporaryOutput, request.Options.StaticLibrary, target, needsWindowsShell32, needsLinuxDl, cancellationToken).ConfigureAwait(false);
+            }
             if (link is not null) return Failure("LMC2002", link, diagnostics);
 
             cancellationToken.ThrowIfCancellationRequested();

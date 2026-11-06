@@ -59,6 +59,34 @@ public sealed class BuildApiTests
     }
 
     [Fact]
+    public void DebugObjectEmissionDropsUnreachableInternalFunctions()
+    {
+        using var workspace = new TemporaryWorkspace(AppContext.BaseDirectory);
+        var ir = """
+            define i32 @main() {
+            entry:
+              ret i32 0
+            }
+            define internal i32 @never_called() {
+            entry:
+              ret i32 1
+            }
+            @unused_data = internal global i64 123
+            """;
+        var withDce = Path.Combine(workspace.Root, "with-dce.obj");
+        var withoutDce = Path.Combine(workspace.Root, "without-dce.obj");
+        var target = LlvmToolchain.GetHostTargetTriple() ?? "host";
+
+        var stripped = LlvmToolchain.VerifyAndEmitObject(ir, withDce, target, optimize: false, eliminateDeadCode: true);
+        var retained = LlvmToolchain.VerifyAndEmitObject(ir, withoutDce, target, optimize: false, eliminateDeadCode: false);
+
+        Assert.True(stripped.Succeeded, stripped.Error);
+        Assert.True(retained.Succeeded, retained.Error);
+        Assert.True(new FileInfo(withDce).Length < new FileInfo(withoutDce).Length,
+            "Unreachable internal code and data should be removed in debug emission.");
+    }
+
+    [Fact]
     public async Task LibraryBuildApiCompilesMultipleFilesIntoRunnableNativeExecutable()
     {
         using var workspace = new TemporaryWorkspace(AppContext.BaseDirectory);

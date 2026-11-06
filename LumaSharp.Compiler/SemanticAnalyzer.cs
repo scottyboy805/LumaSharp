@@ -187,7 +187,7 @@ internal static class VirtualDispatchLayout
             string.Join("\u001f", method.Declaration.Parameters.Select(parameter => parameter.TypeName)));
 }
 
-internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
+internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null)
 {
     private const int MaximumGenericMethodSpecializations = 16384;
     private readonly HashSet<Expression> _activeExpressions = new(ReferenceEqualityComparer.Instance);
@@ -553,7 +553,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var mapping in loweredExtensions.Targets) _extensionHelperTargets[mapping.Key] = mapping.Value;
         var parsedSourceTypes = declaredSourceTypes.Concat(loweredExtensions.Helpers).ToArray();
         _genericTypeSpecializer = new GenericTypeSpecializer(diagnostics, _nativePointerSize, cancellationToken);
-        var genericExpansion = _genericTypeSpecializer.Expand(parsedSourceTypes);
+        var genericExpansion = profiler is null
+            ? _genericTypeSpecializer.Expand(parsedSourceTypes)
+            : profiler.Measure("Generic expansion", () => _genericTypeSpecializer.Expand(parsedSourceTypes));
         _genericDefinitions = genericExpansion.GenericDefinitions;
         _genericTypeInstantiations.AddRange(genericExpansion.Instantiations);
         var sourceTypes = genericExpansion.ConcreteTypes.ToArray();

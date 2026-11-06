@@ -27,15 +27,17 @@ public static class LumaCompiler
     }
 
     internal static CompilationResult CompileWithRuntimeLibrary(IEnumerable<(string Path, string Text)> sources, CompilationOptions options,
-        IEnumerable<string> runtimeSourcePaths, CancellationToken cancellationToken = default)
+        IEnumerable<string> runtimeSourcePaths, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null,
+        bool stripUnusedExecutableCode = false)
     {
         var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var runtimePaths = runtimeSourcePaths.Select(Path.GetFullPath).ToHashSet(pathComparer);
-        return CompileCore(sources, options, runtimePaths, cancellationToken);
+        return CompileCore(sources, options, runtimePaths, cancellationToken, profiler, stripUnusedExecutableCode);
     }
 
     private static CompilationResult CompileCore(IEnumerable<(string Path, string Text)> sources, CompilationOptions? options,
-        IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken)
+        IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken, CompilationProfiler? profiler = null,
+        bool stripUnusedExecutableCode = false)
     {
         options ??= new();
         var diagnostics = new DiagnosticBag();
@@ -49,20 +51,36 @@ public static class LumaCompiler
             foreach (var (path, text) in sources)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var tokens = new Lexer(path, text, diagnostics, cancellationToken).Scan();
+                var tokens = profiler is null
+                    ? new Lexer(path, text, diagnostics, cancellationToken).Scan()
+                    : profiler.Measure("Lexing", () => new Lexer(path, text, diagnostics, cancellationToken).Scan());
                 var isRuntimeSource = runtimeSourcePaths.Contains(Path.GetFullPath(path));
-                units.Add(new Parser(tokens, diagnostics, options.UnsafeEnabled || isRuntimeSource, cancellationToken).ParseCompilationUnit());
+                var unit = profiler is null
+                    ? new Parser(tokens, diagnostics, options.UnsafeEnabled || isRuntimeSource, cancellationToken).ParseCompilationUnit()
+                    : profiler.Measure("Parsing", () => new Parser(tokens, diagnostics, options.UnsafeEnabled || isRuntimeSource, cancellationToken).ParseCompilationUnit());
+                units.Add(unit);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            units = AsyncMethodLowerer.Lower(units, diagnostics).ToList();
+            units = profiler is null
+                ? AsyncMethodLowerer.Lower(units, diagnostics).ToList()
+                : profiler.Measure("Async lowering", () => AsyncMethodLowerer.Lower(units, diagnostics).ToList());
             if (FinalDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error)) return new(FinalDiagnostics(), null);
-            var analysis = new SemanticAnalyzer(options, diagnostics, runtimeSourcePaths, cancellationToken).Analyze(units);
+            var analyzer = new SemanticAnalyzer(options, diagnostics, runtimeSourcePaths, cancellationToken, profiler);
+            var analysis = profiler is null
+                ? analyzer.Analyze(units)
+                : profiler.Measure("Semantic analysis", () => analyzer.Analyze(units));
             if (!options.StaticLibrary && analysis.EntryPoint is null)
                 diagnostics.Add("LS2201", DiagnosticSeverity.Error, "Executable compilation requires exactly one public static Main with a supported signature.");
             if (FinalDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error)) return new(FinalDiagnostics(), null);
 
             cancellationToken.ThrowIfCancellationRequested();
-            try { return new(FinalDiagnostics(), new LlvmEmitter(analysis, !options.StaticLibrary && options.Optimize, cancellationToken).Emit()); }
+            try
+            {
+                var llvmIr = profiler is null
+                    ? new LlvmEmitter(analysis, !options.StaticLibrary && (options.Optimize || stripUnusedExecutableCode), cancellationToken).Emit()
+                    : profiler.Measure("LLVM IR emission", () => new LlvmEmitter(analysis, !options.StaticLibrary && (options.Optimize || stripUnusedExecutableCode), cancellationToken, profiler).Emit());
+                return new(FinalDiagnostics(), llvmIr);
+            }
             catch (NotSupportedException ex) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, ex.Message); return new(FinalDiagnostics(), null); }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }

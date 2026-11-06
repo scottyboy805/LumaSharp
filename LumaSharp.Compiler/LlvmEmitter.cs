@@ -1,10 +1,15 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace LumaSharp.Compiler;
 
-internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool stripUnusedExecutableCode, CancellationToken cancellationToken = default)
+internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool stripUnusedExecutableCode, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null)
 {
+    private static readonly ConditionalWeakTable<IReadOnlyList<MethodSymbol>, Dictionary<MethodSymbol, string>> FunctionNameCache = new();
+    private readonly HashSet<string> _llvmReferenceTypes = compilation.ClassTypes.Keys
+        .Concat(compilation.InterfaceTypes.Keys).Concat(compilation.DelegateTypes.Keys).ToHashSet(StringComparer.Ordinal);
+    private HashSet<string>? _managedClassTypes;
     private readonly StringBuilder _output = new();
     private readonly IReadOnlyDictionary<TryStatement, string> _exceptionCatchTableNames = BuildExceptionCatchTableNames(compilation);
     private readonly IReadOnlyDictionary<string, string> _typeInitializationFunctions = compilation.Methods
@@ -176,21 +181,23 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         if (HasStringSupport())
         {
             EmitStringLiterals();
-            EmitStringRuntime();
-            EmitStringUtf16SliceRuntime();
+            if (profiler is null) { EmitStringRuntime(); EmitStringUtf16SliceRuntime(); }
+            else profiler.Measure("LLVM string runtime emission", () => { EmitStringRuntime(); EmitStringUtf16SliceRuntime(); });
         }
         if (HasManagedArraySupport())
         {
             _output.AppendLine("%luma.array = type { ptr, i32, i32, ptr, i32, i32, [3 x i32], [0 x i64] }");
             if (!HasStringSupport()) EmitArrayMemoryDeclarations();
-            EmitManagedArrayRuntime();
+            if (profiler is null) EmitManagedArrayRuntime();
+            else profiler.Measure("LLVM array runtime emission", EmitManagedArrayRuntime);
         }
         if (HasManagedClassSupport())
         {
             if (!HasStringSupport() && !HasManagedArraySupport()) EmitArrayMemoryDeclarations();
             foreach (var interfaceName in compilation.InterfaceTypes.Keys.Order(StringComparer.Ordinal))
                 _output.AppendLine($"@luma_interfacedesc_{Safe(interfaceName)} = private constant i8 0");
-            EmitManagedClassRuntime();
+            if (profiler is null) EmitManagedClassRuntime();
+            else profiler.Measure("LLVM class runtime emission", EmitManagedClassRuntime);
             if (compilation.UsesExceptionHandling)
             {
                 EmitRuntimeExceptionInstance("System.OutOfMemoryException", "luma_oom_instance");
@@ -207,7 +214,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             _output.AppendLine("@luma_eh_top = internal thread_local global ptr null");
             _output.AppendLine("@luma_pending_exception = internal thread_local global ptr null");
             _output.AppendLine("@luma_pending_handler = internal thread_local global ptr null");
-            EmitExceptionRuntime();
+            if (profiler is null) EmitExceptionRuntime();
+            else profiler.Measure("LLVM exception runtime emission", EmitExceptionRuntime);
             EmitExceptionCatchTables();
         }
         foreach (var field in compilation.StaticFields)
@@ -237,11 +245,22 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             cancellationToken.ThrowIfCancellationRequested();
             EmitExternDeclaration(method);
         }
-        foreach (var method in compilation.Methods)
+        void EmitMethodBodies()
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (method.Declaration.Body is not null && (method.Declaration.IsStatic || method.IsStructConstructor || method.IsStructInstanceMethod || method.IsClassConstructor || method.IsClassInstanceMethod || method.IsClassFinalizer)) EmitMethod(method);
+            foreach (var method in compilation.Methods)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (method.Declaration.Body is null || !(method.Declaration.IsStatic || method.IsStructConstructor || method.IsStructInstanceMethod || method.IsClassConstructor || method.IsClassInstanceMethod || method.IsClassFinalizer)) continue;
+                if (profiler is null) EmitMethod(method);
+                else
+                {
+                    var profileName = $"LLVM method: {method.QualifiedName}({string.Join(",", method.Declaration.Parameters.Select(parameter => parameter.TypeName))})";
+                    profiler.Measure(profileName, () => EmitMethod(method));
+                }
+            }
         }
+        if (profiler is null) EmitMethodBodies();
+        else profiler.Measure("LLVM method body emission", EmitMethodBodies);
         EmitStructDelegateThunks();
         EmitStructInterfaceThunks();
         if (compilation.EntryPoint is { } entry) EmitEntryPoint(entry);
@@ -1276,7 +1295,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private void EmitMethod(MethodSymbol method)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.StaticGetTypeCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.TypePatternVariableTypes, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.TypeOfTypes, compilation.RuntimeTypes, compilation.StringLiterals, compilation.NameOfStringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.GenericSpanEmptyAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
+        var d = method.Declaration; var emitter = new FunctionEmitter(method, compilation.Methods, _typeInitializationFunctions, compilation.VariableTypes, compilation.ForInTypes, compilation.LoweredForInLoops, compilation.ScopeBoundVariables, compilation.CallTargets, compilation.EnumToStringCalls, compilation.ClassToStringCalls, compilation.StructToStringCalls, compilation.StaticGetTypeCalls, compilation.VirtualCallSlots, compilation.InterfaceCallSlots, compilation.DelegateMethodGroups, compilation.ClosureEnvironments, compilation.ForHeaderClosureEnvironments, compilation.ForInClosureEnvironments, compilation.BlockClosureEnvironments, compilation.CompositeClosureEnvironments, compilation.DelegateInvocations, compilation.DelegateTypes, _llvmReferenceTypes, compilation.CallArguments, compilation.ConstructorInitializers, compilation.OperatorTargets, compilation.UserConversionOperators, compilation.DefaultTypes, compilation.ConstantFields, compilation.UnqualifiedConstantFields, compilation.FieldAccesses, compilation.PropertyGetterCalls, compilation.PropertyGetterNameCalls, compilation.PropertySetterCalls, compilation.MultiAssignmentAccessorAssignments, compilation.IndexerGetterCalls, compilation.UnqualifiedStaticFieldAccesses, compilation.StructFieldAccesses, compilation.UnqualifiedStructFields, compilation.ClassFieldAccesses, compilation.UnqualifiedClassFields, compilation.StructConstructors, compilation.ClassAllocations, compilation.GenericConstructions, compilation.StructTypes, compilation.ClassTypes, compilation.InterfaceTypes, compilation.InterfaceConversions, GetManagedClassTypes(), compilation.EnumUnderlyingTypes, compilation.NativePointerSize, compilation.CastTypes, compilation.TypeOperatorTargets, compilation.TypePatternVariableTypes, compilation.ConditionalExpressionTypes, compilation.SwitchTypePatterns, compilation.SizeOfTypes, compilation.TypeOfTypes, compilation.RuntimeTypes, compilation.StringLiterals, compilation.NameOfStringLiterals, compilation.StringLengthAccesses, compilation.StringIndexAccesses, compilation.ManagedArrayAllocations, compilation.ManagedArrayIndexAccesses, compilation.ManagedArrayLengthAccesses, compilation.ManagedArrayRankAccesses, compilation.ManagedArrayPointerAccesses, compilation.GenericSpanEmptyAccesses, compilation.ManagedArrayGetLengthCalls, compilation.ManagedArrayForInElementTypes, compilation.ExceptionCatchTypes, compilation.ThrowTypes, _exceptionCatchTableNames, compilation.UsesExceptionHandling, cancellationToken);
         var parameters = d.Parameters.Select((p, i) => $"{LlvmParameterType(p)} %arg{i}");
         var functionParameters = method.IsStructInstanceMethod || method.IsClassInstanceMethod || method.IsClassConstructor || method.IsClassFinalizer ? new[] { "ptr %this" }.Concat(parameters) : parameters;
         if (method.IsClassConstructor) functionParameters = functionParameters.Append("i1 %luma.complete.class");
@@ -1322,6 +1341,59 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private string LlvmParameterType(ParameterDeclaration parameter) => parameter.PassingMode is "ref" or "out" ? "ptr" : LlvmType(parameter.TypeName);
     private static string FunctionName(MethodSymbol method, IReadOnlyList<MethodSymbol> allMethods)
     {
+        var names = FunctionNameCache.GetValue(allMethods, BuildFunctionNameMap);
+        return names.TryGetValue(method, out var name) ? name : BuildFunctionName(method, allMethods);
+    }
+
+    private static Dictionary<MethodSymbol, string> BuildFunctionNameMap(IReadOnlyList<MethodSymbol> methods)
+    {
+        var collisionCounts = new Dictionary<(string Owner, string Name, int Arity), int>();
+        foreach (var method in methods)
+        {
+            var declaration = method.Declaration;
+            var key = (QualifiedTypeName(method.Owner), declaration.Name, declaration.Parameters.Count);
+            collisionCounts[key] = collisionCounts.GetValueOrDefault(key) + 1;
+        }
+
+        var names = new Dictionary<MethodSymbol, string>(ReferenceEqualityComparer.Instance);
+        foreach (var method in methods)
+            names[method] = ResolveFunctionName(method, methods, collisionCounts, names,
+                new HashSet<MethodSymbol>(ReferenceEqualityComparer.Instance));
+        return names;
+
+        static string ResolveFunctionName(MethodSymbol method, IReadOnlyList<MethodSymbol> allMethods,
+            IReadOnlyDictionary<(string Owner, string Name, int Arity), int> collisions,
+            Dictionary<MethodSymbol, string> cache, HashSet<MethodSymbol> visiting)
+        {
+            if (cache.TryGetValue(method, out var cachedName)) return cachedName;
+            if (!visiting.Add(method)) return FormatFunctionName(method, collisions);
+            if (method.IsExtensionMethod)
+            {
+                var emittedMethod = allMethods.FirstOrDefault(candidate => candidate.QualifiedName == method.QualifiedName &&
+                    candidate.Declaration.Parameters.Count == method.Declaration.Parameters.Count + 1 &&
+                    candidate.Declaration.Parameters[0].TypeName == method.ExtensionReceiverType &&
+                    (candidate.Declaration.Parameters[0].PassingMode == "ref") == method.ExtensionReceiverByRef &&
+                    candidate.Declaration.Parameters.Skip(1).Select(parameter => parameter.TypeName)
+                        .SequenceEqual(method.Declaration.Parameters.Select(parameter => parameter.TypeName), StringComparer.Ordinal));
+                if (emittedMethod is not null)
+                {
+                    var resolved = ResolveFunctionName(emittedMethod, allMethods, collisions, cache, visiting);
+                    cache[method] = resolved;
+                    visiting.Remove(method);
+                    return resolved;
+                }
+            }
+            var name = FormatFunctionName(method, collisions);
+            cache[method] = name;
+            visiting.Remove(method);
+            return name;
+        }
+    }
+
+    private static string BuildFunctionName(MethodSymbol method, IReadOnlyList<MethodSymbol> allMethods)
+    {
+        // Extension call sites use a shortened MethodSymbol that is not itself in
+        // the emitted methods list. Resolve that alias before consulting the cache.
         if (method.IsExtensionMethod)
         {
             var emittedMethod = allMethods.FirstOrDefault(candidate => candidate.QualifiedName == method.QualifiedName &&
@@ -1332,9 +1404,20 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     .SequenceEqual(method.Declaration.Parameters.Select(parameter => parameter.TypeName), StringComparer.Ordinal));
             if (emittedMethod is not null) return FunctionName(emittedMethod, allMethods);
         }
+        var owner = new Dictionary<(string Owner, string Name, int Arity), int>();
+        foreach (var candidate in allMethods)
+        {
+            var key = (QualifiedTypeName(candidate.Owner), candidate.Declaration.Name, candidate.Declaration.Parameters.Count);
+            owner[key] = owner.GetValueOrDefault(key) + 1;
+        }
+        return FormatFunctionName(method, owner);
+    }
+
+    private static string FormatFunctionName(MethodSymbol method, IReadOnlyDictionary<(string Owner, string Name, int Arity), int> collisionCounts)
+    {
         if (method.Declaration.IsExtern) return Safe(method.Declaration.Name);
         var qualifiedTypeName = string.IsNullOrEmpty(method.Owner.Namespace) ? method.Owner.Name : method.Owner.Namespace + "." + method.Owner.Name;
-        var collisions = allMethods.Count(candidate => candidate.QualifiedName[..^(candidate.Declaration.Name.Length + 1)] == qualifiedTypeName && candidate.Declaration.Name == method.Declaration.Name && candidate.Declaration.Parameters.Count == method.Declaration.Parameters.Count);
+        var collisions = collisionCounts.GetValueOrDefault((qualifiedTypeName, method.Declaration.Name, method.Declaration.Parameters.Count));
         var overloadSignature = collisions > 1 ? "_" + string.Join("_", method.Declaration.Parameters.Select(p => Safe(p.TypeName))) : "";
         var explicitSuffix = method.Declaration.ExplicitInterfaceName is { } interfaceName ? "_explicit_" + Safe(interfaceName) : "";
         var methodName = method.IsStructConstructor || method.IsClassConstructor ? "ctor" : method.IsClassFinalizer ? "finalizer" : method.IsStructEqualityOperator ? "op_eq" : method.Declaration.IsConversionOperator ? "op_" + method.Declaration.Operator + "_to_" + Safe(method.Declaration.ReturnType) : method.IsStructInstanceMethod || method.IsClassInstanceMethod ? "inst_" + Safe(method.Declaration.Name) + explicitSuffix : Safe(method.Declaration.Name) + explicitSuffix;
@@ -2437,8 +2520,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         ? $"{indent}call void @luma_raise_out_of_memory()\n{indent}ret ptr null"
         : $"{indent}call void @luma_throw_out_of_memory()\n{indent}unreachable";
 
-    private string LlvmType(string type) => LlvmType(type, compilation.EnumUnderlyingTypes, compilation.NativePointerSize,
-        compilation.ClassTypes.Keys.Concat(compilation.InterfaceTypes.Keys).Concat(compilation.DelegateTypes.Keys).ToHashSet(StringComparer.Ordinal));
+    private string LlvmType(string type) => LlvmType(type, compilation.EnumUnderlyingTypes, compilation.NativePointerSize, _llvmReferenceTypes);
     private static string LlvmType(string type, IReadOnlyDictionary<string, string> enumTypes, int nativePointerSize, IReadOnlySet<string>? classTypes = null)
     {
         if (type.EndsWith('*') || SemanticAnalyzer.TryParseManagedArrayType(type, out _, out _) || type == "string" || classTypes?.Contains(type) == true ||
@@ -2492,7 +2574,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         "luma_arraydesc_" + Safe(type) + "_" + Convert.ToHexString(Encoding.UTF8.GetBytes(type));
     private static string ArrayDescriptorPointer(string type) => "@" + ArrayDescriptorSymbol(type);
 
-    private HashSet<string> GetManagedClassTypes()
+    private HashSet<string> GetManagedClassTypes() => _managedClassTypes ??= ComputeManagedClassTypes();
+
+    private HashSet<string> ComputeManagedClassTypes()
     {
         var used = new HashSet<string>(StringComparer.Ordinal);
         var visitedStructs = new HashSet<string>(StringComparer.Ordinal);
@@ -3838,6 +3922,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         IReadOnlyDictionary<LambdaExpression, ClosureEnvironmentBinding> compositeClosureEnvironments,
         IReadOnlyDictionary<CallExpression, TypeDeclaration> delegateInvocations,
         IReadOnlyDictionary<string, TypeDeclaration> delegateTypes,
+        IReadOnlySet<string> llvmReferenceTypes,
         IReadOnlyDictionary<CallExpression, BoundCallArguments> callArguments,
         IReadOnlyDictionary<MethodSymbol, ConstructorInitializerBinding> constructorInitializers,
         IReadOnlyDictionary<Expression, MethodSymbol> operatorTargets,
@@ -9546,8 +9631,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         }
         private bool IsUnsigned(string type) => RepresentationType(type).StartsWith('u') || RepresentationType(type) == "char";
         private static bool IsPointerType(string type) => type.EndsWith('*');
-        private string LlvmType(string type) => LlvmEmitter.LlvmType(type, enumTypes, nativePointerSize,
-            classTypes.Keys.Concat(interfaceTypes.Keys).Concat(delegateTypes.Keys).ToHashSet(StringComparer.Ordinal));
+        private string LlvmType(string type) => LlvmEmitter.LlvmType(type, enumTypes, nativePointerSize, llvmReferenceTypes);
         private string? GetClassReferenceType(string type)
         {
             if (classTypes.ContainsKey(type)) return type;

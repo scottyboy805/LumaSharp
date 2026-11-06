@@ -56,7 +56,15 @@ public static unsafe class LlvmToolchain
     }
 
     public static LlvmToolchainResult VerifyAndEmitObject(string llvmIr, string outputPath, string targetTriple = "host", bool optimize = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode: true);
+
+    internal static LlvmToolchainResult VerifyAndEmitObject(string llvmIr, string outputPath, string targetTriple,
+        bool optimize, bool eliminateDeadCode, CancellationToken cancellationToken = default) =>
+        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode);
+
+    private static LlvmToolchainResult VerifyAndEmitObjectCore(string llvmIr, string outputPath, string targetTriple, bool optimize,
+        CancellationToken cancellationToken, bool eliminateDeadCode)
     {
         LLVMOpaqueContext* context = null; LLVMOpaqueMemoryBuffer* buffer = null; LLVMOpaqueModule* module = null;
         LLVMOpaqueTargetMachine* machine = null; LLVMOpaqueTargetData* dataLayout = null; LLVMOpaquePassBuilderOptions* passOptions = null;
@@ -95,18 +103,21 @@ public static unsafe class LlvmToolchain
                 LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault, LLVMRelocMode.LLVMRelocDefault, LLVMCodeModel.LLVMCodeModelDefault);
             if (machine == null) return new(false, requestedTriple, $"LLVM could not create a target machine for '{requestedTriple}'.");
             dataLayout = LLVM.CreateTargetDataLayout(machine); LLVM.SetModuleDataLayout(module, dataLayout);
-            if (optimize)
+            if (optimize || eliminateDeadCode)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 passOptions = LLVM.CreatePassBuilderOptions(); LLVM.PassBuilderOptionsSetVerifyEach(passOptions, 1);
-                IntPtr passPtr = Utf8Ptr("default<O2>");
+                // Executables internalize compiler-managed definitions, so even a
+                // debug build can safely discard functions and globals unreachable
+                // from main without optimizing the remaining function bodies.
+                IntPtr passPtr = Utf8Ptr(optimize ? "default<O2>" : "globaldce");
                 try
                 {
                     var passError = LLVM.RunPasses(module, (sbyte*)passPtr, machine, passOptions);
                     if (passError != null)
                     {
                         var message = Utf8(LLVM.GetErrorMessage(passError)); LLVM.ConsumeError(passError);
-                        return new(false, requestedTriple, $"LLVM optimization failed: {message}");
+                        return new(false, requestedTriple, $"LLVM {(optimize ? "optimization" : "dead-code elimination")} failed: {message}");
                     }
                 }
                 finally { Marshal.FreeCoTaskMem(passPtr); }
