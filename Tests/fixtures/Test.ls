@@ -22,9 +22,20 @@ class Program
 		public int32 myField;
 	}
 	
+	async static void CountToTen()
+	{
+		for(int i = 0; i < 10; i++)
+		{
+			await System.Threading.Task.Delay(1000);
+			Console.WriteLine("Counting = " + i);
+		}
+	}
+
 
     public static void Main() 
 	{
+		CountToTen();
+
 		Type t = typeof(int32);
 		object inst = t.New();
 		Console.WriteLine(((int32)inst).ToString());

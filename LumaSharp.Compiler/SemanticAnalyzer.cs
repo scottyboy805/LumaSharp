@@ -11987,7 +11987,30 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private MethodSymbol[]? ResolveCallCandidates(CallExpression call, MethodContext context)
     {
         if (call.Target is NameExpression unqualified)
-            return _methods.Concat(_genericMethodDefinitions).Where(m => m.Owner == context.Method.Owner && m.Declaration.Name == unqualified.Name && m.Declaration.IsStatic).ToArray();
+        {
+            var methods = _methods.Concat(_genericMethodDefinitions).ToArray();
+            var staticCandidates = methods.Where(method => method.Owner == context.Method.Owner &&
+                method.Declaration.Name == unqualified.Name && method.Declaration.IsStatic).ToArray();
+            if (staticCandidates.Length > 0)
+                return staticCandidates;
+
+            if (context.Method.Declaration.IsStatic)
+            {
+                var instanceCandidates = context.Method.Owner.Kind == "struct"
+                    ? methods.Where(method => method.Owner == context.Method.Owner && method.IsStructInstanceMethod &&
+                        method.Declaration.Name == unqualified.Name && IsMethodAccessible(method, context.Method.Owner)).ToArray()
+                    : GetClassInstanceMethods(GetQualifiedTypeName(context.Method.Owner), unqualified.Name)
+                        .Where(method => IsMethodAccessible(method, context.Method.Owner)).ToArray();
+                if (instanceCandidates.Length > 0)
+                {
+                    diagnostics.Add("LS0200", DiagnosticSeverity.Error,
+                        $"Instance method '{unqualified.Name}' requires an object receiver in a static method; declare it static or call it on an instance.", call.Location);
+                    return null;
+                }
+            }
+
+            return staticCandidates;
+        }
 
         if (call.Target is not MemberAccessExpression access || !TryFlattenName(access.Receiver, out var requestedType))
         {

@@ -1634,6 +1634,8 @@ extension_member = instance_method | computed_property ;
 
 An `async` method declares its logical completed result type `T` or `void`. The source declaration MUST NOT write `Task` or `Task<T>` as that result type: the task is inferred and managed by the compiler. At the lowered call boundary, an `async T` method produces `System.Threading.Task<T>` and an `async void` method produces `System.Threading.Task`. A call may be assigned to a matching task variable to retain that operation, or consumed with `await` to obtain its logical result.
 
+Compiler-generated task values and helper calls use fully qualified runtime names. A method that only awaits another async method therefore does not need to import `System.Threading`. Source references such as `Task`, `Task<T>`, and `Task.Delay` use ordinary namespace lookup and MUST be imported or fully qualified as usual. Using an async call as a standalone expression statement is fire-and-forget: it queues the operation and discards its task without waiting. Retain the task when the caller needs to observe completion, cancellation, or failure.
+
 ```lumasharp
 public static async int32 LoadCount()
 {

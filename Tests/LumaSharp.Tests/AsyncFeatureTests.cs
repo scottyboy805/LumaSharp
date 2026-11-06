@@ -168,6 +168,83 @@ class Program
     }
 
     [Fact]
+    public async Task AsyncAwaitNeedsNoTaskImportAndCallsCanBeFireAndForget()
+    {
+        const string noTaskImport = """
+using System;
+
+class Program
+{
+    public static async int32 Child()
+    {
+        return 7;
+    }
+
+    public static async int32 Parent()
+    {
+        return await Child();
+    }
+
+    public static int32 Main()
+    {
+        return Parent().Result == 7 ? 0 : 1;
+    }
+}
+""";
+        var awaited = await BuildAndRunNativeAsync(noTaskImport, "AsyncAwaitWithoutTaskImport");
+        Assert.Equal(0, awaited.ExitCode);
+        Assert.Empty(awaited.StandardError);
+
+        const string source = """
+using System;
+using System.Threading;
+
+class Program
+{
+    private static bool completed;
+
+    public static async void CountToTen()
+    {
+        await Task.Delay(5);
+        completed = true;
+    }
+
+    public static int32 Main()
+    {
+        CountToTen();
+        int32 attempts = 0;
+        while (!completed && attempts < 1000)
+        {
+            System.Threading.Thread.Sleep(1);
+            attempts++;
+        }
+        return completed ? 0 : 1;
+    }
+}
+""";
+
+        var execution = await BuildAndRunNativeAsync(source, "AsyncFireAndForget");
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Empty(execution.StandardError);
+
+        const string instanceCallFromStaticMethod = """
+class Program
+{
+    public async void CountToTen() { }
+    public static int32 Main()
+    {
+        CountToTen();
+        return 0;
+    }
+}
+""";
+        var invalidCall = CompileWithRuntime(instanceCallFromStaticMethod, "async-instance-call-from-static.ls");
+        Assert.False(invalidCall.Succeeded);
+        Assert.Contains(invalidCall.Diagnostics, diagnostic => diagnostic.Code == "LS0200" &&
+            diagnostic.Message.Contains("requires an object receiver in a static method", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task FileStreamAsyncReadAndWriteWorkThroughAsyncStream()
     {
         var filePath = Path.Combine(Path.GetTempPath(), "lumasharp-async-" + Guid.NewGuid().ToString("N") + ".bin");

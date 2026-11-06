@@ -1114,6 +1114,8 @@ public static async int32 ForwardAsync(int32 value)
 
 Do not mix direct task forwarding with `await` or value-returning branches. If a method contains `await`, use `return await ChildAsync()` to return the child result. Calling ordinary async methods creates a task and queues the body to a runtime-managed worker pool. `await` polls for completion while blocking the thread evaluating it; when the task is ready, the method continues on that same thread. The runtime grows the pool when queued work has no idle worker, adds workers to compensate for workers blocked in nested task waits, and retires idle workers over time. Programs do not size or configure the pool. `Task.Wait()` waits without throwing; `Task<T>.Result` and `await` rethrow faults with the original throw trace and logical async caller frames. Generated helper methods stay out of printed stack traces.
 
+Async declarations and `await` do not require `using System.Threading` when your source never names `Task`. The compiler emits fully qualified task and worker-pool references. If you call an API such as `Task.Delay` directly, import `System.Threading` or write its fully qualified name. An async method call used as a statement, such as `RefreshAsync();`, is fire-and-forget: it starts the operation and discards the returned task without waiting. Keep the task when you need to observe its completion, cancellation, or failure.
+
 Async operations support cooperative cancellation without adding a token parameter to every method. Callers request cancellation on the returned task, and the async body checks its contextual cancellation state:
 
 ```lumasharp
