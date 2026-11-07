@@ -78,10 +78,16 @@ internal static class CompilerIntrinsics
         Add("__threadcurrent", "System.Threading.Thread", "threading");
         Add("__typeref", "System.Type", "type", "System.Object");
         Add("__typenew", "System.Object", "type", "System.Type", "System.Object?[]");
-        Add("__typeattrcount", "int32", "type", "System.Type");
-        Add("__typeattrtype", "System.Type?", "type", "System.Type", "int32");
-        Add("__typeattribute", "System.Attribute?", "type", "System.Type", "int32");
-        Add("__typehasattribute", "bool", "type", "System.Type", "System.Type?");
+        Add("__attrib", "System.ReadOnlySpan<System.Attribute>", "reflection", "System.Object");
+        Add("__spanget", "object", "span", "void*", "int32");
+        Add("__spanset", "void", "span", "void*", "int32", "object");
+        Add("__typefields", "System.ReadOnlySpan<System.Reflection.Field>", "reflection", "System.Type");
+        Add("__typeproperties", "System.ReadOnlySpan<System.Reflection.Property>", "reflection", "System.Type");
+        Add("__typemethods", "System.ReadOnlySpan<System.Reflection.Method>", "reflection", "System.Type");
+        Add("__typeconstructors", "System.ReadOnlySpan<System.Reflection.Constructor>", "reflection", "System.Type");
+        Add("__memberget", "System.Object?", "reflection", "System.Reflection.MemberInfo", "System.Object?");
+        Add("__memberset", "void", "reflection", "System.Reflection.MemberInfo", "System.Object?", "System.Object?");
+        Add("__memberinvoke", "System.Object?", "reflection", "System.Reflection.MemberInfo", "System.Object?", "System.Object?[]");
         Add("__monitorenter", "void", "monitor", "System.Object");
         Add("__monitorexit", "bool", "monitor", "System.Object");
         Add("__throwpreserve", "void", "exception", "System.Exception");
@@ -150,10 +156,16 @@ internal static class CompilerIntrinsics
         "__threadcurrent" => "luma_thread_current",
         "__typeref" => "luma_object_get_type",
         "__typenew" => "luma_type_new",
-        "__typeattrcount" => "luma_type_attribute_count",
-        "__typeattrtype" => "luma_type_attribute_type",
-        "__typeattribute" => "luma_type_attribute",
-        "__typehasattribute" => "luma_type_has_attribute",
+        "__attrib" => "luma_attribute_span",
+        "__spanget" => "luma_span_get",
+        "__spanset" => "luma_span_set",
+        "__typefields" => "luma_type_fields",
+        "__typeproperties" => "luma_type_properties",
+        "__typemethods" => "luma_type_methods",
+        "__typeconstructors" => "luma_type_constructors",
+        "__memberget" => "luma_reflection_member_get",
+        "__memberset" => "luma_reflection_member_set",
+        "__memberinvoke" => "luma_reflection_member_invoke",
         "__monitorenter" => "luma_monitor_enter",
         "__monitorexit" => "luma_monitor_exit",
         "__throwpreserve" => "luma_throw_preserve",

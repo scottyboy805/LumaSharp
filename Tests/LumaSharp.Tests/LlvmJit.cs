@@ -140,7 +140,27 @@ internal static unsafe class LlvmJit
                     sbyte* parseError = null;
                     var parseStatus = LLVM.ParseIRInContext(context, buffer, &module, &parseError);
                     buffer = null; // ParseIRInContext consumes the memory buffer.
-                    if (parseStatus != 0) throw new InvalidOperationException(TakeMessage(parseError, "LLVM failed to parse the generated IR."));
+                    if (parseStatus != 0)
+                    {
+                        var message = TakeMessage(parseError, "LLVM failed to parse the generated IR.");
+                        var locationStart = message.IndexOf("lumasharp-jit.ll:", StringComparison.Ordinal);
+                        if (locationStart >= 0)
+                        {
+                            var lineStart = locationStart + "lumasharp-jit.ll:".Length;
+                            var lineEnd = message.IndexOf(':', lineStart);
+                            if (lineEnd > lineStart && int.TryParse(message.AsSpan(lineStart, lineEnd - lineStart), out var lineNumber))
+                            {
+                                var lines = executableIr.Split('\n');
+                                var first = Math.Max(1, lineNumber - 4);
+                                var last = Math.Min(lines.Length, lineNumber + 4);
+                                var functionStart = lines.Take(lineNumber - 1).Select((line, index) => (line, index))
+                                    .LastOrDefault(item => item.line.StartsWith("define ", StringComparison.Ordinal)).index;
+                                message += Environment.NewLine + $"Function near error: {lines[functionStart]}" + Environment.NewLine + string.Join(Environment.NewLine,
+                                    Enumerable.Range(first, last - first + 1).Select(line => $"{line}: {lines[line - 1]}"));
+                            }
+                        }
+                        throw new InvalidOperationException(message);
+                    }
                 }
 
                 LLVM.SetTarget(module, (sbyte*)triplePointer);

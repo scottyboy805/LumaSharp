@@ -6,7 +6,7 @@ internal sealed partial class LlvmEmitter
 {
     private void EmitDynamicTypeRuntime()
     {
-        if (!compilation.CallTargets.Values.Any(method => method.Intrinsic?.Name == "__typenew")) return;
+        if (!compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection" || method.Intrinsic?.Name == "__typenew")) return;
 
         EmitTypeClassDistanceRuntime();
         EmitTypeNewFailureRuntime();

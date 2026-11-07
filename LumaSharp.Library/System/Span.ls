@@ -50,7 +50,7 @@ public unsafe ref struct Span<T>
 		{
 			if (index < 0 || index >= length)
 				throw new System.ArgumentOutOfRangeException();
-			return unchecked(pointer[index]);
+				return __spanget(pointer, index);
 		}
 		set
 		{
@@ -58,7 +58,7 @@ public unsafe ref struct Span<T>
 				throw new System.ArgumentOutOfRangeException();
 			unchecked
 			{
-				pointer[index] = value;
+			__spanset(pointer, index, value);
 			}
 		}
 	}

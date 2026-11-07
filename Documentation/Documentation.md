@@ -1281,18 +1281,22 @@ The compiler package includes the LumaSharp runtime sources and locates them bes
 
 `System.Type` provides a small runtime type API. `typeof(T)` returns a stable metadata object with `Name`, `Namespace`, and kind flags such as `IsClass`, `IsValueType`, `IsPrimitive`, `IsArray`, `IsInterface`, `IsEnum`, `IsDelegate`, `IsStatic`, and `IsAbstract`. Calling `GetType()` on an object reports its dynamic type; it uses the existing object or boxed-value descriptor and does not allocate another box. Calling it on a statically known value type, including a closed generic specialization, returns the matching metadata directly without boxing. `Type.ToString()` returns the represented type's namespace-qualified name, such as `System.Int32`.
 
-`Type.New(args...)` constructs an instance dynamically. Arguments are collected as `object?`, so value arguments are boxed. The runtime considers public constructors with the same argument count, preferring exact matches, then assignable interfaces, then the closest assignable class. A unique best match is allocated on the heap and invoked. Calling `New()` without arguments on a value type returns its default value boxed as `object` (including primitives and enums); it does not run struct field initializers. Calls with arguments still require a matching public constructor. Value-type results are returned boxed and can be cast back to their concrete type. No matching public constructor, an abstract or non-instantiable type, or an ambiguous match raises `InvalidOperationException`. This is intentionally a small runtime type API and does not expose general member enumeration or arbitrary method invocation.
+`Type.New(args...)` constructs an instance dynamically. Arguments are collected as `object?`, so value arguments are boxed. The runtime considers public constructors with the same argument count, preferring exact matches, then assignable interfaces, then the closest assignable class. A unique best match is allocated on the heap and invoked. Calling `New()` without arguments on a value type returns its default value boxed as `object` (including primitives and enums); it does not run struct field initializers. Calls with arguments still require a matching public constructor. Value-type results are returned boxed and can be cast back to their concrete type. No matching public constructor, an abstract or non-instantiable type, or an ambiguous match raises `InvalidOperationException`.
+
+`Type.GetFields()`, `GetProperties()`, `GetMethods()`, and `GetConstructors()` return read-only spans of stable metadata objects. These include public inherited members; private and protected members are omitted. A hidden base field or property resolves to the most-derived member, and virtual overrides are represented by the most-derived method. `GetField(name)` returns the nearest field or `null`; `GetProperty(name)` and `GetMethod(name)` require a unique name and throw `InvalidOperationException` when a method name is overloaded. Reflection members expose their name, declaring type, flags, and member-specific flags. Fields and properties can get/set values, methods can be invoked, and constructors can create instances. Value arguments and results are boxed through the `object?` APIs. Mutating a boxed struct through a reflected mutating method updates that boxed value. Void invocation returns `null`.
+
+Reflection invocation currently supports closed types, by-value non-variadic arguments, and runtime-reference or boxable value types. Invalid receivers, unsupported signatures, argument mismatches, readonly writes, and ambiguous name-only lookups throw catchable `InvalidOperationException`. Extern methods can be enumerated but cannot be invoked through reflection until interop binding is implemented. Target exceptions propagate normally. The API does not expose parameter metadata or generic definitions.
 
 ### Attributes
 
-Attributes decorate type declarations and provide small amounts of compile-time metadata. An attribute class derives from `System.Attribute`, and its application uses a public constructor with positional constant arguments. The `Attribute` base class is abstract and cannot be instantiated directly.
+Attributes decorate types, fields, properties, constructors, and methods with compile-time metadata. An attribute class derives from `System.Attribute`, and each application uses a public constructor with positional constant arguments. The `Attribute` base class is abstract and cannot be instantiated directly. Attribute values are immutable metadata objects shared by every lookup and stored in immortal read-only binary data.
 
 ```lumasharp
 using System;
 
 public class LabelAttribute : Attribute
 {
-    public string Text;
+    public readonly string Text;
     public this(string text) { Text = text; }
 }
 
@@ -1311,9 +1315,11 @@ public class Program
 }
 ```
 
-The `Attribute` suffix may be omitted in an application (`[Label]` for `LabelAttribute`). `Type.AttributeCount` returns the number applied directly to the type; `GetAttributeType(index)` returns each attribute's stable `Type` handle, `HasAttribute(type)` checks the direct list (`null` returns `false`), and `GetAttribute(index)` constructs a fresh attribute instance using the declared constructor and saved arguments. Both indexed methods return `null` for an out-of-range index; constructor exceptions propagate normally. Repeated attributes are kept in source order. Attribute constructor arguments must be compile-time constants convertible to the selected public constructor, whose parameters must be ordinary by-value parameters; named arguments, generic attribute classes, and method-attribute reflection are not supported.
+The `Attribute` suffix may be omitted in an application (`[Label]` for `LabelAttribute`). `Type.Attributes` and `MemberInfo.Attributes` expose a `ReadOnlySpan<Attribute>` backed by the same shared metadata objects. `Type.AttributeCount`, `GetAttributeType(index)`, `HasAttribute(type)`, and `GetAttribute(index)` operate over that span; `MemberInfo` provides `GetAttribute(type)` and `HasAttribute(type)`. A null type returns `null`/`false`; indexed access returns `null` when out of range. Attributes are ordered by fully qualified type name, with repeated applications of a type retaining source order. They are not inherited. The single `__attrib(owner)` intrinsic supplies the immutable span for a type or reflected member.
 
-`System.Interop.ImportAttribute` takes a module name and entry-point name and is accepted only on extern methods. It is currently validated as declaration metadata; it does not yet change the emitted extern symbol or load the module. Dynamic loading and symbol remapping remain future interop work.
+Attribute constructors used by applications are evaluated at compile time. Every instance field must be readonly with no field initializer, and the constructor may only assign each positional parameter to its corresponding readonly field. Executable constructor logic, mutable attribute fields, and nonconstant arguments are diagnosed. Attribute constructor parameters must be ordinary by-value parameters; named arguments and generic attribute classes remain unsupported.
+
+`System.Interop.ImportAttribute` takes a module name and entry-point name and is accepted only on extern methods. It is available through reflected method attributes, but does not yet change the emitted extern symbol or load the module. Dynamic loading and symbol remapping remain future interop work.
 
 ```lumasharp
 using System.Interop;
@@ -1378,7 +1384,7 @@ LumaSharp implements a broad language subset, but this guide is not a promise of
 - Unsafe code can bypass checks and create dangling pointers; use it only when needed.
 - Native interop supports static C ABI calls and runtime library loading/symbol lookup. Function-pointer invocation, automatic marshalling, and callbacks into LumaSharp are not part of the current surface.
 - IO is minimal; async file reads and writes are supported through `AsyncStream` and `FileStream`, while `MemoryStream` remains synchronous. Timeouts and broad .NET `File`/`Directory` APIs are not present.
-- Async lambdas, cancellation callbacks and linked cancellation sources, custom schedulers, synchronization contexts, LINQ, full reflection, and the complete .NET base class library are not included. Attribute support is limited to type metadata and validation of `ImportAttribute` on extern methods.
+- Async lambdas, cancellation callbacks and linked cancellation sources, custom schedulers, synchronization contexts, LINQ, full .NET reflection, and the complete .NET base class library are not included. Luma reflection currently covers public fields, properties, methods, constructors, and their attributes on closed types; it does not expose parameter metadata or generic definitions. Extern methods can be inspected but not invoked through reflection.
 
 When behavior matters for a particular edge case, consult the tests and the specifications. The tests exercise the compiler's executable behavior, and the specifications define its language contract. Known unsupported forms and implementation limits are identified in the specifications; a discrepancy outside those boundaries is a compiler bug.
 

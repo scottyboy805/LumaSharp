@@ -36,6 +36,9 @@ internal sealed record ManagedArrayIndexBinding(string ElementType, int Rank);
 internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags, IReadOnlyList<RuntimeAttributeMetadata> Attributes);
 internal sealed record RuntimeAttributeArgument(string TypeName, string LlvmLiteral);
 internal sealed record RuntimeAttributeMetadata(string TypeName, MethodSymbol Constructor, IReadOnlyList<RuntimeAttributeArgument> Arguments);
+internal sealed record RuntimeMemberMetadata(int Id, string Kind, string Name, string DeclaringType, int Flags, string ValueType,
+    StructFieldSymbol? Field = null, StaticFieldSymbol? StaticField = null, ComputedPropertySymbol? Property = null,
+    MethodSymbol? Method = null, IReadOnlyList<RuntimeAttributeMetadata>? Attributes = null);
 internal sealed record DelegateMethodGroupBinding(string DelegateType, MethodSymbol Method, bool IsInstance = false, int? VirtualSlot = null,
     ClosureEnvironmentBinding? ClosureEnvironment = null);
 internal sealed record ClosureEnvironmentBinding(string TypeName, IReadOnlyDictionary<string, int> CapturedFieldIndices,
@@ -127,7 +130,8 @@ internal sealed record CompilationAnalysis(
     IReadOnlySet<string> StringifiedPrimitiveTypes,
     int NativePointerSize,
     string TargetTriple,
-    IReadOnlyDictionary<ConditionalExpression, string> ConditionalExpressionTypes);
+    IReadOnlyDictionary<ConditionalExpression, string> ConditionalExpressionTypes,
+    IReadOnlyList<RuntimeMemberMetadata> RuntimeMembers);
 
 internal static class VirtualDispatchLayout
 {
@@ -340,6 +344,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private readonly Dictionary<TypeOfExpression, string> _typeOfTypes = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<string, RuntimeTypeMetadata> _runtimeTypes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, IReadOnlyList<RuntimeAttributeMetadata>> _typeAttributes = new(StringComparer.Ordinal);
+    private readonly Dictionary<MemberDeclaration, IReadOnlyList<RuntimeAttributeMetadata>> _memberAttributes = new(ReferenceEqualityComparer.Instance);
+    private readonly List<RuntimeMemberMetadata> _runtimeMembers = [];
     private bool _usesRuntimeTypeMetadata;
     private readonly int _nativePointerSize = GetNativePointerSize(options.TargetTriple);
     private TypeDeclaration? _enumEvaluationOwner;
@@ -997,7 +1003,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var (statement, assignments) in _multiAssignmentAccessorAssignments)
             multiAssignmentAccessorAssignments.Add(statement, assignments);
         BuildRuntimeTypeMetadata();
-        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _staticGetTypeCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _boxedValueTypeInterfaceTypes, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _typePatternVariableTypes, _switchTypePatterns, _sizeOfTypes, _typeOfTypes, _runtimeTypes, _callArguments, _constructorInitializers, _stringLiterals, _nameOfStringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes);
+        BuildRuntimeMemberMetadata();
+        return new(compilationMethods, options.StaticLibrary ? null : mains.FirstOrDefault(), _variableTypes, _forInTypes, _loweredForInLoops, _scopeBoundVariables, _callTargets, _enumToStringCalls, _classToStringCalls, _structToStringCalls, _staticGetTypeCalls, _virtualCallSlots, _interfaceCallSlots, _interfaceTypes, _delegateTypes, _delegateMethodGroups, _closureEnvironments, _forHeaderClosureEnvironments, _forInClosureEnvironments, _blockClosureEnvironments, _compositeClosureEnvironments, _delegateInvocations, _interfaceMethodSlots, _interfaceDispatchTables, _interfaceConversions, _boxedValueTypeInterfaceTypes, _defaultTypes, _fieldAccesses, _boundUnqualifiedConstantFields, _staticFields.Values.Select(f => f.Symbol).ToArray(), _boundStaticFields, _propertyGetterCalls, _propertyGetterNameCalls, _propertySetterCalls, multiAssignmentAccessorAssignments, _indexerGetterCalls, _boundUnqualifiedStaticFields, _structTypes, compilationClassTypes, _boundStructFields, _boundUnqualifiedStructFields, classFieldAccesses, unqualifiedClassFields, _structConstructors, _classAllocations, _genericConstructions, _operatorTargets, _userConversionOperators, _enumUnderlyingTypes, _castTypes, _typeOperatorTargets, _typePatternVariableTypes, _switchTypePatterns, _sizeOfTypes, _typeOfTypes, _runtimeTypes, _callArguments, _constructorInitializers, _stringLiterals, _nameOfStringLiterals, _stringLengthAccesses, _stringIndexAccesses, _managedArrayAllocations, _managedArrayIndexAccesses, _managedArrayLengthAccesses, _managedArrayRankAccesses, _managedArrayPointerAccesses, _genericSpanEmptyAccesses, _managedArrayGetLengthCalls, _managedArrayForInElementTypes, _exceptionCatchTypes, _throwTypes, _exceptionTypes, _usesExceptionHandling, _stringLiteralPool, _stringifiedPrimitiveTypes, _nativePointerSize, options.TargetTriple, _conditionalExpressionTypes, _runtimeMembers);
     }
 
     private bool IsRuntimeLibraryDeclaration(TypeDeclaration type) =>
@@ -2330,42 +2337,43 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (ResolveAttributeType(attribute, type, "type") is { } attributeType)
                 {
                     if (ValidateAttributeConstructor(attribute, attributeType, methods) is not { } constructor) continue;
-                    var arguments = new List<RuntimeAttributeArgument>(attribute.Arguments.Count);
-                    var validArguments = true;
-                    for (var index = 0; index < attribute.Arguments.Count; index++)
-                    {
-                        var argument = attribute.Arguments[index];
-                        if (!TryEvaluateConstant(argument, out var constant, out _)) { validArguments = false; break; }
-                        var parameterType = constructor.Declaration.Parameters[index].TypeName;
-                        if (!TryConvertConstant(constant, parameterType, argument, out var literal))
-                        {
-                            diagnostics.Add("LMC3010", DiagnosticSeverity.Error,
-                                $"Attribute argument {index + 1} cannot be represented as a constant '{parameterType}' value.", argument.Location);
-                            validArguments = false;
-                            break;
-                        }
-                        arguments.Add(new(parameterType, literal));
-                    }
-                    if (validArguments) resolved.Add(new(GetQualifiedTypeName(attributeType), constructor, arguments));
+                    if (TryCreateRuntimeAttributeMetadata(attribute, attributeType, constructor) is { } metadata)
+                        resolved.Add(metadata);
                 }
             var typeName = GetQualifiedTypeName(type);
             if (!type.HasTypeParameters) _typeAttributes[typeName] = resolved;
 
             foreach (var member in type.Members.Where(member => member.Attributes.Count > 0 && member is not MethodDeclaration))
-                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
-                    "Attributes are currently supported on types and methods only; this member target is not supported.",
-                    member.Attributes[0].Location);
+            {
+                var target = member switch
+                {
+                    FieldDeclaration => "field",
+                    ComputedPropertyDeclaration => "property",
+                    ConstructorDeclaration => "constructor",
+                    _ => "member"
+                };
+                var memberAttributes = new List<RuntimeAttributeMetadata>();
+                foreach (var attribute in member.Attributes)
+                    if (ResolveAttributeType(attribute, type, target) is { } attributeType &&
+                        ValidateAttributeConstructor(attribute, attributeType, methods) is { } constructor &&
+                        TryCreateRuntimeAttributeMetadata(attribute, attributeType, constructor) is { } metadata)
+                        memberAttributes.Add(metadata);
+                _memberAttributes[member] = memberAttributes;
+            }
         }
 
         foreach (var (owner, declaration) in attributeTypeDeclarations
                      .SelectMany(type => type.Members.OfType<MethodDeclaration>().Select(method => (Owner: type, Declaration: method))))
         {
             if (declaration.Attributes.Count == 0 || declaration.IsCompilerGenerated) continue;
+            var memberAttributes = new List<RuntimeAttributeMetadata>();
             foreach (var attribute in declaration.Attributes)
             {
                 var attributeType = ResolveAttributeType(attribute, owner, "method");
                 if (attributeType is null) continue;
                 var constructor = ValidateAttributeConstructor(attribute, attributeType, methods);
+                if (constructor is not null && TryCreateRuntimeAttributeMetadata(attribute, attributeType, constructor) is { } metadata)
+                    memberAttributes.Add(metadata);
                 if (GetQualifiedTypeName(attributeType) == "System.Interop.ImportAttribute")
                 {
                     if (!declaration.IsExtern)
@@ -2374,12 +2382,69 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                             !TryEvaluateConstant(argument, out var value, out _) || value.TypeName != "string"))
                         diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "ImportAttribute requires constant string module and entry-point arguments.", attribute.Location);
                 }
-                else if (constructor is not null)
-                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
-                        "Runtime retrieval of method attributes is not supported; custom attributes can currently be applied only to types.",
-                        attribute.Location);
+            }
+            _memberAttributes[declaration] = memberAttributes;
+        }
+    }
+
+    private RuntimeAttributeMetadata? TryCreateRuntimeAttributeMetadata(AttributeApplication attribute,
+        TypeDeclaration attributeType, MethodSymbol constructor)
+    {
+        if (!ValidateAttributeStaticData(attributeType, constructor, attribute.Location)) return null;
+        var arguments = new List<RuntimeAttributeArgument>(attribute.Arguments.Count);
+        for (var index = 0; index < attribute.Arguments.Count; index++)
+        {
+            var argument = attribute.Arguments[index];
+            if (!TryEvaluateConstant(argument, out var constant, out _)) return null;
+            var parameterType = constructor.Declaration.Parameters[index].TypeName;
+            if (!TryConvertConstant(constant, parameterType, argument, out var literal))
+            {
+                diagnostics.Add("LMC3010", DiagnosticSeverity.Error,
+                    $"Attribute argument {index + 1} cannot be represented as a constant '{parameterType}' value.", argument.Location);
+                return null;
+            }
+            arguments.Add(new(parameterType, literal));
+        }
+        return new(GetQualifiedTypeName(attributeType), constructor, arguments);
+    }
+
+    private bool ValidateAttributeStaticData(TypeDeclaration attributeType, MethodSymbol constructor, SourceLocation location)
+    {
+        var valid = true;
+        foreach (var field in attributeType.Members.OfType<FieldDeclaration>().Where(field => !field.IsStatic))
+        {
+            if (!field.IsReadOnly || field.Initializer is not null)
+            {
+                diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                    $"Attribute instance field '{field.Name}' must be readonly and initialized by its attribute constructor so the metadata instance can be stored as immutable binary data.", field.Location);
+                valid = false;
             }
         }
+
+        if (constructor.Declaration.Body is not { } body) return valid;
+        var parameters = constructor.Declaration.Parameters.Select(parameter => parameter.Name).ToHashSet(StringComparer.Ordinal);
+        foreach (var statement in body.Statements)
+        {
+            if (statement is ExpressionStatement { Value: BinaryExpression { Operator: "=" } assignment })
+            {
+                var fieldName = assignment.Left switch
+                {
+                    NameExpression name => name.Name,
+                    MemberAccessExpression { Receiver: ThisExpression, Member: var member } => member,
+                    _ => null
+                };
+                var target = fieldName is null ? null : attributeType.Members.OfType<FieldDeclaration>()
+                    .FirstOrDefault(field => !field.IsStatic && field.Name == fieldName);
+                var sourceIsParameter = assignment.Right is NameExpression source && parameters.Contains(source.Name);
+                if (target is { IsReadOnly: true, Initializer: null } && sourceIsParameter) continue;
+            }
+
+            diagnostics.Add("LMC3000", DiagnosticSeverity.Error,
+                "Attribute constructors used in metadata must only assign positional parameters to readonly instance fields; executable constructor logic is not supported.",
+                statement.Location);
+            valid = false;
+        }
+        return valid;
     }
 
     private TypeDeclaration? ResolveAttributeType(AttributeApplication attribute, TypeDeclaration owner, string target)
@@ -2509,7 +2574,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     _ => 0
                 };
                 if (type.IsStatic) flags |= 1;
-                if (typeName == "System.Attribute" || type.Members.OfType<MethodDeclaration>().Any(method => !method.IsStatic && method.Body is null)) flags |= 256;
+                if (typeName == "System.Attribute" || type.Members.OfType<MethodDeclaration>()
+                    .Any(method => !method.IsStatic && !method.IsExtern && method.Body is null)) flags |= 256;
             }
             else
             {
@@ -2539,6 +2605,111 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             _ = TryInternStringText(name, out _);
             _ = TryInternStringText(ns, out _);
         }
+    }
+
+    private void BuildRuntimeMemberMetadata()
+    {
+        _runtimeMembers.Clear();
+        if (!_usesRuntimeTypeMetadata) return;
+        var reflectedTypeNames = _runtimeTypes.Keys.ToHashSet(StringComparer.Ordinal);
+        var memberId = _runtimeTypes.Count + 1;
+        foreach (var owner in _types.OrderBy(GetQualifiedTypeName, StringComparer.Ordinal))
+        {
+            var ownerTypeName = GetQualifiedTypeName(owner);
+            if (!reflectedTypeNames.Contains(ownerTypeName)) continue;
+            foreach (var declaration in owner.Members)
+            {
+                var attributes = _memberAttributes.GetValueOrDefault(declaration, []);
+                switch (declaration)
+                {
+                    case FieldDeclaration fieldDeclaration:
+                    {
+                        if (!fieldDeclaration.IsPublic) break;
+                        var valueType = NormalizeEnumType(fieldDeclaration.TypeName, owner);
+                        var flags = (fieldDeclaration.IsPublic ? 1 : 0) |
+                            (fieldDeclaration.IsStatic ? 2 : 0) |
+                            (fieldDeclaration.IsReadOnly ? 4 : 0) |
+                            32 | (fieldDeclaration.IsReadOnly ? 0 : 64);
+                        if (fieldDeclaration.IsStatic)
+                        {
+                            var staticField = _staticFields.Values.Select(field => field.Symbol).FirstOrDefault(field =>
+                                GetQualifiedTypeName(field.Owner) == ownerTypeName && field.Declaration.Name == fieldDeclaration.Name);
+                            if (staticField is not null)
+                                _runtimeMembers.Add(new(memberId++, "Field", fieldDeclaration.Name, ownerTypeName, flags,
+                                    valueType, StaticField: staticField, Attributes: attributes));
+                        }
+                        else
+                        {
+                            StructFieldSymbol? instanceField = null;
+                            if (_classTypes.TryGetValue(ownerTypeName, out var classType))
+                                instanceField = classType.Fields.FirstOrDefault(candidate =>
+                                    GetQualifiedTypeName(candidate.Owner) == ownerTypeName && candidate.Declaration.Name == fieldDeclaration.Name);
+                            else if (_structTypes.TryGetValue(ownerTypeName, out var structType))
+                                instanceField = structType.Fields.FirstOrDefault(candidate => candidate.Declaration.Name == fieldDeclaration.Name);
+                            if (instanceField is not null)
+                                _runtimeMembers.Add(new(memberId++, "Field", fieldDeclaration.Name, ownerTypeName, flags,
+                                    valueType, Field: instanceField, Attributes: attributes));
+                        }
+                        break;
+                    }
+                    case ComputedPropertyDeclaration propertyDeclaration:
+                    {
+                        var property = _computedProperties.Values.FirstOrDefault(candidate =>
+                            GetQualifiedTypeName(candidate.Owner) == ownerTypeName &&
+                            candidate.Declaration.Name == propertyDeclaration.Name &&
+                            candidate.Declaration.ExplicitInterfaceName == propertyDeclaration.ExplicitInterfaceName);
+                        if (property is null) break;
+                        var getterPublic = property.Getter?.Declaration.IsPublic == true;
+                        var setterPublic = property.Setter?.Declaration.IsPublic == true;
+                        if (!getterPublic && !setterPublic) break;
+                        var flags = (getterPublic || setterPublic ? 1 : 0) |
+                            (property.Declaration.IsStatic ? 2 : 0) |
+                            (!setterPublic ? 4 : 0) |
+                            (property.Declaration.IsVirtual || property.Declaration.IsOverride ? 8 : 0) |
+                            (getterPublic ? 32 : 0) |
+                            (setterPublic ? 64 : 0);
+                        _runtimeMembers.Add(new(memberId++, "Property", property.Declaration.Name, ownerTypeName,
+                            flags, property.TypeName,
+                            Property: property with { Getter = getterPublic ? property.Getter : null, Setter = setterPublic ? property.Setter : null },
+                            Attributes: attributes));
+                        break;
+                    }
+                    case ConstructorDeclaration { IsStatic: false } constructorDeclaration:
+                    {
+                        if (!constructorDeclaration.IsPublic) break;
+                        var constructor = _methods.FirstOrDefault(candidate =>
+                            candidate.IsClassConstructor || candidate.IsStructConstructor
+                                ? ReferenceEquals(candidate.SourceConstructor, constructorDeclaration)
+                                : false);
+                        if (constructor is null) break;
+                        var flags = constructorDeclaration.IsPublic ? 1 : 0;
+                        _runtimeMembers.Add(new(memberId++, "Constructor", owner.Name, ownerTypeName, flags,
+                            ownerTypeName, Method: constructor, Attributes: attributes));
+                        break;
+                    }
+                    case MethodDeclaration methodDeclaration when !methodDeclaration.IsCompilerGenerated:
+                    {
+                        if (!methodDeclaration.IsPublic) break;
+                        var parameterTypes = methodDeclaration.Parameters.Select(parameter => NormalizeEnumType(parameter.TypeName, owner)).ToArray();
+                        var method = _methods.FirstOrDefault(candidate => GetQualifiedTypeName(candidate.Owner) == ownerTypeName &&
+                            candidate.Declaration.Name == methodDeclaration.Name &&
+                            candidate.Declaration.PropertyName is null &&
+                            candidate.Declaration.Parameters.Select(parameter => parameter.TypeName).SequenceEqual(parameterTypes, StringComparer.Ordinal));
+                        var flags = (methodDeclaration.IsPublic ? 1 : 0) |
+                            (methodDeclaration.IsStatic ? 2 : 0) |
+                            (methodDeclaration.IsVirtual || methodDeclaration.IsOverride ? 8 : 0) |
+                            (methodDeclaration.Body is null && !methodDeclaration.IsExtern ? 16 : 0) |
+                            (methodDeclaration.IsMutating ? 128 : 0) |
+                            (methodDeclaration.IsExtern ? 256 : 0);
+                        _runtimeMembers.Add(new(memberId++, "Method", methodDeclaration.Name, ownerTypeName,
+                            flags, NormalizeEnumType(methodDeclaration.ReturnType, owner), Method: method, Attributes: attributes));
+                        break;
+                    }
+                }
+            }
+        }
+        foreach (var member in _runtimeMembers)
+            _ = TryInternStringText(member.Name, out _);
     }
 
     private void AnalyzeStructFields(IEnumerable<(TypeDeclaration Owner, FieldDeclaration Declaration)> declarations)
@@ -8499,13 +8670,46 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Unknown compiler intrinsic '{intrinsicCall.Name}'.", call.Location);
                         return "?";
                     }
-                    if (intrinsic.Name is "__typeref" or "__typeattrcount" or "__typeattrtype" or "__typeattribute") _usesRuntimeTypeMetadata = true;
+                    if (intrinsic.Family is "type" or "reflection") _usesRuntimeTypeMetadata = true;
                     var intrinsicMethod = CompilerIntrinsics.CreateMethod(intrinsic, call.Location);
+                    if (intrinsic.ReturnType.Contains('<', StringComparison.Ordinal))
+                    {
+                        var normalizedReturnType = NormalizeEnumType(intrinsic.ReturnType, context.Method.Owner);
+                        intrinsicMethod = intrinsicMethod with
+                        {
+                            Declaration = intrinsicMethod.Declaration with
+                            {
+                                ReturnType = normalizedReturnType
+                            }
+                        };
+                    }
                     if (call.Arguments.Count != intrinsicMethod.Declaration.Parameters.Count)
                     {
                         diagnostics.Add("LS0751", DiagnosticSeverity.Error,
                             $"Intrinsic '{intrinsicCall.Name}' expects {intrinsicMethod.Declaration.Parameters.Count} argument(s).", call.Location);
                         return "?";
+                    }
+                    if (intrinsic.Name is "__spanget" or "__spanset")
+                    {
+                        var pointerType = AnalyzeExpression(call.Arguments[0], context);
+                        if (!IsPointerType(pointerType) || pointerType == "void*")
+                        {
+                            diagnostics.Add("LS0751", DiagnosticSeverity.Error,
+                                $"Intrinsic '{intrinsic.Name}' requires a typed pointer as its first argument.", call.Arguments[0].Location);
+                            return "?";
+                        }
+                        var elementType = NormalizeEnumType(pointerType[..^1], context.Method.Owner);
+                        var parameters = intrinsicMethod.Declaration.Parameters.ToArray();
+                        parameters[0] = parameters[0] with { TypeName = pointerType };
+                        if (intrinsic.Name == "__spanset") parameters[2] = parameters[2] with { TypeName = elementType };
+                        intrinsicMethod = intrinsicMethod with
+                        {
+                            Declaration = intrinsicMethod.Declaration with
+                            {
+                                ReturnType = intrinsic.Name == "__spanget" ? elementType : "void",
+                                Parameters = parameters
+                            }
+                        };
                     }
                     var argumentsValid = true;
                     for (var index = 0; index < call.Arguments.Count; index++)
@@ -8517,6 +8721,13 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                             : argument is InlineOutVariableExpression inline
                                 ? NormalizeEnumType(inline.TypeName!, context.Method.Owner)
                                 : AnalyzeExpression(argument, context);
+                        if (intrinsic.Name == "__attrib" && argumentType != "System.Type" &&
+                            !IsReferenceAssignable("System.Reflection.MemberInfo", NullableUnderlyingType(argumentType)))
+                        {
+                            diagnostics.Add("LS0751", DiagnosticSeverity.Error,
+                                "Intrinsic '__attrib' requires a System.Type or System.Reflection.MemberInfo value.", argument.Location);
+                            argumentsValid = false;
+                        }
                         var mode = call.ArgumentModes is not null && index < call.ArgumentModes.Count ? call.ArgumentModes[index] ?? "" : "";
                         if (parameter.PassingMode == "out")
                         {
@@ -8535,7 +8746,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     _callTargets[call] = intrinsicMethod;
                     _callArguments[call] = new(Enumerable.Range(0, call.Arguments.Count).ToArray(),
                         Enumerable.Repeat<Expression?>(null, call.Arguments.Count).ToArray());
-                    return intrinsic.ReturnType;
+                    return intrinsicMethod.Declaration.ReturnType;
                 }
                 if (call.Target is NameExpression unqualifiedCall && context.Lookup(unqualifiedCall.Name) is null &&
                     (context.Method.IsStructConstructor || context.Method.IsStructInstanceMethod || context.Method.IsClassConstructor || context.Method.IsClassInstanceMethod || context.Method.IsClassFinalizer))

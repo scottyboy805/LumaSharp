@@ -207,7 +207,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 EmitRuntimeExceptionInstance("System.OutOfMemoryException", "luma_oom_instance");
                 EmitRuntimeExceptionInstance("System.OverflowException", "luma_overflow_instance");
                 if (compilation.ClassTypes.ContainsKey("System.InvalidOperationException") &&
-                    compilation.CallTargets.Values.Any(method => method.Intrinsic?.Name == "__typenew"))
+                    compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection" || method.Intrinsic?.Name == "__typenew"))
                     EmitRuntimeExceptionInstance("System.InvalidOperationException", "luma_type_new_failure");
             }
         }
@@ -3325,7 +3325,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
     private IEnumerable<string> BoxableTypeNames() => new[]
     {
         "bool", "char", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "int", "uint", "float", "double"
-    }.Concat(compilation.EnumUnderlyingTypes.Keys).Concat(BoxableStructTypeNames()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+    }.Concat(compilation.EnumUnderlyingTypes.Keys).Concat(BoxableStructTypeNames())
+        .Concat(ReflectionValueTypes().Select(type => type.EndsWith("?", StringComparison.Ordinal) ? type[..^1] : type))
+        .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
 
     private static bool IsPrimitiveStringType(string type) => type is "bool" or "char" or "float" or "double" or
         "int" or "uint" or "int8" or "uint8" or "int16" or "uint16" or "int32" or "uint32" or "int64" or "uint64";
@@ -3833,8 +3835,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         _output.AppendLine("  unreachable");
         _output.AppendLine("}");
         EmitDynamicTypeRuntime();
-        if (compilation.CallTargets.Values.Any(method => method.Intrinsic?.Name is "__typeattrcount" or "__typeattrtype" or "__typeattribute" or "__typehasattribute"))
-            EmitTypeAttributeRuntime();
+        if (compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection"))
+            EmitRuntimeReflectionMetadata();
     }
 
     private string? RuntimeTypeDescriptor(string typeName)
@@ -8852,6 +8854,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             if (target.IsClassConstructor) allArguments = allArguments.Append($"i1 {(classConstructorCompletes ? "true" : "false")}");
             if (target.Declaration.IsStatic && target.Intrinsic is null) EnsureTypeInitialized(QualifiedTypeName(target.Owner));
             string call;
+            var intrinsicValueEmitted = false;
             if (virtualCallSlots.TryGetValue(expression, out var virtualSlot) && instanceReceiverAddress is not null)
             {
                 var declaringType = QualifiedTypeName(target.Owner);
@@ -8875,7 +8878,77 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             }
             else if (target.Intrinsic is { } compilerIntrinsic)
             {
-                if (compilerIntrinsic.Name is "__threadstart" or "__threadstartarg")
+                if (compilerIntrinsic.Name is "__spanget" or "__spanset")
+                {
+                    var pointer = valuesByParameter[0]!.Value.Value;
+                    var indexValue = valuesByParameter[1]!.Value;
+                    var index = CastValue(indexValue.Value, indexValue.Type, nativePointerSize == 8 ? "int64" : "int32");
+                    var elementType = compilerIntrinsic.Name == "__spanget"
+                        ? target.Declaration.ReturnType
+                        : target.Declaration.Parameters[2].TypeName;
+                    var address = NewTemp();
+                    Emit($"{address} = getelementptr {LlvmType(elementType)}, ptr {pointer}, {LlvmType(nativePointerSize == 8 ? "int64" : "int32")} {index}");
+                    if (compilerIntrinsic.Name == "__spanget")
+                    {
+                        Emit($"{result} = load {LlvmType(elementType)}, ptr {address}");
+                        if (IsStringType(elementType))
+                        {
+                            Emit($"call void @luma_string_retain(ptr {result})");
+                            _ownedStringValues.Add(result!);
+                        }
+                        else if (SemanticAnalyzer.TryParseManagedArrayType(elementType, out _, out _))
+                        {
+                            Emit($"call void @luma_array_retain(ptr {result})");
+                            _ownedArrayValues.Add(result!);
+                        }
+                        else if (GetClassReferenceType(elementType) is { } elementClass)
+                        {
+                            Emit($"call void @luma_class_retain_dynamic(ptr {result})");
+                            _ownedClassValues.Add((result!, elementClass));
+                        }
+                        else if (IsManagedAggregateType(elementType))
+                        {
+                            EnsureOwnedAggregate((result!, elementType));
+                        }
+                    }
+                    else
+                    {
+                        var newValue = valuesByParameter[2]!.Value;
+                        var referenceType = GetClassReferenceType(elementType);
+                        if (IsStringType(elementType))
+                        {
+                            Emit($"call void @luma_string_retain(ptr {newValue.Value})");
+                            var oldValue = NewTemp(); Emit($"{oldValue} = load ptr, ptr {address}");
+                            Emit($"call void @luma_string_release(ptr {oldValue})");
+                        }
+                        else if (SemanticAnalyzer.TryParseManagedArrayType(elementType, out _, out _))
+                        {
+                            Emit($"call void @luma_array_retain(ptr {newValue.Value})");
+                            var oldValue = NewTemp(); Emit($"{oldValue} = load ptr, ptr {address}");
+                            Emit($"call void @luma_array_release(ptr {oldValue})");
+                        }
+                        else if (referenceType is not null)
+                        {
+                            Emit($"call void @luma_class_retain_dynamic(ptr {newValue.Value})");
+                            var oldValue = NewTemp(); Emit($"{oldValue} = load ptr, ptr {address}");
+                            Emit($"call void @luma_class_release_dynamic(ptr {oldValue})");
+                        }
+                        else if (IsManagedAggregateType(elementType))
+                        {
+                            var oldAddress = NewTemp(); Emit($"{oldAddress} = alloca {LlvmType(elementType)}");
+                            var oldValue = NewTemp(); Emit($"{oldValue} = load {LlvmType(elementType)}, ptr {address}");
+                            Emit($"store {LlvmType(elementType)} {oldValue}, ptr {oldAddress}");
+                            Emit($"call void @{AggregateOwnershipFunctionName(elementType, retain: false)}(ptr {oldAddress})");
+                            var newAddress = NewTemp(); Emit($"{newAddress} = alloca {LlvmType(elementType)}");
+                            Emit($"store {LlvmType(elementType)} {newValue.Value}, ptr {newAddress}");
+                            Emit($"call void @{AggregateOwnershipFunctionName(elementType, retain: true)}(ptr {newAddress})");
+                        }
+                        Emit($"store {LlvmType(elementType)} {newValue.Value}, ptr {address}");
+                    }
+                    call = "";
+                    intrinsicValueEmitted = true;
+                }
+                else if (compilerIntrinsic.Name is "__threadstart" or "__threadstartarg")
                 {
                     var callbackType = suppliedTypesByParameter[0] ?? throw new InvalidOperationException("A thread start intrinsic requires a statically known delegate type.");
                     var callbackEntry = $"@luma_thread_invoke_{Safe(callbackType)}";
@@ -8885,7 +8958,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 else call = $"call {LlvmType(resultType)} @{compilerIntrinsic.Lowering}({string.Join(", ", llvmCallArguments)})";
             }
             else call = $"call {returnAttribute}{llvmResultType} @{FunctionName(target, methods)}({string.Join(", ", allArguments)})";
-            Emit(result is null ? call : $"{result} = {call}");
+            if (!intrinsicValueEmitted) Emit(result is null ? call : $"{result} = {call}");
             if (!target.Declaration.IsExtern && checkPendingException) EmitCheckPendingException();
             if (releaseOwnedArguments)
             {
@@ -8899,7 +8972,11 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             {
                 if (result is not null && IsStringType(resultType)) _ownedStringValues.Add(result);
                 if (result is not null && SemanticAnalyzer.TryParseManagedArrayType(resultType, out _, out _)) _ownedArrayValues.Add(result);
-                if (result is not null && GetClassReferenceType(resultType) is { } resultClass) _ownedClassValues.Add((result, resultClass));
+                // Runtime Type values are stable handles into immortal metadata tables. Treating
+                // them like owned heap objects creates pointless releases and, for a call inside
+                // a loop, can make a call result escape its defining block in cleanup IR.
+                if (result is not null && GetClassReferenceType(resultType) is { } resultClass && resultClass != "System.Type")
+                    _ownedClassValues.Add((result, resultClass));
                 if (result is not null && IsManagedAggregateType(resultType)) _ownedAggregateValues.Add((result, resultType));
             }
             return (result ?? "", target.Declaration.ReturnsByRef ? resultType + "*" : resultType);

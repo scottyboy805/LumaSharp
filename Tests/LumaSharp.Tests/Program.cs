@@ -662,7 +662,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void AttributesResolveValidateExposeTypeMetadataAndInstantiateValues()
+    public void AttributesResolveValidateExposeSharedImmutableTypeMetadata()
     {
         const string source = """
             using System;
@@ -679,24 +679,30 @@ public sealed class CompilerTests
             public class LabeledItem { }
             [Flag]
             public class FlaggedItem { }
-            [Throwing]
-            public class ThrowingItem { }
+            [Zulu(2), Alpha(1), Zulu(3)]
+            public class SortedItem { }
             [Mark(43)]
             public class Box<T> { }
             public class MarkAttribute : Attribute
             {
-                public int32 Value;
+                public readonly int32 Value;
                 public this(int32 value) { Value = value; }
             }
             public class NamedAttribute : Attribute
             {
-                public string Value;
+                public readonly string Value;
                 public this(string value) { Value = value; }
             }
             public class FlagAttribute : Attribute { public this() { } }
-            public class ThrowingAttribute : Attribute
+            public class AlphaAttribute : Attribute
             {
-                public this() { throw new InvalidOperationException(); }
+                public readonly int32 Value;
+                public this(int32 value) { Value = value; }
+            }
+            public class ZuluAttribute : Attribute
+            {
+                public readonly int32 Value;
+                public this(int32 value) { Value = value; }
             }
             public class Program
             {
@@ -714,14 +720,18 @@ public sealed class CompilerTests
                     MarkAttribute first = (MarkAttribute)item.GetAttribute(0)!;
                     MarkAttribute second = (MarkAttribute)item.GetAttribute(1)!;
                     if (first.Value != 17 || second.Value != 23) return 5;
+                    if (first != item.GetAttribute(0) || item.GetAttribute(mark) != first) return 15;
                     if (item.GetAttribute(-1) != null || item.GetAttribute(2) != null) return 6;
+                    Type sorted = typeof(SortedItem);
+                    if (sorted.GetAttributeType(0) != typeof(AlphaAttribute) ||
+                        sorted.GetAttributeType(1) != typeof(ZuluAttribute) ||
+                        sorted.GetAttributeType(2) != typeof(ZuluAttribute)) return 16;
+                    if (((ZuluAttribute)sorted.GetAttribute(1)!).Value != 2 || ((ZuluAttribute)sorted.GetAttribute(2)!).Value != 3) return 17;
                     if (((MarkAttribute)typeof(StructItem).GetAttribute(0)!).Value != 29) return 7;
                     if (typeof(IMarked).AttributeCount != 1 || typeof(ItemKind).AttributeCount != 1) return 8;
                     if (((NamedAttribute)typeof(LabeledItem).GetAttribute(0)!).Value.Length != 11) return 9;
                     if (typeof(FlaggedItem).GetAttribute(0) == null) return 10;
                     if (item != typeof(Item) || item.HasAttribute(null)) return 11;
-                    try { object ignored = typeof(ThrowingItem).GetAttribute(0)!; return 12; }
-                    catch (InvalidOperationException) { }
                     Type closedBox = typeof(Box<int32>);
                     if (closedBox.AttributeCount != 1 || ((MarkAttribute)closedBox.GetAttribute(0)!).Value != 43) return 13;
                     try { object invalid = typeof(Attribute).New(); return 14; }
@@ -736,6 +746,17 @@ public sealed class CompilerTests
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
         Assert.Null(execution.InteropError);
+
+        var executableAttributeLogic = CompileWithStandardLibrary("using System; [Throwing] class Item { } public class ThrowingAttribute : Attribute { public this() { throw new InvalidOperationException(); } } class Program { public static int32 Main() => 0; }");
+        Assert.False(executableAttributeLogic.Succeeded);
+        Assert.Contains(executableAttributeLogic.Diagnostics, diagnostic => diagnostic.Message.Contains("only assign positional parameters to readonly instance fields", StringComparison.Ordinal));
+
+        var mutableAttributeData = CompileWithStandardLibrary("using System; [Marker(1)] class Item { } public class MarkerAttribute : Attribute { public int32 Value; public this(int32 value) { Value = value; } } class Program { public static int32 Main() => 0; }");
+        Assert.False(mutableAttributeData.Succeeded);
+        Assert.Contains(mutableAttributeData.Diagnostics, diagnostic => diagnostic.Message.Contains("must be readonly", StringComparison.Ordinal));
+
+        var nonconstantAttributeArgument = CompileWithStandardLibrary("using System; class Program { public static int32 Value = 3; } [Marker(Program.Value)] class Item { } public class MarkerAttribute : Attribute { public readonly int32 Value; public this(int32 value) { Value = value; } } class ProgramEntry { public static int32 Main() => 0; }");
+        Assert.False(nonconstantAttributeArgument.Succeeded);
 
         var nonAttribute = CompileWithStandardLibrary("class NotAnAttribute { } [NotAnAttribute] class Item { } class Program { public static int32 Main() => 0; }");
         Assert.False(nonAttribute.Succeeded);
@@ -773,13 +794,130 @@ public sealed class CompilerTests
         Assert.False(ambiguousAttributeConstructor.Succeeded);
         Assert.Contains(ambiguousAttributeConstructor.Diagnostics, diagnostic => diagnostic.Message.Contains("Attribute constructor call", StringComparison.Ordinal));
 
-        var unsupportedMemberAttribute = CompileWithStandardLibrary("using System; public class MarkerAttribute : Attribute { public this() { } } class Program { [Marker] public int32 Value; public static int32 Main() => 0; }");
-        Assert.False(unsupportedMemberAttribute.Succeeded);
-        Assert.Contains(unsupportedMemberAttribute.Diagnostics, diagnostic => diagnostic.Message.Contains("member target is not supported", StringComparison.Ordinal));
+        var memberAttribute = CompileWithStandardLibrary("using System; public class MarkerAttribute : Attribute { public this() { } } class Program { [Marker] public int32 Value; public static int32 Main() => 0; }");
+        Assert.True(memberAttribute.Succeeded, string.Join(Environment.NewLine, memberAttribute.Diagnostics));
 
         var abstractAttributeConstruction = CompileWithStandardLibrary("using System; class Program { public static int32 Main() { Attribute value = new Attribute(); return 0; } }");
         Assert.False(abstractAttributeConstruction.Succeeded);
         Assert.Contains(abstractAttributeConstruction.Diagnostics, diagnostic => diagnostic.Code == "LS0834");
+    }
+
+    [Fact]
+    public void ReflectionReadsWritesInvokesAndExposesMemberAttributes()
+    {
+        const string source = """
+            using System;
+            using System.Reflection;
+            public class TagAttribute : Attribute
+            {
+                public readonly int32 Value;
+                public this(int32 value) { Value = value; }
+            }
+            public class AlphaMemberAttribute : Attribute { public this() { } }
+            public class ZuluMemberAttribute : Attribute { public this() { } }
+            public virtual class ReflectedBase
+            {
+                [Tag(8)] public int32 Inherited;
+                public virtual int32 Dispatch() => 1;
+            }
+            public class Reflected : ReflectedBase
+            {
+                [Tag(1)] public int32 Number;
+                [Tag(7)] public readonly int32 Id;
+                [Tag(2)] public static int32 StaticNumber = 7;
+                public string Caption = "before";
+                [Tag(3)] public int32 Adjusted { get => Number + 1; set => Number = value - 1; }
+                [Tag(4)] public this(int32 initial) { Number = initial; Id = initial; }
+                [ZuluMember, Tag(5), AlphaMember] public int32 Add(int32 value) => Number + value;
+                [Tag(6)] public static int32 Twice(int32 value) => value * 2;
+                public override int32 Dispatch() => 2;
+                public int32 Choose(int32 value) => value;
+                public int32 Choose(string value) => value.Length;
+                public void ClearNumber() mut { Number = 0; }
+            }
+            public struct MutablePair
+            {
+                public int32 Value;
+                public this(int32 value) { Value = value; }
+                public int32 Add(int32 amount) mut { Value += amount; return Value; }
+            }
+            public class Program
+            {
+                [System.Interop.Import("missing-native-module", "native_entry")]
+                public static extern int32 NativeCall(int32 value);
+
+                public static int32 Main()
+                {
+                    Type type = typeof(Reflected);
+                    Constructor constructor = type.GetConstructors()[0];
+                    Reflected instance = (Reflected)constructor.Invoke(10)!;
+                    Field inherited = type.GetField("Inherited")!;
+                    if (inherited.DeclaringType != typeof(ReflectedBase) || ((int32)inherited.GetValue(instance)!) != 0) return 21;
+                    Field field = type.GetField("Number")!;
+                    if (field.Name != "Number" || field.DeclaringType != type || !field.IsPublic || field.IsStatic) return 1;
+                    if (((int32)field.GetValue(instance)!) != 10) return 2;
+                    field.SetValue(instance, 12);
+                    if (instance.Number != 12) return 3;
+                    Field caption = type.GetField("Caption")!;
+                    if (((string)caption.GetValue(instance)!) != "before") return 28;
+                    caption.SetValue(instance, "after");
+                    if (instance.Caption != "after") return 29;
+                    Field readonlyField = type.GetField("Id")!;
+                    if (!readonlyField.IsReadOnly || ((int32)readonlyField.GetValue(instance)!) != 10) return 20;
+                    Property property = type.GetProperty("Adjusted")!;
+                    if (!property.CanRead || !property.CanWrite || ((int32)property.GetValue(instance)!) != 13) return 4;
+                    property.SetValue(instance, 20);
+                    if (instance.Number != 19) return 5;
+                    Method add = type.GetMethod("Add")!;
+                    if (((int32)add.Invoke(instance, 3)!) != 22) return 6;
+                    if (add.Attributes.Length != 3 || add.Attributes[0].GetType() != typeof(AlphaMemberAttribute) ||
+                        add.Attributes[1].GetType() != typeof(TagAttribute) || add.Attributes[2].GetType() != typeof(ZuluMemberAttribute)) return 30;
+                    if (add.GetAttribute(typeof(AlphaMemberAttribute)) != add.Attributes[0]) return 31;
+                    Method twice = type.GetMethod("Twice")!;
+                    if (!twice.IsStatic || ((int32)twice.Invoke(null, 4)!) != 8) return 7;
+                    Method dispatch = type.GetMethod("Dispatch")!;
+                    if (dispatch.DeclaringType != type || ((int32)dispatch.Invoke(instance)!) != 2) return 22;
+                    try { Method ambiguous = type.GetMethod("Choose")!; return 23; }
+                    catch (InvalidOperationException) { }
+                    Method clear = type.GetMethod("ClearNumber")!;
+                    if (clear.Invoke(instance) != null || instance.Number != 0) return 24;
+                    Method native = typeof(Program).GetMethod("NativeCall")!;
+                    if (!native.IsExtern) return 25;
+                    try { object ignored = native.Invoke(null, 1)!; return 26; }
+                    catch (InvalidOperationException) { }
+                    Field staticField = type.GetField("StaticNumber")!;
+                    if (!staticField.IsStatic || ((int32)staticField.GetValue(null)!) != 7) return 8;
+                    staticField.SetValue(null, 15);
+                    if (Reflected.StaticNumber != 15) return 9;
+                    if (!field.HasAttribute(typeof(TagAttribute)) || ((TagAttribute)field.GetAttribute(typeof(TagAttribute))!).Value != 1) return 10;
+                    if (((TagAttribute)property.Attributes[0]).Value != 3 || ((TagAttribute)add.GetAttribute(typeof(TagAttribute))!).Value != 5) return 11;
+                    if (((TagAttribute)constructor.Attributes[0]).Value != 4) return 12;
+                    Field inheritedField = typeof(ReflectedBase).GetField("Inherited")!;
+                    if (((TagAttribute)inheritedField.Attributes[0]).Value != 8) return 27;
+                    try { field.SetValue(instance, "wrong"); return 13; }
+                    catch (InvalidOperationException) { }
+                    try { field.SetValue(null, 1); return 14; }
+                    catch (InvalidOperationException) { }
+                    try { object ignored = add.Invoke(instance)!; return 15; }
+                    catch (InvalidOperationException) { }
+                    try { readonlyField.SetValue(instance, 25); return 16; }
+                    catch (InvalidOperationException) { }
+                    object boxed = typeof(MutablePair).GetConstructors()[0].Invoke(5)!;
+                    Field pairField = typeof(MutablePair).GetField("Value")!;
+                    if (((int32)pairField.GetValue(boxed)!) != 5) return 17;
+                    pairField.SetValue(boxed, 8);
+                    if (((int32)typeof(MutablePair).GetMethod("Add")!.Invoke(boxed, 2)!) != 10) return 18;
+                    if (((int32)pairField.GetValue(boxed)!) != 10) return 19;
+                    return 0;
+                }
+            }
+            """;
+        var result = CompileWithStandardLibrary(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
     }
 
     [Fact]

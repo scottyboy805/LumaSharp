@@ -50,7 +50,7 @@ public unsafe ref struct ReadOnlySpan<T>
 		{
 			if (index < 0 || index >= length)
 				throw new System.ArgumentOutOfRangeException();
-			return unchecked(pointer[index]);
+			return __spanget(pointer, index);
 		}
 	}
 

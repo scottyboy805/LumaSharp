@@ -146,27 +146,32 @@ Classes support fields, constructors (`this(...)`), static initialization (`stat
 
 ## Attributes and runtime types
 
-Attribute classes derive from `System.Attribute` and can be applied to type declarations with positional compile-time constants:
+Attribute classes derive from `System.Attribute` and can be applied to types and members with positional compile-time constants. Attribute instances are immutable compile-time metadata shared from immortal read-only data:
 
 ```lumasharp
 using System;
 
-class TagAttribute : Attribute { public this(string value) { } }
-[Tag("model")] class Model { }
+class TagAttribute : Attribute
+{
+    public readonly string Value;
+    public this(string value) { Value = value; }
+}
+[Tag("model")] class Model { [Tag("id")] public int32 Id; }
 
 class Program
 {
     public static int32 Main()
     {
         Type modelType = typeof(Model);
-        int32 count = modelType.AttributeCount;
-        Attribute tag = modelType.GetAttribute(0)!;
-        return count == 1 ? 0 : 1;
+        Attribute tag = modelType.GetAttribute(typeof(TagAttribute))!;
+        Field id = modelType.GetField("Id")!;
+        Attribute memberTag = id.GetAttribute(typeof(TagAttribute))!;
+        return tag != null && memberTag != null ? 0 : 1;
     }
 }
 ```
 
-`System.Type` exposes direct type attributes through `AttributeCount`, `GetAttributeType`, `HasAttribute`, and `GetAttribute`. `System.Interop.ImportAttribute(module, entryPoint)` is validated on extern methods, but symbol remapping and dynamic loading are not implemented yet. See the [full guide](Documentation.md#attributes) for limits and behavior.
+`System.Type` and reflected `System.Reflection.MemberInfo` objects expose attributes through read-only spans and `GetAttribute`/`HasAttribute` helpers. Attribute values are evaluated at compile time, must be immutable, and are shared across lookups. `Type` also enumerates public fields, properties, methods, and constructors; fields and properties can read/write values, and methods/constructors can be invoked when their signatures are supported. Extern methods can be inspected but not invoked through reflection. `System.Interop.ImportAttribute(module, entryPoint)` is validated and reflected on extern methods, but symbol remapping and dynamic loading are not implemented yet. See the [full guide](Documentation.md#attributes) for limits and behavior.
 
 ## Generics, delegates, and lambdas
 

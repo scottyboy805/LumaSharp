@@ -1598,11 +1598,14 @@ internal sealed class GenericTypeSpecializer(DiagnosticBag diagnostics, int nati
     private static string MakeKey(TypeDeclaration definition, IReadOnlyList<string> arguments) =>
         QualifiedName(definition) + "<" + string.Join(",", arguments) + ">";
 
-    private static string GetSpecializedName(TypeDeclaration definition, IReadOnlyList<string> arguments)
+    internal static string GetSpecializedName(TypeDeclaration definition, IReadOnlyList<string> arguments)
+        => GetSpecializedName(definition.Name, arguments);
+
+    internal static string GetSpecializedName(string definitionName, IReadOnlyList<string> arguments)
     {
         var payload = Encoding.UTF8.GetBytes(string.Join("\u001f", arguments));
         var digest = Convert.ToHexString(SHA256.HashData(payload).AsSpan(0, 10)).ToLowerInvariant();
-        return definition.Name + "__g_" + digest;
+        return definitionName + "__g_" + digest;
     }
 
     private static TypeDeclaration RewriteType(TypeDeclaration definition, string specializedName, IReadOnlyDictionary<string, string> substitutions)
