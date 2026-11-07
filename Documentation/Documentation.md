@@ -79,6 +79,7 @@ The CLI emits a native executable by default. Common options are:
 | `--runtime-library <directory>` | Use runtime `.ls` sources from an explicit directory. |
 | `--kind staticLibrary` | Build a static library instead of an executable. |
 | `--target <triple>` | Choose an LLVM target triple; `host` selects the current machine. |
+| `--target-cpu <name|native>` | Select the LLVM CPU model for code generation. `native` uses the compiler host CPU; binaries may require compatible processor features. |
 | `--unsafe` | Allow source files to use unsafe features. |
 | `--optimize` | Enable LLVM optimization. |
 | `--no-llvm` | Verify and emit LLVM IR without linking a final executable. |
@@ -100,6 +101,7 @@ A JSON project describes output settings. The CLI discovers `.ls` files recursiv
   "intermediateDirectory": "obj",
   "runtimeLibraryPath": "../LumaSharp.Library",
   "targetTriple": "host",
+  "targetCpu": "",
   "unsafe": false,
   "optimize": false,
   "preprocessorSymbols": ["DEBUG", "TRACE"]
@@ -112,7 +114,7 @@ The runtime path is optional; when supplied, it is resolved relative to the JSON
 dotnet run --project LumaSharp.Cli/LumaSharp.Cli.csproj -- build Hello.json
 ```
 
-The project file sets defaults; supported CLI options can override them. See the [compiler specification](../Specification/LumaSharp_CompilerSpecification.md) for every project setting and validation rule.
+The project file sets defaults; supported CLI options can override them. Use `"targetCpu": "native"` (or `--target-cpu native`) for processor-specific code generation. See the [compiler specification](../Specification/LumaSharp_CompilerSpecification.md) for every project setting and validation rule.
 
 ## 2. Source files and names
 
@@ -864,6 +866,15 @@ A `scope` parameter is a separate feature: it marks a call as borrowing for the 
 ### Arrays
 
 Managed arrays are reference types. The compiler supports single-dimensional, jagged, and rectangular arrays up to three dimensions. Indexing is bounds-checked in safe code. Arrays expose `Length`, `Rank`, and `GetLength(dimension)`.
+
+`Array.IndexOf<T>` searches a one-dimensional array and returns the first matching index or `-1`. Overloads search the whole array, from a start index, or over a `(startIndex, count)` section. Null arrays throw `ArgumentNullException`; invalid ranges throw `ArgumentOutOfRangeException`. Primitive and enum arrays use specialized value comparisons, including vectorized searches where supported. Float and double searches treat NaN values as equal and `+0` as equal to `-0`. Strings compare by contents. Reference types use `IEquality<T>` when implemented and otherwise use identity; equality is called for non-null elements even when both references are identical. A user-defined value type must implement `IEquality<T>` or compilation reports LS1102.
+
+```lumasharp
+int32[] scores = { 8, 13, 21, 13 };
+int32 first = Array.IndexOf(scores, 13);       // 1
+int32 later = Array.IndexOf(scores, 13, 2);    // 3
+int32 section = Array.IndexOf(scores, 13, 2, 1); // -1
+```
 
 ```lumasharp
 using System;

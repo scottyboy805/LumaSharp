@@ -114,6 +114,7 @@ internal static class CompilerIntrinsics
         Add("__arraysametype", "bool", "array", "System.Array", "System.Array");
         Add("__arraycopy", "void", "array", "System.Array", "int32", "System.Array", "int32", "int32");
         Add("__arrayclear", "void", "array", "System.Array", "int32", "int32");
+        Add("__arrayindexof", "int32", "array", "System.Array", "object", "int32", "int32");
         Add("__strslice", "string", "string", "string", "int32", "int32");
         Add("__strfromchars", "string", "string", "char*", "int32", "int32");
 
@@ -195,6 +196,7 @@ internal static class CompilerIntrinsics
         "__arraysametype" => "luma_intrinsic_arraysametype",
         "__arraycopy" => "luma_intrinsic_arraycopy",
         "__arrayclear" => "luma_intrinsic_arrayclear",
+        "__arrayindexof" => "luma_intrinsic_arrayindexof",
         "__strslice" => "luma_string_substring",
         "__strfromchars" => "luma_string_from_chars",
         _ => throw new InvalidOperationException($"No lowering is registered for compiler intrinsic '{name}'.")

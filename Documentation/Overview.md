@@ -202,7 +202,7 @@ for (let number in numbers) { }
 scope Counter local = new Counter(0); // lexical lifetime
 ```
 
-Strings are immutable UTF-8 values; `Length` and indexing use UTF-16 code units. Arrays include managed vectors, rectangular arrays (rank up to three), jagged arrays, and fixed-size inline arrays in structs. Array indexing is bounds-checked; arrays expose `Length`, `Rank`, and `GetLength`. Reference values are retained and released automatically. `scope` requests block lifetime, marks non-escaping borrowed parameters, and is subject to escape checks.
+Strings are immutable UTF-8 values; `Length` and indexing use UTF-16 code units. Arrays include managed vectors, rectangular arrays (rank up to three), jagged arrays, and fixed-size inline arrays in structs. Array indexing is bounds-checked; arrays expose `Length`, `Rank`, and `GetLength`. `Array.IndexOf` supports one-dimensional searches with primitive/enum specialized paths and equality-interface fallbacks. Reference values are retained and released automatically. `scope` requests block lifetime, marks non-escaping borrowed parameters, and is subject to escape checks.
 
 ### Scoped parameters
 

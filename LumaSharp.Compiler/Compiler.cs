@@ -8,7 +8,8 @@ public sealed record CompilationOptions(
     string TargetTriple = "host",
     bool Optimize = false,
     bool EmitLlvmIrOnly = false,
-    IReadOnlySet<string>? PreprocessorSymbols = null);
+    IReadOnlySet<string>? PreprocessorSymbols = null,
+    string TargetCpu = "");
 public sealed record CompilationResult(IReadOnlyList<Diagnostic> Diagnostics, string? LlvmIr)
 {
     public bool Succeeded => LlvmIr is not null && !Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);

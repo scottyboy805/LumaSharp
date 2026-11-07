@@ -7,6 +7,29 @@ public virtual class Array : Object
 	public int32 GetLength(int32 dimension) { return __arrdim(this, dimension); }
 	public unsafe void* Ptr { get => __arrptr(this); }
 
+	/// <summary>Returns the first index of a value in a one-dimensional array, or -1 when it is absent.</summary>
+	public static int32 IndexOf<T>(T[]? array, T value)
+	{
+		if (array == null) throw new ArgumentNullException();
+		return IndexOf(array, value, 0, array.Length);
+	}
+
+	/// <summary>Searches a one-dimensional array from startIndex to its end.</summary>
+	public static int32 IndexOf<T>(T[]? array, T value, int32 startIndex)
+	{
+		if (array == null) throw new ArgumentNullException();
+		if (startIndex < 0 || startIndex > array.Length) throw new ArgumentOutOfRangeException();
+		return IndexOf(array, value, startIndex, array.Length - startIndex);
+	}
+
+	/// <summary>Searches count elements of a one-dimensional array beginning at startIndex.</summary>
+	public static int32 IndexOf<T>(T[]? array, T value, int32 startIndex, int32 count)
+	{
+		if (array == null) throw new ArgumentNullException();
+		if (startIndex < 0 || startIndex > array.Length) throw new ArgumentOutOfRangeException();
+		if (count < 0 || count > array.Length - startIndex) throw new ArgumentOutOfRangeException();
+		return __arrayindexof(array, value, startIndex, count);
+	}
 	/// <summary>Copies all elements from source to destination.</summary>
 	public static void Copy(Array source, Array destination)
 	{

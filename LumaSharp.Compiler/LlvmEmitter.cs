@@ -1307,9 +1307,13 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         var linkage = IsRuntimeIntrinsicType(method.Owner) || stripUnusedExecutableCode ? "internal " : "";
         var isListType = method.Owner.Namespace == "System.Collections" &&
             method.Owner.Name.StartsWith("List", StringComparison.Ordinal);
-        var inlineAttribute = isListType &&
-            (d.PropertyName is not null || d.Name is "Add" or "Insert" or "RemoveAt" or "IndexOf" or "Contains" or "Remove" or "Clear" or "ToArray")
-                ? " alwaysinline" : "";
+        var isArrayIndexOfMethod = method.Owner.Namespace == "System" && method.Owner.Name == "Array" && d.Name == "IndexOf";
+        var simpleEqualityMethod = d.Name == "Equals" && (method.Owner.Kind is "class" or "struct") &&
+            IsProvenNonThrowingArrayIndexOfEquality(method);
+        var shouldInline = isListType &&
+            (d.PropertyName is not null || d.Name is "Add" or "Insert" or "RemoveAt" or "IndexOf" or "Contains" or "Remove" or "Clear" or "ToArray") ||
+            isArrayIndexOfMethod || simpleEqualityMethod;
+        var inlineAttribute = shouldInline ? " alwaysinline" : "";
         string? frameNameSymbol = null;
         var frameNameLength = 0;
         if (HasStackTraceSupport() && !d.IsCompilerGenerated && !d.Name.StartsWith('$') && !d.Name.StartsWith("__", StringComparison.Ordinal) &&
@@ -8858,7 +8862,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 var value = v!.Value;
                 if (value.IsAddress) return $"ptr {value.Value}";
                 var argumentValue = value.Value;
-                if (target.Intrinsic is not null && target.Intrinsic.Name != "__strslice" && IsStringType(value.Type))
+                if (target.Intrinsic is not null && target.Intrinsic.Name is not "__strslice" and not "__arrayindexof" && IsStringType(value.Type))
                     argumentValue = EmitIntrinsicStringDataPointer(argumentValue, value.Type);
                 var llvmType = LlvmType(value.Type);
                 var attribute = target.Declaration.IsExtern ? AbiAttribute(target.Declaration.Parameters[index].TypeName, enumTypes) : "";
@@ -8894,7 +8898,18 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             }
             else if (target.Intrinsic is { } compilerIntrinsic)
             {
-                if (compilerIntrinsic.Name is "__spanget" or "__spanset")
+                if (compilerIntrinsic.Name == "__arrayindexof")
+                {
+                    var array = valuesByParameter[0]!.Value.Value;
+                    var needle = valuesByParameter[1]!.Value;
+                    var start = valuesByParameter[2]!.Value;
+                    var count = valuesByParameter[3]!.Value;
+                    var arrayType = target.Declaration.Parameters[0].TypeName;
+                    if (arrayType.EndsWith("?", StringComparison.Ordinal)) arrayType = arrayType[..^1];
+                    var helper = ArrayIndexOfHelperName(arrayType);
+                    call = $"call i32 @{helper}(ptr {array}, i32 {start.Value}, i32 {count.Value}, {LlvmType(needle.Type)} {needle.Value})";
+                }
+                else if (compilerIntrinsic.Name is "__spanget" or "__spanset")
                 {
                     var pointer = valuesByParameter[0]!.Value.Value;
                     var indexValue = valuesByParameter[1]!.Value;

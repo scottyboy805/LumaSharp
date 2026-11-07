@@ -29,6 +29,38 @@ public sealed class BuildApiTests
     }
 
     [Fact]
+    public async Task NativeCpuTargetBuildsAndRunsOptimizedSimdCode()
+    {
+        using var workspace = new TemporaryWorkspace(AppContext.BaseDirectory);
+        var source = workspace.Write("Program.ls", "using System; class Program { public static int32 Main() { int32[] values = new int32[96]; for (int32 i = 0; i < values.Length; i++) values[i] = i; return Array.IndexOf(values, 95) == 95 ? 0 : 1; } }");
+        var result = await LumaBuild.BuildAsync(new CompilerBuildRequest(
+            [source],
+            new CompilationOptions(Optimize: true, TargetCpu: "native"),
+            Path.Combine(workspace.Root, "bin"),
+            Path.Combine(workspace.Root, "obj"),
+            "NativeCpu"));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo(Assert.Single(result.OutputPaths))
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            }
+        };
+        process.Start();
+        var stderr = process.StandardError.ReadToEndAsync();
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        Assert.Equal(0, process.ExitCode);
+        Assert.Empty(await stderr);
+        Assert.Empty(await stdout);
+    }
+
+    [Fact]
     public async Task LibraryBuildApiProducesStaticArchiveWithoutExecutableEntryPoint()
     {
         // Native librarian processes run outside the managed test host. Keep this

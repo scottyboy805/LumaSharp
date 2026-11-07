@@ -5,7 +5,7 @@ return await Cli.RunAsync(args);
 
 internal static class Cli
 {
-    private static readonly HashSet<string> ProjectProperties = ["schemaVersion", "outputKind", "outputName", "outputDirectory", "intermediateDirectory", "targetTriple", "runtimeLibraryPath", "unsafe", "optimize", "logLevel", "warningsAsErrors", "disabledWarnings", "preprocessorSymbols", "excludeDirectories"];
+    private static readonly HashSet<string> ProjectProperties = ["schemaVersion", "outputKind", "outputName", "outputDirectory", "intermediateDirectory", "targetTriple", "targetCpu", "runtimeLibraryPath", "unsafe", "optimize", "logLevel", "warningsAsErrors", "disabledWarnings", "preprocessorSymbols", "excludeDirectories"];
     public static async Task<int> RunAsync(string[] args)
     {
         if (args.Length == 0 || args[0] is "--help" or "-h") return Help();
@@ -26,6 +26,7 @@ internal static class Cli
                 case "--intermediate-dir": overrides.Intermediate = Value(); if (overrides.Intermediate is null) return Usage("--intermediate-dir requires a value."); break;
                 case "--runtime-library": overrides.RuntimeLibraryPath = Value(); if (overrides.RuntimeLibraryPath is null) return Usage("--runtime-library requires a directory path."); break;
                 case "--target": overrides.Target = Value(); if (overrides.Target is null) return Usage("--target requires a value."); break;
+                case "--target-cpu": overrides.TargetCpu = Value(); if (overrides.TargetCpu is null) return Usage("--target-cpu requires a value."); break;
                 case "--log-level": overrides.LogLevel = Value(); if (overrides.LogLevel is not ("quiet" or "normal" or "verbose" or "debug")) return Usage("--log-level expects quiet, normal, verbose, or debug."); break;
                 case "--no-warn": var code = Value(); if (code is null) return Usage("--no-warn requires a diagnostic code."); overrides.DisabledWarnings.Add(code); break;
                 case "--unsafe": overrides.Unsafe = true; break;
@@ -68,7 +69,8 @@ internal static class Cli
                 TargetTriple: settings.Target ?? "host",
                 Optimize: settings.Optimize,
                 EmitLlvmIrOnly: overrides.EmitIrOnly,
-                PreprocessorSymbols: settings.PreprocessorSymbols);
+                PreprocessorSymbols: settings.PreprocessorSymbols,
+                TargetCpu: settings.TargetCpu ?? "");
             var build = await LumaBuild.BuildAsync(new CompilerBuildRequest(
                 sourcePaths,
                 options,
@@ -93,7 +95,7 @@ internal static class Cli
     }
     private static int Help()
     {
-        Console.WriteLine("LumaSharp compiler\n\nUsage:\n  luma build <source.ls> [additional-source.ls ...] [options]\n  luma build <project.json> [options]\n  luma --help | --version\n\nOptions:\n  --kind <executable|staticLibrary> --name <name>\n  --out-dir <path> --intermediate-dir <path> --runtime-library <directory>\n  --target <host|LLVM triple> --unsafe | --no-unsafe\n  --optimize | --no-optimize --log-level <quiet|normal|verbose|debug>\n  --warnings-as-errors --no-warn <code> --no-llvm (write LLVM IR only)"); return 0;
+        Console.WriteLine("LumaSharp compiler\n\nUsage:\n  luma build <source.ls> [additional-source.ls ...] [options]\n  luma build <project.json> [options]\n  luma --help | --version\n\nOptions:\n  --kind <executable|staticLibrary> --name <name>\n  --out-dir <path> --intermediate-dir <path> --runtime-library <directory>\n  --target <host|LLVM triple> --target-cpu <LLVM CPU name|native>\n  --unsafe | --no-unsafe\n  --optimize | --no-optimize --log-level <quiet|normal|verbose|debug>\n  --warnings-as-errors --no-warn <code> --no-llvm (write LLVM IR only)"); return 0;
     }
     private static int Usage(string message) { Console.Error.WriteLine($"LMC1001: error: {message}\nRun 'luma --help' for usage."); return 2; }
     private static int Fail(string code, string message, int exitCode) { Console.Error.WriteLine($"{code}: error: {message}"); return exitCode; }
@@ -120,6 +122,7 @@ internal static class Cli
         if (root.TryGetProperty("intermediateDirectory", out var intermediate)) settings.Intermediate = String(intermediate, "intermediateDirectory");
         if (root.TryGetProperty("runtimeLibraryPath", out var runtimeLibraryPath)) settings.RuntimeLibraryPath = Resolve(rootPath, String(runtimeLibraryPath, "runtimeLibraryPath"));
         if (root.TryGetProperty("targetTriple", out var target)) settings.Target = String(target, "targetTriple");
+        if (root.TryGetProperty("targetCpu", out var targetCpu)) settings.TargetCpu = String(targetCpu, "targetCpu");
         if (root.TryGetProperty("unsafe", out var unsafeElement)) settings.Unsafe = Boolean(unsafeElement, "unsafe");
         if (root.TryGetProperty("optimize", out var optimize)) settings.Optimize = Boolean(optimize, "optimize");
         if (root.TryGetProperty("warningsAsErrors", out var wae)) settings.WarningsAsErrors = Boolean(wae, "warningsAsErrors");
@@ -193,7 +196,7 @@ internal static class Cli
         if (overrides.Intermediate is not null) settings.Intermediate = Resolve(root, overrides.Intermediate);
         else settings.Intermediate ??= Resolve(root, "obj");
         if (overrides.RuntimeLibraryPath is not null) settings.RuntimeLibraryPath = Resolve(root, overrides.RuntimeLibraryPath);
-        if (overrides.Target is not null) settings.Target = overrides.Target; if (overrides.Unsafe is not null) settings.Unsafe = overrides.Unsafe.Value;
+        if (overrides.Target is not null) settings.Target = overrides.Target; if (overrides.TargetCpu is not null) settings.TargetCpu = overrides.TargetCpu; if (overrides.Unsafe is not null) settings.Unsafe = overrides.Unsafe.Value;
         if (overrides.Optimize is not null) settings.Optimize = overrides.Optimize.Value; if (overrides.LogLevel is not null) settings.LogLevel = overrides.LogLevel;
         if (overrides.WarningsAsErrors) settings.WarningsAsErrors = true; settings.DisabledWarnings.UnionWith(overrides.DisabledWarnings);
         if (string.IsNullOrWhiteSpace(settings.Name) || Path.GetFileName(settings.Name) != settings.Name || settings.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
@@ -222,14 +225,14 @@ internal static class Cli
     private sealed class ProjectException(string code, string message) : Exception(message) { public string Code { get; } = code; }
     private sealed class Settings
     {
-        public string Kind { get; set; } = "executable"; public string Name { get; set; } = "LumaProgram"; public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } = "host";
+        public string Kind { get; set; } = "executable"; public string Name { get; set; } = "LumaProgram"; public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } = "host"; public string? TargetCpu { get; set; }
         public string? RuntimeLibraryPath { get; set; }
         public bool Unsafe { get; set; } public bool Optimize { get; set; } public bool WarningsAsErrors { get; set; } public string LogLevel { get; set; } = "normal";
         public HashSet<string> DisabledWarnings { get; } = new(StringComparer.OrdinalIgnoreCase); public HashSet<string> PreprocessorSymbols { get; } = new(StringComparer.Ordinal); public HashSet<string> ExcludedDirectories { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
     private sealed class Overrides
     {
-        public string? Kind { get; set; } public string? Name { get; set; } public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } public string? RuntimeLibraryPath { get; set; }
+        public string? Kind { get; set; } public string? Name { get; set; } public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } public string? TargetCpu { get; set; } public string? RuntimeLibraryPath { get; set; }
         public bool? Unsafe { get; set; } public bool? Optimize { get; set; } public bool WarningsAsErrors { get; set; } public bool EmitIrOnly { get; set; } public string? LogLevel { get; set; }
         public HashSet<string> DisabledWarnings { get; } = new(StringComparer.OrdinalIgnoreCase);
     }

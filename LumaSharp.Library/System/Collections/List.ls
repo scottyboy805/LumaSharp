@@ -105,15 +105,8 @@ public class List<T> : IEnumerable<T> where T : default, System.IEquality<T>
 
 	public int32 IndexOf(T item)
 	{
-		for (int32 index = 0; index < count; index++)
-		{
-			T current = items[index];
-			if (current is System.Object && current.Equals(item))
-				return index;
-		}
-		return -1;
+		return Array.IndexOf(items, item, 0, count);
 	}
-
 	public bool Contains(T item)
 	{
 		return IndexOf(item) >= 0;

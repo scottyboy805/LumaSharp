@@ -33,6 +33,26 @@ The latest benchmark run measured debug builds at 0.79–0.92 seconds and optimi
 
 These changes preserve the full generated IR text in the intermediate `.ll` file. Dead-code elimination currently happens during native object generation, after IR emission.
 
+## Array.IndexOf
+
+`Tests/LumaSharp.Benchmarks/ArrayIndexOfBenchmarkTests.cs` compares the full-array, start-index, and section overloads against Release C# `Array.IndexOf`. It covers hit and miss cases for booleans, character and integer widths, native integers, floats, doubles, enums, nullable values, strings, a user struct with `IEquality<T>`, and user classes with ordinary and scope-borrowed equality. Each case searches a 2,048-element array 100,000 times; nine measurements are taken after warmup. Luma is built with `Optimize: true` and `TargetCpu: "native"`, and checksums are compared before timings are reported.
+
+On the Windows x64 development machine, repeated runs show these broad patterns:
+
+| Element category | Observed Luma result versus C# |
+| --- | --- |
+| `float` / `double` | About 11–17× faster for `float` and 4–5× for `double`. |
+| `int32` / `uint32`, `int64` / `uint64`, native integers | Usually near parity; section searches are often up to about 25% faster, while some start-index cases trail slightly. |
+| `bool`, `int8`, `uint8`, byte enums | Full searches are near parity; start-index calls can be about 1.5× slower, and section calls are usually within 20%. |
+| `char`, `int16`, `uint16` | The 512-bit native-target path brings full scans near parity; start-index scans remain about 1.3–1.5× slower, with section results closer. |
+| `int32?` | Four-at-a-time scalar lowering improved full scans by about 25%, but they remain roughly 1.6× slower; start-index and section searches are within about 10%. |
+| strings | Full searches are near parity; ranged searches are often about 1.5× faster. |
+| user equality types | Struct timings vary by overload and run (ranged searches are near parity). Null-heavy class arrays benefit from the dedicated null path; class results ranged from about 1.5× slower to 2× faster across runs. A `scope` equality parameter is supported but does not change `IEquality<T>` itself. |
+
+These figures are directional rather than a cross-machine guarantee. The benchmark compares each language's native array API, uses a small hot array, and is sensitive to CPU frequency and cache state; repeated class and user-struct medians varied substantially. The remaining start-index, narrow-integer, nullable-value, and user-equality gaps are tracked by the per-type matrix, so future changes can be evaluated without masking one overload's regression behind an aggregate score.
+
+The implementation specializes primitive and enum arrays with vector comparisons and ordered lane-mask extraction, then scans any remaining tail scalarly. Reference arrays preserve `IEquality<T>` dispatch or identity semantics; value structs require the equality interface. The List implementation delegates its active range to this API.
+
 ## Runtime-library artifact caching
 
 A separate cached runtime object was investigated further and is not safe to add as a cache-only change. Today, runtime method definitions are emitted with internal linkage because their owner is a runtime source type, and runtime static fields are likewise internal. A standalone runtime archive therefore does not currently export the symbols an application object would need. The generated class descriptors and interface IDs are also private to an LLVM module. Duplicating them in the application and runtime objects would make descriptor and interface identity depend on which module created an object.

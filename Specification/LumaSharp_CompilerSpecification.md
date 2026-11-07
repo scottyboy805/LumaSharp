@@ -145,6 +145,7 @@ The following JSON illustrates the initial project settings contract. All fields
   "intermediateDirectory": "obj",
   "runtimeLibraryPath": "../LumaSharp.Library",
   "targetTriple": "host",
+  "targetCpu": "",
   "unsafe": false,
   "optimize": false,
   "logLevel": "normal",
@@ -164,6 +165,7 @@ The following JSON illustrates the initial project settings contract. All fields
 | `intermediateDirectory` | Path string | `obj`. Destination for temporary and intermediate artifacts. |
 | `runtimeLibraryPath` | Path string | Omitted. Selects a runtime source directory explicitly; otherwise the compiler searches source ancestors and its installation directory. |
 | `targetTriple` | `"host"` or an LLVM target triple | `"host"`. Selects the host target or an explicitly named target. |
+| `targetCpu` | Empty string, `"native"`, or an LLVM CPU name | Empty. Uses the portable target baseline by default. `"native"` selects the CPU reported by LLVM on the compiling machine; an explicit LLVM CPU name selects that CPU. CPU-specific binaries may require that CPU's instruction features at runtime. |
 | `unsafe` | Boolean | `false`. If false, source using unsafe constructs is rejected as required by the Language Specification (including LS1901). It does not change the meaning of valid safe code. |
 | `optimize` | Boolean | `false`. Enables LLVM optimisation when true; optimisation MUST preserve language semantics. For optimized executable builds, LumaSharp method bodies and static fields are internalized so LLVM can remove definitions proven unreachable. Static-library builds retain their external API surface. |
 | `logLevel` | `"quiet"`, `"normal"`, `"verbose"`, or `"debug"` | `"normal"`. Controls informational build logging, not whether required diagnostics are reported. |
@@ -218,6 +220,7 @@ The CLI MUST provide command-line overrides for the commonly used settings. At m
 --intermediate-dir <path>
 --runtime-library <directory>
 --target <host-or-LLVM-triple>
+--target-cpu <LLVM-CPU-name-or-native>
 --unsafe / --no-unsafe
 --optimize / --no-optimize
 --log-level <quiet|normal|verbose|debug>
@@ -225,7 +228,7 @@ The CLI MUST provide command-line overrides for the commonly used settings. At m
 --no-warn <diagnostic-code>
 ```
 
-The exact spelling of optional convenience aliases is implementation-defined, but the `luma build` command and the documented options MUST remain consistent.
+The exact spelling of optional convenience aliases is implementation-defined, but the `luma build` command and the documented options MUST remain consistent. The `targetCpu` setting and `--target-cpu` override select LLVM code-generation features independently of `targetTriple`; the value `native` resolves to the compiler host's LLVM CPU name. Builds using `native` or another CPU-specific value are only guaranteed to run on compatible processors.
 
 Settings are resolved in this order, from lowest to highest precedence:
 

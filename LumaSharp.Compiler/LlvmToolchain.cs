@@ -21,7 +21,7 @@ public static unsafe class LlvmToolchain
     }
 
     /// <summary>Resolves a target triple and verifies that LLVM can create a target machine for it.</summary>
-    public static LlvmToolchainResult ValidateTarget(string targetTriple = "host")
+    public static LlvmToolchainResult ValidateTarget(string targetTriple = "host", string targetCpu = "")
     {
         LLVMOpaqueTargetMachine* machine = null;
         IntPtr triplePtr = IntPtr.Zero; IntPtr cpuPtr = IntPtr.Zero; IntPtr featuresPtr = IntPtr.Zero;
@@ -31,7 +31,7 @@ public static unsafe class LlvmToolchain
             requestedTriple = targetTriple == "host" ? GetHostTripleUnsafe() : targetTriple;
             if (string.IsNullOrWhiteSpace(requestedTriple)) return new(false, null, "LLVM did not provide a host target triple.");
             InitializeTarget(requestedTriple);
-            triplePtr = Utf8Ptr(requestedTriple); cpuPtr = Utf8Ptr(""); featuresPtr = Utf8Ptr("");
+            triplePtr = Utf8Ptr(requestedTriple); cpuPtr = Utf8Ptr(ResolveTargetCpu(targetCpu)); featuresPtr = Utf8Ptr("");
             LLVMTarget* target = null; sbyte* targetError = null;
             if (LLVM.GetTargetFromTriple((sbyte*)triplePtr, &target, &targetError) != 0)
             {
@@ -56,15 +56,15 @@ public static unsafe class LlvmToolchain
     }
 
     public static LlvmToolchainResult VerifyAndEmitObject(string llvmIr, string outputPath, string targetTriple = "host", bool optimize = false,
-        CancellationToken cancellationToken = default) =>
-        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode: true);
+        CancellationToken cancellationToken = default, string targetCpu = "") =>
+        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode: true, targetCpu: targetCpu);
 
     internal static LlvmToolchainResult VerifyAndEmitObject(string llvmIr, string outputPath, string targetTriple,
-        bool optimize, bool eliminateDeadCode, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null) =>
-        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode, profiler);
+        bool optimize, bool eliminateDeadCode, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null, string targetCpu = "") =>
+        VerifyAndEmitObjectCore(llvmIr, outputPath, targetTriple, optimize, cancellationToken, eliminateDeadCode, profiler, targetCpu);
 
     private static LlvmToolchainResult VerifyAndEmitObjectCore(string llvmIr, string outputPath, string targetTriple, bool optimize,
-        CancellationToken cancellationToken, bool eliminateDeadCode, CompilationProfiler? profiler = null)
+        CancellationToken cancellationToken, bool eliminateDeadCode, CompilationProfiler? profiler = null, string targetCpu = "")
     {
         LLVMOpaqueContext* context = null; LLVMOpaqueMemoryBuffer* buffer = null; LLVMOpaqueModule* module = null;
         LLVMOpaqueTargetMachine* machine = null; LLVMOpaqueTargetData* dataLayout = null; LLVMOpaquePassBuilderOptions* passOptions = null;
@@ -76,7 +76,7 @@ public static unsafe class LlvmToolchain
             if (string.IsNullOrWhiteSpace(requestedTriple)) return new(false, null, "LLVM did not provide a host target triple.");
             if (profiler is null) InitializeTarget(requestedTriple);
             else profiler.Measure("LLVM target initialization", () => InitializeTarget(requestedTriple));
-            triplePtr = Utf8Ptr(requestedTriple); sourceNamePtr = Utf8Ptr("lumasharp.module.ll"); pathPtr = Utf8Ptr(Path.GetFullPath(outputPath)); cpuPtr = Utf8Ptr(""); featuresPtr = Utf8Ptr("");
+            triplePtr = Utf8Ptr(requestedTriple); sourceNamePtr = Utf8Ptr("lumasharp.module.ll"); pathPtr = Utf8Ptr(Path.GetFullPath(outputPath)); cpuPtr = Utf8Ptr(ResolveTargetCpu(targetCpu)); featuresPtr = Utf8Ptr("");
             var irBytes = Encoding.UTF8.GetBytes(llvmIr);
             using (profiler?.Measure("LLVM IR parsing"))
             {
@@ -191,6 +191,10 @@ public static unsafe class LlvmToolchain
         }
     }
     private static string GetHostTripleUnsafe() { var value = LLVM.GetDefaultTargetTriple(); try { return Utf8(value); } finally { LLVM.DisposeMessage(value); } }
+    private static string ResolveTargetCpu(string targetCpu) => string.Equals(targetCpu, "native", StringComparison.OrdinalIgnoreCase)
+        ? GetHostCpuNameUnsafe()
+        : targetCpu;
+    private static string GetHostCpuNameUnsafe() { var value = LLVM.GetHostCPUName(); try { return Utf8(value); } finally { LLVM.DisposeMessage(value); } }
     private static IntPtr Utf8Ptr(string value) => Marshal.StringToCoTaskMemUTF8(value);
     private static string Utf8(sbyte* value) => value == null ? "" : Marshal.PtrToStringUTF8((IntPtr)value) ?? "";
 }

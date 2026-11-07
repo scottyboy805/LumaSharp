@@ -46,6 +46,19 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task TargetCpuProjectSettingCanBeOverriddenFromTheCommandLine()
+    {
+        using var workspace = new TemporaryWorkspace();
+        workspace.Write("Program.ls", "class Program { public static int32 Main() { return 0; } }");
+        var project = workspace.Write("sample.json", """{"schemaVersion":1,"targetCpu":"not-a-real-cpu","outputDirectory":"bin","intermediateDirectory":"obj"}""");
+
+        var result = await Run(workspace.Root, "build", project, "--target-cpu", "native", "--no-llvm");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(Path.Combine(workspace.Root, "obj", "sample.ll")));
+    }
+
+    [Fact]
     public async Task SourceModeDiscoversBundledRuntimeWithoutAnOverride()
     {
         using var workspace = new TemporaryWorkspace();

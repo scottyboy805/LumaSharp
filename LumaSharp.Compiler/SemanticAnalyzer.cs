@@ -8776,6 +8776,42 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                             $"Intrinsic '{intrinsicCall.Name}' expects {intrinsicMethod.Declaration.Parameters.Count} argument(s).", call.Location);
                         return "?";
                     }
+                    string? arrayIndexOfArrayType = null;
+                    if (intrinsic.Name == "__arrayindexof")
+                    {
+                        arrayIndexOfArrayType = AnalyzeExpression(call.Arguments[0], context);
+                        var arrayType = NullableUnderlyingType(arrayIndexOfArrayType);
+                        if (!TryParseManagedArrayType(arrayType, out var elementType, out var rank) || rank != 1)
+                        {
+                            diagnostics.Add("LS0751", DiagnosticSeverity.Error,
+                                "Intrinsic '__arrayindexof' requires a one-dimensional array.", call.Arguments[0].Location);
+                            return "?";
+                        }
+                        elementType = NormalizeEnumType(elementType, context.Method.Owner);
+                        var indexElementValueType = NullableUnderlyingType(elementType);
+                        if (IsStructType(indexElementValueType) && !_enumUnderlyingTypes.ContainsKey(indexElementValueType))
+                        {
+                            var implementsEquality = _structTypes.TryGetValue(indexElementValueType, out var indexElementStruct) &&
+                                _interfaceMethodSlots.Any(slot => slot.InterfaceType.Namespace == "System" && slot.InterfaceType.Name.StartsWith("IEquality", StringComparison.Ordinal) &&
+                                    slot.Contract.Declaration.Name == "Equals" && slot.Contract.Declaration.Parameters.Count == 1 &&
+                                    slot.Contract.Declaration.Parameters[0].TypeName == indexElementValueType &&
+                                    GetStructImplementedInterfaceNames(indexElementStruct.Declaration).Contains(GetQualifiedTypeName(slot.InterfaceType), StringComparer.Ordinal));
+                            if (!implementsEquality)
+                            {
+                                var equalityContract = "System.IEquality<" + indexElementValueType + ">";
+                                diagnostics.Add("LS1102", DiagnosticSeverity.Error,
+                                    $"Array.IndexOf requires value type '{indexElementValueType}' to implement '{equalityContract}'.", call.Arguments[0].Location);
+                                return "?";
+                            }
+                        }
+                        var parameters = intrinsicMethod.Declaration.Parameters.ToArray();
+                        parameters[0] = parameters[0] with { TypeName = arrayIndexOfArrayType };
+                        parameters[1] = parameters[1] with { TypeName = elementType };
+                        intrinsicMethod = intrinsicMethod with
+                        {
+                            Declaration = intrinsicMethod.Declaration with { Parameters = parameters }
+                        };
+                    }
                     if (intrinsic.Name is "__spanget" or "__spanset")
                     {
                         var pointerType = AnalyzeExpression(call.Arguments[0], context);
@@ -8807,7 +8843,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                             ? parameter.TypeName
                             : argument is InlineOutVariableExpression inline
                                 ? NormalizeEnumType(inline.TypeName!, context.Method.Owner)
-                                : AnalyzeExpression(argument, context);
+                                : index == 0 && arrayIndexOfArrayType is not null
+                                    ? arrayIndexOfArrayType
+                                    : AnalyzeExpression(argument, context);
                         if (intrinsic.Name == "__attrib" && argumentType != "System.Type" &&
                             !IsReferenceAssignable("System.Reflection.MemberInfo", NullableUnderlyingType(argumentType)))
                         {

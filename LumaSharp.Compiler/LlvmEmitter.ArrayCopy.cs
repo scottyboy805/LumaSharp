@@ -60,6 +60,7 @@ internal sealed partial class LlvmEmitter
         }
         EmitArrayCopyDispatcher(arrayTypes);
         EmitArrayClearDispatcher(arrayTypes);
+        EmitArrayIndexOfRuntime(arrayTypes);
     }
 
     private void EmitArrayCopyDispatcher(IReadOnlyList<(string ArrayType, string ElementType)> arrayTypes)
