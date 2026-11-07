@@ -11,6 +11,7 @@ public virtual class MemberInfo : System.Object
 	public string Name { get => name; }
 	public System.Type DeclaringType { get => declaringType; }
 	public int32 Flags { get => flags; }
+	public System.ReadOnlySpan<System.Type?> ParameterTypes { get => __memberparams(this); }
 	public bool IsPublic { get => (flags & 1) != 0; }
 	public bool IsStatic { get => (flags & 2) != 0; }
 	public bool IsReadOnly { get => (flags & 4) != 0; }

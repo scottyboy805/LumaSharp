@@ -14,6 +14,7 @@ internal sealed partial class LlvmEmitter
         EmitTypeMemberSpanIntrinsic("luma_type_properties", "properties", "System.Reflection.Property");
         EmitTypeMemberSpanIntrinsic("luma_type_methods", "methods", "System.Reflection.Method");
         EmitTypeMemberSpanIntrinsic("luma_type_constructors", "constructors", "System.Reflection.Constructor");
+        EmitMemberParameterTypeSpan();
         EmitMemberOperationIntrinsics();
     }
 
@@ -284,6 +285,58 @@ internal sealed partial class LlvmEmitter
             _output.AppendLine($"members.{index}:");
             EmitReadOnlySpanReturn(spanType, pointerIndex, lengthIndex, ownerIndex,
                 "@" + ReflectionMemberArrayName(item.TypeName, arrayKind), item.Members.Count, $"{kind}.{index}");
+        }
+        _output.AppendLine("none:");
+        _output.AppendLine($"  ret {spanType} zeroinitializer");
+        _output.AppendLine("}");
+    }
+
+    private void EmitMemberParameterTypeSpan()
+    {
+        const string elementType = "System.Type?";
+        var spanSourceName = ClosedReadOnlySpanName(elementType);
+        var spanType = LlvmType(spanSourceName);
+        var spanSymbol = compilation.StructTypes[spanSourceName];
+        var pointerIndex = spanSymbol.Fields.Single(field => field.Declaration.Name == "pointer").Index;
+        var lengthIndex = spanSymbol.Fields.Single(field => field.Declaration.Name == "length").Index;
+        var ownerIndex = spanSymbol.Fields.Single(field => field.Declaration.Name == "owner").Index;
+        var memberIdField = compilation.ClassTypes["System.Reflection.MemberInfo"].Fields
+            .Single(field => field.Declaration.Name == "memberId").Index + 4;
+        var parameterizedMembers = compilation.RuntimeMembers
+            .Where(member => member.Method is not null && member.Method.Declaration.Parameters.Count > 0)
+            .OrderBy(member => member.Id)
+            .ToArray();
+
+        foreach (var member in parameterizedMembers)
+        {
+            var parameterTypes = member.Method!.Declaration.Parameters.Select(parameter => parameter.TypeName).ToArray();
+            var values = parameterTypes.Select(typeName => compilation.RuntimeTypes.ContainsKey(typeName)
+                ? "ptr @" + TypeHandleSymbol(typeName)
+                : "ptr null");
+            _output.AppendLine($"@luma_reflection_parameters_{member.Id} = private constant [{parameterTypes.Length} x ptr] [{string.Join(", ", values)}]");
+        }
+
+        _output.AppendLine($"define internal {spanType} @luma_reflection_member_parameters(ptr %member) {{");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %member.is.null = icmp eq ptr %member, null");
+        _output.AppendLine("  br i1 %member.is.null, label %null, label %lookup");
+        _output.AppendLine("null:");
+        _output.AppendLine("  call void @luma_throw_null()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("lookup:");
+        _output.AppendLine($"  %member.id.address = getelementptr %class.System_Reflection_MemberInfo, ptr %member, i32 0, i32 {memberIdField}");
+        _output.AppendLine("  %member.id = load i32, ptr %member.id.address");
+        var cases = parameterizedMembers.Select((member, index) => $"i32 {member.Id}, label %parameters.{index}").ToArray();
+        _output.AppendLine(cases.Length == 0
+            ? "  br label %none"
+            : $"  switch i32 %member.id, label %none [{string.Join(" ", cases)}]");
+        for (var index = 0; index < parameterizedMembers.Length; index++)
+        {
+            var member = parameterizedMembers[index];
+            var count = member.Method!.Declaration.Parameters.Count;
+            _output.AppendLine($"parameters.{index}:");
+            EmitReadOnlySpanReturn(spanType, pointerIndex, lengthIndex, ownerIndex,
+                $"@luma_reflection_parameters_{member.Id}", count, $"member.parameters.{index}");
         }
         _output.AppendLine("none:");
         _output.AppendLine($"  ret {spanType} zeroinitializer");

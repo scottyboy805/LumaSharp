@@ -89,6 +89,7 @@ internal static class CompilerIntrinsics
         Add("__memberget", "System.Object?", "reflection", "System.Reflection.MemberInfo", "System.Object?");
         Add("__memberset", "void", "reflection", "System.Reflection.MemberInfo", "System.Object?", "System.Object?");
         Add("__memberinvoke", "System.Object?", "reflection", "System.Reflection.MemberInfo", "System.Object?", "System.Object?[]");
+        Add("__memberparams", "System.ReadOnlySpan<System.Type?>", "reflection", "System.Reflection.MemberInfo");
         Add("__monitorenter", "void", "monitor", "System.Object");
         Add("__monitorexit", "bool", "monitor", "System.Object");
         Add("__throwpreserve", "void", "exception", "System.Exception");
@@ -168,6 +169,7 @@ internal static class CompilerIntrinsics
         "__memberget" => "luma_reflection_member_get",
         "__memberset" => "luma_reflection_member_set",
         "__memberinvoke" => "luma_reflection_member_invoke",
+        "__memberparams" => "luma_reflection_member_parameters",
         "__monitorenter" => "luma_monitor_enter",
         "__monitorexit" => "luma_monitor_exit",
         "__throwpreserve" => "luma_throw_preserve",

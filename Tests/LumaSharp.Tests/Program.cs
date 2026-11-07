@@ -620,7 +620,7 @@ public sealed class CompilerTests
     }
 
     [Fact]
-    public void TypeDefaultReportsAndReturnsBoxedAndGenericDefaults()
+    public void TypeDefaultReportsAndReturnsBoxedDefaults()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
         var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
@@ -648,27 +648,23 @@ public sealed class CompilerTests
                     if (!integerType.HasDefault) return 1;
                     object boxedInteger = integerType.Default()!;
                     if ((int32)boxedInteger != 0 || boxedInteger.GetType() != integerType) return 2;
-                    int32 integer = integerType.Default<int32>();
-                    if (integer != 0) return 3;
+                    if (default(int32) != 0) return 3;
 
                     Type nullableIntegerType = typeof(int32?);
                     if (!nullableIntegerType.HasDefault || !nullableIntegerType.IsValueType) return 4;
                     if (nullableIntegerType.Default() != null) return 5;
-                    int32? nullableInteger = nullableIntegerType.Default<int32?>();
-                    if (nullableInteger != null) return 6;
+                    if (nullableIntegerType.Default() != null || default(int32?) != null) return 6;
 
                     Type enumType = typeof(Shade);
                     if (!enumType.HasDefault || enumType.Default()!.GetType() != enumType) return 7;
                     Type pointType = typeof(Point);
                     Point boxedPoint = (Point)pointType.Default()!;
-                    Point genericPoint = pointType.Default<Point>();
                     if (!pointType.HasDefault || boxedPoint.X != 0 || boxedPoint.Label != null ||
-                        genericPoint.X != 0 || genericPoint.Label != null) return 8;
+                        default(Point).X != 0 || default(Point).Label != null) return 8;
 
                     Type nullableArrayType = typeof(int32[]?);
-                    int32[]? nullableArray = nullableArrayType.Default<int32[]?>();
                     if (!nullableArrayType.IsNullable || !nullableArrayType.IsArray ||
-                        nullableArrayType.ElementType != typeof(int32[]) || nullableArray != null) return 9;
+                        nullableArrayType.ElementType != typeof(int32[]) || nullableArrayType.Default() != null || default(int32[]?) != null) return 9;
                     Type arrayOfNullableValues = typeof(int32?[]);
                     if (arrayOfNullableValues.ElementType != nullableIntegerType) return 15;
                     Type nullableStringType = typeof(string?);
@@ -690,8 +686,7 @@ public sealed class CompilerTests
                     catch (InvalidOperationException) { stringSubstringAmbiguous = true; }
                     if (nullableSubstringAmbiguous != stringSubstringAmbiguous || nullableSubstring != stringSubstring) return 21;
                     if (!nullableSubstringAmbiguous || !stringSubstringAmbiguous) return 22;
-                    string? genericString = nullableStringType.Default<string?>();
-                    if (genericString != null) return 10;
+                    if (default(string?) != null) return 10;
 
                     Type needsArgumentType = typeof(NeedsArgument);
                     if (needsArgumentType.HasDefault) return 11;
@@ -704,8 +699,6 @@ public sealed class CompilerTests
                     if (nullableCreated.Value != 24) return 18;
                     NeedsArgument created = (NeedsArgument)needsArgumentType.New(42)!;
                     if (created.Value != 42) return 13;
-                    try { int64 mismatch = integerType.Default<int64>(); return 14; }
-                    catch (InvalidOperationException) { }
                     return 0;
                 }
             }
@@ -716,6 +709,92 @@ public sealed class CompilerTests
         var execution = LlvmJit.RunMain(result.LlvmIr!);
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeMethodAndConstructorLookupUsesDefaultAndCustomBinders()
+    {
+        const string source = """
+            using System;
+            using System.Reflection;
+            public class Item
+            {
+                public int32 Value;
+                public this() { Value = 5; }
+                public this(int32 value) { Value = value; }
+                public this(string value) { Value = value.Length; }
+                public int32 Select(int32 value) => value + 10;
+                public int32 Select(string value) => value.Length + 20;
+                public int32 Select(int32 left, int32 right) => left + right;
+                public int32 Unique() => 37;
+            }
+            public class CustomBinder : Binder
+            {
+                public override Method? BindToMethod(Type? type, string name, Type?[]? parameterTypes)
+                {
+                    if (name == "Unique")
+                        return type!.GetMethod(name);
+                    return base.BindToMethod(type, name, parameterTypes);
+                }
+
+                public override Constructor? BindToConstructor(Type? type, Type?[]? parameterTypes)
+                {
+                    return type!.GetConstructor();
+                }
+            }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Type type = typeof(Item);
+                    if (Type.Binder != Type.Binder) return 1;
+                    Method? integerMatch = type.GetMethod("Select", typeof(int32));
+                    Method? textMatch = type.GetMethod("Select", typeof(string));
+                    Method? pairMatch = type.GetMethod("Select", typeof(int32), typeof(int32));
+                    if (integerMatch == null) return 11;
+                    if (textMatch == null) return 12;
+                    if (pairMatch == null) return 13;
+                    Method integer = integerMatch;
+                    Method text = textMatch;
+                    Method pair = pairMatch;
+                    if (integer.ParameterTypes.Length != 1 || integer.ParameterTypes[0] != typeof(int32) ||
+                        text.ParameterTypes[0] != typeof(string) || pair.ParameterTypes.Length != 2) return 2;
+                    System.Reflection.Constructor? constructorMatch = type.GetConstructor(typeof(int32));
+                    if (constructorMatch == null) return 14;
+                    Item instance = (Item)constructorMatch.Invoke(14)!;
+                    if (instance.Value != 14 || (int32)integer.Invoke(instance, 3)! != 13 ||
+                        (int32)text.Invoke(instance, "abc")! != 23 || (int32)pair.Invoke(instance, 4, 6)! != 10) return 3;
+                    if (type.GetMethod("Select", typeof(bool)) != null ||
+                        type.GetConstructor(typeof(bool)) != null) return 4;
+                    if (type.GetConstructor()!.Invoke()!.GetType() != type) return 5;
+
+                    bool nameOnlyAmbiguous = false;
+                    try { type.GetMethod("Select"); }
+                    catch (InvalidOperationException) { nameOnlyAmbiguous = true; }
+                    if (!nameOnlyAmbiguous) return 6;
+
+                    CustomBinder custom = new CustomBinder();
+                    Method overriddenMethod = type.GetMethod("Unique", custom, typeof(int32))!;
+                    if ((int32)overriddenMethod.Invoke(instance)! != 37) return 7;
+                    Item overriddenConstructor = (Item)type.GetConstructor(custom, typeof(bool))!.Invoke()!;
+                    if (overriddenConstructor.Value != 5) return 8;
+
+                    Binder? noBinder = null;
+                    Method fallbackMethod = type.GetMethod("Select", noBinder, typeof(string))!;
+                    System.Reflection.Constructor? fallbackConstructor = type.GetConstructor(noBinder, typeof(int32));
+                    if (fallbackMethod != text || fallbackConstructor != constructorMatch) return 9;
+                    return 0;
+                }
+            }
+            """;
+        var result = CompileWithStandardLibrary(source);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        // Type.Binder is one process-lifetime object retained by the static readonly field.
+        Assert.Equal(1, execution.OutstandingAllocations);
         Assert.Null(execution.InteropError);
     }
 

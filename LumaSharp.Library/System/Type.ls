@@ -8,6 +8,7 @@ public class Type : Object
 	private int32 flags;
 	private System.Type? elementType = null;
 	private int32 typeId;
+	public static readonly System.Binder Binder = new System.Binder();
 
 	private this() { }
 
@@ -139,6 +140,28 @@ public class Type : Object
 		return found;
 	}
 
+	public System.Reflection.Method? GetMethod(string name, System.Type? ... parameterTypes)
+	{
+		return GetMethod(name, System.Type.Binder, parameterTypes);
+	}
+
+	public System.Reflection.Method? GetMethod(string name, System.Binder? binder, System.Type? ... parameterTypes)
+	{
+		System.Binder selectedBinder = binder ?? System.Type.Binder;
+		return selectedBinder.BindToMethod(this, name, parameterTypes);
+	}
+
+	public System.Reflection.Constructor? GetConstructor(System.Type? ... parameterTypes)
+	{
+		return GetConstructor(System.Type.Binder, parameterTypes);
+	}
+
+	public System.Reflection.Constructor? GetConstructor(System.Binder? binder, System.Type? ... parameterTypes)
+	{
+		System.Binder selectedBinder = binder ?? System.Type.Binder;
+		return selectedBinder.BindToConstructor(this, parameterTypes);
+	}
+
 	public override string ToString()
 	{
 		return Namespace.Length == 0 ? Name : Namespace + "." + Name;
@@ -160,13 +183,4 @@ public class Type : Object
 		return __typedefault(this);
 	}
 
-	/// <summary>Returns this type's default value in its concrete type without boxing.</summary>
-	public T Default<T>() where T : default
-	{
-		// The default constraint guarantees that the closed T has a default. Nullable
-		// reference annotations intentionally share their runtime Type handle.
-		if (this != typeof(T))
-			throw new InvalidOperationException("The requested type does not match a type with a default value.");
-		return default(T);
-	}
 }
