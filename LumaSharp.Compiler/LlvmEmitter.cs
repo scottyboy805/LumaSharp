@@ -3800,6 +3800,12 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 ["elementType"] = metadata.ElementTypeName is null
                     ? "null"
                     : "@" + TypeHandleSymbol(metadata.ElementTypeName),
+                ["baseType"] = metadata.BaseTypeName is null
+                    ? "null"
+                    : "@" + TypeHandleSymbol(metadata.BaseTypeName),
+                ["enumUnderlyingType"] = metadata.EnumUnderlyingTypeName is null
+                    ? "null"
+                    : "@" + TypeHandleSymbol(metadata.EnumUnderlyingTypeName),
                 ["typeId"] = typeId.ToString(System.Globalization.CultureInfo.InvariantCulture)
             };
             var fields = typeClass.Fields.OrderBy(field => field.Index).Select(field =>

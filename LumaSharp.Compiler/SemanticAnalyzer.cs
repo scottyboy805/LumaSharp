@@ -34,7 +34,8 @@ internal sealed record GenericConstructionBinding(string TypeName, CallExpressio
 internal sealed record ConstructorInitializerBinding(CallExpression Call, bool DelegatesToThis);
 internal sealed record ManagedArrayIndexBinding(string ElementType, int Rank);
 internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags, IReadOnlyList<RuntimeAttributeMetadata> Attributes,
-    string? ElementTypeName = null);
+    string? ElementTypeName = null, string? BaseTypeName = null, IReadOnlyList<string>? InterfaceTypeNames = null,
+    string? EnumUnderlyingTypeName = null);
 internal sealed record RuntimeAttributeArgument(string TypeName, string LlvmLiteral);
 internal sealed record RuntimeAttributeMetadata(string TypeName, MethodSymbol Constructor, IReadOnlyList<RuntimeAttributeArgument> Arguments);
 internal sealed record RuntimeMemberMetadata(int Id, string Kind, string Name, string DeclaringType, int Flags, string ValueType,
@@ -2560,6 +2561,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             var typeName = sourceName;
             var isNullable = IsNullableTypeName(typeName);
             var representedTypeName = isNullable ? NullableUnderlyingType(typeName) : typeName;
+            var hierarchyTypeName = representedTypeName switch
+            {
+                "string" => "System.String",
+                "object" => "System.Object",
+                _ => PrimitiveDeclarationName(representedTypeName)
+            };
             var isArray = TryParseManagedArrayType(representedTypeName, out var arrayElementType, out _);
             var type = _types.FirstOrDefault(candidate => GetQualifiedTypeName(candidate) == representedTypeName ||
                 candidate.Name == representedTypeName && string.IsNullOrEmpty(candidate.Namespace));
@@ -2624,6 +2631,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 };
             }
 
+            if (_nativePointerSize == 8 && (representedTypeName is "int" or "uint"))
+                flags |= 2048;
+
             if (isNullable)
             {
                 flags |= RuntimeTypeIsNullableFlag | RuntimeTypeHasDefaultFlag;
@@ -2638,11 +2648,50 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             else if (type?.IsRefStruct != true && typeName != "void" && (flags & 8) != 0)
                 flags |= RuntimeTypeHasDefaultFlag;
 
-            _runtimeTypes.TryAdd(typeName, new(name, ns, flags, _typeAttributes.GetValueOrDefault(typeName, []), elementTypeName));
+            string? baseTypeName = null;
+            IReadOnlyList<string> interfaceTypeNames = [];
+            if (isArray)
+                baseTypeName = "System.Array";
+            else if (_classTypes.TryGetValue(hierarchyTypeName, out var classType))
+            {
+                baseTypeName = classType.BaseTypeName;
+                interfaceTypeNames = GetImplementedInterfaceNames(hierarchyTypeName).Order(StringComparer.Ordinal).ToArray();
+            }
+            else if (_structTypes.TryGetValue(hierarchyTypeName, out var structType))
+                interfaceTypeNames = GetStructImplementedInterfaceNames(structType.Declaration).Order(StringComparer.Ordinal).ToArray();
+            else if (_interfaceTypes.TryGetValue(hierarchyTypeName, out var interfaceType))
+                interfaceTypeNames = GetInterfaceHierarchy(interfaceType).Skip(1).Select(GetQualifiedTypeName)
+                    .Order(StringComparer.Ordinal).ToArray();
+            else if (_delegateTypes.ContainsKey(hierarchyTypeName))
+                baseTypeName = "System.Delegate";
+
+            var enumUnderlyingTypeName = _enumUnderlyingTypes.GetValueOrDefault(hierarchyTypeName);
+
+            _runtimeTypes.TryAdd(typeName, new(name, ns, flags, _typeAttributes.GetValueOrDefault(typeName, []),
+                elementTypeName, baseTypeName, interfaceTypeNames, enumUnderlyingTypeName));
             _ = TryInternStringText(name, out _);
             _ = TryInternStringText(ns, out _);
         }
     }
+
+    private static string PrimitiveDeclarationName(string typeName) => typeName switch
+    {
+        "bool" => "System.Bool",
+        "char" => "System.Char",
+        "int8" => "System.Int8",
+        "uint8" => "System.UInt8",
+        "int16" => "System.Int16",
+        "uint16" => "System.UInt16",
+        "int32" => "System.Int32",
+        "uint32" => "System.UInt32",
+        "int64" => "System.Int64",
+        "uint64" => "System.UInt64",
+        "int" => "System.Int",
+        "uint" => "System.UInt",
+        "float" => "System.Float",
+        "double" => "System.Double",
+        _ => typeName
+    };
 
     private void BuildRuntimeMemberMetadata()
     {

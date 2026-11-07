@@ -8,6 +8,8 @@ public class Type : Object
 	private int32 flags;
 	private System.Type? elementType = null;
 	private int32 typeId;
+	private System.Type? baseType = null;
+	private System.Type? enumUnderlyingType = null;
 	public static readonly System.Binder Binder = new System.Binder();
 
 	private this() { }
@@ -26,6 +28,18 @@ public class Type : Object
 	public bool IsNullable { get => (flags & 512) != 0; }
 	public bool HasDefault { get => (flags & 1024) != 0; }
 	public System.Type? ElementType { get => elementType; }
+	internal System.Type? EnumUnderlyingType { get => enumUnderlyingType; }
+	internal bool Is64BitNativeInteger { get => (flags & 2048) != 0; }
+	public System.Type? BaseType
+	{
+		get
+		{
+			System.Type? underlyingType = ElementType;
+			if (IsNullable && underlyingType != null)
+				return underlyingType.BaseType;
+			return baseType;
+		}
+	}
 	public ReadOnlySpan<System.Attribute> Attributes
 	{
 		get
@@ -101,6 +115,75 @@ public class Type : Object
 		if (IsNullable && underlyingType != null)
 			return underlyingType.GetConstructors();
 		return __typeconstructors(this);
+	}
+
+	public ReadOnlySpan<System.Type> GetInterfaces()
+	{
+		System.Type? underlyingType = ElementType;
+		if (IsNullable && underlyingType != null)
+			return underlyingType.GetInterfaces();
+		return __typeinterfaces(this);
+	}
+
+	/// <summary>Returns whether source can be implicitly assigned to this type.</summary>
+	public bool IsAssignableFrom(System.Type? source)
+	{
+		if (source == null)
+			return false;
+		if (this == source)
+			return true;
+
+		if (IsNullable)
+		{
+			System.Type? destinationElement = ElementType;
+			System.Type? sourceElement = source.IsNullable ? source.ElementType : source;
+			return destinationElement != null && sourceElement != null && destinationElement.IsAssignableFrom(sourceElement);
+		}
+		if (source.IsNullable)
+		{
+			System.Type? sourceElement = source.ElementType;
+			if (sourceElement == null)
+				return false;
+
+			// Nullable value types box their underlying value when assigned to
+			// object or an interface implemented by that value type. A nullable
+			// reference cannot be assigned to a non-nullable destination without
+			// a flow proof, which is not available to this type-only query.
+			if (source.IsValueType)
+			{
+				if (Namespace == "System" && Name == "Object")
+					return true;
+				return IsInterface && IsAssignableFrom(sourceElement);
+			}
+			return false;
+		}
+
+		// All reference types and boxable value types have an implicit conversion to object.
+		if (Namespace == "System" && Name == "Object")
+			return source.IsClass || source.IsInterface || source.IsArray || source.IsDelegate ||
+				(source.IsValueType && source.HasDefault);
+
+		System.Type? currentBase = source.BaseType;
+		while (currentBase != null)
+		{
+			if (currentBase == this)
+				return true;
+			currentBase = currentBase.BaseType;
+		}
+
+		var interfaces = source.GetInterfaces();
+		for (int32 index = 0; index < interfaces.Length; index++)
+			if (interfaces[index] == this)
+				return true;
+		return false;
+	}
+
+	/// <summary>Returns whether this type can be implicitly assigned to destination.</summary>
+	public bool IsAssignableTo(System.Type? destination)
+	{
+		if (destination == null)
+			return false;
+		return destination.IsAssignableFrom(this);
 	}
 
 	public System.Reflection.Field? GetField(string name)

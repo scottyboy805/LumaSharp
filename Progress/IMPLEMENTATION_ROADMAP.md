@@ -20,7 +20,7 @@ The language does not currently support generic extension methods or targets, ge
 
 ## Runtime and library
 
-The runtime uses deterministic reference counting, scoped allocations, exception unwinding, virtual/interface dispatch, type metadata, arrays, strings, closures, delegates, thread and monitor primitives, and a managed worker pool for async methods. `System.Type` exposes names, namespaces, type flags, stable handles, `New`, and directly applied type attributes; attribute retrieval constructs owned instances. This is not full reflection. `System.Attribute` is the abstract attribute base. `System.Interop.ImportAttribute` is validated on extern methods but does not yet affect symbol mapping or library loading.
+The runtime uses deterministic reference counting, scoped allocations, exception unwinding, virtual/interface dispatch, type metadata, arrays, strings, closures, delegates, thread and monitor primitives, and a managed worker pool for async methods. `System.Type` exposes stable handles, type flags, element and base types, implemented-interface spans, assignability queries, `New`, and public-member reflection. The default reflection binder resolves identity, standard implicit numeric (including enum underlying and target-width native integer), nullable, reference, and boxing conversions, and reports ambiguous candidates. Attribute metadata objects are immutable, shared, and embedded as immortal binary data. This remains a minimal rather than full reflection API. `System.Attribute` is the abstract attribute base. `System.Interop.ImportAttribute` is validated on extern methods but does not yet affect symbol mapping or library loading.
 
 The library includes common sequential collections and monitor-based concurrent queue, stack, bag, and dictionary types. Concurrent collection operations synchronize per instance and enumerators use snapshots; they are not lock-free. Collection hash/equality behavior is constrained by `IHashable` and `IEquality<T>` where required.
 
@@ -36,7 +36,7 @@ LumaSharp is not a C# compatibility implementation. The language specification's
 - no tuple syntax/deconstruction, local functions, object initializers, `init`, general member-attribute reflection, named attribute arguments, generic attribute classes, LINQ syntax, exception filters, or raw string literals;
 - no function-pointer invocation, automatic native marshalling, or callbacks from native code into LumaSharp;
 - no multicast delegates, async lambdas, custom schedulers, or synchronization contexts;
-- no general reflection, generic argument enumeration, or arbitrary method invocation through `System.Type`;
+- no full reflection, generic argument enumeration, or arbitrary method lookup/invocation through `System.Type`; the current API is limited to public reflected members and supported closed signatures;
 - no conversion chaining for user-defined conversions, collection comparers, or dictionary enumeration;
 - generic constraints, recursive specialization, inference, and open-body checking follow the limits in §12 of the language specification.
 
@@ -44,10 +44,10 @@ These boundaries are part of the current language/compiler contract unless revis
 
 ## Verification
 
-The full suite is run for this status update with:
+The compiler/runtime suite was most recently run for the type hierarchy and binder work with:
 
 ```powershell
-dotnet test LumaSharp.slnx --no-restore
+dotnet test Tests\LumaSharp.Tests\LumaSharp.Tests.csproj --no-restore
 ```
 
-The run passed all 546 compiler/runtime tests and all 5 benchmark tests. The compiler and CLI built successfully as part of the run. NuGet printed `NU1900` warnings because vulnerability metadata could not be fetched from `api.nuget.org`; the existing restore assets were sufficient and all builds/tests completed.
+The run passed all 554 tests. The compiler, CLI, and test project built successfully. The benchmark project was not part of this run.

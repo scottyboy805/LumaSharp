@@ -799,6 +799,135 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void TypeAssignabilityReportsClassInterfaceArrayAndNullableConversions()
+    {
+        const string source = """
+            using System;
+            public interface IRoot { int32 Read(); }
+            public interface IDerived : IRoot { }
+            public interface IUnrelated { }
+            public interface ITag<T> { }
+            public virtual class Base : IRoot { public int32 Read() => 1; }
+            public class Derived : Base, IDerived, IUnrelated { }
+            public class Tagged : ITag<int32> { }
+            public struct Value : IDerived, IUnrelated { public int32 Read() => 2; }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Type root = typeof(IRoot);
+                    Type derivedInterface = typeof(IDerived);
+                    Type baseType = typeof(Base);
+                    Type derivedType = typeof(Derived);
+                    Type valueType = typeof(Value);
+                    if (!baseType.IsAssignableFrom(derivedType) || !derivedType.IsAssignableTo(baseType)) return 1;
+                    if (derivedType.IsAssignableFrom(baseType) || baseType.IsAssignableTo(derivedType)) return 2;
+                    if (!root.IsAssignableFrom(derivedType) || !derivedInterface.IsAssignableFrom(derivedType) ||
+                        !root.IsAssignableFrom(derivedInterface) || !root.IsAssignableFrom(valueType) ||
+                        !root.IsAssignableFrom(typeof(Value?)) || !typeof(IUnrelated).IsAssignableFrom(valueType)) return 3;
+                    if (!typeof(object).IsAssignableFrom(derivedType) || !typeof(object).IsAssignableFrom(valueType) ||
+                        !typeof(object).IsAssignableFrom(typeof(int32?))) return 4;
+                    if (!typeof(Derived?).IsAssignableFrom(derivedType) || typeof(Derived).IsAssignableFrom(typeof(Derived?)) ||
+                        !typeof(string).IsAssignableTo(typeof(object?))) return 5;
+
+                    var interfaces = derivedType.GetInterfaces();
+                    if (interfaces.Length != 3) return 6;
+                    bool hasRoot = false;
+                    bool hasDerived = false;
+                    bool hasUnrelated = false;
+                    for (int32 index = 0; index < interfaces.Length; index++)
+                    {
+                        hasRoot |= interfaces[index] == root;
+                        hasDerived |= interfaces[index] == derivedInterface;
+                        hasUnrelated |= interfaces[index] == typeof(IUnrelated);
+                    }
+                    if (!hasRoot || !hasDerived || !hasUnrelated) return 7;
+
+                    var taggedType = typeof(Tagged);
+                    var taggedInterfaces = taggedType.GetInterfaces();
+                    if (taggedInterfaces.Length != 1 || taggedInterfaces[0] != typeof(ITag<int32>) ||
+                        !typeof(ITag<int32>).IsAssignableFrom(taggedType) ||
+                        typeof(ITag<string>).IsAssignableFrom(taggedType)) return 11;
+
+                    var arrayType = typeof(int32[]);
+                    if (!typeof(System.Array).IsAssignableFrom(arrayType) || !typeof(object).IsAssignableFrom(arrayType) ||
+                        arrayType.BaseType != typeof(System.Array)) return 8;
+                    if (typeof(object[]).IsAssignableFrom(typeof(string[]))) return 9;
+                    if (!typeof(int32?).IsAssignableFrom(typeof(int32)) || typeof(int32).IsAssignableFrom(typeof(int32?))) return 9;
+                    if (typeof(Derived?).BaseType != baseType || typeof(Derived?).GetInterfaces().Length != interfaces.Length) return 10;
+                    return 0;
+                }
+            }
+            """;
+        var result = CompileWithStandardLibrary(source);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void DefaultBinderRanksImplicitConversionsAndReportsAmbiguousMatches()
+    {
+        const string source = """
+            using System;
+            using System.Reflection;
+            public interface IMarker { }
+            public enum Shade : int16 { Light = 0 }
+            public virtual class Base { }
+            public class Derived : Base, IMarker { }
+            public class Overloads
+            {
+                public this(Base value) { }
+                public this(Derived value) { }
+                public int32 Pick(object value) => 1;
+                public int32 Pick(Base value) => 2;
+                public int32 Pick(Derived value) => 3;
+                public int32 Numeric(int64 value) => 4;
+                public int32 Numeric(double value) => 5;
+                public int32 NullableNumeric(int64? value) => 8;
+                public int32 NullableNumeric(double? value) => 9;
+                public int32 EnumNumeric(int16 value) => 10;
+                public int32 EnumNumeric(int32 value) => 11;
+                public int32 Cross(Base value) => 6;
+                public int32 Cross(IMarker value) => 7;
+            }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Type overloads = typeof(Overloads);
+                    var best = overloads.GetMethod("Pick", typeof(Derived));
+                    if (best == null || best.ParameterTypes[0] != typeof(Derived)) return 1;
+                    var numeric = overloads.GetMethod("Numeric", typeof(int32));
+                    if (numeric == null || numeric.ParameterTypes[0] != typeof(int64)) return 2;
+                    var nullableNumeric = overloads.GetMethod("NullableNumeric", typeof(int32?));
+                    if (nullableNumeric == null || nullableNumeric.ParameterTypes[0] != typeof(int64?)) return 6;
+                    var enumNumeric = overloads.GetMethod("EnumNumeric", typeof(Shade));
+                    if (enumNumeric == null || enumNumeric.ParameterTypes[0] != typeof(int16)) return 7;
+                    var constructor = overloads.GetConstructor(typeof(Derived));
+                    if (constructor == null || constructor.ParameterTypes[0] != typeof(Derived)) return 3;
+                    bool ambiguous = false;
+                    try { overloads.GetMethod("Cross", typeof(Derived)); }
+                    catch (InvalidOperationException) { ambiguous = true; }
+                    if (!ambiguous) return 4;
+                    if (overloads.GetMethod("Numeric", typeof(bool)) != null) return 5;
+                    return 0;
+                }
+            }
+            """;
+        var result = CompileWithStandardLibrary(source);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(1, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void TypeofResolvesGenericParametersAndReportsSupportedTypeKinds()
     {
         var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;

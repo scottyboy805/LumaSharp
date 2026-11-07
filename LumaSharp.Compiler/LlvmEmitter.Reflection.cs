@@ -14,6 +14,7 @@ internal sealed partial class LlvmEmitter
         EmitTypeMemberSpanIntrinsic("luma_type_properties", "properties", "System.Reflection.Property");
         EmitTypeMemberSpanIntrinsic("luma_type_methods", "methods", "System.Reflection.Method");
         EmitTypeMemberSpanIntrinsic("luma_type_constructors", "constructors", "System.Reflection.Constructor");
+        EmitTypeInterfaceSpan();
         EmitMemberParameterTypeSpan();
         EmitMemberOperationIntrinsics();
     }
@@ -290,6 +291,56 @@ internal sealed partial class LlvmEmitter
         _output.AppendLine($"  ret {spanType} zeroinitializer");
         _output.AppendLine("}");
     }
+
+    private void EmitTypeInterfaceSpan()
+    {
+        const string elementType = "System.Type";
+        var spanSourceName = ClosedReadOnlySpanName(elementType);
+        var spanType = LlvmType(spanSourceName);
+        var spanSymbol = compilation.StructTypes[spanSourceName];
+        var pointerIndex = spanSymbol.Fields.Single(field => field.Declaration.Name == "pointer").Index;
+        var lengthIndex = spanSymbol.Fields.Single(field => field.Declaration.Name == "length").Index;
+        var ownerIndex = spanSymbol.Fields.Single(field => field.Declaration.Name == "owner").Index;
+        var typeIdField = compilation.ClassTypes["System.Type"].Fields.Single(field => field.Declaration.Name == "typeId").Index + 4;
+        var interfaceTypes = compilation.RuntimeTypes.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select((pair, index) => (TypeName: pair.Key, Id: index + 1, Interfaces: pair.Value.InterfaceTypeNames ?? []))
+            .Where(item => item.Interfaces.Count > 0)
+            .ToArray();
+
+        foreach (var item in interfaceTypes)
+        {
+            var values = item.Interfaces.Select(typeName => "ptr @" + TypeHandleSymbol(typeName));
+            _output.AppendLine($"@luma_type_interfaces_{TypeHandleSuffix(item.TypeName)} = private constant [{item.Interfaces.Count} x ptr] [{string.Join(", ", values)}]");
+        }
+
+        _output.AppendLine($"define internal {spanType} @luma_type_interfaces(ptr %type) {{");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %type.is.null = icmp eq ptr %type, null");
+        _output.AppendLine("  br i1 %type.is.null, label %null, label %lookup");
+        _output.AppendLine("null:");
+        _output.AppendLine("  call void @luma_throw_null()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("lookup:");
+        _output.AppendLine($"  %type.id.address = getelementptr %class.System_Type, ptr %type, i32 0, i32 {typeIdField}");
+        _output.AppendLine("  %type.id = load i32, ptr %type.id.address");
+        var cases = interfaceTypes.Select((item, index) => $"i32 {item.Id}, label %interfaces.{index}").ToArray();
+        _output.AppendLine(cases.Length == 0
+            ? "  br label %none"
+            : $"  switch i32 %type.id, label %none [{string.Join(" ", cases)}]");
+        for (var index = 0; index < interfaceTypes.Length; index++)
+        {
+            var item = interfaceTypes[index];
+            _output.AppendLine($"interfaces.{index}:");
+            EmitReadOnlySpanReturn(spanType, pointerIndex, lengthIndex, ownerIndex,
+                $"@luma_type_interfaces_{TypeHandleSuffix(item.TypeName)}", item.Interfaces.Count, $"interfaces.{index}");
+        }
+        _output.AppendLine("none:");
+        _output.AppendLine($"  ret {spanType} zeroinitializer");
+        _output.AppendLine("}");
+    }
+
+    private static string TypeHandleSuffix(string typeName) =>
+        Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(typeName));
 
     private void EmitMemberParameterTypeSpan()
     {

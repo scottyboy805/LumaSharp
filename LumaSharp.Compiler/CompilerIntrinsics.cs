@@ -86,6 +86,7 @@ internal static class CompilerIntrinsics
         Add("__typeproperties", "System.ReadOnlySpan<System.Reflection.Property>", "reflection", "System.Type");
         Add("__typemethods", "System.ReadOnlySpan<System.Reflection.Method>", "reflection", "System.Type");
         Add("__typeconstructors", "System.ReadOnlySpan<System.Reflection.Constructor>", "reflection", "System.Type");
+        Add("__typeinterfaces", "System.ReadOnlySpan<System.Type>", "reflection", "System.Type");
         Add("__memberget", "System.Object?", "reflection", "System.Reflection.MemberInfo", "System.Object?");
         Add("__memberset", "void", "reflection", "System.Reflection.MemberInfo", "System.Object?", "System.Object?");
         Add("__memberinvoke", "System.Object?", "reflection", "System.Reflection.MemberInfo", "System.Object?", "System.Object?[]");
@@ -166,6 +167,7 @@ internal static class CompilerIntrinsics
         "__typeproperties" => "luma_type_properties",
         "__typemethods" => "luma_type_methods",
         "__typeconstructors" => "luma_type_constructors",
+        "__typeinterfaces" => "luma_type_interfaces",
         "__memberget" => "luma_reflection_member_get",
         "__memberset" => "luma_reflection_member_set",
         "__memberinvoke" => "luma_reflection_member_invoke",
