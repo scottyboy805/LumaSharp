@@ -207,7 +207,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 EmitRuntimeExceptionInstance("System.OutOfMemoryException", "luma_oom_instance");
                 EmitRuntimeExceptionInstance("System.OverflowException", "luma_overflow_instance");
                 if (compilation.ClassTypes.ContainsKey("System.InvalidOperationException") &&
-                    compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection" || method.Intrinsic?.Name == "__typenew"))
+                    compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection" ||
+                        method.Intrinsic?.Name is "__typenew" or "__typedefault"))
                     EmitRuntimeExceptionInstance("System.InvalidOperationException", "luma_type_new_failure");
             }
         }
@@ -1472,6 +1473,8 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
         }
     }
     private static string Safe(string value) => string.Concat(value.Select(c => char.IsLetterOrDigit(c) || c == '_' ? c : '_'));
+    private static string TypeHandleSymbol(string typeName) =>
+        "luma_type_handle_" + Safe(typeName) + "_" + Convert.ToHexString(Encoding.UTF8.GetBytes(typeName));
     private void EmitArrayMemoryDeclarations()
     {
         var sizeType = compilation.NativePointerSize == 8 ? "i64" : "i32";
@@ -3794,6 +3797,9 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 ["name"] = StringValue(metadata.Name),
                 ["namespaceName"] = StringValue(metadata.Namespace),
                 ["flags"] = metadata.Flags.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["elementType"] = metadata.ElementTypeName is null
+                    ? "null"
+                    : "@" + TypeHandleSymbol(metadata.ElementTypeName),
                 ["typeId"] = typeId.ToString(System.Globalization.CultureInfo.InvariantCulture)
             };
             var fields = typeClass.Fields.OrderBy(field => field.Index).Select(field =>
@@ -3803,7 +3809,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                 return $"{LlvmType(field.TypeName)} {value}";
             });
             var suffix = typeClass.Fields.Count == 0 ? "" : ", " + string.Join(", ", fields);
-            _output.AppendLine($"@luma_type_handle_{Safe(typeName)} = internal global %class.System_Type {{ ptr @luma_classdesc_System_Type, i32 -1, i32 1, ptr null{suffix} }}");
+            _output.AppendLine($"@{TypeHandleSymbol(typeName)} = internal global %class.System_Type {{ ptr @luma_classdesc_System_Type, i32 -1, i32 1, ptr null{suffix} }}");
             typeId++;
         }
 
@@ -3827,7 +3833,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
             _output.AppendLine($"  %matches.{index} = icmp eq ptr %descriptor, {item.Descriptor}");
             _output.AppendLine($"  br i1 %matches.{index}, label %found.{index}, label %{nextLabel}");
             _output.AppendLine($"found.{index}:");
-            _output.AppendLine($"  ret ptr @luma_type_handle_{Safe(item.TypeName)}");
+            _output.AppendLine($"  ret ptr @{TypeHandleSymbol(item.TypeName)}");
             if (index < runtimeMappings.Length - 1) _output.AppendLine($"check.{index + 1}:");
         }
         _output.AppendLine("unknown:");
@@ -3841,6 +3847,10 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
 
     private string? RuntimeTypeDescriptor(string typeName)
     {
+        // Nullable wrappers have distinct metadata handles but do not change the
+        // descriptor stored in a non-null instance. Object.GetType therefore
+        // always resolves the underlying type handle.
+        if (typeName.EndsWith("?", StringComparison.Ordinal)) return null;
         if (typeName == "object") typeName = "System.Object";
         if (compilation.ClassTypes.ContainsKey(typeName)) return $"@luma_classdesc_{Safe(typeName)}";
         if (compilation.DelegateTypes.ContainsKey(typeName)) return $"@luma_classdesc_delegate_{Safe(typeName)}";
@@ -6744,7 +6754,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                     throw new NotSupportedException("A nameof expression reached emission without a resolved symbol.");
                 case TypeOfExpression typeOf:
                     if (typeOfTypes.TryGetValue(typeOf, out var targetType) && runtimeTypes.ContainsKey(targetType))
-                        return ("@luma_type_handle_" + Safe(targetType), "System.Type");
+                        return ("@" + TypeHandleSymbol(targetType), "System.Type");
                     throw new NotSupportedException("A typeof expression reached emission without runtime type metadata.");
                 case CallExpression call when staticGetTypeCalls.TryGetValue(call, out var staticType):
                     if (call.Target is not MemberAccessExpression getTypeTarget)
@@ -6757,7 +6767,7 @@ internal sealed partial class LlvmEmitter(CompilationAnalysis compilation, bool 
                         var noValue = NewTemp(); Emit($"{noValue} = xor i1 {hasValue}, true");
                         TrapIf(noValue, "luma_throw_null");
                     }
-                    return ("@luma_type_handle_" + Safe(staticType.TypeName), "System.Type");
+                    return ("@" + TypeHandleSymbol(staticType.TypeName), "System.Type");
                 case DefaultValueExpression defaultValue:
                     if (!defaultTypes.TryGetValue(defaultValue, out var defaultType)) throw new NotSupportedException("A default expression reached emission without a bound target type.");
                     if (structTypes.ContainsKey(defaultType)) EnsureTypeInitialized(defaultType, force: true);

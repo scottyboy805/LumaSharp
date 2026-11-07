@@ -78,6 +78,7 @@ internal static class CompilerIntrinsics
         Add("__threadcurrent", "System.Threading.Thread", "threading");
         Add("__typeref", "System.Type", "type", "System.Object");
         Add("__typenew", "System.Object", "type", "System.Type", "System.Object?[]");
+        Add("__typedefault", "System.Object?", "type", "System.Type");
         Add("__attrib", "System.ReadOnlySpan<System.Attribute>", "reflection", "System.Object");
         Add("__spanget", "object", "span", "void*", "int32");
         Add("__spanset", "void", "span", "void*", "int32", "object");
@@ -156,6 +157,7 @@ internal static class CompilerIntrinsics
         "__threadcurrent" => "luma_thread_current",
         "__typeref" => "luma_object_get_type",
         "__typenew" => "luma_type_new",
+        "__typedefault" => "luma_type_default",
         "__attrib" => "luma_attribute_span",
         "__spanget" => "luma_span_get",
         "__spanset" => "luma_span_set",

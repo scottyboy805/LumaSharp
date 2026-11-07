@@ -6,6 +6,7 @@ public class Type : Object
 	private string name = "";
 	private string namespaceName = "";
 	private int32 flags;
+	private System.Type? elementType = null;
 	private int32 typeId;
 
 	private this() { }
@@ -21,7 +22,19 @@ public class Type : Object
 	public bool IsEnum { get => (flags & 64) != 0; }
 	public bool IsDelegate { get => (flags & 128) != 0; }
 	public bool IsAbstract { get => (flags & 256) != 0; }
-	public ReadOnlySpan<System.Attribute> Attributes { get => __attrib(this); }
+	public bool IsNullable { get => (flags & 512) != 0; }
+	public bool HasDefault { get => (flags & 1024) != 0; }
+	public System.Type? ElementType { get => elementType; }
+	public ReadOnlySpan<System.Attribute> Attributes
+	{
+		get
+		{
+			System.Type? underlyingType = ElementType;
+			if (IsNullable && underlyingType != null)
+				return underlyingType.Attributes;
+			return __attrib(this);
+		}
+	}
 	public int32 AttributeCount { get => Attributes.Length; }
 
 	public Type? GetAttributeType(int32 index)
@@ -59,21 +72,33 @@ public class Type : Object
 
 	public ReadOnlySpan<System.Reflection.Field> GetFields()
 	{
+		System.Type? underlyingType = ElementType;
+		if (IsNullable && underlyingType != null)
+			return underlyingType.GetFields();
 		return __typefields(this);
 	}
 
 	public ReadOnlySpan<System.Reflection.Property> GetProperties()
 	{
+		System.Type? underlyingType = ElementType;
+		if (IsNullable && underlyingType != null)
+			return underlyingType.GetProperties();
 		return __typeproperties(this);
 	}
 
 	public ReadOnlySpan<System.Reflection.Method> GetMethods()
 	{
+		System.Type? underlyingType = ElementType;
+		if (IsNullable && underlyingType != null)
+			return underlyingType.GetMethods();
 		return __typemethods(this);
 	}
 
 	public ReadOnlySpan<System.Reflection.Constructor> GetConstructors()
 	{
+		System.Type? underlyingType = ElementType;
+		if (IsNullable && underlyingType != null)
+			return underlyingType.GetConstructors();
 		return __typeconstructors(this);
 	}
 
@@ -121,6 +146,27 @@ public class Type : Object
 
 	public object New(object? ... arguments)
 	{
+		System.Type? underlyingType = ElementType;
+		if (IsNullable && !IsValueType && underlyingType != null)
+			return __typenew(underlyingType, arguments);
 		return __typenew(this, arguments);
+	}
+
+	/// <summary>Returns this type's default value boxed as an object.</summary>
+	public object? Default()
+	{
+		if (!HasDefault)
+			throw new InvalidOperationException("The represented type has no default value.");
+		return __typedefault(this);
+	}
+
+	/// <summary>Returns this type's default value in its concrete type without boxing.</summary>
+	public T Default<T>() where T : default
+	{
+		// The default constraint guarantees that the closed T has a default. Nullable
+		// reference annotations intentionally share their runtime Type handle.
+		if (this != typeof(T))
+			throw new InvalidOperationException("The requested type does not match a type with a default value.");
+		return default(T);
 	}
 }

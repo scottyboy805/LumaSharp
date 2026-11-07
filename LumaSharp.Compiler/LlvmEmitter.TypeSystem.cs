@@ -6,7 +6,8 @@ internal sealed partial class LlvmEmitter
 {
     private void EmitDynamicTypeRuntime()
     {
-        if (!compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection" || method.Intrinsic?.Name == "__typenew")) return;
+        if (!compilation.CallTargets.Values.Any(method => method.Intrinsic?.Family == "reflection" ||
+            method.Intrinsic?.Name is "__typenew" or "__typedefault")) return;
 
         EmitTypeClassDistanceRuntime();
         EmitTypeNewFailureRuntime();
@@ -71,6 +72,53 @@ internal sealed partial class LlvmEmitter
             _output.AppendLine($"  ret ptr %created.{factory.Id}");
         }
         _output.AppendLine("missing:");
+        _output.AppendLine("  call void @luma_raise_type_new_failure()");
+        _output.AppendLine("  ret ptr null");
+        _output.AppendLine("}");
+
+        if (compilation.CallTargets.Values.Any(method => method.Intrinsic?.Name == "__typedefault"))
+            EmitTypeDefaultRuntime(typeIdField);
+    }
+
+    private void EmitTypeDefaultRuntime(int typeIdField)
+    {
+        _output.AppendLine("define internal ptr @luma_type_default(ptr %type) {");
+        _output.AppendLine("entry:");
+        _output.AppendLine("  %type.is.null = icmp eq ptr %type, null");
+        _output.AppendLine("  br i1 %type.is.null, label %null.type, label %lookup");
+        _output.AppendLine("null.type:");
+        _output.AppendLine("  call void @luma_throw_null()");
+        _output.AppendLine("  unreachable");
+        _output.AppendLine("lookup:");
+        _output.AppendLine($"  %type.id.address = getelementptr %class.System_Type, ptr %type, i32 0, i32 {typeIdField}");
+        _output.AppendLine("  %type.id = load i32, ptr %type.id.address");
+
+        var defaultTypes = compilation.RuntimeTypes.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select((pair, index) => (TypeName: pair.Key, Metadata: pair.Value, Id: index + 1))
+            .Where(item => (item.Metadata.Flags & 1024) != 0)
+            .ToArray();
+        var cases = defaultTypes.Select(item => $"i32 {item.Id}, label %type.{item.Id}").ToArray();
+        _output.AppendLine($"  switch i32 %type.id, label %invalid [{string.Join(" ", cases)}]");
+        foreach (var item in defaultTypes)
+        {
+            _output.AppendLine($"type.{item.Id}:");
+            if (item.TypeName.EndsWith("?", StringComparison.Ordinal))
+            {
+                // A nullable value boxes to null when it has no value, matching nullable boxing.
+                _output.AppendLine("  ret ptr null");
+            }
+            else if (compilation.StructTypes.TryGetValue(item.TypeName, out var structure) && !structure.Declaration.IsRefStruct ||
+                     IsTypeNewScalarOrEnum(item.TypeName))
+            {
+                _output.AppendLine($"  %default.value.{item.Id} = call ptr @luma_type_new_default_{Safe(item.TypeName)}()");
+                _output.AppendLine($"  ret ptr %default.value.{item.Id}");
+            }
+            else
+            {
+                _output.AppendLine("  br label %invalid");
+            }
+        }
+        _output.AppendLine("invalid:");
         _output.AppendLine("  call void @luma_raise_type_new_failure()");
         _output.AppendLine("  ret ptr null");
         _output.AppendLine("}");

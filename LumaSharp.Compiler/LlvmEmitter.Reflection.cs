@@ -111,7 +111,7 @@ internal sealed partial class LlvmEmitter
                 var value = field.Declaration.Name switch
                 {
                     "name" => nameLiteral,
-                    "declaringType" => "@luma_type_handle_" + Safe(member.DeclaringType),
+                    "declaringType" => "@" + TypeHandleSymbol(member.DeclaringType),
                     "flags" => member.Flags.ToString(CultureInfo.InvariantCulture),
                     "memberId" => member.Id.ToString(CultureInfo.InvariantCulture),
                     _ => DefaultStaticStorageValue(field.TypeName)
@@ -138,7 +138,8 @@ internal sealed partial class LlvmEmitter
     private IReadOnlyList<RuntimeMemberMetadata> GetTypeMembersForReflection(string typeName, string kind)
     {
         var chain = new List<string>();
-        var current = typeName;
+        var reflectedTypeName = ReflectionMetadataTypeName(typeName);
+        var current = reflectedTypeName;
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (visited.Add(current) && compilation.ClassTypes.TryGetValue(current, out var classType) && classType.BaseTypeName is { } baseType)
         {
@@ -147,7 +148,7 @@ internal sealed partial class LlvmEmitter
         }
         chain.Add(current);
         chain.Reverse();
-        if (!compilation.ClassTypes.ContainsKey(typeName)) chain = [typeName];
+        if (!compilation.ClassTypes.ContainsKey(reflectedTypeName)) chain = [reflectedTypeName];
         var result = new List<RuntimeMemberMetadata>();
         foreach (var owner in chain)
         foreach (var member in compilation.RuntimeMembers.Where(member => member.Kind == kind && member.DeclaringType == owner))
@@ -166,6 +167,13 @@ internal sealed partial class LlvmEmitter
             }
         return result;
     }
+
+    private static string ReflectionMetadataTypeName(string typeName) => typeName switch
+    {
+        "string" => "System.String",
+        "object" => "System.Object",
+        _ => PrimitiveStructTypeName(typeName) ?? typeName
+    };
 
     private static string ReflectionMemberArrayName(string typeName, string kind) =>
         "luma_reflection_" + kind + "_" + Safe(typeName);
@@ -537,7 +545,7 @@ internal sealed partial class LlvmEmitter
                 return;
             }
             EmitReflectionArgumentCountCheck(constructor.Declaration.Parameters.Count, $"constructor.{member.Id}");
-            _output.AppendLine($"  %created = call ptr @luma_type_new(ptr @luma_type_handle_{Safe(member.DeclaringType)}, ptr %arguments)");
+        _output.AppendLine($"  %created = call ptr @luma_type_new(ptr @{TypeHandleSymbol(member.DeclaringType)}, ptr %arguments)");
             EmitReflectionPendingCheck("ptr", $"constructor.{member.Id}.created");
             _output.AppendLine("  ret ptr %created");
             _output.AppendLine("}");

@@ -33,7 +33,8 @@ internal sealed record ClassAllocationBinding(string TypeName, CallExpression Co
 internal sealed record GenericConstructionBinding(string TypeName, CallExpression? ConstructorCall = null);
 internal sealed record ConstructorInitializerBinding(CallExpression Call, bool DelegatesToThis);
 internal sealed record ManagedArrayIndexBinding(string ElementType, int Rank);
-internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags, IReadOnlyList<RuntimeAttributeMetadata> Attributes);
+internal sealed record RuntimeTypeMetadata(string Name, string Namespace, int Flags, IReadOnlyList<RuntimeAttributeMetadata> Attributes,
+    string? ElementTypeName = null);
 internal sealed record RuntimeAttributeArgument(string TypeName, string LlvmLiteral);
 internal sealed record RuntimeAttributeMetadata(string TypeName, MethodSymbol Constructor, IReadOnlyList<RuntimeAttributeArgument> Arguments);
 internal sealed record RuntimeMemberMetadata(int Id, string Kind, string Name, string DeclaringType, int Flags, string ValueType,
@@ -195,6 +196,8 @@ internal static class VirtualDispatchLayout
 
 internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag diagnostics, IReadOnlySet<string> runtimeSourcePaths, CancellationToken cancellationToken = default, CompilationProfiler? profiler = null)
 {
+    private const int RuntimeTypeIsNullableFlag = 512;
+    private const int RuntimeTypeHasDefaultFlag = 1024;
     private const int MaximumGenericMethodSpecializations = 16384;
     private readonly Dictionary<TypeDeclaration, string> _qualifiedTypeNameCache = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<Expression> _activeExpressions = new(ReferenceEqualityComparer.Instance);
@@ -2536,25 +2539,44 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                          .Concat(_methods.SelectMany(method => method.Declaration.Parameters.Select(parameter => parameter.TypeName).Append(method.Declaration.ReturnType))))
                 if (TryParseManagedArrayType(type, out _, out _)) sourceNames.Add(type);
         }
+
+        // Type metadata is compositional: wrappers point at their underlying type,
+        // and arrays point at their element type. Include the complete chain so every
+        // emitted Type handle can initialize ElementType with a valid stable handle.
+        var pendingTypeNames = new Stack<string>(sourceNames);
+        while (pendingTypeNames.TryPop(out var pendingTypeName))
+        {
+            if (IsNullableTypeName(pendingTypeName))
+            {
+                var underlyingTypeName = NullableUnderlyingType(pendingTypeName);
+                if (sourceNames.Add(underlyingTypeName)) pendingTypeNames.Push(underlyingTypeName);
+            }
+            if (TryParseManagedArrayType(pendingTypeName, out var elementTypeName, out _) && sourceNames.Add(elementTypeName))
+                pendingTypeNames.Push(elementTypeName);
+        }
+
         foreach (var sourceName in sourceNames)
         {
             var typeName = sourceName;
-            var elementType = typeName;
-            var isArray = TryParseManagedArrayType(typeName, out elementType, out _);
-            var type = _types.FirstOrDefault(candidate => GetQualifiedTypeName(candidate) == typeName ||
-                candidate.Name == typeName && string.IsNullOrEmpty(candidate.Namespace));
+            var isNullable = IsNullableTypeName(typeName);
+            var representedTypeName = isNullable ? NullableUnderlyingType(typeName) : typeName;
+            var isArray = TryParseManagedArrayType(representedTypeName, out var arrayElementType, out _);
+            var type = _types.FirstOrDefault(candidate => GetQualifiedTypeName(candidate) == representedTypeName ||
+                candidate.Name == representedTypeName && string.IsNullOrEmpty(candidate.Namespace));
             var flags = 0;
             string name;
             string ns;
+            string? elementTypeName = null;
             if (isArray)
             {
-                name = typeName;
+                name = representedTypeName;
                 ns = "System";
                 flags = 2 | 4;
+                elementTypeName = isNullable ? representedTypeName : arrayElementType;
             }
             else if (type is not null)
             {
-                if (genericInstantiationsByClosedName.TryGetValue(typeName, out var genericInstantiation))
+                if (genericInstantiationsByClosedName.TryGetValue(representedTypeName, out var genericInstantiation))
                 {
                     name = genericInstantiation.Definition.Name + "<" + string.Join(",", genericInstantiation.Arguments) + ">";
                     ns = genericInstantiation.Definition.Namespace;
@@ -2574,12 +2596,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     _ => 0
                 };
                 if (type.IsStatic) flags |= 1;
-                if (typeName == "System.Attribute" || type.Members.OfType<MethodDeclaration>()
+                if (representedTypeName == "System.Attribute" || type.Members.OfType<MethodDeclaration>()
                     .Any(method => !method.IsStatic && !method.IsExtern && method.Body is null)) flags |= 256;
             }
             else
             {
-                (name, ns, flags) = typeName switch
+                (name, ns, flags) = representedTypeName switch
                 {
                     "void" => ("Void", "System", 8 | 16),
                     "bool" => ("Boolean", "System", 8 | 16),
@@ -2598,10 +2620,25 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     "double" => ("Double", "System", 8 | 16),
                     "string" => ("String", "System", 4),
                     "object" => ("Object", "System", 4),
-                    _ => (typeName, "", 0)
+                    _ => (representedTypeName, "", 0)
                 };
             }
-            _runtimeTypes.TryAdd(typeName, new(name, ns, flags, _typeAttributes.GetValueOrDefault(typeName, [])));
+
+            if (isNullable)
+            {
+                flags |= RuntimeTypeIsNullableFlag | RuntimeTypeHasDefaultFlag;
+                elementTypeName = representedTypeName;
+                if (IsNullableValueType(typeName))
+                {
+                    flags |= 8;
+                    flags &= ~(16 | 64);
+                }
+                name += "?";
+            }
+            else if (type?.IsRefStruct != true && typeName != "void" && (flags & 8) != 0)
+                flags |= RuntimeTypeHasDefaultFlag;
+
+            _runtimeTypes.TryAdd(typeName, new(name, ns, flags, _typeAttributes.GetValueOrDefault(typeName, []), elementTypeName));
             _ = TryInternStringText(name, out _);
             _ = TryInternStringText(ns, out _);
         }
@@ -3394,7 +3431,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
         foreach (var candidate in _methods.Concat(_genericMethodDefinitions).Where(candidate => candidate.IsClassInstanceMethod && GetQualifiedTypeName(candidate.Owner) == owner && candidate.Declaration.Name == methodName))
         {
             var signature = string.Join("\u001f", candidate.Declaration.Parameters.Select(parameter => parameter.TypeName)) +
-                "\u001e" + candidate.Declaration.ExplicitInterfaceName;
+                "\u001e" + candidate.Declaration.ExplicitInterfaceName +
+                "\u001e" + (candidate.Declaration.TypeParameters?.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (signatures.Add(signature)) visible.Add(candidate);
         }
         return visible.ToArray();
@@ -9276,7 +9314,8 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 if (defaultType is null) { diagnostics.Add("LMC3010", DiagnosticSeverity.Error, "The default expression requires a target type.", defaultValue.Location); return "?"; }
                 if (defaultValue.TypeName is not null && ValidateTypeAccessibility(defaultType, context.Method.Owner, defaultValue.Location)) return "?";
                 if (!IsSupportedType(defaultType)) { diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Default values for '{defaultType}' are not yet supported.", defaultValue.Location); return "?"; }
-                if (TryParseManagedArrayType(defaultType, out _, out _)) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Managed array '{defaultType}' has no default value; initialize it explicitly.", defaultValue.Location);
+                if (TryParseManagedArrayType(defaultType, out _, out _) && !IsNullableArrayType(defaultType))
+                    diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Managed array '{defaultType}' has no default value; initialize it explicitly.", defaultValue.Location);
                 if (!defaultValue.IsTypeParameterDefault && (IsClassType(defaultType) || defaultType == "string")) diagnostics.Add("LS0810", DiagnosticSeverity.Error, $"Non-nullable reference type '{defaultType}' has no default value.", defaultValue.Location);
                 _defaultTypes[defaultValue] = defaultType;
                 return defaultType;
@@ -9297,13 +9336,6 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"typeof is not supported for type '{typeOf.TypeName}'.", typeOf.Location);
                     return "System.Type";
                 }
-                if (IsNullableValueType(metaType))
-                {
-                    diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"typeof does not support nullable value type '{typeOf.TypeName}'.", typeOf.Location);
-                    return "System.Type";
-                }
-                if (IsNullableClassType(metaType) || IsNullableDelegateType(metaType) || IsNullableStringType(metaType) || IsNullableArrayType(metaType))
-                    metaType = NullableUnderlyingType(metaType);
                 if (FindTypes("System.Type", context.Method.Owner).Length == 0)
                 {
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, "typeof requires the System.Type runtime library type.", typeOf.Location);

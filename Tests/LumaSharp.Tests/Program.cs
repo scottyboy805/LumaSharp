@@ -297,16 +297,18 @@ public sealed class CompilerTests
                     System.Type dynamicCube = boxedCube.GetType();
                     System.Type matrix = typeof(int32[,]);
                     System.Type cube = typeof(int32[,,]);
+                    System.Type nullableString = typeof(string?);
                     if (widget.Name != "Widget" || widget.Namespace != "Example" || !widget.IsClass || widget.IsValueType) return 1;
                     if (closedBox.Name != "Box<int32>" || closedBox.Namespace != "Example" || closedBox != closedBoxAgain || closedBox == anotherClosedBox || dynamicClosedBox != closedBox) return 10;
                     if (integer.Name != "Int32" || integer.Namespace != "System" || !integer.IsValueType || !integer.IsPrimitive) return 2;
                     if (dynamicWidget != widget) return 3;
                     if (dynamicInteger != integer) return 4;
                     if (dynamicText != typeof(string)) return 5;
-                    if (typeof(string?) != typeof(string)) return 6;
+                    if (nullableString == typeof(string) || !nullableString.IsNullable || !nullableString.HasDefault ||
+                        nullableString.ElementType != typeof(string) || nullableString.GetMethods().Length != typeof(string).GetMethods().Length) return 6;
                     if (dynamicArray != typeof(int32[])) return 7;
-                    if (!matrix.IsArray || matrix.Name != "int32[,]" || dynamicMatrix != matrix) return 8;
-                    if (!cube.IsArray || cube.Name != "int32[,,]" || dynamicCube != cube) return 9;
+                    if (!matrix.IsArray || matrix.Name != "int32[,]" || matrix.ElementType != typeof(int32) || dynamicMatrix != matrix) return 8;
+                    if (!cube.IsArray || cube.Name != "int32[,,]" || cube.ElementType != typeof(int32) || dynamicCube != cube) return 9;
                     return 0;
                 }
             }
@@ -390,7 +392,6 @@ public sealed class CompilerTests
     [Theory]
     [InlineData("void")]
     [InlineData("int32*")]
-    [InlineData("int32?")]
     [InlineData("MissingType")]
     public void TypeofRejectsTypesWithoutRuntimeDescriptors(string typeName)
     {
@@ -610,6 +611,106 @@ public sealed class CompilerTests
             }
             """;
         var result = LumaCompiler.Compile(runtimeSources.Append(("type-new-primitive-defaults-test.ls", source)));
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TypeDefaultReportsAndReturnsBoxedAndGenericDefaults()
+    {
+        var runtimeRoot = Path.GetDirectoryName(RuntimeSourcePath("LumaSharp.Library/System/Object.ls"))!;
+        var runtimeSources = Directory.EnumerateFiles(runtimeRoot, "*.ls", SearchOption.AllDirectories)
+            .Select(path => (path, File.ReadAllText(path)));
+        const string source = """
+            using System;
+            public enum Shade : int32 { Bright = 7 }
+            public struct Point
+            {
+                public int32 X = 91;
+                public string? Label;
+                public this(int32 x) { X = x; }
+            }
+            public class NeedsArgument
+            {
+                public int32 Value;
+                public this(int32 value) { Value = value; }
+                public int32 Read() => Value;
+            }
+            public class Program
+            {
+                public static int32 Main()
+                {
+                    Type integerType = typeof(int32);
+                    if (!integerType.HasDefault) return 1;
+                    object boxedInteger = integerType.Default()!;
+                    if ((int32)boxedInteger != 0 || boxedInteger.GetType() != integerType) return 2;
+                    int32 integer = integerType.Default<int32>();
+                    if (integer != 0) return 3;
+
+                    Type nullableIntegerType = typeof(int32?);
+                    if (!nullableIntegerType.HasDefault || !nullableIntegerType.IsValueType) return 4;
+                    if (nullableIntegerType.Default() != null) return 5;
+                    int32? nullableInteger = nullableIntegerType.Default<int32?>();
+                    if (nullableInteger != null) return 6;
+
+                    Type enumType = typeof(Shade);
+                    if (!enumType.HasDefault || enumType.Default()!.GetType() != enumType) return 7;
+                    Type pointType = typeof(Point);
+                    Point boxedPoint = (Point)pointType.Default()!;
+                    Point genericPoint = pointType.Default<Point>();
+                    if (!pointType.HasDefault || boxedPoint.X != 0 || boxedPoint.Label != null ||
+                        genericPoint.X != 0 || genericPoint.Label != null) return 8;
+
+                    Type nullableArrayType = typeof(int32[]?);
+                    int32[]? nullableArray = nullableArrayType.Default<int32[]?>();
+                    if (!nullableArrayType.IsNullable || !nullableArrayType.IsArray ||
+                        nullableArrayType.ElementType != typeof(int32[]) || nullableArray != null) return 9;
+                    Type arrayOfNullableValues = typeof(int32?[]);
+                    if (arrayOfNullableValues.ElementType != nullableIntegerType) return 15;
+                    Type nullableStringType = typeof(string?);
+                    if (!nullableStringType.IsNullable || !nullableStringType.HasDefault ||
+                        nullableStringType.ElementType != typeof(string) || nullableStringType.Default() != null) return 16;
+                    System.ReadOnlySpan<System.Reflection.Method> nullableStringMethods = nullableStringType.GetMethods();
+                    if (nullableStringMethods.Length != typeof(string).GetMethods().Length) return 19;
+                    int32 substringCount = 0;
+                    for (int32 methodIndex = 0; methodIndex < nullableStringMethods.Length; methodIndex++)
+                        if (nullableStringMethods[methodIndex].Name == "Substring") substringCount++;
+                    if (substringCount != 2) return 20;
+                    bool nullableSubstringAmbiguous = false;
+                    bool stringSubstringAmbiguous = false;
+                    System.Reflection.Method? nullableSubstring = null;
+                    System.Reflection.Method? stringSubstring = null;
+                    try { nullableSubstring = nullableStringType.GetMethod("Substring"); }
+                    catch (InvalidOperationException) { nullableSubstringAmbiguous = true; }
+                    try { stringSubstring = typeof(string).GetMethod("Substring"); }
+                    catch (InvalidOperationException) { stringSubstringAmbiguous = true; }
+                    if (nullableSubstringAmbiguous != stringSubstringAmbiguous || nullableSubstring != stringSubstring) return 21;
+                    if (!nullableSubstringAmbiguous || !stringSubstringAmbiguous) return 22;
+                    string? genericString = nullableStringType.Default<string?>();
+                    if (genericString != null) return 10;
+
+                    Type needsArgumentType = typeof(NeedsArgument);
+                    if (needsArgumentType.HasDefault) return 11;
+                    try { object? invalid = needsArgumentType.Default(); return 12; }
+                    catch (InvalidOperationException) { }
+                    Type nullableNeedsArgumentType = typeof(NeedsArgument?);
+                    if (!nullableNeedsArgumentType.IsNullable || nullableNeedsArgumentType.ElementType != needsArgumentType ||
+                        nullableNeedsArgumentType.GetMethod("Read") != needsArgumentType.GetMethod("Read")) return 17;
+                    NeedsArgument nullableCreated = (NeedsArgument)nullableNeedsArgumentType.New(24)!;
+                    if (nullableCreated.Value != 24) return 18;
+                    NeedsArgument created = (NeedsArgument)needsArgumentType.New(42)!;
+                    if (created.Value != 42) return 13;
+                    try { int64 mismatch = integerType.Default<int64>(); return 14; }
+                    catch (InvalidOperationException) { }
+                    return 0;
+                }
+            }
+            """;
+        var result = LumaCompiler.Compile(runtimeSources.Append(("type-default-test.ls", source)));
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
         var execution = LlvmJit.RunMain(result.LlvmIr!);
