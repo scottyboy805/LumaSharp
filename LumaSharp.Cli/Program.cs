@@ -5,7 +5,7 @@ return await Cli.RunAsync(args);
 
 internal static class Cli
 {
-    private static readonly HashSet<string> ProjectProperties = ["schemaVersion", "outputKind", "outputName", "outputDirectory", "intermediateDirectory", "targetTriple", "runtimeLibraryPath", "unsafe", "optimize", "logLevel", "warningsAsErrors", "disabledWarnings", "excludeDirectories"];
+    private static readonly HashSet<string> ProjectProperties = ["schemaVersion", "outputKind", "outputName", "outputDirectory", "intermediateDirectory", "targetTriple", "runtimeLibraryPath", "unsafe", "optimize", "logLevel", "warningsAsErrors", "disabledWarnings", "preprocessorSymbols", "excludeDirectories"];
     public static async Task<int> RunAsync(string[] args)
     {
         if (args.Length == 0 || args[0] is "--help" or "-h") return Help();
@@ -67,7 +67,8 @@ internal static class Cli
                 DisabledWarnings: settings.DisabledWarnings,
                 TargetTriple: settings.Target ?? "host",
                 Optimize: settings.Optimize,
-                EmitLlvmIrOnly: overrides.EmitIrOnly);
+                EmitLlvmIrOnly: overrides.EmitIrOnly,
+                PreprocessorSymbols: settings.PreprocessorSymbols);
             var build = await LumaBuild.BuildAsync(new CompilerBuildRequest(
                 sourcePaths,
                 options,
@@ -124,6 +125,16 @@ internal static class Cli
         if (root.TryGetProperty("warningsAsErrors", out var wae)) settings.WarningsAsErrors = Boolean(wae, "warningsAsErrors");
         if (root.TryGetProperty("logLevel", out var log)) { settings.LogLevel = String(log, "logLevel"); if (settings.LogLevel is not ("quiet" or "normal" or "verbose" or "debug")) throw new ProjectException("LMC1002", "Invalid logLevel."); }
         if (root.TryGetProperty("disabledWarnings", out var disabled)) { if (disabled.ValueKind != JsonValueKind.Array) throw new ProjectException("LMC1002", "disabledWarnings must be an array."); foreach (var item in disabled.EnumerateArray()) settings.DisabledWarnings.Add(String(item, "disabledWarnings item")); }
+        if (root.TryGetProperty("preprocessorSymbols", out var preprocessorSymbols))
+        {
+            if (preprocessorSymbols.ValueKind != JsonValueKind.Array) throw new ProjectException("LMC1002", "preprocessorSymbols must be an array.");
+            foreach (var item in preprocessorSymbols.EnumerateArray())
+            {
+                var symbol = String(item, "preprocessorSymbols item");
+                if (!IsPreprocessorSymbol(symbol)) throw new ProjectException("LMC1002", $"'{symbol}' is not a valid preprocessor symbol.");
+                settings.PreprocessorSymbols.Add(symbol);
+            }
+        }
         if (root.TryGetProperty("excludeDirectories", out var excluded)) { if (excluded.ValueKind != JsonValueKind.Array) throw new ProjectException("LMC1002", "excludeDirectories must be an array."); foreach (var item in excluded.EnumerateArray()) settings.ExcludedDirectories.Add(String(item, "excludeDirectories item")); }
         settings.Output = Resolve(rootPath, settings.Output ?? "bin"); settings.Intermediate = Resolve(rootPath, settings.Intermediate ?? "obj");
         var exclusions = settings.ExcludedDirectories.ToArray();
@@ -189,13 +200,32 @@ internal static class Cli
             throw new ProjectException("LMC1002", "outputName must be a valid file name without directory separators.");
     }
     private static string Resolve(string root, string path) => Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(root, path));
+    private static bool IsPreprocessorSymbol(string symbol)
+    {
+        if (string.IsNullOrEmpty(symbol) || symbol is "true" or "false") return false;
+        var first = true;
+        for (var index = 0; index < symbol.Length;)
+        {
+            if (System.Text.Rune.DecodeFromUtf16(symbol.AsSpan(index), out var rune, out var consumed) != System.Buffers.OperationStatus.Done)
+                return false;
+            var category = System.Text.Rune.GetUnicodeCategory(rune);
+            var valid = rune.Value == '_' || category is System.Globalization.UnicodeCategory.UppercaseLetter or
+                System.Globalization.UnicodeCategory.LowercaseLetter or System.Globalization.UnicodeCategory.TitlecaseLetter or
+                System.Globalization.UnicodeCategory.ModifierLetter or System.Globalization.UnicodeCategory.OtherLetter ||
+                !first && category == System.Globalization.UnicodeCategory.DecimalDigitNumber;
+            if (!valid) return false;
+            index += consumed;
+            first = false;
+        }
+        return !first;
+    }
     private sealed class ProjectException(string code, string message) : Exception(message) { public string Code { get; } = code; }
     private sealed class Settings
     {
         public string Kind { get; set; } = "executable"; public string Name { get; set; } = "LumaProgram"; public string? Output { get; set; } public string? Intermediate { get; set; } public string? Target { get; set; } = "host";
         public string? RuntimeLibraryPath { get; set; }
         public bool Unsafe { get; set; } public bool Optimize { get; set; } public bool WarningsAsErrors { get; set; } public string LogLevel { get; set; } = "normal";
-        public HashSet<string> DisabledWarnings { get; } = new(StringComparer.OrdinalIgnoreCase); public HashSet<string> ExcludedDirectories { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> DisabledWarnings { get; } = new(StringComparer.OrdinalIgnoreCase); public HashSet<string> PreprocessorSymbols { get; } = new(StringComparer.Ordinal); public HashSet<string> ExcludedDirectories { get; } = new(StringComparer.OrdinalIgnoreCase);
     }
     private sealed class Overrides
     {

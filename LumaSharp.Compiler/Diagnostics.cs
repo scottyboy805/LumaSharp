@@ -20,6 +20,12 @@ public sealed class DiagnosticBag
         if (_seen.Add(diagnostic)) _items.Add(diagnostic);
     }
 
+    public void AddRange(IEnumerable<Diagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+            Add(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Location);
+    }
+
     internal void DiscardSince(int count)
     {
         if (count < 0 || count > _items.Count) throw new ArgumentOutOfRangeException(nameof(count));

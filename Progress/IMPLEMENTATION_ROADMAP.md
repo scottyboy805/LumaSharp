@@ -8,6 +8,8 @@ LumaSharp is implemented in C# on .NET 10. The compiler parses and analyzes `.ls
 
 Unsupported source constructs and specialization limits are reported as diagnostics. Build and runtime conformance are covered by `Tests/LumaSharp.Tests`; `Tests/LumaSharp.Benchmarks` contains opt-in native comparisons with C# equivalents. Benchmark timings depend on the machine, workload, optimization settings, and process-startup measurement.
 
+The source preprocessor handles each file before lexing and preserves line positions. It supports source-file-only `#define`, `#if`/`#elif`/`#else`/`#endif`, `#warning`, `#error`, and diagnostic `#disable`/`#enable`. Project JSON `preprocessorSymbols` supplies bare, case-sensitive symbol names to every file in a compilation.
+
 ## Generics
 
 Closed generic classes, structs, interfaces, delegates, and methods are specialized into concrete declarations. Generic constraints, constructed and nullable type patterns, arrays, method inference, method groups, lambdas, static storage per closed type, nested types, accessibility, and runtime type metadata are covered by compiler and execution tests.
@@ -50,4 +52,4 @@ The compiler/runtime suite was most recently run for the type hierarchy and bind
 dotnet test Tests\LumaSharp.Tests\LumaSharp.Tests.csproj --no-restore
 ```
 
-The run passed all 554 tests. The compiler, CLI, and test project built successfully. The benchmark project was not part of this run.
+The run passed all 572 tests, including the 18 preprocessor cases. The compiler, CLI, and test project built successfully. The benchmark project was not part of this run.

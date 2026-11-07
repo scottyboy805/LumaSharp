@@ -183,7 +183,7 @@ Other library interfaces mentioned in this document, such as `IHashable`, `IEqua
 - Source files use the extension **`.ls`**.
 - Source text is **UTF-8**. A leading byte-order mark MUST be accepted and ignored.
 - Line terminators are `\n`, `\r\n`, or `\r`. All are equivalent.
-- A source file is a sequence of tokens separated by whitespace and comments. There is **no preprocessor**.
+- A source file is preprocessed before lexing, then parsed as a sequence of tokens separated by whitespace and comments (§2.8).
 - Statements are terminated by `;`. Blocks use `{ }`.
 
 ## 2.2 Whitespace and Comments
@@ -316,6 +316,16 @@ string path = $@"C:\users\{name}\{{notes}}";
 ## 2.7 Line/Position Information
 
 A conforming compiler MUST track line and column for each token (1-based, columns measured in UTF-16 code units) for use in diagnostics (§23).
+
+## 2.8 Preprocessor directives
+
+Preprocessor directives are handled before lexing and parsing. A directive begins with `#` as the first non-whitespace character on a source line, outside a comment or string literal. Directive lines and inactive conditional text are replaced with whitespace while line terminators are preserved, so diagnostics in active code retain their original file, line, and column positions. Directives are file-scoped except for symbols supplied by project/compiler options.
+
+The supported conditional directives are `#if`, `#elif`, `#else`, and `#endif`. Conditional expressions support symbol names, `true`, `false`, parentheses, unary `!`, equality `==`/`!=`, logical `&&`, and logical `||`, in that precedence order. A symbol evaluates to `true` when it is defined and `false` otherwise. Nested conditionals are supported; unmatched or malformed directives produce `LS0002`. Source `#define SYMBOL` adds a case-sensitive symbol for the remainder of that source file and MUST appear before the first active source token. A source definition does not affect any other file. Project-wide symbols are described by the Compiler Specification.
+
+`#warning message` reports a `Warning` diagnostic `LS3005`. `#error message` reports an `Error` diagnostic `LS0003`. The message is the text following the directive, with surrounding whitespace removed. Directives in inactive conditional branches do not report either diagnostic.
+
+`#disable code[, code ...]` suppresses matching diagnostics from the following source line until a matching `#enable` or the end of the file. `#enable` ends the source-local suppression for the listed codes from the following line onward. A code may be written as `LS0103` or `0103`; a four-digit numeric form is shorthand for an `LS` code. Full `LSxxxx` and `LMCxxxx` identifiers are accepted. Suppression applies to diagnostics of any severity. Project-level `disabledWarnings` remains in effect even after a source `#enable`. Invalid directive syntax produces `LS0002`.
 
 ---
 
@@ -4077,7 +4087,7 @@ A conforming compiler MUST:
 - report every **error** condition in this specification and produce no executable or library when any error is reported;
 - report every **required warning**;
 - give each diagnostic: severity, a stable **code**, a human-readable message, and source location (file, line, column; range recommended);
-- allow warnings to be promoted to errors or disabled **only through project/compiler options** (defined in the Compiler Specification). There is no in-source suppression until a preprocessor exists (§24.2).
+- allow warnings to be promoted or disabled through project/compiler options and the source preprocessor directives in §2.8.
 
 Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NOT depend on exact message text. Ranges: `LS0xxx` syntax/semantic, `LS1xxx` types/generics/nullability/arrays/unsafe, `LS2xxx` declarations/modules/interop, `LS3xxx` warnings.
 
@@ -4086,6 +4096,8 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 | Code | Condition |
 |---|---|
 | LS0001 | Unexpected token / syntax error |
+| LS0002 | Invalid or unmatched preprocessor directive (§2.8) |
+| LS0003 | Active `#error` directive (§2.8) |
 | LS0104 | Reserved-for-future keyword used as identifier (§2.4) |
 | LS0105 | Invalid async/await or lock usage (§6.13, §7.10, Chapter 34) |
 | LS0201 | Local/parameter name conflicts with enclosing scope, or an initializer refers to a variable declared by the same statement (§4.2.4, §4.4) |
@@ -4163,6 +4175,7 @@ Codes below are *recommended identifiers* (`LS` + four digits). Programs MUST NO
 | LS3001 | Unreachable code |
 | LS3002 | Member hides an inherited non-virtual member |
 | LS3003 | Switch expression exhaustiveness cannot be proven; unmatched evaluation throws (§5.16) |
+| LS3005 | Active `#warning` directive (§2.8) |
 | LS3101 | `is` test whose result is a compile-time constant |
 | LS3103 | `!` applied to a value already known to be non-null |
 | LS3104 | Non-nullable reference compared with `null`; comparison is constant |
@@ -4214,7 +4227,6 @@ These features are **not planned** and are not reserved as keywords. A program u
 | Exception filters (`when` on `catch`) | `when` is only used in `switch` guards |
 | Function pointers, unmanaged callbacks, explicit calling conventions, struct layout control | §21.2 |
 | Local functions, object initializers, `init` accessors, raw string literals | Interpolated strings are supported by §2.5.5 |
-| A preprocessor, and with it in-source diagnostic suppression | |
 | The standard library beyond the compiler-known types (§1.7) | Defined separately |
 
 ---
@@ -5342,7 +5354,7 @@ Every rule marked `[P-n]` in the text is listed here. D.1 records the remaining 
 | String length | UTF-16 code units (C# `String.Length` semantics), regardless of storage encoding, excluding the terminator (§16.3) |
 | Visibility | All C# modifiers; members default to `private` (§8.7) |
 | Multicast delegates | Not supported (§17.1) |
-| Diagnostic suppression | Deferred until a preprocessor exists (§23.1) |
+| Preprocessor | `#define`, conditionals, `#warning`, `#error`, `#enable`, and `#disable` are specified in §2.8; project symbols are specified by the Compiler Specification |
 
 ---
 

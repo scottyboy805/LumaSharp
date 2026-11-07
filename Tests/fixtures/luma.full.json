@@ -10,5 +10,6 @@
   "logLevel": "normal",
   "warningsAsErrors": false,
   "disabledWarnings": [],
+  "preprocessorSymbols": [],
   "excludeDirectories": []
 }

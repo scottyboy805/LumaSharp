@@ -11,6 +11,7 @@ The language and compiler are still under active development. The specifications
   - [Build from the command line](#build-from-the-command-line)
   - [Use a project file](#use-a-project-file)
 - [2. Source files and names](#2-source-files-and-names)
+  - [Preprocessor directives](#preprocessor-directives)
 - [3. Types, variables, and values](#3-types-variables-and-values)
   - [Built-in types](#built-in-types)
   - [Declarations and defaults](#declarations-and-defaults)
@@ -100,7 +101,8 @@ A JSON project describes output settings. The CLI discovers `.ls` files recursiv
   "runtimeLibraryPath": "../LumaSharp.Library",
   "targetTriple": "host",
   "unsafe": false,
-  "optimize": false
+  "optimize": false,
+  "preprocessorSymbols": ["DEBUG", "TRACE"]
 }
 ```
 
@@ -129,6 +131,29 @@ public class Greeter
 ```
 
 If a file has no namespace declaration, its types are in the global namespace. Different files can declare types in the same namespace. Identifiers are case-sensitive.
+### Preprocessor directives
+
+The compiler preprocesses `.ls` files before lexing. Write `#define` only in source files; project JSON contains bare symbol names (without `#define`) in `preprocessorSymbols`. Source definitions are local to their file, while project symbols apply to every file:
+
+```json
+{
+  "schemaVersion": 1,
+  "preprocessorSymbols": ["DEBUG", "TRACE"]
+}
+```
+
+Use `#if`, `#elif`, `#else`, and `#endif` to select code. Conditions support defined symbols, `true`/`false`, parentheses, `!`, `==`, `!=`, `&&`, and `||`:
+
+```lumasharp
+#define LOCAL_BUILD
+#if DEBUG && (LOCAL_BUILD || TRACE)
+public class BuildInfo { public static string Name() => "debug"; }
+#else
+public class BuildInfo { public static string Name() => "release"; }
+#endif
+```
+
+`#warning message` reports warning `LS3005`; `#error message` fails compilation with `LS0003`. `#disable LS3001` (or `#disable 3001`) suppresses that diagnostic starting on the next source line. `#enable LS3001` restores it from the following line. Multiple codes can be comma-separated. Invalid or unmatched directives report `LS0002`. Inactive branches are removed before parsing, so their contents need not be valid LumaSharp source.
 
 Extensions add statically bound methods and computed properties to an existing class, struct, or interface. Their receiver is passed as a scoped, implicit first parameter, and existing members are available through `this` or unqualified names:
 

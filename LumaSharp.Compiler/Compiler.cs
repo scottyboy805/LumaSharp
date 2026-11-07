@@ -7,7 +7,8 @@ public sealed record CompilationOptions(
     IReadOnlySet<string>? DisabledWarnings = null,
     string TargetTriple = "host",
     bool Optimize = false,
-    bool EmitLlvmIrOnly = false);
+    bool EmitLlvmIrOnly = false,
+    IReadOnlySet<string>? PreprocessorSymbols = null);
 public sealed record CompilationResult(IReadOnlyList<Diagnostic> Diagnostics, string? LlvmIr)
 {
     public bool Succeeded => LlvmIr is not null && !Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
@@ -41,7 +42,9 @@ public static class LumaCompiler
     {
         options ??= new();
         var diagnostics = new DiagnosticBag();
+        var preprocessorResults = new Dictionary<string, PreprocessorResult>(StringComparer.Ordinal);
         IReadOnlyList<Diagnostic> FinalDiagnostics() => diagnostics.Items
+            .Where(d => !(d.Location is { } location && preprocessorResults.TryGetValue(location.File, out var sourceResult) && sourceResult.Disables(d)))
             .Where(d => d.Severity != DiagnosticSeverity.Warning || options.DisabledWarnings?.Contains(d.Code) != true)
             .Select(d => options.WarningsAsErrors && d.Severity == DiagnosticSeverity.Warning ? d with { Severity = DiagnosticSeverity.Error } : d)
             .ToArray();
@@ -51,9 +54,14 @@ public static class LumaCompiler
             foreach (var (path, text) in sources)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                var preprocessed = profiler is null
+                    ? SourcePreprocessor.Process(path, text, options.PreprocessorSymbols, cancellationToken)
+                    : profiler.Measure("Preprocessing", () => SourcePreprocessor.Process(path, text, options.PreprocessorSymbols, cancellationToken));
+                preprocessorResults[path] = preprocessed;
+                diagnostics.AddRange(preprocessed.Diagnostics);
                 var tokens = profiler is null
-                    ? new Lexer(path, text, diagnostics, cancellationToken).Scan()
-                    : profiler.Measure("Lexing", () => new Lexer(path, text, diagnostics, cancellationToken).Scan());
+                    ? new Lexer(path, preprocessed.Source, diagnostics, cancellationToken).Scan()
+                    : profiler.Measure("Lexing", () => new Lexer(path, preprocessed.Source, diagnostics, cancellationToken).Scan());
                 var isRuntimeSource = runtimeSourcePaths.Contains(Path.GetFullPath(path));
                 var unit = profiler is null
                     ? new Parser(tokens, diagnostics, options.UnsafeEnabled || isRuntimeSource, cancellationToken).ParseCompilationUnit()

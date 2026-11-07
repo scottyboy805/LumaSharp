@@ -110,6 +110,8 @@ The CLI MUST support help for the root command and the `build` command. Help MUS
 
 All source files supplied in source mode constitute one compilation. Declarations in one file MUST be resolvable from another file in the same compilation, subject to the Language Specification's namespace, accessibility, and declaration rules. The compiler MUST NOT emit a separate output for every source file.
 
+Before lexing, the compiler MUST preprocess every source file independently as specified by §2.8 of the Language Specification. `CompilationOptions.PreprocessorSymbols` seeds the same project/compiler-defined symbol set into every source file in the compilation. A source `#define` affects only its own file.
+
 Repeated references to the same canonical file path SHOULD be de-duplicated. The compiler MUST use a stable source ordering for deterministic diagnostics and intermediate output. Source mode SHOULD preserve the order of source paths supplied on the command line; project mode MUST use a deterministic ordering of discovered paths.
 
 ## 4. JSON Project and Source Discovery
@@ -148,6 +150,7 @@ The following JSON illustrates the initial project settings contract. All fields
   "logLevel": "normal",
   "warningsAsErrors": false,
   "disabledWarnings": [],
+  "preprocessorSymbols": [],
   "excludeDirectories": []
 }
 ```
@@ -166,6 +169,7 @@ The following JSON illustrates the initial project settings contract. All fields
 | `logLevel` | `"quiet"`, `"normal"`, `"verbose"`, or `"debug"` | `"normal"`. Controls informational build logging, not whether required diagnostics are reported. |
 | `warningsAsErrors` | Boolean | `false`. Treats warnings as errors for the current build. |
 | `disabledWarnings` | Array of diagnostic-code strings | Empty. Disables listed warnings, subject to the Language Specification's diagnostic rules. |
+| `preprocessorSymbols` | Array of identifier strings | Empty. Defines each bare symbol name (without a `#define` prefix) for every source file in the compilation; symbols are case-sensitive. `#define` directives are source-file-only and remain file-scoped. |
 | `excludeDirectories` | Array of relative directory paths | Empty. Adds project-root-relative directories to source-discovery exclusions. |
 
 Relative project paths (including output, intermediate, exclusion, and runtime-library paths) MUST be resolved from the project root. Absolute output, intermediate, and runtime-library paths MAY be accepted. `outputDirectory` and `intermediateDirectory` MUST be kept outside source discovery even if their names are not `bin` and `obj`.
