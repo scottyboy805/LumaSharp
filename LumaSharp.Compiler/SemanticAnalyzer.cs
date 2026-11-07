@@ -7558,12 +7558,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
     private MethodSymbol? SelectConstructor(CallExpression call, MethodSymbol[] candidates, MethodContext context, string typeName,
         string noMatchCode = "LS0751", AllocationExpression? scopedOwner = null)
     {
-        var argumentTypes = call.Arguments.Select(argument => AnalyzeExpression(argument, context)).ToArray();
-        var applicable = new List<(MethodSymbol Method, BoundCallArguments Binding)>();
-        foreach (var candidate in candidates)
+        var argumentTypes = call.Arguments.Select(argument => argument is AllocationExpression { TypeName: null }
+            ? "?"
+            : AnalyzeExpression(argument, context)).ToArray();
+        bool IsApplicableConstructor(MethodSymbol candidate, out BoundCallArguments binding)
         {
-            if (!TryBindCallArguments(call, candidate, argumentTypes, out var binding)) continue;
-            var valid = true;
+            if (!TryBindCallArguments(call, candidate, argumentTypes, out binding!)) return false;
             for (var index = 0; index < argumentTypes.Length; index++)
             {
                 var parameter = candidate.Declaration.Parameters[binding.ParameterBySource[index]];
@@ -7571,15 +7571,65 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                 var mode = call.ArgumentModes is not null && index < call.ArgumentModes.Count ? call.ArgumentModes[index] ?? "" : "";
                 if (parameter.PassingMode is "ref" or "out")
                 {
-                    if (mode != parameter.PassingMode || argumentTypes[index] != parameterType || !IsMutableVariableArgument(call.Arguments[index], context)) { valid = false; break; }
+                    if (mode != parameter.PassingMode || argumentTypes[index] != parameterType || !IsMutableVariableArgument(call.Arguments[index], context)) return false;
                     continue;
                 }
                 if (mode is "ref" or "out" || parameter.PassingMode == "in" && mode is not ("" or "in") || parameter.PassingMode != "in" && mode == "in" ||
                     argumentTypes[index] != "?" && !CanConvert(argumentTypes[index], parameterType, call.Arguments[index]))
-                { valid = false; break; }
+                    return false;
             }
-            if (valid) applicable.Add((candidate, binding));
+            return true;
         }
+
+        List<(MethodSymbol Method, BoundCallArguments Binding)> GetApplicableConstructors()
+        {
+            var result = new List<(MethodSymbol Method, BoundCallArguments Binding)>();
+            foreach (var candidate in candidates)
+                if (IsApplicableConstructor(candidate, out var binding)) result.Add((candidate, binding));
+            return result;
+        }
+
+        (MethodSymbol Method, BoundCallArguments Binding)[] GetBestConstructors(
+            List<(MethodSymbol Method, BoundCallArguments Binding)> applicableCandidates)
+        {
+            var result = applicableCandidates.Where(candidate => applicableCandidates.All(other =>
+                ReferenceEquals(candidate.Method, other.Method) ||
+                CompareCandidates(candidate.Method, other.Method, argumentTypes, call.Arguments, candidate.Binding, other.Binding) <= 0)).ToArray();
+            if (result.Length > 1)
+            {
+                var minDefaults = result.Min(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null));
+                result = result.Where(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null) == minDefaults).ToArray();
+            }
+            if (result.Length > 1)
+            {
+                var minVariadicPenalty = result.Min(candidate => VariadicBindingPenalty(candidate.Binding));
+                result = result.Where(candidate => VariadicBindingPenalty(candidate.Binding) == minVariadicPenalty).ToArray();
+            }
+            return result;
+        }
+
+        var provisionalApplicable = GetApplicableConstructors();
+        if (provisionalApplicable.Count > 0)
+        {
+            var provisionalBest = GetBestConstructors(provisionalApplicable);
+            for (var sourceIndex = 0; sourceIndex < call.Arguments.Count; sourceIndex++)
+            {
+                if (argumentTypes[sourceIndex] != "?" || call.Arguments[sourceIndex] is not AllocationExpression { TypeName: null } allocation)
+                    continue;
+                var expectedTypes = provisionalBest.Select(candidate => NormalizeEnumType(
+                    GetParameterTypeForSource(candidate.Method, candidate.Binding, sourceIndex), candidate.Method.Owner))
+                    .Distinct(StringComparer.Ordinal).ToArray();
+                if (expectedTypes.Length != 1)
+                {
+                    diagnostics.Add("LS0802", DiagnosticSeverity.Error,
+                        "A target-typed allocation requires one unambiguous expected type in this context.", allocation.Location);
+                    return null;
+                }
+                argumentTypes[sourceIndex] = AnalyzeExpression(allocation, context, expectedTypes[0]);
+            }
+        }
+
+        var applicable = GetApplicableConstructors();
         if (applicable.Count == 0)
         {
             if (noMatchCode == "LS0811")
@@ -7587,18 +7637,7 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
             else diagnostics.Add("LS0751", DiagnosticSeverity.Error, $"No applicable constructor overload for '{typeName}'.", call.Location);
             return null;
         }
-        var best = applicable.Where(candidate => applicable.All(other => ReferenceEquals(candidate.Method, other.Method) ||
-            CompareCandidates(candidate.Method, other.Method, argumentTypes, call.Arguments, candidate.Binding, other.Binding) <= 0)).ToArray();
-        if (best.Length > 1)
-        {
-            var minDefaults = best.Min(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null));
-            best = best.Where(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null) == minDefaults).ToArray();
-        }
-        if (best.Length > 1)
-        {
-            var minVariadicPenalty = best.Min(candidate => VariadicBindingPenalty(candidate.Binding));
-            best = best.Where(candidate => VariadicBindingPenalty(candidate.Binding) == minVariadicPenalty).ToArray();
-        }
+        var best = GetBestConstructors(applicable);
         if (best.Length != 1)
         {
             diagnostics.Add("LS0750", DiagnosticSeverity.Error, $"Call to constructor '{typeName}' is ambiguous.", call.Location);
@@ -8703,6 +8742,14 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         continue;
                     }
 
+                    if (argument is AllocationExpression { TypeName: null })
+                    {
+                        // Target-typed allocations need a parameter type before they can be
+                        // analyzed. Resolve that after generic candidates are prepared below.
+                        args[sourceIndex] = "?";
+                        continue;
+                    }
+
                     if ((argument is NameExpression or MemberAccessExpression) && candidates.Length > 0)
                     {
                         var expectedTypes = new List<string>();
@@ -8789,11 +8836,9 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         TryBindMethodGroup(argument, distinctExpectedTypes[0], context))
                         args[sourceIndex] = distinctExpectedTypes[0];
                 }
-                var applicable = new List<(MethodSymbol Method, BoundCallArguments Binding)>();
-                foreach (var candidate in candidates)
+                bool IsApplicableCallCandidate(MethodSymbol candidate, out BoundCallArguments binding)
                 {
-                    if (!TryBindCallArguments(call, candidate, args, out var binding)) continue;
-                    var converts = true;
+                    if (!TryBindCallArguments(call, candidate, args, out binding!)) return false;
                     for (var index = 0; index < args.Length; index++)
                     {
                         var parameter = candidate.Declaration.Parameters[binding.ParameterBySource[index]];
@@ -8802,34 +8847,90 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         if (call.Arguments[index] is InlineOutVariableExpression inlineOut)
                         {
                             var declaredType = inlineOut.TypeName is null ? parameterType : args[index];
-                            if (argumentMode != "out" || parameter.PassingMode != "out" || declaredType != parameterType) { converts = false; break; }
+                            if (argumentMode != "out" || parameter.PassingMode != "out" || declaredType != parameterType) return false;
                             continue;
                         }
                         if (parameter.PassingMode is "ref" or "out")
                         {
-                            if (argumentMode != parameter.PassingMode || args[index] != parameterType || !IsMutableVariableArgument(call.Arguments[index], context)) { converts = false; break; }
+                            if (argumentMode != parameter.PassingMode || args[index] != parameterType || !IsMutableVariableArgument(call.Arguments[index], context)) return false;
                             continue;
                         }
                         if (argumentMode is "ref" or "out" || parameter.PassingMode == "in" && argumentMode is not ("" or "in") || parameter.PassingMode != "in" && argumentMode == "in")
-                        { converts = false; break; }
-                        if (args[index] == "?" && call.Arguments[index] is DefaultValueExpression { TypeName: null }) continue;
-                        if (!CanConvertInContext(args[index], parameterType, call.Arguments[index], context)) { converts = false; break; }
+                            return false;
+                        if (args[index] == "?" && call.Arguments[index] is DefaultValueExpression { TypeName: null } or AllocationExpression { TypeName: null })
+                            continue;
+                        if (!CanConvertInContext(args[index], parameterType, call.Arguments[index], context)) return false;
                     }
-                    if (converts) applicable.Add((candidate, binding));
+                    return true;
                 }
+
+                List<(MethodSymbol Method, BoundCallArguments Binding)> GetApplicableCallCandidates()
+                {
+                    var result = new List<(MethodSymbol Method, BoundCallArguments Binding)>();
+                    foreach (var candidate in candidates)
+                        if (IsApplicableCallCandidate(candidate, out var binding)) result.Add((candidate, binding));
+                    return result;
+                }
+
+                (MethodSymbol Method, BoundCallArguments Binding)[] GetBestCallCandidates(
+                    List<(MethodSymbol Method, BoundCallArguments Binding)> applicableCandidates)
+                {
+                    var result = applicableCandidates.Where(candidate => applicableCandidates.All(other =>
+                        ReferenceEquals(candidate.Method, other.Method) ||
+                        CompareCandidates(candidate.Method, other.Method, args, call.Arguments, candidate.Binding, other.Binding) <= 0)).ToArray();
+                    if (result.Length > 1)
+                    {
+                        var minDefaults = result.Min(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null));
+                        result = result.Where(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null) == minDefaults).ToArray();
+                    }
+                    if (result.Length > 1)
+                    {
+                        var minVariadicPenalty = result.Min(candidate => VariadicBindingPenalty(candidate.Binding));
+                        result = result.Where(candidate => VariadicBindingPenalty(candidate.Binding) == minVariadicPenalty).ToArray();
+                    }
+                    return result;
+                }
+
+                var provisionalApplicable = GetApplicableCallCandidates();
+                if (provisionalApplicable.Count > 0)
+                {
+                    var provisionalBest = GetBestCallCandidates(provisionalApplicable);
+                    for (var sourceIndex = 0; sourceIndex < call.Arguments.Count; sourceIndex++)
+                    {
+                        if (args[sourceIndex] != "?" || call.Arguments[sourceIndex] is not AllocationExpression { TypeName: null } allocation)
+                            continue;
+                        var expectedTypes = new List<string>();
+                        var expectedTypeDependsOnMethodParameter = false;
+                        foreach (var candidate in provisionalBest)
+                        {
+                            var parameterType = GetParameterTypeForSource(candidate.Method, candidate.Binding, sourceIndex);
+                            expectedTypes.Add(NormalizeEnumType(parameterType, candidate.Method.Owner));
+                            if (candidate.Method.Declaration.TypeParameters is { Count: > 0 } methodTypeParameters &&
+                                GenericTypeSpecializer.ReferencesAnyTypeParameter(parameterType, methodTypeParameters.ToHashSet(StringComparer.Ordinal)))
+                                expectedTypeDependsOnMethodParameter = true;
+                        }
+                        var distinctExpectedTypes = expectedTypes.Distinct(StringComparer.Ordinal).ToArray();
+                        if (expectedTypeDependsOnMethodParameter)
+                        {
+                            diagnostics.Add("LS0802", DiagnosticSeverity.Error,
+                                "A target-typed allocation requires a concrete expected type in this context.", allocation.Location);
+                            return "?";
+                        }
+                        if (distinctExpectedTypes.Length == 1)
+                            args[sourceIndex] = AnalyzeExpression(allocation, context, distinctExpectedTypes[0]);
+                        else
+                        {
+                            diagnostics.Add("LS0802", DiagnosticSeverity.Error,
+                                "A target-typed allocation requires one unambiguous expected type in this context.", allocation.Location);
+                            return "?";
+                        }
+                    }
+                }
+
+                var applicable = GetApplicableCallCandidates();
                 var callName = call.Target switch { NameExpression n => n.Name, MemberAccessExpression m => m.Member, _ => "<expression>" };
                 if (applicable.Count == 0) { diagnostics.Add("LS0751", DiagnosticSeverity.Error, $"No applicable overload for '{callName}'.", call.Location); return "?"; }
-                var best = applicable.Where(candidate => applicable.All(other => ReferenceEquals(candidate.Method, other.Method) || CompareCandidates(candidate.Method, other.Method, args, call.Arguments, candidate.Binding, other.Binding) <= 0)).ToArray();
-                if (best.Length > 1)
-                {
-                    var minDefaults = best.Min(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null));
-                    best = best.Where(candidate => candidate.Binding.DefaultsByParameter.Count(value => value is not null) == minDefaults).ToArray();
-                }
-                if (best.Length > 1)
-                {
-                    var minVariadicPenalty = best.Min(candidate => VariadicBindingPenalty(candidate.Binding));
-                    best = best.Where(candidate => VariadicBindingPenalty(candidate.Binding) == minVariadicPenalty).ToArray();
-                }
+                var best = GetBestCallCandidates(applicable);
                 if (best.Length != 1) { diagnostics.Add("LS0750", DiagnosticSeverity.Error, $"Call to '{callName}' is ambiguous.", call.Location); return "?"; }
                 if (best[0].Method.Declaration.IsExtern && !call.IsUnsafeContext)
                     diagnostics.Add("LMC3000", DiagnosticSeverity.Error, $"Calling extern method '{best[0].Method.Declaration.Name}' requires an unsafe context.", call.Location);

@@ -57,6 +57,8 @@ int32? optional = default;       // target-typed default
 
 `let` is immutable, `var` is mutable, and explicit types may replace inference. Fields and locals can be `readonly` or `const` where allowed. `ref`, `in`, and `out` parameters express aliasing modes; `scope` can be combined with any of them to prevent references exposed to a method from escaping. `out` values must be assigned before return. Named and optional arguments use `name: value`; variadic parameters use `T... values`.
 
+When a declaration, assignment, return, or unambiguous call argument supplies a class type, write `new(args)` or `scope(args)` without repeating that type. For example, `Widget item = new(3);` and `Use(new(4));`. Inferred locals such as `let item = new(3);` have no target type and produce LS0802.
+
 ## Expressions and operators
 
 Supported expression forms include calls, member/index access, object and array creation, casts, `is`/`as`, `default`, conditional `?:`, lambdas, and checked numeric operations. Arithmetic and narrowing conversions are checked by default; `checked (expr)` is explicit, and `unchecked` requires `unsafe`.

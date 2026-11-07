@@ -8877,6 +8877,92 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void TargetTypedAllocationsInferConstructorArgumentsAcrossExpectedTypeContexts()
+    {
+        const string source = """
+            class Box
+            {
+                int32 value;
+                public this(int32 initial) { value = initial; }
+                public int32 Read() => value;
+            }
+            class Holder
+            {
+                public Box Field = new(5);
+                public Box Property { get => new(7); }
+                public Box Create() { return new(6); }
+            }
+            class Envelope
+            {
+                public Box Child;
+                public this(Box child, int32 marker) { Child = child; }
+                public this(Other child, string marker) { Child = new(0); }
+            }
+            class Other
+            {
+                public this(int32 initial) { }
+            }
+            class Program
+            {
+                public static Box Identity(Box value) { return value; }
+                public static int32 Select(Box value, int32 marker) { return marker; }
+                public static int32 Select(Other value, string marker) { return 99; }
+                public static int32 ReadScoped(scope Box value) { return value.Read(); }
+                public static int32 Main()
+                {
+                    Box local = new(1);
+                    Box borrowed = scope(2);
+                    local = new(3);
+                    Box fromArgument = Identity(new(4));
+                    Envelope nested = new(new(8), 1);
+                    Holder holder = new();
+                    if (local.Read() != 3) return 1;
+                    if (borrowed.Read() != 2) return 2;
+                    if (fromArgument.Read() != 4) return 3;
+                    if (nested.Child.Read() != 8) return 4;
+                    if (Select(new(9), 10) != 10) return 5;
+                    if (ReadScoped(scope(11)) != 11) return 6;
+                    if (holder.Field.Read() != 5) return 7;
+                    if (holder.Property.Read() != 7) return 8;
+                    if (holder.Create().Read() != 6) return 9;
+                    return 0;
+                }
+            }
+            """;
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
+    public void TargetTypedAllocationsRequireAnUnambiguousOverloadTarget()
+    {
+        const string source = "class First { public this(int32 value) { } } class Second { public this(int32 value) { } } class Program { public static void Use(First value) { } public static void Use(Second value) { } public static int32 Main() { Use(new(1)); return 0; } }";
+        var result = Compile(source);
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LS0802");
+    }
+
+    [Fact]
+    public void InferredLocalsCannotSupplyTheirOwnTargetTypeToAllocations()
+    {
+        var newAllocation = Compile("class Box { public this(int32 value) { } } class Program { public static int32 Main() { let item = new(1); return 0; } }");
+        Assert.False(newAllocation.Succeeded);
+        Assert.Contains(newAllocation.Diagnostics, diagnostic => diagnostic.Code == "LS0802");
+
+        var mutableInferredAllocation = Compile("class Box { public this(int32 value) { } } class Program { public static int32 Main() { var item = new(1); return 0; } }");
+        Assert.False(mutableInferredAllocation.Succeeded);
+        Assert.Contains(mutableInferredAllocation.Diagnostics, diagnostic => diagnostic.Code == "LS0802");
+
+        var scopeAllocation = Compile("class Box { public this(int32 value) { } } class Program { public static int32 Main() { let item = scope(1); return 0; } }");
+        Assert.False(scopeAllocation.Succeeded);
+        Assert.Contains(scopeAllocation.Diagnostics, diagnostic => diagnostic.Code == "LS0802");
+    }
+
+    [Fact]
     public void GeneratesDefaultClassConstructorAndInitializesStringFields()
     {
         const string source = "class Label { string text = \"ready\"; public string Read() { return text; } } class Program { public static int32 Main() { let label = new Label(); if (label.Read() == \"ready\") return 0; return 1; } }";
