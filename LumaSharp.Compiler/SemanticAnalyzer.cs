@@ -9148,6 +9148,12 @@ internal sealed class SemanticAnalyzer(CompilationOptions options, DiagnosticBag
                         foreach (var element in untypedInitializer.Elements) _ = AnalyzeExpression(element, context);
                     return "?";
                 }
+                // Nullable reference annotations describe whether a value may be null;
+                // they do not change the class being constructed. A target-typed
+                // allocation always produces a non-null instance of the underlying class.
+                if (allocation.TypeName is null && allocationType is not null && IsNullableClassType(allocationType) &&
+                    IsClassType(NullableUnderlyingType(allocationType)))
+                    allocationType = NullableUnderlyingType(allocationType);
                 if (allocation.Initializer is not null && normalizedExpectedType is not null &&
                     TryParseInlineArrayType(normalizedExpectedType, out var expectedInlineElementType, out _) &&
                     (allocationType is null || TryParseManagedArrayType(allocationType, out var allocatedArrayElementType, out _) && allocatedArrayElementType == expectedInlineElementType))

@@ -8947,6 +8947,48 @@ public sealed class CompilerTests
     }
 
     [Fact]
+    public void TargetTypedAllocationsToNullableClassTargetsConstructNonNullInstances()
+    {
+        const string source = """
+            class Node
+            {
+                int32 value;
+                public this(int32 initial) { value = initial; }
+                public int32 Read() => value;
+            }
+            class Box<T>
+            {
+                T value;
+                public this(T initial) { value = initial; }
+                public T Read() => value;
+            }
+            class Program
+            {
+                public static int32 Consume(scope Node? value) { return value!.Read(); }
+                public static int32 Main()
+                {
+                    Node? heap = new(10);
+                    Node? scoped = scope(20);
+                    heap = new(11);
+                    Box<int32>? generic = new(30);
+                    if (heap.Read() != 11) return 1;
+                    if (scoped.Read() != 20) return 2;
+                    if (generic.Read() != 30) return 3;
+                    if (Consume(scope(40)) != 40) return 4;
+                    return 0;
+                }
+            }
+            """;
+
+        var result = Compile(source);
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        var execution = LlvmJit.RunMain(result.LlvmIr!);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal(0, execution.OutstandingAllocations);
+        Assert.Null(execution.InteropError);
+    }
+
+    [Fact]
     public void InferredLocalsCannotSupplyTheirOwnTargetTypeToAllocations()
     {
         var newAllocation = Compile("class Box { public this(int32 value) { } } class Program { public static int32 Main() { let item = new(1); return 0; } }");

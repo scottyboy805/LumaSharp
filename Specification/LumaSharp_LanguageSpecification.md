@@ -1065,7 +1065,7 @@ int32[] e = { 1, 2, 3 };              // new int32[] { 1, 2, 3 }
 
 The **target type** is known in these contexts: a variable declaration or assignment with an explicit type, a field/property initializer, a `return` in a method with a declared return type, an element of a collection initializer, and an argument to a method or constructor call when overload resolution leaves one best parameter type (or several equally good candidates with the same parameter type). Other arguments, named arguments, and arity participate in overload resolution before the target type is chosen. If equally good overloads require different types, or no concrete type can be inferred (`let x = new(1);`, `var x = new();`, an overloaded call with different parameter types, a lambda return), the shorthand is error LS0802. This also applies recursively when a constructor argument itself uses `new(...)` or `scope(...)`.
 
-The target type of `new()`/`scope()` MUST be a class (or, for the array form, an array type); a struct target is error LS0801. The target type MUST NOT be abstract (§8.6.1).
+The target type of `new()`/`scope()` MUST be a class (or, for the array form, an array type); a struct target is error LS0801. The target type MUST NOT be abstract (§8.6.1). A nullable reference target is interpreted as its underlying class for construction: `MyClass? value = new(args);` constructs a non-null `MyClass` instance, then assigns that non-null value to the nullable target. This rule applies equally to `scope(args)` and to constructed generic class types with nullable reference annotations.
 
 ## 5.15 Member Access on Nullable Types
 
